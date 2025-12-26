@@ -1,0 +1,22 @@
+// Example Waybar module configuration for histui
+// Add this to your ~/.config/waybar/config.jsonc
+{
+  "custom/notifications": {
+    "exec": "histui status --all --since 24h",
+    "interval": 5,
+    "return-type": "json",
+    "format": "{icon} {}",
+    "format-icons": {
+      "low": "󰎟",
+      "normal": "󰍡",
+      "critical": "󱈸",
+      "empty": "󰍥"
+    },
+    // Left click: toggle dunst pause
+    "on-click": "dunstctl set-paused toggle",
+    // Middle click: open floating TUI (Hyprland example)
+    "on-click-middle": "hyprctl dispatch exec '[float;size 900 600;center] kitty --class histui-float -e histui'",
+    // Right click: dmenu picker with walker (copies body to clipboard)
+    "on-click-right": "histui get | walker --dmenu -p 'Notifications' | cut -d'|' -f1 | xargs histui get --field body | wl-copy"
+  }
+}

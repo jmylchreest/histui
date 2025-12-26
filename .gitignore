@@ -1,0 +1,53 @@
+# Go binaries and build artifacts
+*.exe
+*.exe~
+*.dll
+*.so
+*.dylib
+*.test
+*.out
+histui
+
+# Build directories
+/build/
+/dist/
+/bin/
+
+# Go workspace
+go.work
+go.work.sum
+
+# Dependency directories
+vendor/
+
+# IDE and editor files
+.idea/
+.vscode/
+*.swp
+*.swo
+*~
+.DS_Store
+Thumbs.db
+
+# Environment and secrets
+.env
+.env.*
+*.local
+
+# Coverage and test reports
+coverage.out
+coverage.html
+*.prof
+*.pprof
+
+# Debug artifacts
+__debug_bin*
+debug.test
+
+# Log files
+*.log
+
+# Temporary files
+*.tmp
+*.temp
+.cache/

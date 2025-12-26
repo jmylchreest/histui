@@ -1,0 +1,208 @@
+name: Build Release
+
+on:
+  push:
+    branches:
+      - main
+    tags:
+      - "v*"
+  workflow_dispatch:
+    inputs:
+      release:
+        description: "Create a release (will create and push a version tag)"
+        required: false
+        default: false
+        type: boolean
+
+jobs:
+  prepare:
+    name: Prepare Release
+    runs-on: ubuntu-latest
+    outputs:
+      version: ${{ steps.version.outputs.VERSION }}
+      is_snapshot: ${{ steps.version.outputs.IS_SNAPSHOT }}
+    steps:
+      - name: Checkout code
+        uses: actions/checkout@v5
+        with:
+          fetch-depth: 0
+
+      - name: Determine version
+        id: version
+        run: |
+          if [[ "${{ github.ref }}" == refs/tags/v* ]]; then
+            # Release build from tag
+            VERSION="${GITHUB_REF#refs/tags/v}"
+            IS_SNAPSHOT="false"
+          else
+            # Get last tag and calculate next version
+            LAST_TAG=$(git describe --tags --abbrev=0 2>/dev/null || echo "v0.0.0")
+            LAST_VERSION="${LAST_TAG#v}"
+
+            # Increment patch version
+            IFS='.' read -r MAJOR MINOR PATCH <<< "$LAST_VERSION"
+            NEXT_PATCH=$((PATCH + 1))
+            NEXT_VERSION="${MAJOR}.${MINOR}.${NEXT_PATCH}"
+
+            if [[ "${{ github.event.inputs.release }}" == "true" ]]; then
+              # Manual release requested
+              VERSION="${NEXT_VERSION}"
+              IS_SNAPSHOT="false"
+            else
+              # Snapshot build from main branch or workflow_dispatch
+              SHORT_SHA=$(git rev-parse --short HEAD)
+              VERSION="${NEXT_VERSION}-${SHORT_SHA}-SNAPSHOT"
+              IS_SNAPSHOT="true"
+            fi
+          fi
+
+          echo "VERSION=${VERSION}" >> $GITHUB_OUTPUT
+          echo "IS_SNAPSHOT=${IS_SNAPSHOT}" >> $GITHUB_OUTPUT
+          echo "Determined version: ${VERSION} (snapshot: ${IS_SNAPSHOT})"
+
+      - name: Create and push release tag
+        if: github.event.inputs.release == 'true'
+        run: |
+          git config user.name "github-actions[bot]"
+          git config user.email "github-actions[bot]@users.noreply.github.com"
+          git tag -a "v${{ steps.version.outputs.VERSION }}" -m "Release v${{ steps.version.outputs.VERSION }}"
+          git push origin "v${{ steps.version.outputs.VERSION }}"
+
+  build:
+    name: Build (${{ matrix.goos }}/${{ matrix.goarch }})
+    runs-on: ${{ matrix.os }}
+    needs: prepare
+    strategy:
+      matrix:
+        include:
+          - goos: linux
+            goarch: amd64
+            os: ubuntu-latest
+          - goos: linux
+            goarch: arm64
+            os: ubuntu-24.04-arm
+    steps:
+      - name: Checkout code
+        uses: actions/checkout@v5
+        with:
+          fetch-depth: 0
+
+      - name: Set up Go
+        uses: actions/setup-go@v6
+        with:
+          go-version: stable
+          cache: true
+
+      - name: Run tests
+        run: go test ./...
+
+      - name: Build histui
+        env:
+          CGO_ENABLED: 0
+          GOOS: ${{ matrix.goos }}
+          GOARCH: ${{ matrix.goarch }}
+        run: |
+          go build -ldflags "-s -w -X main.version=${{ needs.prepare.outputs.version }} -X main.commit=${{ github.sha }} -X main.buildTime=$(date -u +%Y-%m-%dT%H:%M:%SZ)" -o histui ./cmd/histui
+
+      - name: Create archive
+        run: |
+          mkdir -p dist
+          tar -czvf dist/histui_${{ needs.prepare.outputs.version }}_${{ matrix.goos }}_${{ matrix.goarch }}.tar.gz \
+            histui \
+            LICENSE \
+            README.md
+
+      - name: Upload artifact
+        uses: actions/upload-artifact@v5
+        with:
+          name: histui_${{ needs.prepare.outputs.version }}_${{ matrix.goos }}_${{ matrix.goarch }}
+          path: dist/*.tar.gz
+          retention-days: 1
+
+  release:
+    name: Create Release
+    runs-on: ubuntu-latest
+    needs: [prepare, build]
+    steps:
+      - name: Checkout code
+        uses: actions/checkout@v5
+        with:
+          fetch-depth: 0
+
+      - name: Download all artifacts
+        uses: actions/download-artifact@v6
+        with:
+          path: artifacts
+          merge-multiple: false
+
+      - name: Prepare release assets
+        run: |
+          mkdir -p release
+          find artifacts -name "*.tar.gz" -exec mv {} release/ \;
+          echo "=== Release assets ==="
+          ls -la release/
+
+      - name: Generate checksums
+        run: |
+          cd release
+          sha256sum *.tar.gz > histui_${{ needs.prepare.outputs.version }}_checksums.txt
+          echo "=== Checksums ==="
+          cat histui_${{ needs.prepare.outputs.version }}_checksums.txt
+
+      - name: Generate changelog
+        run: |
+          if [[ "${{ needs.prepare.outputs.is_snapshot }}" == "true" ]]; then
+            echo "Snapshot build from commit ${{ github.sha }}" > changelog.txt
+            echo "" >> changelog.txt
+            echo "Commit: $(git log -1 --pretty=%B)" >> changelog.txt
+          else
+            PREV_TAG=$(git describe --tags --abbrev=0 HEAD^ 2>/dev/null || echo "")
+            if [ -n "$PREV_TAG" ]; then
+              echo "## Changelog" > changelog.txt
+              echo "" >> changelog.txt
+              git log --pretty=format:"* %h %s" $PREV_TAG..${{ github.ref_name }} | \
+                grep -v "^* [a-f0-9]* docs:" | \
+                grep -v "^* [a-f0-9]* test:" | \
+                grep -v "^* [a-f0-9]* ci:" | \
+                grep -v "^* [a-f0-9]* Merge" >> changelog.txt || echo "* No notable changes" >> changelog.txt
+            else
+              echo "* Initial release" > changelog.txt
+            fi
+          fi
+          echo "=== Changelog ==="
+          cat changelog.txt
+
+      - name: Clean up old snapshots
+        if: needs.prepare.outputs.is_snapshot == 'true'
+        run: |
+          echo "Cleaning up old snapshot releases (keeping 5 most recent)..."
+          SNAPSHOT_RELEASES=$(gh release list --limit 100 --json tagName,isPrerelease,createdAt \
+            --jq '[.[] | select(.isPrerelease == true and (.tagName | contains("SNAPSHOT")))] | sort_by(.createdAt) | .[].tagName')
+
+          TOTAL=$(echo "$SNAPSHOT_RELEASES" | grep -c . || echo 0)
+          echo "Found $TOTAL snapshot releases"
+
+          TO_DELETE=$((TOTAL - 4))
+          if [ "$TO_DELETE" -gt 0 ]; then
+            echo "Deleting $TO_DELETE old snapshot releases..."
+            echo "$SNAPSHOT_RELEASES" | head -n "$TO_DELETE" | while read -r tag; do
+              if [ -n "$tag" ]; then
+                echo "Deleting release: $tag"
+                gh release delete "$tag" --yes --cleanup-tag || true
+              fi
+            done
+          fi
+        env:
+          GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+
+      - name: Create GitHub Release
+        uses: softprops/action-gh-release@v2
+        with:
+          name: ${{ needs.prepare.outputs.is_snapshot == 'true' && format('Snapshot {0}', needs.prepare.outputs.version) || format('v{0}', needs.prepare.outputs.version) }}
+          tag_name: ${{ needs.prepare.outputs.is_snapshot == 'true' && needs.prepare.outputs.version || github.ref_name }}
+          body_path: changelog.txt
+          files: release/*
+          draft: false
+          prerelease: ${{ needs.prepare.outputs.is_snapshot == 'true' }}
+        env:
+          GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}

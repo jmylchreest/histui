@@ -1,0 +1,38 @@
+name: Test
+
+on:
+  push:
+    tags:
+      - "v*"
+      - "!*SNAPSHOT*"
+    paths-ignore:
+      - "docs/**"
+      - "**.md"
+  pull_request:
+    paths-ignore:
+      - "docs/**"
+      - "**.md"
+  workflow_dispatch:
+
+jobs:
+  test:
+    name: Run tests
+    runs-on: ubuntu-latest
+    steps:
+      - name: Checkout code
+        uses: actions/checkout@v5
+
+      - name: Set up Go
+        uses: actions/setup-go@v5
+        with:
+          go-version: stable
+          cache: true
+
+      - name: Verify dependencies
+        run: go mod verify
+
+      - name: Run tests
+        run: go test -race ./...
+
+      - name: Build
+        run: go build ./...

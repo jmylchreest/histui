@@ -1,0 +1,29 @@
+/* Example Waybar styling for histui notifications module */
+/* Add this to your ~/.config/waybar/style.css */
+
+#custom-notifications {
+  padding: 0 8px;
+}
+
+#custom-notifications.critical {
+  color: #f38ba8;
+  animation: blink 1s linear infinite;
+}
+
+#custom-notifications.normal {
+  color: #a6e3a1;
+}
+
+#custom-notifications.low {
+  color: #6c7086;
+}
+
+#custom-notifications.empty {
+  color: #45475a;
+}
+
+@keyframes blink {
+  50% {
+    opacity: 0.5;
+  }
+}

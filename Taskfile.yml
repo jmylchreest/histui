@@ -1,0 +1,87 @@
+# https://taskfile.dev
+version: '3'
+
+vars:
+  VERSION: '{{.VERSION | default "dev"}}'
+  COMMIT: '{{.COMMIT | default "unknown"}}'
+  BUILD_TIME:
+    sh: date -u +"%Y-%m-%dT%H:%M:%SZ"
+  LDFLAGS: '-s -w -X main.version={{.VERSION}} -X main.commit={{.COMMIT}} -X main.buildTime={{.BUILD_TIME}}'
+
+tasks:
+  default:
+    desc: Show available tasks
+    cmds:
+      - task --list
+
+  build:
+    desc: Build the histui binary
+    cmds:
+      - go build -ldflags "{{.LDFLAGS}}" -o histui ./cmd/histui
+    sources:
+      - '**/*.go'
+    generates:
+      - histui
+
+  build-static:
+    desc: Build static binary (CGO_ENABLED=0)
+    env:
+      CGO_ENABLED: '0'
+    cmds:
+      - go build -ldflags "{{.LDFLAGS}}" -o histui ./cmd/histui
+
+  install:
+    desc: Install histui to GOPATH/bin
+    cmds:
+      - go install -ldflags "{{.LDFLAGS}}" ./cmd/histui
+
+  test:
+    desc: Run all tests
+    cmds:
+      - go test -v ./...
+
+  test-coverage:
+    desc: Run tests with coverage
+    cmds:
+      - go test -coverprofile=coverage.out ./...
+      - go tool cover -html=coverage.out -o coverage.html
+      - echo "Coverage report generated at coverage.html"
+
+  lint:
+    desc: Run golangci-lint
+    cmds:
+      - golangci-lint run
+
+  lint-fix:
+    desc: Run golangci-lint with auto-fix
+    cmds:
+      - golangci-lint run --fix
+
+  fmt:
+    desc: Format code
+    cmds:
+      - go fmt ./...
+
+  tidy:
+    desc: Tidy go.mod
+    cmds:
+      - go mod tidy
+
+  clean:
+    desc: Clean build artifacts
+    cmds:
+      - rm -f histui coverage.out coverage.html
+
+  run:
+    desc: Build and run histui
+    deps: [build]
+    cmds:
+      - ./histui {{.CLI_ARGS}}
+
+  all:
+    desc: Format, lint, test, and build
+    cmds:
+      - task: fmt
+      - task: lint
+      - task: test
+      - task: build

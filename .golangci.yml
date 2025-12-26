@@ -1,0 +1,47 @@
+# golangci-lint configuration
+# https://golangci-lint.run/usage/configuration/
+
+version: "2"
+
+run:
+  timeout: 5m
+  modules-download-mode: readonly
+
+linters:
+  enable:
+    - errcheck
+    - gosimple
+    - govet
+    - ineffassign
+    - staticcheck
+    - unused
+    - gofmt
+    - goimports
+    - misspell
+    - unconvert
+    - unparam
+    - prealloc
+
+linters-settings:
+  goimports:
+    local-prefixes: github.com/jmylchreest/histui
+  misspell:
+    locale: US
+  prealloc:
+    simple: true
+    range-loops: true
+    for-loops: false
+
+issues:
+  exclude-rules:
+    # Ignore test files for some linters
+    - path: _test\.go
+      linters:
+        - errcheck
+        - unparam
+    # Ignore test helper functions
+    - path: testutil
+      linters:
+        - unparam
+  max-issues-per-linter: 50
+  max-same-issues: 3
