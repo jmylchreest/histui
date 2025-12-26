@@ -109,7 +109,7 @@ jobs:
             README.md
 
       - name: Upload artifact
-        uses: actions/upload-artifact@v5
+        uses: actions/upload-artifact@v6
         with:
           name: histui_${{ needs.prepare.outputs.safe_version }}_${{ matrix.goos }}_${{ matrix.goarch }}
           path: dist/*.tar.gz
