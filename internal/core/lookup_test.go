@@ -3,8 +3,9 @@ package core
 import (
 	"testing"
 
-	"github.com/jmylchreest/histui/internal/model"
 	"github.com/stretchr/testify/assert"
+
+	"github.com/jmylchreest/histui/internal/model"
 )
 
 func TestLookupByID(t *testing.T) {

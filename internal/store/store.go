@@ -44,12 +44,11 @@ type FilterOptions struct {
 type Store struct {
 	mu            sync.RWMutex
 	notifications []model.Notification
-	index         map[string]int    // histui_id -> slice index
-	hashIndex     map[string]int    // content_hash -> slice index (for deduplication)
-	tombstones    map[string]bool   // content_hash -> true (for deleted items)
+	index         map[string]int  // histui_id -> slice index
+	hashIndex     map[string]int  // content_hash -> slice index (for deduplication)
+	tombstones    map[string]bool // content_hash -> true (for deleted items)
 
 	persistence Persistence
-	persistPath string
 
 	subscribers []chan ChangeEvent
 	closed      bool
@@ -220,7 +219,7 @@ func (s *Store) Filter(opts FilterOptions) []model.Notification {
 	defer s.mu.RUnlock()
 
 	now := time.Now()
-	var result []model.Notification
+	result := make([]model.Notification, 0, len(s.notifications))
 
 	for _, n := range s.notifications {
 		// Time filter

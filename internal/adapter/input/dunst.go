@@ -11,8 +11,9 @@ import (
 	"strings"
 	"time"
 
-	"github.com/jmylchreest/histui/internal/model"
 	"github.com/oklog/ulid/v2"
+
+	"github.com/jmylchreest/histui/internal/model"
 )
 
 // DunstAdapter fetches notifications from dunstctl history.
@@ -46,8 +47,8 @@ func (a *DunstAdapter) Import(ctx context.Context) ([]model.Notification, error)
 
 // dunstHistory represents the top-level dunstctl history JSON structure.
 type dunstHistory struct {
-	Type string          `json:"type"`
-	Data [][]dunstEntry  `json:"data"`
+	Type string         `json:"type"`
+	Data [][]dunstEntry `json:"data"`
 }
 
 // dunstEntry represents a single notification in dunstctl history.

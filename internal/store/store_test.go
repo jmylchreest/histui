@@ -4,9 +4,10 @@ import (
 	"testing"
 	"time"
 
-	"github.com/jmylchreest/histui/internal/model"
 	"github.com/stretchr/testify/assert"
 	"github.com/stretchr/testify/require"
+
+	"github.com/jmylchreest/histui/internal/model"
 )
 
 func TestNewStore(t *testing.T) {
@@ -287,13 +288,6 @@ func testNotification(id string) model.Notification {
 
 func testNotificationWithTime(id string, timestamp int64) model.Notification {
 	n := testNotification(id)
-	n.Timestamp = timestamp
-	return n
-}
-
-func testNotificationWithApp(app string, timestamp int64) model.Notification {
-	n := testNotification(app + "-" + time.Now().Format("150405.000"))
-	n.AppName = app
 	n.Timestamp = timestamp
 	return n
 }

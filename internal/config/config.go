@@ -11,15 +11,15 @@ import (
 
 // Default configuration values.
 const (
-	DefaultSince      = "48h"
-	DefaultSortField  = "timestamp"
-	DefaultSortOrder  = "desc"
-	DefaultOlderThan  = "48h"
-	DefaultIconSize   = 64
-	DefaultDmenuTmpl  = "{{.AppName}} | {{.Summary}} - {{.BodyTruncated 50}} | {{.RelativeTime}}"
-	DefaultFullTmpl   = "{{.Timestamp | formatTime}} {{.AppName}}: {{.Summary}}\n{{.Body}}"
-	DefaultBodyTmpl   = "{{.Body}}"
-	DefaultTUIOutput  = "{{.Timestamp | formatTime}} {{.AppName}}: {{.Summary}}\n{{.Body}}"
+	DefaultSince     = "48h"
+	DefaultSortField = "timestamp"
+	DefaultSortOrder = "desc"
+	DefaultOlderThan = "48h"
+	DefaultIconSize  = 64
+	DefaultDmenuTmpl = "{{.AppName}} | {{.Summary}} - {{.BodyTruncated 50}} | {{.RelativeTime}}"
+	DefaultFullTmpl  = "{{.Timestamp | formatTime}} {{.AppName}}: {{.Summary}}\n{{.Body}}"
+	DefaultBodyTmpl  = "{{.Body}}"
+	DefaultTUIOutput = "{{.Timestamp | formatTime}} {{.AppName}}: {{.Summary}}\n{{.Body}}"
 )
 
 // Config represents the histui configuration.

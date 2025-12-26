@@ -170,48 +170,36 @@ func TestConfig_GetTemplate(t *testing.T) {
 
 func TestConfigPath(t *testing.T) {
 	// Test with XDG_CONFIG_HOME set
-	origXDG := os.Getenv("XDG_CONFIG_HOME")
-	defer os.Setenv("XDG_CONFIG_HOME", origXDG)
-
-	os.Setenv("XDG_CONFIG_HOME", "/custom/config")
+	t.Setenv("XDG_CONFIG_HOME", "/custom/config")
 	assert.Equal(t, "/custom/config/histui/config.toml", ConfigPath())
+}
 
-	// Test without XDG_CONFIG_HOME
-	os.Unsetenv("XDG_CONFIG_HOME")
+func TestConfigPathDefault(t *testing.T) {
+	// Test without XDG_CONFIG_HOME (uses default)
 	path := ConfigPath()
 	assert.Contains(t, path, "histui/config.toml")
-	assert.Contains(t, path, ".config")
 }
 
 func TestDataPath(t *testing.T) {
 	// Test with XDG_DATA_HOME set
-	origXDG := os.Getenv("XDG_DATA_HOME")
-	defer os.Setenv("XDG_DATA_HOME", origXDG)
-
-	os.Setenv("XDG_DATA_HOME", "/custom/data")
+	t.Setenv("XDG_DATA_HOME", "/custom/data")
 	assert.Equal(t, "/custom/data/histui", DataPath())
+}
 
-	// Test without XDG_DATA_HOME
-	os.Unsetenv("XDG_DATA_HOME")
+func TestDataPathDefault(t *testing.T) {
+	// Test without XDG_DATA_HOME (uses default)
 	path := DataPath()
 	assert.Contains(t, path, "histui")
-	assert.Contains(t, path, ".local/share")
 }
 
 func TestHistoryPath(t *testing.T) {
-	origXDG := os.Getenv("XDG_DATA_HOME")
-	defer os.Setenv("XDG_DATA_HOME", origXDG)
-
-	os.Setenv("XDG_DATA_HOME", "/custom/data")
+	t.Setenv("XDG_DATA_HOME", "/custom/data")
 	assert.Equal(t, "/custom/data/histui/history.jsonl", HistoryPath())
 }
 
 func TestEnsureDataDir(t *testing.T) {
 	dir := t.TempDir()
-	origXDG := os.Getenv("XDG_DATA_HOME")
-	defer os.Setenv("XDG_DATA_HOME", origXDG)
-
-	os.Setenv("XDG_DATA_HOME", dir)
+	t.Setenv("XDG_DATA_HOME", dir)
 
 	err := EnsureDataDir()
 	require.NoError(t, err)

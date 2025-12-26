@@ -111,13 +111,13 @@ type Formatter interface {
 // GetOptions configures the get command output.
 type GetOptions struct {
 	// Field flags
-	IncludeApp         bool
-	IncludeTitle       bool
-	IncludeBody        bool
-	IncludeTimestamp   bool
+	IncludeApp          bool
+	IncludeTitle        bool
+	IncludeBody         bool
+	IncludeTimestamp    bool
 	IncludeTimeRelative bool
-	IncludeULID        bool
-	IncludeAll         bool
+	IncludeULID         bool
+	IncludeAll          bool
 
 	// Format preset or template
 	Format string // "dmenu", "json", or Go template string

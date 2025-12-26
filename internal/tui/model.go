@@ -16,11 +16,12 @@ import (
 	"github.com/charmbracelet/bubbles/viewport"
 	tea "github.com/charmbracelet/bubbletea"
 	"github.com/charmbracelet/lipgloss"
+	"gopkg.in/yaml.v3"
+
 	"github.com/jmylchreest/histui/internal/adapter/input"
 	"github.com/jmylchreest/histui/internal/config"
 	"github.com/jmylchreest/histui/internal/model"
 	"github.com/jmylchreest/histui/internal/store"
-	"gopkg.in/yaml.v3"
 )
 
 // Mode represents the current UI mode.
@@ -43,19 +44,19 @@ type Model struct {
 	mode Mode
 
 	// Components
-	list       list.Model
-	viewport   viewport.Model
+	list        list.Model
+	viewport    viewport.Model
 	searchInput textinput.Model
-	help       help.Model
+	help        help.Model
 
 	// State
-	notifications  []model.Notification
-	selected       *model.Notification
-	searchQuery    string
-	showDismissed  bool
-	width          int
-	height         int
-	ready          bool
+	notifications []model.Notification
+	selected      *model.Notification
+	searchQuery   string
+	showDismissed bool
+	width         int
+	height        int
+	ready         bool
 
 	// Key bindings
 	keys KeyMap
@@ -114,7 +115,7 @@ func (d notificationDelegate) Render(w io.Writer, m list.Model, index int, item 
 	isDismissed := ni.notification.IsDismissed()
 
 	// Get item width from the list
-	itemWidth := m.Width() - d.DefaultDelegate.Styles.NormalTitle.GetHorizontalPadding()
+	itemWidth := m.Width() - d.Styles.NormalTitle.GetHorizontalPadding()
 
 	// Styles
 	var titleStyle, descStyle lipgloss.Style
@@ -122,24 +123,24 @@ func (d notificationDelegate) Render(w io.Writer, m list.Model, index int, item 
 	if isDismissed {
 		// Dismissed: dimmed/gray color
 		if isSelected {
-			titleStyle = d.DefaultDelegate.Styles.SelectedTitle.
+			titleStyle = d.Styles.SelectedTitle.
 				Foreground(lipgloss.Color("8"))
-			descStyle = d.DefaultDelegate.Styles.SelectedDesc.
+			descStyle = d.Styles.SelectedDesc.
 				Foreground(lipgloss.Color("8"))
 		} else {
-			titleStyle = d.DefaultDelegate.Styles.NormalTitle.
+			titleStyle = d.Styles.NormalTitle.
 				Foreground(lipgloss.Color("8"))
-			descStyle = d.DefaultDelegate.Styles.NormalDesc.
+			descStyle = d.Styles.NormalDesc.
 				Foreground(lipgloss.Color("8"))
 		}
 	} else {
 		// Normal: use default delegate styles
 		if isSelected {
-			titleStyle = d.DefaultDelegate.Styles.SelectedTitle
-			descStyle = d.DefaultDelegate.Styles.SelectedDesc
+			titleStyle = d.Styles.SelectedTitle
+			descStyle = d.Styles.SelectedDesc
 		} else {
-			titleStyle = d.DefaultDelegate.Styles.NormalTitle
-			descStyle = d.DefaultDelegate.Styles.NormalDesc
+			titleStyle = d.Styles.NormalTitle
+			descStyle = d.Styles.NormalDesc
 		}
 	}
 
@@ -160,9 +161,9 @@ func (d notificationDelegate) Render(w io.Writer, m list.Model, index int, item 
 	}
 
 	// Render using the same structure as DefaultDelegate
-	fmt.Fprint(w, titleStyle.Render(title))
-	fmt.Fprint(w, "\n")
-	fmt.Fprint(w, descStyle.Render(desc))
+	_, _ = fmt.Fprint(w, titleStyle.Render(title))
+	_, _ = fmt.Fprint(w, "\n")
+	_, _ = fmt.Fprint(w, descStyle.Render(desc))
 }
 
 // New creates a new TUI model.
@@ -185,13 +186,13 @@ func New(cfg *config.Config, s *store.Store) Model {
 	keys := DefaultKeyMap()
 
 	m := Model{
-		cfg:    cfg,
-		store:  s,
-		mode:   ModeList,
-		list:   l,
+		cfg:         cfg,
+		store:       s,
+		mode:        ModeList,
+		list:        l,
 		searchInput: searchInput,
-		help:   h,
-		keys:   keys,
+		help:        h,
+		keys:        keys,
 	}
 
 	// Subscribe to store changes if available
@@ -410,7 +411,7 @@ func (m Model) handleListKey(msg tea.KeyMsg) (tea.Model, tea.Cmd) {
 				if n.IsDismissed() {
 					// Undismiss
 					n.Undismiss()
-					m.store.Update(n)
+					_ = m.store.Update(n)
 					m.notifications = m.fetchNotifications()
 					m.list.SetItems(m.buildListItems())
 					return m, func() tea.Msg {
@@ -418,7 +419,7 @@ func (m Model) handleListKey(msg tea.KeyMsg) (tea.Model, tea.Cmd) {
 					}
 				}
 				// Dismiss
-				m.store.Dismiss(item.notification.HistuiID)
+				_ = m.store.Dismiss(item.notification.HistuiID)
 				m.notifications = m.fetchNotifications()
 				m.list.SetItems(m.buildListItems())
 				return m, func() tea.Msg {
@@ -431,7 +432,7 @@ func (m Model) handleListKey(msg tea.KeyMsg) (tea.Model, tea.Cmd) {
 	case key.Matches(msg, m.keys.HardDelete):
 		if item, ok := m.list.SelectedItem().(notificationItem); ok {
 			if m.store != nil {
-				m.store.DeleteWithTombstone(item.notification.HistuiID)
+				_ = m.store.DeleteWithTombstone(item.notification.HistuiID)
 				m.notifications = m.fetchNotifications()
 				m.list.SetItems(m.buildListItems())
 			}
@@ -875,10 +876,10 @@ func stripANSI(s string) string {
 
 // RunOptions configures the TUI.
 type RunOptions struct {
-	Config        *config.Config
-	Store         *store.Store
-	Adapter       input.InputAdapter
-	PersistPath   string // Path to watch for changes (empty = no watching)
+	Config      *config.Config
+	Store       *store.Store
+	Adapter     input.InputAdapter
+	PersistPath string // Path to watch for changes (empty = no watching)
 }
 
 // Run starts the TUI with the given options.
@@ -922,7 +923,7 @@ func Run(opts RunOptions) error {
 
 	// Stop watcher on exit
 	if watcher != nil {
-		watcher.Stop()
+		_ = watcher.Stop()
 	}
 
 	return err

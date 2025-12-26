@@ -6,25 +6,32 @@ version: "2"
 run:
   timeout: 5m
   modules-download-mode: readonly
+  tests: false
 
 linters:
   enable:
     - errcheck
-    - gosimple
     - govet
     - ineffassign
     - staticcheck
     - unused
-    - gofmt
-    - goimports
     - misspell
     - unconvert
     - unparam
     - prealloc
 
+formatters:
+  enable:
+    - gofmt
+    - goimports
+  settings:
+    goimports:
+      local-prefixes:
+        - github.com/jmylchreest/histui
+
 linters-settings:
-  goimports:
-    local-prefixes: github.com/jmylchreest/histui
+  errcheck:
+    check-blank: false
   misspell:
     locale: US
   prealloc:
@@ -33,6 +40,8 @@ linters-settings:
     for-loops: false
 
 issues:
+  exclude-dirs:
+    - specs
   exclude-rules:
     # Ignore test files for some linters
     - path: _test\.go

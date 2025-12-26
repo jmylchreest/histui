@@ -3,9 +3,10 @@ package input
 import (
 	"testing"
 
-	"github.com/jmylchreest/histui/internal/model"
 	"github.com/stretchr/testify/assert"
 	"github.com/stretchr/testify/require"
+
+	"github.com/jmylchreest/histui/internal/model"
 )
 
 func TestDunstAdapter_Name(t *testing.T) {

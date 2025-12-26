@@ -21,7 +21,7 @@ type FilterOptions struct {
 // Filter filters notifications based on the provided options.
 func Filter(notifications []model.Notification, opts FilterOptions) []model.Notification {
 	now := time.Now()
-	var result []model.Notification
+	result := make([]model.Notification, 0, len(notifications))
 
 	for _, n := range notifications {
 		// Time filter

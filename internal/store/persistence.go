@@ -75,13 +75,13 @@ func NewJSONLPersistence(path string) (*JSONLPersistence, error) {
 	// Check if file is empty and write header
 	info, err := file.Stat()
 	if err != nil {
-		file.Close()
+		_ = file.Close()
 		return nil, err
 	}
 
 	if info.Size() == 0 {
 		if err := p.writeHeader(); err != nil {
-			file.Close()
+			_ = file.Close()
 			return nil, err
 		}
 	}
@@ -252,7 +252,7 @@ func (p *JSONLPersistence) Rewrite(ns []model.Notification) error {
 	file, err := os.OpenFile(p.path, os.O_RDWR|os.O_CREATE|os.O_TRUNC, 0600)
 	if err != nil {
 		// Try to restore backup
-		os.Rename(backupPath, p.path)
+		_ = os.Rename(backupPath, p.path)
 		return fmt.Errorf("failed to create new file: %w", err)
 	}
 	p.file = file
@@ -278,7 +278,7 @@ func (p *JSONLPersistence) Rewrite(ns []model.Notification) error {
 	}
 
 	// Remove backup on success
-	os.Remove(backupPath)
+	_ = os.Remove(backupPath)
 
 	return nil
 }
@@ -308,7 +308,7 @@ func (p *JSONLPersistence) Clear() error {
 	// Create new empty file with header
 	file, err := os.OpenFile(p.path, os.O_RDWR|os.O_CREATE|os.O_TRUNC, 0600)
 	if err != nil {
-		os.Rename(backupPath, p.path)
+		_ = os.Rename(backupPath, p.path)
 		return err
 	}
 	p.file = file
@@ -369,11 +369,7 @@ func RecoverFromCorruption(path string) error {
 			valid = append(valid, n)
 		}
 	}
-	file.Close()
-
-	if scanner.Err() != nil && !errors.Is(scanner.Err(), io.EOF) {
-		// Continue with what we have
-	}
+	_ = file.Close()
 
 	// Create backup
 	backupPath := path + ".corrupted." + time.Now().Format("20060102-150405")
@@ -386,7 +382,7 @@ func RecoverFromCorruption(path string) error {
 	if err != nil {
 		return err
 	}
-	defer p.Close()
+	defer func() { _ = p.Close() }()
 
 	return p.AppendBatch(valid)
 }

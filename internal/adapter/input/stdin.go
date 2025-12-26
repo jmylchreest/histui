@@ -9,8 +9,9 @@ import (
 	"os"
 	"time"
 
-	"github.com/jmylchreest/histui/internal/model"
 	"github.com/oklog/ulid/v2"
+
+	"github.com/jmylchreest/histui/internal/model"
 )
 
 // StdinAdapter reads notifications from standard input.
@@ -83,7 +84,7 @@ func parseJSONArray(data []byte) ([]model.Notification, error) {
 		}
 	}
 
-	var notifications []model.Notification
+	notifications := make([]model.Notification, 0, len(entries))
 	for _, entry := range entries {
 		n, err := convertStdinEntry(entry)
 		if err != nil {

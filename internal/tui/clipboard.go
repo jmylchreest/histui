@@ -73,7 +73,7 @@ func importFromAdapter(ctx context.Context, adapter input.InputAdapter, s *store
 	}
 
 	if len(notifications) > 0 {
-		s.AddBatch(notifications)
+		_ = s.AddBatch(notifications)
 	}
 
 	return nil
