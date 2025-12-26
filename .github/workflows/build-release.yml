@@ -19,54 +19,50 @@ jobs:
     name: Prepare Release
     runs-on: ubuntu-latest
     outputs:
-      version: ${{ steps.version.outputs.VERSION }}
-      is_snapshot: ${{ steps.version.outputs.IS_SNAPSHOT }}
+      version: ${{ steps.gitversion.outputs.semVer }}
+      safe_version: ${{ steps.check.outputs.SAFE_VERSION }}
+      major_minor_patch: ${{ steps.gitversion.outputs.majorMinorPatch }}
+      is_release: ${{ steps.check.outputs.IS_RELEASE }}
     steps:
       - name: Checkout code
         uses: actions/checkout@v5
         with:
           fetch-depth: 0
 
+      - name: Install GitVersion
+        uses: gittools/actions/gitversion/setup@v3.1.1
+        with:
+          versionSpec: '6.x'
+
       - name: Determine version
-        id: version
+        id: gitversion
+        uses: gittools/actions/gitversion/execute@v3.1.1
+        with:
+          useConfigFile: true
+
+      - name: Check if release and sanitize version
+        id: check
         run: |
-          if [[ "${{ github.ref }}" == refs/tags/v* ]]; then
-            # Release build from tag
-            VERSION="${GITHUB_REF#refs/tags/v}"
-            IS_SNAPSHOT="false"
+          # Sanitize version for GitHub tags (replace + with -)
+          SEMVER="${{ steps.gitversion.outputs.semVer }}"
+          SAFE_VERSION="${SEMVER//+/-}"
+          echo "SAFE_VERSION=${SAFE_VERSION}" >> $GITHUB_OUTPUT
+
+          if [[ "${{ github.ref }}" == refs/tags/v* ]] || [[ "${{ github.event.inputs.release }}" == "true" ]]; then
+            echo "IS_RELEASE=true" >> $GITHUB_OUTPUT
           else
-            # Get last tag and calculate next version
-            LAST_TAG=$(git describe --tags --abbrev=0 2>/dev/null || echo "v0.0.0")
-            LAST_VERSION="${LAST_TAG#v}"
-
-            # Increment patch version
-            IFS='.' read -r MAJOR MINOR PATCH <<< "$LAST_VERSION"
-            NEXT_PATCH=$((PATCH + 1))
-            NEXT_VERSION="${MAJOR}.${MINOR}.${NEXT_PATCH}"
-
-            if [[ "${{ github.event.inputs.release }}" == "true" ]]; then
-              # Manual release requested
-              VERSION="${NEXT_VERSION}"
-              IS_SNAPSHOT="false"
-            else
-              # Snapshot build from main branch or workflow_dispatch
-              SHORT_SHA=$(git rev-parse --short HEAD)
-              VERSION="${NEXT_VERSION}-${SHORT_SHA}-SNAPSHOT"
-              IS_SNAPSHOT="true"
-            fi
+            echo "IS_RELEASE=false" >> $GITHUB_OUTPUT
           fi
-
-          echo "VERSION=${VERSION}" >> $GITHUB_OUTPUT
-          echo "IS_SNAPSHOT=${IS_SNAPSHOT}" >> $GITHUB_OUTPUT
-          echo "Determined version: ${VERSION} (snapshot: ${IS_SNAPSHOT})"
+          echo "Version: ${SEMVER}"
+          echo "Safe Version: ${SAFE_VERSION}"
 
       - name: Create and push release tag
         if: github.event.inputs.release == 'true'
         run: |
           git config user.name "github-actions[bot]"
           git config user.email "github-actions[bot]@users.noreply.github.com"
-          git tag -a "v${{ steps.version.outputs.VERSION }}" -m "Release v${{ steps.version.outputs.VERSION }}"
-          git push origin "v${{ steps.version.outputs.VERSION }}"
+          git tag -a "v${{ steps.gitversion.outputs.majorMinorPatch }}" -m "Release v${{ steps.gitversion.outputs.majorMinorPatch }}"
+          git push origin "v${{ steps.gitversion.outputs.majorMinorPatch }}"
 
   build:
     name: Build (${{ matrix.goos }}/${{ matrix.goarch }})
@@ -107,7 +103,7 @@ jobs:
       - name: Create archive
         run: |
           mkdir -p dist
-          tar -czvf dist/histui_${{ needs.prepare.outputs.version }}_${{ matrix.goos }}_${{ matrix.goarch }}.tar.gz \
+          tar -czvf dist/histui_${{ needs.prepare.outputs.safe_version }}_${{ matrix.goos }}_${{ matrix.goarch }}.tar.gz \
             histui \
             LICENSE \
             README.md
@@ -115,7 +111,7 @@ jobs:
       - name: Upload artifact
         uses: actions/upload-artifact@v5
         with:
-          name: histui_${{ needs.prepare.outputs.version }}_${{ matrix.goos }}_${{ matrix.goarch }}
+          name: histui_${{ needs.prepare.outputs.safe_version }}_${{ matrix.goos }}_${{ matrix.goarch }}
           path: dist/*.tar.gz
           retention-days: 1
 
@@ -145,14 +141,16 @@ jobs:
       - name: Generate checksums
         run: |
           cd release
-          sha256sum *.tar.gz > histui_${{ needs.prepare.outputs.version }}_checksums.txt
+          sha256sum *.tar.gz > histui_${{ needs.prepare.outputs.safe_version }}_checksums.txt
           echo "=== Checksums ==="
-          cat histui_${{ needs.prepare.outputs.version }}_checksums.txt
+          cat histui_${{ needs.prepare.outputs.safe_version }}_checksums.txt
 
       - name: Generate changelog
         run: |
-          if [[ "${{ needs.prepare.outputs.is_snapshot }}" == "true" ]]; then
-            echo "Snapshot build from commit ${{ github.sha }}" > changelog.txt
+          if [[ "${{ needs.prepare.outputs.is_release }}" != "true" ]]; then
+            echo "Development build from commit ${{ github.sha }}" > changelog.txt
+            echo "" >> changelog.txt
+            echo "Version: ${{ needs.prepare.outputs.version }}" >> changelog.txt
             echo "" >> changelog.txt
             echo "Commit: $(git log -1 --pretty=%B)" >> changelog.txt
           else
@@ -160,7 +158,7 @@ jobs:
             if [ -n "$PREV_TAG" ]; then
               echo "## Changelog" > changelog.txt
               echo "" >> changelog.txt
-              git log --pretty=format:"* %h %s" $PREV_TAG..${{ github.ref_name }} | \
+              git log --pretty=format:"* %h %s" $PREV_TAG..HEAD | \
                 grep -v "^* [a-f0-9]* docs:" | \
                 grep -v "^* [a-f0-9]* test:" | \
                 grep -v "^* [a-f0-9]* ci:" | \
@@ -172,20 +170,20 @@ jobs:
           echo "=== Changelog ==="
           cat changelog.txt
 
-      - name: Clean up old snapshots
-        if: needs.prepare.outputs.is_snapshot == 'true'
+      - name: Clean up old pre-releases
+        if: needs.prepare.outputs.is_release != 'true'
         run: |
-          echo "Cleaning up old snapshot releases (keeping 5 most recent)..."
-          SNAPSHOT_RELEASES=$(gh release list --limit 100 --json tagName,isPrerelease,createdAt \
-            --jq '[.[] | select(.isPrerelease == true and (.tagName | contains("SNAPSHOT")))] | sort_by(.createdAt) | .[].tagName')
+          echo "Cleaning up old pre-releases (keeping 5 most recent)..."
+          PRERELEASES=$(gh release list --limit 100 --json tagName,isPrerelease,createdAt \
+            --jq '[.[] | select(.isPrerelease == true)] | sort_by(.createdAt) | .[].tagName')
 
-          TOTAL=$(echo "$SNAPSHOT_RELEASES" | grep -c . || echo 0)
-          echo "Found $TOTAL snapshot releases"
+          TOTAL=$(echo "$PRERELEASES" | grep -c . || echo 0)
+          echo "Found $TOTAL pre-releases"
 
           TO_DELETE=$((TOTAL - 4))
           if [ "$TO_DELETE" -gt 0 ]; then
-            echo "Deleting $TO_DELETE old snapshot releases..."
-            echo "$SNAPSHOT_RELEASES" | head -n "$TO_DELETE" | while read -r tag; do
+            echo "Deleting $TO_DELETE old pre-releases..."
+            echo "$PRERELEASES" | head -n "$TO_DELETE" | while read -r tag; do
               if [ -n "$tag" ]; then
                 echo "Deleting release: $tag"
                 gh release delete "$tag" --yes --cleanup-tag || true
@@ -198,11 +196,11 @@ jobs:
       - name: Create GitHub Release
         uses: softprops/action-gh-release@v2
         with:
-          name: ${{ needs.prepare.outputs.is_snapshot == 'true' && format('Snapshot {0}', needs.prepare.outputs.version) || format('v{0}', needs.prepare.outputs.version) }}
-          tag_name: ${{ needs.prepare.outputs.is_snapshot == 'true' && needs.prepare.outputs.version || github.ref_name }}
+          name: ${{ needs.prepare.outputs.is_release == 'true' && format('v{0}', needs.prepare.outputs.safe_version) || format('v{0} (pre-release)', needs.prepare.outputs.safe_version) }}
+          tag_name: v${{ needs.prepare.outputs.safe_version }}
           body_path: changelog.txt
           files: release/*
           draft: false
-          prerelease: ${{ needs.prepare.outputs.is_snapshot == 'true' }}
+          prerelease: ${{ needs.prepare.outputs.is_release != 'true' }}
         env:
           GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}

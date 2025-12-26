@@ -2,8 +2,19 @@
 version: '3'
 
 vars:
-  VERSION: '{{.VERSION | default "dev"}}'
-  COMMIT: '{{.COMMIT | default "unknown"}}'
+  # Use gitversion for semver if available, otherwise fallback
+  VERSION:
+    sh: |
+      if command -v gitversion >/dev/null 2>&1; then
+        gitversion -showvariable SemVer 2>/dev/null || echo "0.0.0-dev"
+      elif git describe --tags --exact-match 2>/dev/null; then
+        git describe --tags --exact-match | sed 's/^v//'
+      else
+        SHA=$(git rev-parse --short HEAD 2>/dev/null || echo "unknown")
+        echo "0.0.0-dev+${SHA}"
+      fi
+  COMMIT:
+    sh: git rev-parse --short HEAD 2>/dev/null || echo "unknown"
   BUILD_TIME:
     sh: date -u +"%Y-%m-%dT%H:%M:%SZ"
   LDFLAGS: '-s -w -X main.version={{.VERSION}} -X main.commit={{.COMMIT}} -X main.buildTime={{.BUILD_TIME}}'
