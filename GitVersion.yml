@@ -1,14 +1,18 @@
+workflow: GitHubFlow/v1
 mode: ContinuousDeployment
+tag-prefix: '[vV]?'
+
 branches:
   main:
     regex: ^main$
     mode: ContinuousDeployment
     label: ''
     increment: Patch
-    prevent-increment-when-branch-merged: true
-    track-merge-target: false
+    is-main-branch: true
+    prevent-increment:
+      of-merged-branch: true
     source-branches: []
-    is-source-branch-for: []
+
   feature:
     regex: ^features?[/-]
     mode: ContinuousDeployment
@@ -16,6 +20,7 @@ branches:
     increment: Minor
     source-branches:
       - main
+
   pull-request:
     regex: ^(pull|pull\-requests|pr)[/-]
     mode: ContinuousDeployment
@@ -24,6 +29,6 @@ branches:
     source-branches:
       - main
       - feature
+
 ignore:
   sha: []
-merge-message-formats: {}
