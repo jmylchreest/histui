@@ -8,6 +8,11 @@ sidebar_position: 5
 
 Configure histuid to start automatically and integrate with your desktop environment.
 
+:::info Wayland Only
+histuid requires Wayland and uses the layer-shell protocol for notification positioning.
+It does not support X11.
+:::
+
 ## Hyprland
 
 ### Auto-start
@@ -121,24 +126,11 @@ systemctl --user status histuid
 journalctl --user -u histuid -f
 ```
 
-## GNOME / KDE
+## Other Wayland Compositors
 
-These desktop environments have their own notification systems. To use histuid instead:
-
-1. Disable the built-in notification daemon
-2. Start histuid via systemd (see above)
-
-:::warning
-Replacing the default notification daemon may affect some DE-specific features.
-Consider using [Monitor Mode](/docs/histuid/monitor-mode) to run alongside the default daemon.
-:::
-
-## Generic X11/Wayland
-
-For other compositors or window managers:
+For other Wayland compositors (river, dwl, etc.), add histuid to your startup configuration:
 
 ```bash
-# Add to your ~/.xinitrc, ~/.xprofile, or compositor config
 histuid &
 ```
 

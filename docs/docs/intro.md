@@ -26,13 +26,17 @@ Use it to:
 
 ### histuid Daemon
 
-A notification daemon that captures and displays desktop notifications.
+A Wayland notification daemon that captures and displays desktop notifications.
 Features include:
 
 - GTK4-based notification popups with rich theming support
 - Notification history persistence
 - Monitor mode for running alongside other notification daemons
 - Do-not-disturb functionality
+
+:::note
+histuid requires Wayland with layer-shell support. histui CLI works on both X11 and Wayland.
+:::
 
 ## Quick Links
 

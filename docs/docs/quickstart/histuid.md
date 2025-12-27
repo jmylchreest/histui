@@ -8,8 +8,14 @@ sidebar_position: 3
 
 Install and configure histuid to capture and display desktop notifications.
 
+:::info Wayland Only
+histuid requires a Wayland compositor with layer-shell support (Hyprland, Sway, river, etc.).
+It does not support X11.
+:::
+
 ## Prerequisites
 
+- Wayland compositor with layer-shell support
 - GTK4 development libraries
 - D-Bus session bus
 
