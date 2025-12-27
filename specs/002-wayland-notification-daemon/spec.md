@@ -7,7 +7,7 @@
 
 ## Overview
 
-histuid is a Wayland-native notification daemon that serves as a streaming input adapter for histui. It receives notifications via D-Bus, displays them as styled popup windows using web rendering technology, and persists them to the shared histui history store.
+histuid is a Wayland-native notification daemon that serves as a streaming input adapter for histui. It receives notifications via D-Bus, displays them as styled popup windows using GTK4/libadwaita on Wayland layer-shell surfaces, and persists them to the shared histui history store.
 
 **Key architecture points**:
 - **Shared state**: histuid and histui share the same history store and notification model
@@ -55,7 +55,7 @@ As a user of both histui and histuid, I want notifications received by histuid t
 
 As a user who customizes my desktop appearance, I want to style notification popups using CSS themes with support for urgency-based colors and rich content (animated images, icons), so notifications match my desktop aesthetic.
 
-**Why this priority**: Visual customization is a key differentiator. The web-based rendering enables rich content that traditional notification daemons cannot display.
+**Why this priority**: Visual customization is a key differentiator. GTK4/libadwaita with native CSS theming enables rich, modern styling that integrates with the desktop aesthetic.
 
 **Independent Test**: Can be tested by creating a custom CSS theme, configuring histuid to use it, and verifying notifications render with the theme's styles.
 
@@ -145,7 +145,7 @@ As a user, I want notifications to be automatically suppressed when specific win
 - What happens when audio playback fails (missing sound file, audio server unavailable)? (Log warning, continue without sound)
 - How does histuid handle rapid-fire notifications (100+ per second)? (Rate limit display, persist all to history)
 - What happens when the history store file is locked by histui? (Use file locking with retry, or shared lock for reads)
-- How does histuid handle notifications with embedded images (base64 data URIs)? (Render them in the WebView)
+- How does histuid handle notifications with embedded images (D-Bus image-data hint)? (Decode and display via GdkPixbufAnimation)
 - What happens when screen resolution changes while notifications are displayed? (Reposition popups to valid screen coordinates)
 
 ## Requirements *(mandatory)*
@@ -166,7 +166,7 @@ As a user, I want notifications to be automatically suppressed when specific win
 - **FR-009**: System MUST position popups according to configuration (corner, offset)
 - **FR-010**: System MUST support stacking multiple notifications vertically
 - **FR-011**: System MUST respect maximum visible notification limit
-- **FR-012**: System MUST use web rendering technology for popup content to enable rich HTML/CSS styling
+- **FR-012**: System MUST use GTK4/libadwaita widgets with native CSS theming for popup content
 - **FR-013**: System MUST support configurable popup dimensions (width, max-height)
 
 **History Integration**:
@@ -205,6 +205,7 @@ As a user, I want notifications to be automatically suppressed when specific win
 
 **Mouse Interaction**:
 - **FR-038**: System MUST support configurable mouse button actions (left, middle, right click)
+- **FR-038a**: System MUST display action buttons only on hover or focus (not always visible)
 - **FR-039**: System MUST support close-all action to dismiss all visible notifications
 - **FR-040**: System MUST support click-through option for non-interactive display mode
 
@@ -278,7 +279,7 @@ As a user, I want notifications to be automatically suppressed when specific win
 - User is running a Wayland compositor with layer-shell support (Hyprland, Sway, etc.)
 - User has D-Bus session bus available
 - User has write access to XDG config and data directories
-- Web rendering technology is available for popup display (webkit2gtk or similar)
+- GTK4 and libadwaita runtime libraries are available (gtk4, libadwaita, gtk4-layer-shell)
 - PipeWire or PulseAudio is available for audio playback (audio is optional feature)
 - histui internal packages are available for import (shared Go module)
 - CSS theming knowledge is expected for custom theme creation
@@ -569,3 +570,12 @@ histui get --filter "app~slack|teams,seen=false"
 # Delete all dismissed notifications older than a week
 histui get --filter "dismissed=true,time>=1w" --format ids | histui set --stdin --delete
 ```
+
+## Clarifications
+
+This section documents design decisions made during specification review.
+
+| Question | Decision | Rationale |
+|----------|----------|-----------|
+| How should action buttons be displayed in the popup UI? | On hover/focus only | Keeps the notification compact by default while still providing easy access to actions. Matches the behavior of modern notification systems like GNOME. |
+| What rendering technology for popup content? | GTK4/libadwaita (not WebKit) | Reduced attack surface (no browser engine), native CSS theming support, better desktop integration, lower memory footprint. |
