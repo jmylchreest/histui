@@ -46,16 +46,20 @@ jobs:
       - name: Check if release and sanitize version
         id: check
         run: |
-          # Sanitize version for GitHub tags (replace + with -)
           SEMVER="${{ steps.gitversion.outputs.semVer }}"
-          SAFE_VERSION="${SEMVER//+/-}"
-          echo "SAFE_VERSION=${SAFE_VERSION}" >> $GITHUB_OUTPUT
+          SHORT_SHA="${{ steps.gitversion.outputs.shortSha }}"
 
           if [[ "${{ github.ref }}" == refs/tags/v* ]] || [[ "${{ github.event.inputs.release }}" == "true" ]]; then
             echo "IS_RELEASE=true" >> $GITHUB_OUTPUT
+            # For releases, use clean semver
+            SAFE_VERSION="${SEMVER}"
           else
             echo "IS_RELEASE=false" >> $GITHUB_OUTPUT
+            # For pre-releases, append short SHA for uniqueness
+            SAFE_VERSION="${SEMVER}-${SHORT_SHA}"
           fi
+
+          echo "SAFE_VERSION=${SAFE_VERSION}" >> $GITHUB_OUTPUT
           echo "Version: ${SEMVER}"
           echo "Safe Version: ${SAFE_VERSION}"
 
