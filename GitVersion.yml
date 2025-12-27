@@ -1,4 +1,3 @@
-workflow: GitHubFlow
 mode: ContinuousDeployment
 branches:
   main:
