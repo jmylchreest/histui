@@ -6,7 +6,7 @@
 *.dylib
 *.test
 *.out
-histui
+/histui
 
 # Build directories
 /build/
