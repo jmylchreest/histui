@@ -1,0 +1,14 @@
+[Unit]
+Description=histuid notification daemon
+Documentation=https://github.com/jmylchreest/histui
+PartOf=graphical-session.target
+After=graphical-session.target
+
+[Service]
+Type=simple
+ExecStart=/usr/bin/histuid
+Restart=on-failure
+RestartSec=5
+
+[Install]
+WantedBy=graphical-session.target
