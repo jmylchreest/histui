@@ -1,0 +1,197 @@
+/* histui Default Theme
+ * Uses libadwaita CSS variables for automatic light/dark mode support.
+ * These variables adapt to the system color scheme automatically.
+ *
+ * Customization:
+ * 1. Copy this file to ~/.config/histui/themes/
+ * 2. Override specific styles as needed
+ *
+ * Adwaita Variable Reference:
+ * ---------------------------
+ *   @window_bg_color, @window_fg_color  - Window colors
+ *   @view_bg_color, @view_fg_color      - Content area colors
+ *   @accent_bg_color, @accent_fg_color  - Accent colors
+ *   @accent_color                       - Primary accent
+ *   @borders                            - Border color
+ *   @error_color, @warning_color, @success_color - Status colors
+ */
+
+/* =============================================================================
+ * BASE POPUP CONTAINER
+ * ============================================================================= */
+
+.notification-popup {
+    background-color: @window_bg_color;
+    color: @window_fg_color;
+    border-radius: 12px;
+    border: 1px solid alpha(@borders, 0.5);
+    box-shadow: 0 4px 12px alpha(black, 0.15);
+    padding: 12px;
+    margin: 8px;
+}
+
+/* Translucent mode for compositor blur */
+.notification-popup.translucent {
+    background-color: alpha(@window_bg_color, 0.85);
+}
+
+/* =============================================================================
+ * HEADER
+ * ============================================================================= */
+
+.notification-header {
+    margin-bottom: 6px;
+}
+
+.notification-icon {
+    min-width: 48px;
+    min-height: 48px;
+    margin-right: 12px;
+}
+
+.notification-summary {
+    font-weight: bold;
+    font-size: 1.1em;
+    color: @window_fg_color;
+}
+
+.notification-appname {
+    font-size: 0.85em;
+    color: alpha(@window_fg_color, 0.6);
+}
+
+.notification-timestamp {
+    font-size: 0.85em;
+    color: alpha(@window_fg_color, 0.5);
+}
+
+.notification-stack-count {
+    background-color: @accent_bg_color;
+    color: @accent_fg_color;
+    border-radius: 10px;
+    padding: 2px 8px;
+    font-size: 0.8em;
+    font-weight: bold;
+    margin-left: 8px;
+}
+
+.notification-close {
+    min-width: 24px;
+    min-height: 24px;
+    padding: 4px;
+    border-radius: 50%;
+    color: alpha(@window_fg_color, 0.5);
+}
+
+.notification-close:hover {
+    color: @window_fg_color;
+    background-color: alpha(@window_fg_color, 0.1);
+}
+
+/* =============================================================================
+ * BODY
+ * ============================================================================= */
+
+.notification-body {
+    color: @window_fg_color;
+    opacity: 0.9;
+    margin-top: 4px;
+}
+
+.notification-body link {
+    color: @accent_color;
+}
+
+.notification-body link:hover {
+    text-decoration: underline;
+}
+
+/* =============================================================================
+ * PROGRESS
+ * ============================================================================= */
+
+.notification-progress {
+    margin-top: 8px;
+    min-height: 4px;
+    border-radius: 2px;
+    background-color: alpha(@window_fg_color, 0.1);
+}
+
+.notification-progress > trough > progress {
+    background-color: @accent_bg_color;
+    border-radius: 2px;
+}
+
+/* Progress complete state */
+.notification-popup.progress-complete .notification-progress > trough > progress {
+    background-color: @success_color;
+}
+
+/* =============================================================================
+ * IMAGE
+ * ============================================================================= */
+
+.notification-image {
+    border-radius: 6px;
+    margin-top: 8px;
+    max-width: 100%;
+}
+
+/* =============================================================================
+ * ACTIONS
+ * ============================================================================= */
+
+.notification-actions {
+    margin-top: 10px;
+    padding-top: 8px;
+    border-top: 1px solid alpha(@borders, 0.3);
+}
+
+.notification-action {
+    padding: 6px 12px;
+    border-radius: 6px;
+    margin-right: 6px;
+    color: @window_fg_color;
+}
+
+.notification-action:hover {
+    background-color: alpha(@window_fg_color, 0.1);
+}
+
+/* =============================================================================
+ * URGENCY MODIFIERS
+ * ============================================================================= */
+
+/* Low urgency - subtle */
+.notification-popup.urgency-low {
+    border-color: alpha(@borders, 0.3);
+    box-shadow: 0 2px 8px alpha(black, 0.1);
+}
+
+.notification-popup.urgency-low .notification-summary {
+    font-weight: normal;
+}
+
+/* Normal urgency - default styling */
+.notification-popup.urgency-normal {
+    /* Uses default styling */
+}
+
+/* Critical urgency - emphasized */
+.notification-popup.urgency-critical {
+    border-color: @error_color;
+    border-width: 2px;
+}
+
+.notification-popup.urgency-critical .notification-summary {
+    color: @error_color;
+}
+
+/* =============================================================================
+ * STATE CLASSES
+ * ============================================================================= */
+
+/* Transient notifications - slightly transparent */
+.notification-popup.is-transient {
+    opacity: 0.95;
+}

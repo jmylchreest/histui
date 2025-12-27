@@ -26,6 +26,7 @@ var getOpts struct {
 	urgency string
 	limit   int
 	search  string
+	filter  string // Expression-based filter
 
 	// Sort options
 	sortBy    string
@@ -57,6 +58,10 @@ Examples:
 
   # Filter by app and time
   histui get --app firefox --since 1h
+
+  # Use expression filter
+  histui get --filter "app=discord,urgency=critical"
+  histui get --filter "body~meeting,dismissed=false"
 
   # Get specific notification by index
   histui get 3
@@ -90,6 +95,8 @@ func init() {
 		"Maximum number of notifications to show (0=unlimited)")
 	getCmd.Flags().StringVarP(&getOpts.search, "search", "s", "",
 		"Search in summary and body")
+	getCmd.Flags().StringVar(&getOpts.filter, "filter", "",
+		"Expression filter (e.g., 'app=discord,urgency=critical')")
 
 	// Sort flags
 	getCmd.Flags().StringVar(&getOpts.sortBy, "sort", "timestamp",
@@ -99,7 +106,7 @@ func init() {
 
 	// Output flags
 	getCmd.Flags().StringVarP(&getOpts.format, "format", "f", "dmenu",
-		"Output format (dmenu, json, plain)")
+		"Output format (dmenu, json, plain, ids)")
 	getCmd.Flags().StringVar(&getOpts.field, "field", "",
 		"Output single field from notification (id, app, summary, body, all)")
 	getCmd.Flags().StringVar(&getOpts.template, "template", "",
@@ -182,6 +189,17 @@ func fetchNotifications(ctx context.Context) ([]model.Notification, error) {
 
 // applyFilters applies filter options to notifications.
 func applyFilters(notifications []model.Notification) []model.Notification {
+	// Apply expression-based filter if provided
+	if getOpts.filter != "" {
+		expr, err := core.ParseFilter(getOpts.filter)
+		if err != nil {
+			logger.Warn("invalid filter expression", "value", getOpts.filter, "error", err)
+		} else {
+			notifications = core.FilterWithExpr(notifications, expr)
+		}
+	}
+
+	// Apply legacy filter options
 	opts := core.FilterOptions{
 		AppFilter: getOpts.app,
 		Limit:     getOpts.limit,
@@ -309,6 +327,8 @@ func createFormatter() output.Formatter {
 		format = output.FormatJSON
 	case "plain":
 		format = output.FormatPlain
+	case "ids":
+		format = output.FormatIDs
 	default:
 		format = output.FormatDmenu
 	}

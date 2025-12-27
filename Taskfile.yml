@@ -26,13 +26,34 @@ tasks:
       - task --list
 
   build:
-    desc: Build the histui binary
+    desc: Build both histui and histuid binaries
+    cmds:
+      - task: build-histui
+      - task: build-histuid
+
+  build-histui:
+    desc: Build the histui CLI binary (CGO_ENABLED=0)
+    env:
+      CGO_ENABLED: '0'
     cmds:
       - go build -ldflags "{{.LDFLAGS}}" -o histui ./cmd/histui
     sources:
-      - '**/*.go'
+      - 'cmd/histui/**/*.go'
+      - 'internal/**/*.go'
     generates:
       - histui
+
+  build-histuid:
+    desc: Build the histuid daemon binary (CGO_ENABLED=1, requires GTK4)
+    env:
+      CGO_ENABLED: '1'
+    cmds:
+      - go build -ldflags "{{.LDFLAGS}}" -o histuid ./cmd/histuid
+    sources:
+      - 'cmd/histuid/**/*.go'
+      - 'internal/**/*.go'
+    generates:
+      - histuid
 
   build-static:
     desc: Build static binary (CGO_ENABLED=0)
@@ -81,7 +102,7 @@ tasks:
   clean:
     desc: Clean build artifacts
     cmds:
-      - rm -f histui coverage.out coverage.html
+      - rm -f histui histuid coverage.out coverage.html
 
   run:
     desc: Build and run histui

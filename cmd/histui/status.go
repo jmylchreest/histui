@@ -5,11 +5,13 @@ import (
 	"encoding/json"
 	"fmt"
 	"os"
+	"strings"
 	"time"
 
 	"github.com/spf13/cobra"
 
 	"github.com/jmylchreest/histui/internal/adapter/input"
+	"github.com/jmylchreest/histui/internal/store"
 )
 
 var statusOpts struct {
@@ -70,6 +72,13 @@ func runStatus(cmd *cobra.Command, args []string) error {
 	ctx, cancel := context.WithTimeout(context.Background(), 10*time.Second)
 	defer cancel()
 
+	// Load DnD state
+	dndEnabled := false
+	sharedState, err := store.LoadSharedState()
+	if err == nil {
+		dndEnabled = sharedState.DnDEnabled
+	}
+
 	// Currently only dunst is supported for status
 	adapter := input.NewDunstAdapter()
 
@@ -83,18 +92,32 @@ func runStatus(cmd *cobra.Command, args []string) error {
 	_ = counts.Displayed + counts.Waiting // activeCount used in generateStatusFromCounts
 
 	// Generate status
-	status := generateStatusFromCounts(counts, statusOpts.all)
+	status := generateStatusFromCounts(counts, statusOpts.all, dndEnabled)
 	return outputStatus(status)
 }
 
 // generateStatusFromCounts creates a WaybarStatus from dunst counts.
-func generateStatusFromCounts(counts *input.DunstCounts, includeHistory bool) WaybarStatus {
+func generateStatusFromCounts(counts *input.DunstCounts, includeHistory bool, dndEnabled bool) WaybarStatus {
 	activeCount := counts.Displayed + counts.Waiting
 
 	// Determine what to show
 	displayCount := activeCount
 	if includeHistory {
 		displayCount += counts.History
+	}
+
+	// If DnD is enabled, adjust the class and alt
+	if dndEnabled {
+		tooltip := "Do Not Disturb: enabled"
+		if displayCount > 0 {
+			tooltip += fmt.Sprintf("\n%d notification(s) suppressed", displayCount)
+		}
+		return WaybarStatus{
+			Text:    "DnD",
+			Alt:     "dnd",
+			Tooltip: tooltip,
+			Class:   "dnd",
+		}
 	}
 
 	if displayCount == 0 {
@@ -156,14 +179,7 @@ func buildCountsTooltip(counts *input.DunstCounts, includeHistory bool) string {
 }
 
 func joinLines(lines []string) string {
-	result := ""
-	for i, line := range lines {
-		if i > 0 {
-			result += "\n"
-		}
-		result += line
-	}
-	return result
+	return strings.Join(lines, "\n")
 }
 
 // outputStatus writes the status as JSON.

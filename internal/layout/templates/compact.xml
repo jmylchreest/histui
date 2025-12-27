@@ -1,0 +1,12 @@
+<!-- Compact layout: icon, summary, actions only -->
+<popup min-width="300" max-width="300" min-height="0" max-height="900">
+  <header>
+    <icon />
+    <summary />
+    <stack-count />
+    <close />
+  </header>
+  <body />
+  <progress />
+  <actions />
+</popup>
