@@ -5,9 +5,11 @@ import (
 	"crypto/rand"
 	"crypto/sha256"
 	"encoding/hex"
+	"encoding/json"
 	"errors"
 	"fmt"
 	"log/slog"
+	"sort"
 	"strings"
 	"time"
 
@@ -281,45 +283,70 @@ func (n *Notification) Undismiss() {
 // LogValue implements slog.LogValuer for structured logging.
 // Returns all notification fields in alphabetical order.
 func (n *Notification) LogValue() slog.Value {
-	attrs := []slog.Attr{
-		slog.String("app", n.AppName),
-		slog.String("body", n.BodyTruncated(50)),
-		slog.String("category", n.Category),
-		slog.Int("id", n.ID),
-		slog.String("summary", n.Summary),
-		slog.String("timestamp", n.TimestampTime().Format(time.RFC3339)),
-		slog.String("urgency", n.UrgencyName),
+	m := n.toLogMap()
+	keys := make([]string, 0, len(m))
+	for k := range m {
+		keys = append(keys, k)
 	}
+	sort.Strings(keys)
 
-	// Add histui metadata
-	attrs = append(attrs,
-		slog.String("histui_id", n.HistuiID),
-		slog.String("histui_source", n.HistuiSource),
-	)
-
+	attrs := make([]slog.Attr, 0, len(keys))
+	for _, k := range keys {
+		attrs = append(attrs, slog.Any(k, m[k]))
+	}
 	return slog.GroupValue(attrs...)
 }
 
 // LogAttrs returns slog attributes for the notification.
-// Useful for adding notification details to log messages.
-// Fields are sorted alphabetically.
+// Marshals to JSON and returns sorted key-value pairs.
 func (n *Notification) LogAttrs() []any {
-	// Ensure content hash is computed
-	hash := n.ContentHash
-	if hash == "" {
-		hash = n.ComputeContentHash()
+	m := n.toLogMap()
+	keys := make([]string, 0, len(m))
+	for k := range m {
+		keys = append(keys, k)
+	}
+	sort.Strings(keys)
+
+	attrs := make([]any, 0, len(keys)*2)
+	for _, k := range keys {
+		attrs = append(attrs, k, m[k])
+	}
+	return attrs
+}
+
+// toLogMap converts the notification to a map for logging.
+func (n *Notification) toLogMap() map[string]any {
+	// Marshal to JSON to get all fields
+	data, err := json.Marshal(n)
+	if err != nil {
+		return map[string]any{"error": err.Error()}
 	}
 
-	return []any{
-		"app", n.AppName,
-		"body", n.BodyTruncated(50),
-		"category", n.Category,
-		"hash", hash[:12], // First 12 chars for brevity
-		"histui_id", n.HistuiID,
-		"id", n.ID,
-		"source", n.HistuiSource,
-		"summary", n.Summary,
-		"timestamp", n.TimestampTime().Format(time.RFC3339),
-		"urgency", n.UrgencyName,
+	var m map[string]any
+	if err := json.Unmarshal(data, &m); err != nil {
+		return map[string]any{"error": err.Error()}
 	}
+
+	// Truncate body for readability
+	if body, ok := m["body"].(string); ok && len(body) > 50 {
+		m["body"] = body[:47] + "..."
+	}
+
+	// Remove empty/zero values to reduce noise
+	for k, v := range m {
+		switch val := v.(type) {
+		case string:
+			if val == "" {
+				delete(m, k)
+			}
+		case float64:
+			if val == 0 {
+				delete(m, k)
+			}
+		case nil:
+			delete(m, k)
+		}
+	}
+
+	return m
 }
