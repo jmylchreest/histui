@@ -30,7 +30,8 @@ tasks:
     desc: Build everything to dist/ (binaries + docs)
     cmds:
       - task: dist:clean
-      - task: dist:binaries
+      - task: dist:histui
+      - task: dist:histuid
       - task: dist:docs
       - echo "Build complete. Check dist/ folder."
 
@@ -39,12 +40,6 @@ tasks:
     cmds:
       - rm -rf dist/
       - mkdir -p dist/
-
-  dist:binaries:
-    desc: Build binaries to dist/
-    cmds:
-      - task: dist:histui
-      - task: dist:histuid
 
   dist:histui:
     desc: Build histui CLI to dist/
@@ -69,13 +64,6 @@ tasks:
       - npm run build
       - rm -rf ../dist/docs
       - mv build ../dist/docs
-
-  # Development tasks
-  run:
-    desc: Build and run histui
-    deps: [dist:histui]
-    cmds:
-      - ./dist/histui {{.CLI_ARGS}}
 
   install:
     desc: Install histui to GOPATH/bin
@@ -127,7 +115,8 @@ tasks:
       - task: fmt
       - task: lint
       - task: test
-      - task: dist:binaries
+      - task: dist:histui
+      - task: dist:histuid
 
   # Documentation tasks
   docs:dev:
