@@ -9,16 +9,24 @@ sidebar_position: 1
 histuid uses GTK4 CSS for styling notification popups.
 You can customize colors, fonts, borders, shadows, and more.
 
-## Theme File Location
+## Theme Packs
 
-Create or edit your theme file:
+Themes are self-contained packs with styling, layout, and optional audio:
 
-```bash
-mkdir -p ~/.config/histui/themes
-touch ~/.config/histui/themes/mytheme.css
+```
+~/.config/histui/themes/mytheme/
+├── theme.css           # Required: CSS styling
+├── layout.xml          # Optional: Widget layout
+├── manifest.toml       # Optional: Metadata and audio config
+└── sounds/             # Optional: Audio files
+    └── notify.wav
 ```
 
-Then reference it in your config:
+Create a theme and reference it in your config:
+
+```bash
+mkdir -p ~/.config/histui/themes/mytheme
+```
 
 ```toml
 # ~/.config/histui/histuid.toml
@@ -33,25 +41,26 @@ histuid checks for themes in this order:
 1. **User themes directory**: `~/.config/histui/themes/`
 2. **Bundled themes**: Embedded in the binary
 
-This allows you to override bundled themes by placing a file with the same name in your themes directory.
+This allows you to override bundled themes by placing a directory with the same name in your themes directory.
 
 ## Bundled Themes
 
 histuid ships with these bundled themes:
 
-| Theme     | Description                                      |
-|-----------|--------------------------------------------------|
-| `default` | Libadwaita-style with system colors              |
-| `minimal` | Clean, distraction-free notifications            |
-| `dark`    | High-contrast dark theme (Catppuccin-inspired)   |
-| `light`   | Clean white theme with soft shadows              |
+| Theme       | Description                                      |
+|-------------|--------------------------------------------------|
+| `default`   | Libadwaita-style with 90% opacity, 48px icons    |
+| `minimal`   | Summary and body only, no icons, compact         |
+| `compact`   | Smaller icons (32px), condensed layout           |
+| `detailed`  | Full layout with timestamp                       |
+| `catppuccin`| Catppuccin Mocha/Latte color scheme              |
 
 ## Quick Example
 
 ```css
 /* Dark theme with rounded corners */
 .notification-popup {
-  background-color: #1e1e2e;
+  background-color: alpha(#1e1e2e, 0.9);
   color: #cdd6f4;
   border-radius: 12px;
   padding: 12px;
@@ -89,11 +98,11 @@ The `.light` or `.dark` class is applied to `.notification-popup` based on the c
 
 ## Hot Reload
 
-Theme changes are automatically reloaded when the CSS file is modified.
+Theme changes are automatically reloaded when theme files are modified.
 You can edit your theme in real-time without restarting the daemon.
 
 ## Next Steps
 
 - [CSS Reference](/docs/histuid/theming/css-reference) - All CSS selectors and classes
 - [Theme Examples](/docs/histuid/theming/examples) - Ready-to-use themes
-- [Advanced Theming](/docs/histuid/theming/advanced) - Manifests, audio, fonts, and animations
+- [Advanced Theming](/docs/histuid/theming/advanced) - Theme pack structure, layouts, manifests, and icons

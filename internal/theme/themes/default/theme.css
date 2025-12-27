@@ -119,7 +119,7 @@ window {
  * ============================================================================= */
 
 .notification-popup {
-    background-color: @window_bg_color;
+    background-color: alpha(@window_bg_color, 0.9);
     color: @window_fg_color;
     border-radius: 12px;
     border: 1px solid alpha(@borders, 0.5);
@@ -130,19 +130,10 @@ window {
     font-size: var(--histui-font-size);
 }
 
-/* Translucent mode for compositor blur
- * To enable translucent notifications:
- * 1. Copy this theme to ~/.config/histui/themes/
- * 2. Uncomment the translucent background below (or use alpha() directly)
- * 3. Configure your compositor (e.g., Hyprland) to blur the histui layer:
- *    layerrule = blur, histui-notification
- *    layerrule = ignorealpha 0.5, histui-notification
+/* For compositor blur effects (e.g., Hyprland), add to your config:
+ *   layerrule = blur, histui-notification
+ *   layerrule = ignorealpha 0.5, histui-notification
  */
-/*
-.notification-popup {
-    background-color: alpha(@window_bg_color, 0.85);
-}
-*/
 
 /* =============================================================================
  * HEADER

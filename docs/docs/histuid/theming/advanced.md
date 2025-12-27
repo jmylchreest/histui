@@ -1,110 +1,248 @@
 ---
 title: Advanced Theming
-description: Directory themes, audio, fonts, and CSS animations
+description: Theme pack structure, layouts, manifests, and icon configuration
 sidebar_position: 4
 ---
 
 # Advanced Theming
 
-This guide covers advanced theming features including directory-based themes with audio, font configuration, and CSS animations.
+This guide covers the complete theme pack structure including layouts, manifests, audio, and icon configuration.
 
-## Theme Formats
+## Theme Pack Structure
 
-histuid supports two theme formats:
-
-### Single CSS File
-
-Simple themes can be a single CSS file:
-
-```
-~/.config/histui/themes/mytheme.css
-```
-
-### Directory-Based Theme
-
-For themes with audio, icons, or multiple files, use a directory structure:
+A complete theme pack contains:
 
 ```
 ~/.config/histui/themes/mytheme/
-├── theme.css           # Required: Main stylesheet (or mytheme.css)
-├── manifest.toml       # Optional: Audio and icon configuration
+├── theme.css           # Required: CSS styling
+├── layout.xml          # Optional: Widget layout and sizing
+├── manifest.toml       # Optional: Metadata, audio, and icon config
 └── sounds/             # Optional: Audio files
     ├── notify.wav
     └── critical.ogg
 ```
 
-## Theme Manifest
+## Layout Configuration (layout.xml)
 
-The `manifest.toml` file configures audio and icon behavior for directory-based themes.
+The layout file defines which widgets appear and their arrangement.
 
-### Audio Configuration
+### Basic Structure
+
+```xml
+<popup min-width="250" max-width="400" min-height="0" max-height="600">
+  <header>
+    <icon size="48" />
+    <box orientation="vertical">
+      <summary />
+      <appname />
+    </box>
+    <stack-count />
+    <close />
+  </header>
+  <body />
+  <progress />
+  <image />
+  <actions />
+</popup>
+```
+
+### Popup Attributes
+
+| Attribute    | Type | Description                              |
+|--------------|------|------------------------------------------|
+| `min-width`  | int  | Minimum popup width in pixels            |
+| `max-width`  | int  | Maximum popup width in pixels            |
+| `min-height` | int  | Minimum popup height in pixels           |
+| `max-height` | int  | Maximum popup height in pixels           |
+
+### Available Elements
+
+| Element        | Attributes       | Description                           |
+|----------------|------------------|---------------------------------------|
+| `<icon>`       | `size="48"`      | Application icon (Nerd Font fallback) |
+| `<summary>`    |                  | Notification title                    |
+| `<body>`       |                  | Notification message body             |
+| `<appname>`    |                  | Application name                      |
+| `<timestamp>`  |                  | Time since notification               |
+| `<progress>`   |                  | Progress bar (if hint provided)       |
+| `<image>`      |                  | Notification image                    |
+| `<actions>`    |                  | Action buttons                        |
+| `<close>`      |                  | Close button                          |
+| `<stack-count>`|                  | Badge showing stacked notification count |
+| `<header>`     |                  | Container for header elements         |
+| `<box>`        | `orientation`    | Container with vertical/horizontal layout |
+
+### Layout Examples
+
+**Minimal (no icons):**
+```xml
+<popup min-width="150" max-width="250" min-height="0" max-height="200">
+  <summary />
+  <body />
+  <progress />
+</popup>
+```
+
+**Compact (smaller icons):**
+```xml
+<popup min-width="200" max-width="300" min-height="0" max-height="400">
+  <header>
+    <icon size="32" />
+    <summary />
+    <stack-count />
+    <close />
+  </header>
+  <body />
+  <progress />
+  <actions />
+</popup>
+```
+
+**Detailed (with timestamp):**
+```xml
+<popup min-width="250" max-width="450" min-height="0" max-height="700">
+  <header>
+    <icon size="48" />
+    <box orientation="vertical">
+      <summary />
+      <box orientation="horizontal">
+        <appname />
+        <timestamp />
+      </box>
+    </box>
+    <stack-count />
+    <close />
+  </header>
+  <body />
+  <progress />
+  <image />
+  <actions />
+</popup>
+```
+
+## Theme Manifest (manifest.toml)
+
+The manifest file configures metadata, audio, and icon settings.
+
+### Complete Reference
 
 ```toml
-# manifest.toml
+# Theme metadata
+name = "My Theme"
+description = "A custom notification theme"
+author = "Your Name"
+version = "1.0.0"
 
+# Icon configuration
+[icon]
+size = 48    # Default icon size (can be overridden in layout.xml)
+
+# Audio per urgency level
 [audio.low]
 path = "sounds/subtle.wav"     # Path relative to theme directory
-volume = 0.5                   # Volume 0.0-1.0 (optional, uses global default)
+volume = 0.5                   # Volume 0.0-1.0
+repeat_count = -1              # -1 = once, 0 = until dismissed, N = N times
 
 [audio.normal]
 path = "sounds/notify.wav"
+volume = 0.8
+repeat_count = -1
 
 [audio.critical]
 path = "sounds/alert.ogg"
 volume = 1.0
-repeat_count = 0               # 0 = repeat until dismissed
-repeat_delay = "10s"           # Delay between repeats (default: 10s)
+repeat_count = 0               # Repeat until dismissed
+repeat_delay = "10s"           # Delay between repeats
 ```
 
-### Repeat Behavior
+### Audio Repeat Behavior
 
-| `repeat_count` | Behavior |
-|----------------|----------|
-| `-1` | Play once, no repeat |
-| `0` | Repeat until dismissed |
-| `N` | Repeat N times |
+| `repeat_count` | Behavior                          |
+|----------------|-----------------------------------|
+| `-1`           | Play once, no repeat              |
+| `0`            | Repeat until notification dismissed |
+| `N`            | Repeat N times                    |
 
-### Icon Configuration
+### Supported Audio Formats
+
+- WAV (`.wav`)
+- OGG Vorbis (`.ogg`)
+- MP3 (`.mp3`)
+- FLAC (`.flac`)
+
+## Icon Configuration
+
+histuid uses a multi-tier icon resolution system:
+
+1. **Application-provided icon** (from notification)
+2. **GTK icon theme** (freedesktop icons)
+3. **Nerd Font symbol** (fallback for missing icons)
+
+### Icon Aliases
+
+Map application names to icon names for better resolution:
 
 ```toml
-[icon]
-size = 48    # Icon size in pixels (default: 48)
+# ~/.config/histui/icon-aliases.toml
+
+[aliases]
+# Map app name to standard icon name
+zapzap = "whatsapp"
+telegram-desktop = "telegram"
+firefox-esr = "firefox"
+vesktop = "discord"
+my-custom-app = "application-default-icon"
 ```
 
-### Full Manifest Example
+### Nerd Font Symbols
+
+When GTK icons aren't available, histuid displays Nerd Font symbols.
+Override the default symbols:
 
 ```toml
-# mytheme/manifest.toml
+# ~/.config/histui/icon-aliases.toml
 
-# Theme metadata (optional)
-name = "My Custom Theme"
-description = "A custom theme with sounds"
-author = "Your Name"
-version = "1.0.0"
+[symbols]
+# Override app symbols (icon name -> Nerd Font glyph)
+spotify = "\U000F04C7"     # nf-md-spotify
+discord = "\U000F066F"     # nf-md-discord
 
-# Audio per urgency level
-[audio.low]
-path = "sounds/ping.wav"
-volume = 0.3
+# Override urgency fallbacks
+critical = "\U000F0026"    # nf-md-alert
+normal = "\U000F009A"      # nf-md-bell
+low = "\U000F02FC"         # nf-md-information
+undefined = "\U000F009C"   # nf-md-bell-outline
 
-[audio.normal]
-path = "sounds/notify.wav"
-volume = 0.6
+# Override category fallbacks
+notification = "\U000F009A"  # nf-md-bell
+im = "\U000F0CE4"            # nf-md-chat
+```
 
-[audio.critical]
-path = "sounds/alarm.ogg"
-volume = 1.0
-repeat_count = 0
-repeat_delay = "5s"
+### Built-in Aliases
 
-# Icon settings
-[icon]
-size = 48
+histuid includes aliases for 350+ common applications:
+- Messaging: Discord, Slack, Telegram, WhatsApp, Signal
+- Browsers: Firefox, Chrome, Brave, Edge, Opera
+- Email: Thunderbird, Evolution, Geary
+- Media: Spotify, VLC, MPV
+- Development: VS Code, terminals, Git clients
+- And many more...
+
+### Icon Alias Generator
+
+The icon aliases are generated from Nerd Fonts data. To regenerate with different preferences:
+
+```bash
+cd contrib/generate-icon-aliases
+
+# Prefer Material Design icons (default)
+go run . --fetch --output ../../internal/icon/aliases_default.toml
+
+# Prefer Font Awesome icons
+go run . --fetch --prefer fa --output ../../internal/icon/aliases_default.toml
 ```
 
 ## Font Configuration
-
-histuid uses CSS custom properties for font configuration, which can be overridden at multiple levels.
 
 ### CSS Variables
 
@@ -122,43 +260,17 @@ Themes should use these variables for fonts:
 }
 ```
 
-### Theme Font Override
+### Override Priority
 
-Override fonts in your theme:
-
-```css
-/* ~/.config/histui/themes/mytheme.css */
-:root {
-    --histui-font-family: "JetBrains Mono";
-    --histui-font-size: 13px;
-}
-```
-
-### CLI Font Override
-
-Override fonts via command line (highest priority):
-
-```bash
-histuid --font "Ubuntu" --font-size 16
-```
-
-### Config File Override
-
-```toml
-# ~/.config/histui/histuid.toml
-[theme]
-name = "default"
-font = "Ubuntu"
-font_size = 14
-```
+1. **CLI flags** (highest): `histuid --font "Ubuntu" --font-size 16`
+2. **Config file**: `theme.font = "Ubuntu"`
+3. **Theme CSS**: `:root { --histui-font-family: "Ubuntu"; }`
 
 ## CSS Animations
 
-GTK4 supports CSS animations via `@keyframes`. Use these for attention-grabbing effects.
+GTK4 supports CSS animations via `@keyframes`.
 
-### Pulsing Glow Effect
-
-The default theme uses this for critical notifications:
+### Pulsing Glow (Critical Notifications)
 
 ```css
 @keyframes critical-pulse {
@@ -196,75 +308,31 @@ The default theme uses this for critical notifications:
 }
 ```
 
-### Breathing Effect
-
-```css
-@keyframes breathe {
-    0%, 100% {
-        opacity: 1;
-    }
-    50% {
-        opacity: 0.7;
-    }
-}
-
-.notification-popup.is-transient {
-    animation: breathe 3s ease-in-out infinite;
-}
-```
-
 ### Animation Properties
 
 | Property | Values | Description |
 |----------|--------|-------------|
 | `animation-name` | keyframes name | Which animation to use |
 | `animation-duration` | `2s`, `500ms` | How long one cycle takes |
-| `animation-timing-function` | `ease`, `ease-in`, `ease-out`, `ease-in-out`, `linear` | Easing curve |
-| `animation-iteration-count` | `1`, `2`, `infinite` | How many times to run |
-| `animation-direction` | `normal`, `reverse`, `alternate` | Play direction |
+| `animation-timing-function` | `ease`, `ease-in`, `ease-out`, `linear` | Easing curve |
+| `animation-iteration-count` | `1`, `infinite` | How many times to run |
 | `animation-delay` | `0s`, `200ms` | Delay before starting |
 
-### Shorthand
+## Compositor Integration
 
-```css
-/* animation: name duration timing-function iteration-count */
-animation: critical-pulse 2s ease-in-out infinite;
-```
+### Hyprland Blur
 
-## Translucent Notifications
-
-For compositor blur effects, use semi-transparent backgrounds.
-
-### CSS Setup
-
-```css
-.notification-popup {
-    background-color: alpha(@window_bg_color, 0.85);
-}
-
-/* Or add a translucent class */
-.notification-popup.translucent {
-    background-color: alpha(@window_bg_color, 0.85);
-}
-```
-
-### Hyprland Configuration
-
-Add to your `hyprland.conf`:
+For translucent notifications with blur:
 
 ```ini
-# Blur for histui notifications
+# hyprland.conf
 layerrule = blur, histui-notification
 layerrule = ignorealpha 0.5, histui-notification
 ```
 
-### Sway Configuration
+### Color Mixing
 
-Sway doesn't support blur for layer surfaces natively. Consider using a patched version or alternative effect.
-
-## Color Mixing
-
-GTK4 CSS supports `color-mix()` for creating solid blended colors:
+GTK4 CSS supports `color-mix()` for solid blended colors:
 
 ```css
 /* Muted danger background - solid color, not transparent */
@@ -274,30 +342,64 @@ GTK4 CSS supports `color-mix()` for creating solid blended colors:
 }
 ```
 
-### alpha() vs color-mix()
-
 | Function | Result | Use Case |
 |----------|--------|----------|
-| `alpha(@color, 0.1)` | Semi-transparent | Compositor blur, overlays |
-| `color-mix(in srgb, @color 10%, @base)` | Solid blended color | Muted backgrounds, tints |
+| `alpha(@color, 0.1)` | Semi-transparent | Compositor blur |
+| `color-mix(in srgb, @color 10%, @base)` | Solid blended | Muted backgrounds |
 
-## Creating a Complete Theme
-
-Here's a complete example combining all features:
+## Complete Theme Example
 
 ```
 ~/.config/histui/themes/custom/
 ├── theme.css
+├── layout.xml
 ├── manifest.toml
 └── sounds/
     ├── notify.ogg
     └── alert.ogg
 ```
 
+**layout.xml:**
+```xml
+<popup min-width="250" max-width="400" min-height="0" max-height="600">
+  <header>
+    <icon size="48" />
+    <box orientation="vertical">
+      <summary />
+      <appname />
+    </box>
+    <stack-count />
+    <close />
+  </header>
+  <body />
+  <progress />
+  <image />
+  <actions />
+</popup>
+```
+
+**manifest.toml:**
+```toml
+name = "Custom"
+description = "Custom theme with sounds and animations"
+version = "1.0.0"
+
+[icon]
+size = 48
+
+[audio.normal]
+path = "sounds/notify.ogg"
+volume = 0.7
+
+[audio.critical]
+path = "sounds/alert.ogg"
+volume = 1.0
+repeat_count = 3
+repeat_delay = "5s"
+```
+
 **theme.css:**
 ```css
-/* Custom Theme with animations and proper fonts */
-
 :root {
     --histui-font-family: "Inter", sans-serif;
     --histui-font-size: 14px;
@@ -308,13 +410,13 @@ window {
 }
 
 .notification-popup {
-    background-color: #1e1e2e;
+    background-color: alpha(#1e1e2e, 0.9);
     color: #cdd6f4;
     border-radius: 12px;
     border: 1px solid #45475a;
     padding: 12px;
+    margin: 8px;
     font-family: var(--histui-font-family);
-    font-size: var(--histui-font-size);
     animation: fade-in 0.2s ease-out;
 }
 
@@ -327,79 +429,10 @@ window {
     background-color: color-mix(in srgb, #f38ba8 10%, #1e1e2e);
     border-color: #f38ba8;
 }
-
-@keyframes pulse {
-    0%, 100% { text-shadow: 0 0 4px #f38ba8; }
-    50% { text-shadow: 0 0 12px #f38ba8, 0 0 20px #f38ba8; }
-}
-
-.notification-popup.urgency-critical .notification-summary {
-    color: #f38ba8;
-    animation: pulse 2s ease-in-out infinite;
-}
 ```
-
-**manifest.toml:**
-```toml
-name = "Custom"
-description = "Custom theme with sounds and animations"
-version = "1.0.0"
-
-[audio.normal]
-path = "sounds/notify.ogg"
-volume = 0.7
-
-[audio.critical]
-path = "sounds/alert.ogg"
-volume = 1.0
-repeat_count = 3
-repeat_delay = "5s"
-
-[icon]
-size = 48
-```
-
-## Icon Resolution
-
-histuid includes a built-in icon resolver with common app name aliases. This helps find icons when applications use non-standard names.
-
-### Built-in Aliases
-
-The resolver includes aliases for common apps:
-- `zapzap` → `whatsapp`
-- `telegram-desktop` → `telegram`
-- `firefox-esr` → `firefox`
-- `vesktop` → `discord`
-- And many more...
-
-### Custom Aliases
-
-Add your own aliases in a separate file for easy sharing:
-
-```toml
-# ~/.config/histui/icon-aliases.toml
-
-[aliases]
-myapp = "standard-icon-name"
-custom-browser = "web-browser"
-zapzap = "whatsapp"
-telegram-desktop = "telegram"
-```
-
-This file is loaded automatically on startup. User aliases take precedence over built-in aliases.
-
-### Nerd Font Symbols (Planned)
-
-Future versions may support Nerd Font symbols as icon fallbacks. The resolver includes mappings for common symbols:
-- Discord, Slack, Telegram, WhatsApp
-- Firefox, Chrome, Chromium
-- Terminal, Code, Folder, File
-- Network, Bluetooth, Volume
-- Warning, Error, Info, Success
 
 ## See Also
 
 - [CSS Reference](/docs/histuid/theming/css-reference) - All CSS selectors
 - [Theme Examples](/docs/histuid/theming/examples) - Ready-to-use themes
 - [Configuration](/docs/histuid/configuration) - Main config reference
-- [GTK4 CSS Properties](https://docs.gtk.org/gtk4/css-properties.html) - Full GTK4 reference
