@@ -50,6 +50,28 @@ histuid
 
 histuid will start capturing notifications and displaying popups.
 
+## Compositor Setup
+
+### Hyprland
+
+Add these rules to your `hyprland.conf`:
+
+```ini
+# Optional: Enable blur for translucent notifications
+layerrule = blur, histui-notification
+layerrule = ignorealpha 0.3, histui-notification
+```
+
+:::note Stack Styling Limitation
+Hyprland applies global `decoration:rounding` to layer-shell surfaces and there is no layer rule to disable it per-surface. If you want connected/unified notification stacks without gaps between corners, you can either:
+- Set `decoration { rounding = 0 }` globally (affects all windows)
+- Use `display.gap` in histuid config to add spacing between notifications so the rounding looks intentional
+:::
+
+### Sway
+
+No additional configuration needed. Sway respects the layer-shell surface styling.
+
 ## Configuration
 
 histuid works with sensible defaults.

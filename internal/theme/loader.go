@@ -161,7 +161,7 @@ func (l *Loader) StartHotReload(ctx context.Context) {
 	defer l.mu.Unlock()
 
 	if l.theme == nil || l.theme.IsDefault {
-		l.logger.Debug("not starting hot-reload for default theme")
+		l.logger.Debug("hot-reload disabled for bundled theme (no file to watch)")
 		return
 	}
 

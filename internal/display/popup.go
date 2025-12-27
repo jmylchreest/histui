@@ -7,6 +7,8 @@ import (
 
 	"github.com/diamondburned/gotk4-adwaita/pkg/adw"
 	layershell "github.com/diamondburned/gotk4-layer-shell/pkg/gtk4layershell"
+	"github.com/diamondburned/gotk4/pkg/gdkpixbuf/v2"
+	"github.com/diamondburned/gotk4/pkg/glib/v2"
 	"github.com/diamondburned/gotk4/pkg/gtk/v4"
 
 	"github.com/jmylchreest/histui/internal/config"
@@ -37,18 +39,31 @@ type Popup struct {
 	imageWidget   *gtk.Image
 
 	// Callbacks
-	onClose    func(reason dbus.CloseReason)
-	onAction   func(actionKey string)
-	onHover    func(hovering bool)
-	onCloseAll func()
+	onClose       func(reason dbus.CloseReason)
+	onAction      func(actionKey string)
+	onHover       func(hovering bool)
+	onCloseAll    func()
+	onHeightReady func(height int) // Called when actual height is measured
+	onWidthReady  func(width int)  // Called when actual width is measured
 
 	// State
-	position   int
-	closed     bool
-	stackCount int // Number of stacked identical notifications
-	timestamp  time.Time
+	position     int
+	closed       bool
+	stackCount   int // Number of stacked identical notifications
+	timestamp    time.Time
+	actualHeight int // Measured height after GTK layout
+	actualWidth  int // Measured width after GTK layout
+
+	// Stack position for unified stack styling
+	stackPosition string // "single", "first", "middle", "last"
+
+	// Animation state
+	currentOffsetY int // Current animated Y offset
+	targetOffsetY  int // Target Y offset for animation
+	animating      bool
 
 	// Layout-derived sizing (for position calculations)
+	minWidth  int
 	maxWidth  int
 	maxHeight int
 }
@@ -89,9 +104,9 @@ func NewPopup(app *gtk.Application, notification *dbus.DBusNotification, cfg *co
 	p.window.SetResizable(false)
 
 	// Use layout sizing if specified, otherwise fall back to config
-	minWidth := layoutConfig.MinWidth
-	if minWidth == 0 {
-		minWidth = cfg.Display.Width
+	p.minWidth = layoutConfig.MinWidth
+	if p.minWidth == 0 {
+		p.minWidth = cfg.Display.Width
 	}
 	p.maxWidth = layoutConfig.MaxWidth
 	if p.maxWidth == 0 {
@@ -103,8 +118,9 @@ func NewPopup(app *gtk.Application, notification *dbus.DBusNotification, cfg *co
 	}
 
 	// Set window size constraints
+	// Width is constrained, height will be measured after layout
 	p.window.SetDefaultSize(p.maxWidth, -1)
-	p.window.SetSizeRequest(minWidth, layoutConfig.MinHeight)
+	p.window.SetSizeRequest(p.minWidth, layoutConfig.MinHeight)
 
 	// Initialize layer-shell
 	layershell.InitForWindow(p.window)
@@ -226,12 +242,9 @@ func sanitizeClassName(name string) string {
 // buildUI constructs the popup widget hierarchy from the layout template.
 func (p *Popup) buildUI() {
 	// Main container
+	// Margins are set via CSS for flexibility with stack positions
 	p.box = gtk.NewBox(gtk.OrientationVertical, 6)
 	p.box.AddCSSClass("notification-popup")
-	p.box.SetMarginTop(8)
-	p.box.SetMarginBottom(8)
-	p.box.SetMarginStart(12)
-	p.box.SetMarginEnd(12)
 
 	// Build from layout template
 	for _, elem := range p.layout.Elements {
@@ -311,15 +324,55 @@ func (p *Popup) buildBox(elem layout.LayoutElement) gtk.Widgetter {
 }
 
 // buildIcon creates the notification icon.
+// Handles both icon names (e.g., "dialog-information") and file paths (e.g., "/usr/lib/kitty/logo/kitty.png").
 func (p *Popup) buildIcon() gtk.Widgetter {
 	p.iconImage = gtk.NewImage()
 	p.iconImage.AddCSSClass("notification-icon")
 	p.iconImage.SetPixelSize(48)
-	if p.notification.AppIcon != "" {
-		p.iconImage.SetFromIconName(p.notification.AppIcon)
-	} else {
+
+	icon := p.notification.AppIcon
+	if icon == "" {
+		p.logger.Debug("no app icon provided, using default")
 		p.iconImage.SetFromIconName("dialog-information")
+		return p.iconImage
 	}
+
+	p.logger.Debug("loading app icon", "icon", icon)
+
+	// Check if it's a file path (absolute path or file:// URI)
+	if strings.HasPrefix(icon, "/") {
+		// Absolute file path - load from file
+		pixbuf, err := gdkpixbuf.NewPixbufFromFileAtSize(icon, 48, 48)
+		if err != nil {
+			p.logger.Warn("failed to load icon from file, falling back to default",
+				"path", icon,
+				"error", err,
+			)
+			p.iconImage.SetFromIconName("dialog-information")
+		} else {
+			p.logger.Debug("loaded icon from file", "path", icon, "width", pixbuf.Width(), "height", pixbuf.Height())
+			p.iconImage.SetFromPixbuf(pixbuf)
+		}
+	} else if strings.HasPrefix(icon, "file://") {
+		// File URI - strip prefix and load from file
+		path := strings.TrimPrefix(icon, "file://")
+		pixbuf, err := gdkpixbuf.NewPixbufFromFileAtSize(path, 48, 48)
+		if err != nil {
+			p.logger.Warn("failed to load icon from file URI, falling back to default",
+				"uri", icon,
+				"error", err,
+			)
+			p.iconImage.SetFromIconName("dialog-information")
+		} else {
+			p.logger.Debug("loaded icon from file URI", "path", path, "width", pixbuf.Width(), "height", pixbuf.Height())
+			p.iconImage.SetFromPixbuf(pixbuf)
+		}
+	} else {
+		// Icon name - use theme lookup
+		p.logger.Debug("using icon name for theme lookup", "icon_name", icon)
+		p.iconImage.SetFromIconName(icon)
+	}
+
 	return p.iconImage
 }
 
@@ -435,17 +488,166 @@ func (p *Popup) buildProgress() gtk.Widgetter {
 	return p.progressBar
 }
 
+// Image display constants
+const (
+	imageMaxHeight = 150 // Maximum height before cropping
+	imagePadding   = 24  // Horizontal padding (12px each side from CSS)
+)
+
 // buildImage creates the embedded image widget.
+// Handles both image-path (file path) and image-data (raw pixel data) hints.
+// Images are scaled to fit the popup width and cropped if too tall.
 func (p *Popup) buildImage() gtk.Widgetter {
-	imagePath := p.notification.ImagePath()
-	if imagePath == "" {
+	var pixbuf *gdkpixbuf.Pixbuf
+
+	// Try image-data first (embedded pixel data)
+	if imgData := p.notification.ImageData(); imgData != nil {
+		pixbuf = p.createPixbufFromData(imgData)
+	} else {
+		// Fall back to image-path (file path)
+		imagePath := p.notification.ImagePath()
+		if imagePath == "" {
+			return nil
+		}
+		pixbuf = p.createPixbufFromFile(imagePath)
+	}
+
+	if pixbuf == nil {
 		return nil
 	}
 
+	return p.buildImageContainer(pixbuf)
+}
+
+// createPixbufFromData creates a pixbuf from raw D-Bus image data.
+func (p *Popup) createPixbufFromData(imgData *dbus.ImageDataStruct) *gdkpixbuf.Pixbuf {
+	if imgData == nil || len(imgData.Data) == 0 {
+		return nil
+	}
+
+	bytes := glib.NewBytesWithGo(imgData.Data)
+	pixbuf := gdkpixbuf.NewPixbufFromBytes(
+		bytes,
+		gdkpixbuf.ColorspaceRGB,
+		imgData.HasAlpha,
+		int(imgData.BitsPerSample),
+		int(imgData.Width),
+		int(imgData.Height),
+		int(imgData.Rowstride),
+	)
+
+	if pixbuf == nil {
+		p.logger.Warn("failed to create pixbuf from image data",
+			"width", imgData.Width,
+			"height", imgData.Height,
+			"has_alpha", imgData.HasAlpha,
+		)
+	}
+
+	return pixbuf
+}
+
+// createPixbufFromFile creates a pixbuf from a file path.
+func (p *Popup) createPixbufFromFile(path string) *gdkpixbuf.Pixbuf {
+	pixbuf, err := gdkpixbuf.NewPixbufFromFile(path)
+	if err != nil {
+		p.logger.Warn("failed to load image from file",
+			"path", path,
+			"error", err,
+		)
+		return nil
+	}
+	return pixbuf
+}
+
+// buildImageContainer creates the image widget with proper sizing and cropping.
+// - Scales image to fit popup width
+// - Crops from top if too tall, showing top portion
+// - Adds fade gradient at bottom when cropped
+func (p *Popup) buildImageContainer(pixbuf *gdkpixbuf.Pixbuf) gtk.Widgetter {
+	if pixbuf == nil {
+		return nil
+	}
+
+	// Calculate available width (popup width minus padding)
+	availableWidth := p.maxWidth - imagePadding
+	if availableWidth < 100 {
+		availableWidth = 100
+	}
+
+	// Get original dimensions
+	origWidth := pixbuf.Width()
+	origHeight := pixbuf.Height()
+
+	// Scale to fit width
+	scale := float64(availableWidth) / float64(origWidth)
+	newWidth := availableWidth
+	newHeight := int(float64(origHeight) * scale)
+
+	// Scale the pixbuf to fit width
+	scaledPixbuf := pixbuf.ScaleSimple(newWidth, newHeight, gdkpixbuf.InterpBilinear)
+	if scaledPixbuf == nil {
+		return nil
+	}
+
+	// Determine if cropping is needed
+	isCropped := newHeight > imageMaxHeight
+
+	p.logger.Debug("created notification image",
+		"orig_width", origWidth,
+		"orig_height", origHeight,
+		"scaled_width", newWidth,
+		"scaled_height", newHeight,
+		"cropped", isCropped,
+	)
+
+	if !isCropped {
+		// No cropping needed, return image directly
+		p.imageWidget = gtk.NewImage()
+		p.imageWidget.AddCSSClass("notification-image")
+		p.imageWidget.SetFromPixbuf(scaledPixbuf)
+		return p.imageWidget
+	}
+
+	// Crop the pixbuf to max height (keep top portion)
+	// GTK4 doesn't support CSS overflow:hidden, so we crop the pixbuf directly
+	croppedPixbuf := gdkpixbuf.NewPixbuf(
+		scaledPixbuf.Colorspace(),
+		scaledPixbuf.HasAlpha(),
+		scaledPixbuf.BitsPerSample(),
+		newWidth,
+		imageMaxHeight,
+	)
+	if croppedPixbuf == nil {
+		// Fallback to uncropped
+		p.imageWidget = gtk.NewImage()
+		p.imageWidget.AddCSSClass("notification-image")
+		p.imageWidget.SetFromPixbuf(scaledPixbuf)
+		return p.imageWidget
+	}
+
+	// Copy the top portion of the scaled image
+	scaledPixbuf.CopyArea(0, 0, newWidth, imageMaxHeight, croppedPixbuf, 0, 0)
+
+	// Create the cropped image widget
 	p.imageWidget = gtk.NewImage()
 	p.imageWidget.AddCSSClass("notification-image")
-	p.imageWidget.SetFromFile(imagePath)
-	return p.imageWidget
+	p.imageWidget.SetFromPixbuf(croppedPixbuf)
+
+	// Create an overlay for the fade gradient
+	overlay := gtk.NewOverlay()
+	overlay.AddCSSClass("notification-image-container")
+	overlay.AddCSSClass("cropped")
+	overlay.SetChild(p.imageWidget)
+
+	// Add gradient overlay for fade effect at the bottom
+	gradientOverlay := gtk.NewBox(gtk.OrientationVertical, 0)
+	gradientOverlay.AddCSSClass("notification-image-fade")
+	gradientOverlay.SetVAlign(gtk.AlignEnd)
+	gradientOverlay.SetSizeRequest(-1, 40) // Gradient height
+	overlay.AddOverlay(gradientOverlay)
+
+	return overlay
 }
 
 // formatRelativeTime formats a timestamp as a relative time string.
@@ -569,10 +771,49 @@ func (p *Popup) handleClick(button uint) {
 	}
 }
 
-// Show displays the popup at the given stack position.
-func (p *Popup) Show(position int) {
-	p.position = position
-	p.updateAnchorPosition()
+// Show displays the popup at the given vertical offset.
+// The offsetY is the absolute Y position from the screen edge.
+func (p *Popup) Show(offsetY int) {
+	p.currentOffsetY = offsetY
+	p.targetOffsetY = offsetY
+	p.updateAnchorPositionWithOffset(offsetY)
+
+	// Connect to map signal to measure actual size after GTK layout
+	var signalHandle glib.SignalHandle
+	signalHandle = p.window.ConnectMap(func() {
+		// Use idle callback to ensure layout is complete
+		glib.IdleAdd(func() {
+			// Get the actual window size (not preferred size) for accurate positioning
+			// The window size is what layer-shell uses for positioning other windows
+			height := p.window.Height()
+			width := p.window.Width()
+
+			// Clamp to max height
+			if height > p.maxHeight {
+				height = p.maxHeight
+			}
+
+			p.actualHeight = height
+			p.actualWidth = width
+			p.logger.Debug("measured popup size",
+				"height", height,
+				"width", width,
+				"max_height", p.maxHeight,
+			)
+
+			// Notify manager of actual dimensions
+			if p.onHeightReady != nil {
+				p.onHeightReady(height)
+			}
+			if p.onWidthReady != nil {
+				p.onWidthReady(width)
+			}
+		})
+
+		// Disconnect after first map
+		p.window.HandlerDisconnect(signalHandle)
+	})
+
 	p.window.Present()
 }
 
@@ -585,20 +826,81 @@ func (p *Popup) Close() {
 	p.window.Close()
 }
 
-// UpdatePosition updates the popup's position in the stack.
-func (p *Popup) UpdatePosition(position int) {
-	if p.position == position {
+// UpdatePosition updates the popup's vertical offset with animation.
+func (p *Popup) UpdatePosition(offsetY int) {
+	if p.targetOffsetY == offsetY {
 		return
 	}
-	p.position = position
-	p.updateAnchorPosition()
+	p.animateToOffset(offsetY)
 }
 
-// updateAnchorPosition sets the layer-shell anchors and margins based on config.
-func (p *Popup) updateAnchorPosition() {
+// animateToOffset smoothly animates the popup to a new Y offset.
+func (p *Popup) animateToOffset(targetY int) {
+	if p.closed {
+		return
+	}
+
+	p.targetOffsetY = targetY
+
+	// If already animating, the existing animation will pick up the new target
+	if p.animating {
+		return
+	}
+
+	p.animating = true
+
+	// Animation parameters
+	const (
+		animationDuration = 150 * time.Millisecond
+		frameInterval     = 16 * time.Millisecond // ~60fps
+	)
+
+	startY := p.currentOffsetY
+	startTime := time.Now()
+
+	// Animation tick function
+	var tick func() bool
+	tick = func() bool {
+		if p.closed {
+			p.animating = false
+			return false // Stop animation
+		}
+
+		elapsed := time.Since(startTime)
+		progress := float64(elapsed) / float64(animationDuration)
+
+		if progress >= 1.0 {
+			// Animation complete
+			p.currentOffsetY = p.targetOffsetY
+			p.updateAnchorPositionWithOffset(p.currentOffsetY)
+			p.animating = false
+
+			// Check if target changed during animation
+			if p.currentOffsetY != p.targetOffsetY {
+				// Start new animation to new target
+				p.animateToOffset(p.targetOffsetY)
+			}
+			return false // Stop this animation
+		}
+
+		// Ease-out cubic: 1 - (1 - t)^3
+		eased := 1.0 - (1.0-progress)*(1.0-progress)*(1.0-progress)
+
+		// Interpolate position
+		p.currentOffsetY = startY + int(float64(p.targetOffsetY-startY)*eased)
+		p.updateAnchorPositionWithOffset(p.currentOffsetY)
+
+		return true // Continue animation
+	}
+
+	// Start animation loop
+	glib.TimeoutAdd(uint(frameInterval.Milliseconds()), tick)
+}
+
+// updateAnchorPositionWithOffset sets the layer-shell position with a specific Y offset.
+func (p *Popup) updateAnchorPositionWithOffset(offsetY int) {
 	pos := config.Position(p.config.Display.Position)
 	offsetX := p.config.Display.OffsetX
-	offsetY := p.config.Display.OffsetY + (p.position * (p.maxHeight + p.config.Display.Gap))
 
 	// Reset all anchors first
 	layershell.SetAnchor(p.window, layershell.LayerShellEdgeTop, false)
@@ -659,6 +961,71 @@ func (p *Popup) OnHover(cb func(hovering bool)) {
 // OnCloseAll sets the callback for close-all action.
 func (p *Popup) OnCloseAll(cb func()) {
 	p.onCloseAll = cb
+}
+
+// OnHeightReady sets the callback for when actual height is measured.
+func (p *Popup) OnHeightReady(cb func(height int)) {
+	p.onHeightReady = cb
+}
+
+// OnWidthReady sets the callback for when actual width is measured.
+func (p *Popup) OnWidthReady(cb func(width int)) {
+	p.onWidthReady = cb
+}
+
+// GetActualHeight returns the measured actual height of the popup.
+// Returns 0 if height hasn't been measured yet.
+func (p *Popup) GetActualHeight() int {
+	return p.actualHeight
+}
+
+// GetMaxHeight returns the maximum allowed height.
+func (p *Popup) GetMaxHeight() int {
+	return p.maxHeight
+}
+
+// GetActualWidth returns the measured actual width of the popup.
+// Returns 0 if width hasn't been measured yet.
+func (p *Popup) GetActualWidth() int {
+	return p.actualWidth
+}
+
+// SetStackPosition updates the popup's position in the notification stack.
+// Valid values: "single", "first", "middle", "last"
+// This updates CSS classes for unified stack styling.
+func (p *Popup) SetStackPosition(position string) {
+	if p.stackPosition == position {
+		return
+	}
+
+	// Remove old stack position class
+	if p.stackPosition != "" {
+		p.box.RemoveCSSClass("stack-" + p.stackPosition)
+	}
+
+	p.stackPosition = position
+
+	// Add new stack position class
+	if position != "" {
+		p.box.AddCSSClass("stack-" + position)
+		p.logger.Debug("set stack position CSS class",
+			"position", position,
+			"class", "stack-"+position,
+		)
+	}
+}
+
+// GetStackPosition returns the current stack position.
+func (p *Popup) GetStackPosition() string {
+	return p.stackPosition
+}
+
+// SetWidth sets the popup content box minimum width (for unified stack width).
+// This ensures all popups in a stack share the same width.
+func (p *Popup) SetWidth(width int) {
+	if width > 0 && width <= p.maxWidth {
+		p.box.SetSizeRequest(width, -1)
+	}
 }
 
 // SetStackCount updates the stack count badge.

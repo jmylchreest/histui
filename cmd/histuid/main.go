@@ -173,6 +173,19 @@ func runDaemonMode(logger *slog.Logger) {
 	// Create the libadwaita application
 	app := adw.NewApplication(appID, 0)
 
+	// Set AdwStyleManager color scheme early (in startup phase) to avoid GtkSettings warning
+	app.ConnectStartup(func() {
+		styleManager := adw.StyleManagerGetDefault()
+		switch config.ColorScheme(cfg.Theme.ColorScheme) {
+		case config.ColorSchemeLight:
+			styleManager.SetColorScheme(adw.ColorSchemeForceLight)
+		case config.ColorSchemeDark:
+			styleManager.SetColorScheme(adw.ColorSchemeForceDark)
+		default:
+			styleManager.SetColorScheme(adw.ColorSchemeDefault)
+		}
+	})
+
 	// Shared state between GTK main loop and signal handlers
 	var (
 		dbusServer       *dbus.NotificationServer
@@ -238,6 +251,13 @@ func runDaemonMode(logger *slog.Logger) {
 			return
 		}
 		running.Store(true)
+
+		// Check D-Bus availability early before initializing other components
+		if err := dbus.CheckBusNameAvailable(); err != nil {
+			logger.Error("cannot start notification daemon", "error", err)
+			app.Quit()
+			return
+		}
 
 		// Initialize history store with persistence
 		historyPath, err := store.HistoryPath()

@@ -187,10 +187,10 @@ func DefaultDaemonConfig() *DaemonConfig {
 			Position:   string(PositionTopRight),
 			OffsetX:    10,
 			OffsetY:    10,
-			Width:      350,
+			Width:      450,
 			MaxHeight:  200,
 			MaxVisible: 5,
-			Gap:        5,
+			Gap:        0, // 0 for unified stack appearance
 			Monitor:    0,
 			Opacity:    1.0, // Fully opaque by default
 		},

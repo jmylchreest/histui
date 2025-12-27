@@ -163,18 +163,85 @@ func (n *DBusNotification) ImagePath() string {
 	return ""
 }
 
+// ImageDataStruct holds the parsed image-data hint from D-Bus.
+// The D-Bus signature is (iiibiiay).
+type ImageDataStruct struct {
+	Width         int32
+	Height        int32
+	Rowstride     int32
+	HasAlpha      bool
+	BitsPerSample int32
+	Channels      int32
+	Data          []byte
+}
+
 // ImageData extracts the image-data hint if present.
 // The image-data format is: (iiibiiay) - width, height, rowstride, has_alpha, bits_per_sample, channels, data
 // Returns nil if not present or invalid.
-func (n *DBusNotification) ImageData() []byte {
-	if v, ok := n.Hints["image-data"]; ok {
-		// image-data is a complex struct, we'll just check if it exists
-		// and handle the actual decoding when displaying
-		if data, ok := v.Value().([]byte); ok {
-			return data
-		}
+func (n *DBusNotification) ImageData() *ImageDataStruct {
+	// Try image-data first (preferred), then icon_data (legacy)
+	var variant dbus.Variant
+	var ok bool
+	var hintName string
+	if variant, ok = n.Hints["image-data"]; ok {
+		hintName = "image-data"
+	} else if variant, ok = n.Hints["icon_data"]; ok {
+		hintName = "icon_data"
+	} else {
+		return nil
 	}
-	return nil
+
+	// D-Bus structs come in as []interface{} with fields in order
+	fields, ok := variant.Value().([]interface{})
+	if !ok || len(fields) != 7 {
+		// Log debug info about what we received
+		_ = hintName // Used in debug
+		return nil
+	}
+
+	// Parse each field with type assertions
+	// godbus may send different integer types, so handle both int32 and int
+	width := toInt32(fields[0])
+	height := toInt32(fields[1])
+	rowstride := toInt32(fields[2])
+	hasAlpha, ok4 := fields[3].(bool)
+	bitsPerSample := toInt32(fields[4])
+	channels := toInt32(fields[5])
+	data, ok7 := fields[6].([]byte)
+
+	if width == 0 || height == 0 || !ok4 || !ok7 {
+		return nil
+	}
+
+	return &ImageDataStruct{
+		Width:         width,
+		Height:        height,
+		Rowstride:     rowstride,
+		HasAlpha:      hasAlpha,
+		BitsPerSample: bitsPerSample,
+		Channels:      channels,
+		Data:          data,
+	}
+}
+
+// toInt32 converts various integer types to int32.
+func toInt32(v interface{}) int32 {
+	switch val := v.(type) {
+	case int32:
+		return val
+	case int:
+		return int32(val)
+	case int64:
+		return int32(val)
+	case uint32:
+		return int32(val)
+	case uint:
+		return int32(val)
+	case uint64:
+		return int32(val)
+	default:
+		return 0
+	}
 }
 
 // Progress extracts the progress value hint.

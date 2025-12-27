@@ -241,7 +241,7 @@ func (l *Loader) Load(name string) (*LayoutConfig, error) {
 func DefaultLayout() *LayoutConfig {
 	return &LayoutConfig{
 		MinWidth:  300,
-		MaxWidth:  300, // Fixed width
+		MaxWidth:  450, // Dynamic width up to 450px
 		MinHeight: 0,   // Dynamic height
 		MaxHeight: 900,
 		Elements: []LayoutElement{
@@ -274,8 +274,8 @@ func DefaultLayout() *LayoutConfig {
 // CompactLayout returns a minimal layout without app name or image.
 func CompactLayout() *LayoutConfig {
 	return &LayoutConfig{
-		MinWidth:  300,
-		MaxWidth:  300, // Fixed width
+		MinWidth:  250,
+		MaxWidth:  400, // Dynamic width up to 400px
 		MinHeight: 0,   // Dynamic height
 		MaxHeight: 900,
 		Elements: []LayoutElement{

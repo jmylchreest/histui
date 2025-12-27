@@ -35,6 +35,8 @@ type PopupState struct {
 	ExpiresAt    time.Time // Zero means never expires
 	Paused       bool      // Timeout paused (e.g., on hover)
 	StackCount   int       // Number of stacked identical notifications
+	ActualHeight int       // Measured height after GTK layout (for dynamic stacking)
+	ActualWidth  int       // Measured width after GTK layout (for unified stack width)
 }
 
 // CloseCallback is called when a popup is closed.
@@ -245,8 +247,8 @@ func (m *Manager) Show(notification *dbus.DBusNotification, dbusID uint32, histu
 
 // showPopupLocked creates and displays a popup. Caller must hold the lock.
 func (m *Manager) showPopupLocked(notification *dbus.DBusNotification, dbusID uint32, histuiID string) error {
-	// Calculate position in stack
-	position := len(m.popups)
+	// Calculate initial Y offset based on accumulated heights of existing popups
+	offsetY := m.calculateOffsetYLocked()
 
 	// Create the popup (this is where GTK objects are allocated)
 	popup, err := NewPopup(m.app, notification, m.config, m.logger)
@@ -281,7 +283,7 @@ func (m *Manager) showPopupLocked(notification *dbus.DBusNotification, dbusID ui
 		expiresAt = time.Now().Add(time.Duration(timeout) * time.Millisecond)
 	}
 
-	// Store state
+	// Store state with estimated height (will be updated after layout)
 	state := &PopupState{
 		DBusID:       dbusID,
 		HistuiID:     histuiID,
@@ -289,15 +291,38 @@ func (m *Manager) showPopupLocked(notification *dbus.DBusNotification, dbusID ui
 		Notification: notification,
 		CreatedAt:    time.Now(),
 		ExpiresAt:    expiresAt,
-		StackCount:   1, // Initial count
+		StackCount:   1,                      // Initial count
+		ActualHeight: popup.GetMaxHeight(),   // Use max as initial estimate
 	}
 	m.popups[dbusID] = state
+
+	// Set up callback to update actual height after measurement
+	popup.OnHeightReady(func(height int) {
+		m.mu.Lock()
+		if s, exists := m.popups[dbusID]; exists {
+			s.ActualHeight = height
+		}
+		m.mu.Unlock()
+		// Recalculate positions now that we know actual height
+		m.updatePositions()
+	})
+
+	// Set up callback to update actual width after measurement
+	popup.OnWidthReady(func(width int) {
+		m.mu.Lock()
+		if s, exists := m.popups[dbusID]; exists {
+			s.ActualWidth = width
+		}
+		m.mu.Unlock()
+		// Recalculate unified stack width and positions
+		m.updatePositions()
+	})
 
 	// Initialize the popup's stack count (shows badge only if count > 1)
 	popup.SetStackCount(1)
 
-	// Show the popup
-	popup.Show(position)
+	// Show the popup at the calculated offset
+	popup.Show(offsetY)
 
 	// Schedule timeout if applicable
 	if timeout > 0 {
@@ -313,12 +338,41 @@ func (m *Manager) showPopupLocked(notification *dbus.DBusNotification, dbusID ui
 	m.logger.Debug("showed popup",
 		"dbus_id", dbusID,
 		"histui_id", histuiID,
-		"position", position,
+		"offset_y", offsetY,
 		"timeout_ms", timeout,
 		"active_popups", len(m.popups),
 	)
 
 	return nil
+}
+
+// calculateOffsetYLocked calculates the Y offset for a new popup based on existing popups.
+// Caller must hold the lock.
+func (m *Manager) calculateOffsetYLocked() int {
+	offsetY := m.config.Display.OffsetY
+	gap := m.config.Display.Gap
+
+	// Collect and sort existing popups by creation time
+	states := make([]*PopupState, 0, len(m.popups))
+	for _, state := range m.popups {
+		states = append(states, state)
+	}
+
+	// Sort by creation time (oldest first = top of stack)
+	for i := range states {
+		for j := i + 1; j < len(states); j++ {
+			if states[j].CreatedAt.Before(states[i].CreatedAt) {
+				states[i], states[j] = states[j], states[i]
+			}
+		}
+	}
+
+	// Sum up heights of existing popups
+	for _, state := range states {
+		offsetY += state.ActualHeight + gap
+	}
+
+	return offsetY
 }
 
 // addToQueueLocked adds a notification to the queue in priority order.
@@ -620,38 +674,70 @@ func (m *Manager) handleTimeouts() {
 	}
 }
 
-// updatePositions updates the position of all remaining popups.
+// updatePositions updates the position of all remaining popups with animation.
+// Calculates new Y offsets based on accumulated actual heights.
+// Also updates stack position CSS classes and unified width for unified stack appearance.
 func (m *Manager) updatePositions() {
 	m.mu.RLock()
 	defer m.mu.RUnlock()
 
-	// Sort by creation time
-	type positionedState struct {
-		state    *PopupState
-		position int
-	}
-	states := make([]positionedState, 0, len(m.popups))
-	for _, state := range m.popups {
-		states = append(states, positionedState{state: state})
+	if len(m.popups) == 0 {
+		return
 	}
 
-	// Sort by creation time
+	// Collect states
+	states := make([]*PopupState, 0, len(m.popups))
+	for _, state := range m.popups {
+		states = append(states, state)
+	}
+
+	// Sort by creation time (oldest first = top of stack)
 	for i := range states {
 		for j := i + 1; j < len(states); j++ {
-			if states[j].state.CreatedAt.Before(states[i].state.CreatedAt) {
+			if states[j].CreatedAt.Before(states[i].CreatedAt) {
 				states[i], states[j] = states[j], states[i]
 			}
 		}
 	}
 
-	// Assign positions
-	for i := range states {
-		states[i].position = i
+	// Calculate max width across all popups for unified stack appearance
+	maxWidth := 0
+	for _, state := range states {
+		if state.ActualWidth > maxWidth {
+			maxWidth = state.ActualWidth
+		}
 	}
 
-	// Update popup positions
-	for _, ps := range states {
-		ps.state.Popup.UpdatePosition(ps.position)
+	// Calculate new offsets based on accumulated heights
+	offsetY := m.config.Display.OffsetY
+	gap := m.config.Display.Gap
+	numPopups := len(states)
+
+	for i, state := range states {
+		// Update popup position (will animate if changed)
+		state.Popup.UpdatePosition(offsetY)
+
+		// Update stack position CSS class
+		var position string
+		switch {
+		case numPopups == 1:
+			position = "single"
+		case i == 0:
+			position = "first"
+		case i == numPopups-1:
+			position = "last"
+		default:
+			position = "middle"
+		}
+		state.Popup.SetStackPosition(position)
+
+		// Apply unified width to all popups
+		if maxWidth > 0 {
+			state.Popup.SetWidth(maxWidth)
+		}
+
+		// Add this popup's height + gap for next popup
+		offsetY += state.ActualHeight + gap
 	}
 }
 

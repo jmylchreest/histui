@@ -4,6 +4,8 @@ package dbus
 import (
 	"fmt"
 	"log/slog"
+	"os"
+	"strings"
 	"sync"
 	"sync/atomic"
 
@@ -74,6 +76,33 @@ func (s *NotificationServer) SetServerInfo(info ServerInfo) {
 	s.serverInfo = info
 }
 
+// CheckBusNameAvailable checks if the notification bus name can be claimed.
+// Returns nil if available, or an error describing what process owns it.
+// This allows early failure before initializing other components.
+func CheckBusNameAvailable() error {
+	conn, err := dbus.SessionBus()
+	if err != nil {
+		return fmt.Errorf("failed to connect to session bus: %w", err)
+	}
+
+	// Check if the name has an owner
+	var hasOwner bool
+	err = conn.BusObject().Call("org.freedesktop.DBus.NameHasOwner", 0, DBusBusName).Store(&hasOwner)
+	if err != nil {
+		return fmt.Errorf("failed to check bus name ownership: %w", err)
+	}
+
+	if hasOwner {
+		owner := getNameOwnerInfo(conn, DBusBusName)
+		if owner != "" {
+			return fmt.Errorf("bus name %s already claimed by %s", DBusBusName, owner)
+		}
+		return fmt.Errorf("bus name %s already taken by another process", DBusBusName)
+	}
+
+	return nil
+}
+
 // Start connects to the session bus and exports the notification service.
 func (s *NotificationServer) Start() error {
 	s.mu.Lock()
@@ -117,7 +146,12 @@ func (s *NotificationServer) Start() error {
 		return fmt.Errorf("failed to request bus name: %w", err)
 	}
 	if reply != dbus.RequestNameReplyPrimaryOwner {
-		return fmt.Errorf("bus name %s already taken", DBusBusName)
+		// Try to identify the process that owns the name
+		owner := getNameOwnerInfo(conn, DBusBusName)
+		if owner != "" {
+			return fmt.Errorf("bus name %s already claimed by %s", DBusBusName, owner)
+		}
+		return fmt.Errorf("bus name %s already taken by another process", DBusBusName)
 	}
 
 	s.mu.Lock()
@@ -347,4 +381,39 @@ func notificationSignals() []introspect.Signal {
 			},
 		},
 	}
+}
+
+// getNameOwnerInfo attempts to identify the process that owns a D-Bus name.
+// Returns a string like "dunst (pid 12345)" or empty string on failure.
+func getNameOwnerInfo(conn *dbus.Conn, name string) string {
+	// Get the unique connection name of the owner
+	var owner string
+	err := conn.BusObject().Call("org.freedesktop.DBus.GetNameOwner", 0, name).Store(&owner)
+	if err != nil {
+		return ""
+	}
+
+	// Get the PID of the connection
+	var pid uint32
+	err = conn.BusObject().Call("org.freedesktop.DBus.GetConnectionUnixProcessID", 0, owner).Store(&pid)
+	if err != nil {
+		return ""
+	}
+
+	// Try to get the process name from /proc
+	procName := getProcessName(pid)
+	if procName != "" {
+		return fmt.Sprintf("%s (pid %d)", procName, pid)
+	}
+
+	return fmt.Sprintf("pid %d", pid)
+}
+
+// getProcessName reads the process name from /proc/<pid>/comm.
+func getProcessName(pid uint32) string {
+	data, err := os.ReadFile(fmt.Sprintf("/proc/%d/comm", pid))
+	if err != nil {
+		return ""
+	}
+	return strings.TrimSpace(string(data))
 }

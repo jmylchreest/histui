@@ -7,6 +7,14 @@
  */
 
 /* =============================================================================
+ * WINDOW - Must be transparent for proper notification appearance
+ * ============================================================================= */
+
+window {
+    background-color: transparent;
+}
+
+/* =============================================================================
  * CATPPUCCIN COLOR TOKENS
  * ============================================================================= */
 
@@ -122,13 +130,14 @@
 }
 
 .notification-stack-count {
-    background-color: var(--ctp-blue);
-    color: var(--ctp-base);
-    border-radius: 10px;
-    padding: 2px 8px;
-    font-size: 0.8em;
-    font-weight: bold;
-    margin-left: 8px;
+    /* Subtle background using surface color */
+    background-color: var(--ctp-surface1);
+    color: var(--ctp-subtext0);
+    border-radius: 8px;
+    padding: 2px 6px;
+    font-size: 0.75em;
+    font-weight: 600;
+    margin-left: 6px;
 }
 
 .notification-close {
@@ -192,6 +201,39 @@
     margin-top: 8px;
 }
 
+/* Image container for cropped images */
+.notification-image-container {
+    margin-top: 8px;
+    border-radius: 6px;
+}
+
+.notification-image-box .notification-image {
+    margin-top: 0;
+    border-radius: 0;
+}
+
+/* Fade gradient overlay when image is cropped */
+.notification-image-fade {
+    background: linear-gradient(
+        to bottom,
+        transparent 0%,
+        color-mix(in srgb, var(--ctp-base) 70%, transparent) 60%,
+        var(--ctp-base) 100%
+    );
+    border-bottom-left-radius: 6px;
+    border-bottom-right-radius: 6px;
+}
+
+/* Translucent mode gradient */
+.notification-popup.translucent .notification-image-fade {
+    background: linear-gradient(
+        to bottom,
+        transparent 0%,
+        color-mix(in srgb, var(--ctp-base) 60%, transparent) 60%,
+        color-mix(in srgb, var(--ctp-base) 90%, transparent) 100%
+    );
+}
+
 /* =============================================================================
  * ACTIONS
  * ============================================================================= */
@@ -250,4 +292,18 @@
 /* Transient notifications - slightly transparent */
 .notification-popup.is-transient {
     opacity: 0.95;
+}
+
+/* =============================================================================
+ * STACK POSITION CLASSES
+ * Catppuccin keeps rounded corners for a separated visual style.
+ * Use display.gap=4 or higher in config for visual spacing between notifications.
+ * ============================================================================= */
+
+/* All stack positions keep the same rounded corners for this theme */
+.notification-popup.stack-single,
+.notification-popup.stack-first,
+.notification-popup.stack-middle,
+.notification-popup.stack-last {
+    border-radius: 12px;
 }

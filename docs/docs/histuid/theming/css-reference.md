@@ -149,6 +149,37 @@ When `.has-progress` is applied, one of these is also added:
 | `.progress-high`    | Progress 75-99%               |
 | `.progress-complete`| Progress 100%                 |
 
+## Stack Position Classes
+
+When multiple notifications are displayed, these classes control how they visually connect:
+
+| Class               | When Applied                  |
+|---------------------|-------------------------------|
+| `.stack-single`     | Only one notification visible |
+| `.stack-first`      | First in stack (top)          |
+| `.stack-middle`     | Middle notification           |
+| `.stack-last`       | Last in stack (bottom)        |
+
+The default theme uses these to create a unified stack appearance:
+- **stack-first**: Rounded top corners, flat bottom
+- **stack-middle**: All corners flat, thin separator line
+- **stack-last**: Flat top, rounded bottom corners
+
+### Compositor Integration
+
+Some compositors apply their own corner rounding to layer-shell surfaces, which can interfere with stack styling.
+
+**Hyprland:**
+Hyprland applies `decoration:rounding` globally to layer surfaces. There is no per-surface layer rule to disable this. Options:
+- Set `decoration { rounding = 0 }` globally (affects all windows)
+- Use `display.gap` in histuid config to space notifications so rounding looks intentional
+
+**Sway:**
+Respects the layer-shell surface styling. No additional configuration needed.
+
+**Other Compositors:**
+Consult your compositor's documentation for controlling rounding on layer-shell surfaces with namespace `histui-notification`.
+
 ## GTK4/Libadwaita CSS Variables
 
 The default theme uses libadwaita CSS variables for system integration:

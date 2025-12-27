@@ -6,6 +6,12 @@
  * 1. Copy this file to ~/.config/histui/themes/
  * 2. Override specific styles as needed
  *
+ * Compositor Integration:
+ * -----------------------
+ * Some compositors (e.g., Hyprland) apply global rounding to layer surfaces.
+ * For connected stack styling, either disable global rounding or use
+ * display.gap in histuid config to space notifications apart.
+ *
  * Adwaita Variable Reference:
  * ---------------------------
  *   @window_bg_color, @window_fg_color  - Window colors
@@ -15,6 +21,14 @@
  *   @borders                            - Border color
  *   @error_color, @warning_color, @success_color - Status colors
  */
+
+/* =============================================================================
+ * WINDOW - Must be transparent for proper notification appearance
+ * ============================================================================= */
+
+window {
+    background-color: transparent;
+}
 
 /* =============================================================================
  * BASE POPUP CONTAINER
@@ -66,13 +80,14 @@
 }
 
 .notification-stack-count {
-    background-color: @accent_bg_color;
-    color: @accent_fg_color;
-    border-radius: 10px;
-    padding: 2px 8px;
-    font-size: 0.8em;
-    font-weight: bold;
-    margin-left: 8px;
+    /* Subtle background - slightly lighter/darker than notification background */
+    background-color: alpha(@window_fg_color, 0.1);
+    color: alpha(@window_fg_color, 0.7);
+    border-radius: 8px;
+    padding: 2px 6px;
+    font-size: 0.75em;
+    font-weight: 600;
+    margin-left: 6px;
 }
 
 .notification-close {
@@ -136,6 +151,44 @@
     margin-top: 8px;
 }
 
+/* Image container for cropped images */
+.notification-image-container {
+    margin-top: 8px;
+    border-radius: 6px;
+}
+
+/* Box holding the image - aligns to top so cropping happens at bottom */
+.notification-image-box {
+    /* Image aligns to top, overflow clips at container boundary */
+}
+
+.notification-image-box .notification-image {
+    margin-top: 0;
+    border-radius: 0;
+}
+
+/* Fade gradient overlay when image is cropped */
+.notification-image-fade {
+    background: linear-gradient(
+        to bottom,
+        transparent 0%,
+        alpha(@window_bg_color, 0.7) 60%,
+        @window_bg_color 100%
+    );
+    border-bottom-left-radius: 6px;
+    border-bottom-right-radius: 6px;
+}
+
+/* Translucent mode gradient - matches translucent background */
+.notification-popup.translucent .notification-image-fade {
+    background: linear-gradient(
+        to bottom,
+        transparent 0%,
+        alpha(@window_bg_color, 0.6) 60%,
+        alpha(@window_bg_color, 0.85) 100%
+    );
+}
+
 /* =============================================================================
  * ACTIONS
  * ============================================================================= */
@@ -193,4 +246,51 @@
 /* Transient notifications - slightly transparent */
 .notification-popup.is-transient {
     opacity: 0.95;
+}
+
+/* =============================================================================
+ * STACK POSITION CLASSES
+ * For unified stack appearance with 0 gap between notifications.
+ * Use display.gap=0 in config for best results.
+ * ============================================================================= */
+
+/* Single notification - normal rounded corners with all margins */
+box.notification-popup.stack-single {
+    border-radius: 12px;
+    margin: 8px;
+}
+
+/* First notification in stack - squared bottom edge, no bottom margin */
+box.notification-popup.stack-first {
+    border-top-left-radius: 12px;
+    border-top-right-radius: 12px;
+    border-bottom-left-radius: 0px;
+    border-bottom-right-radius: 0px;
+    margin: 8px 8px 0 8px;
+    padding-bottom: 8px;
+    border-bottom-width: 0;
+}
+
+/* Middle notifications - flat edges with thin separator, no vertical margins */
+box.notification-popup.stack-middle {
+    border-top-left-radius: 0px;
+    border-top-right-radius: 0px;
+    border-bottom-left-radius: 0px;
+    border-bottom-right-radius: 0px;
+    margin: 0 8px 0 8px;
+    padding-top: 8px;
+    padding-bottom: 8px;
+    border-top: 1px solid alpha(@borders, 0.3);
+    border-bottom-width: 0;
+}
+
+/* Last notification in stack - squared top edge, no top margin */
+box.notification-popup.stack-last {
+    border-top-left-radius: 0px;
+    border-top-right-radius: 0px;
+    border-bottom-left-radius: 12px;
+    border-bottom-right-radius: 12px;
+    margin: 0 8px 8px 8px;
+    padding-top: 8px;
+    border-top: 1px solid alpha(@borders, 0.3);
 }
