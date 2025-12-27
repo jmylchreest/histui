@@ -34,14 +34,14 @@ Based on plan.md structure:
 
 **Purpose**: Project initialization and dependencies for histuid
 
-- [ ] T001 Add new Go dependencies to go.mod: godbus/dbus/v5, gotk4, gotk4-adwaita, gotk4-layer-shell, gopxl/beep
-- [ ] T002 [P] Create cmd/histuid/ directory with placeholder main.go
-- [ ] T003 [P] Create internal/dbus/ package directory structure
-- [ ] T004 [P] Create internal/daemon/ package directory structure
-- [ ] T005 [P] Create internal/display/ package directory structure
-- [ ] T006 [P] Create internal/theme/ package directory structure
-- [ ] T007 [P] Create internal/audio/ package directory structure
-- [ ] T008 Update Taskfile.yml with histuid build target (CGO_ENABLED=1)
+- [x] T001 Add new Go dependencies to go.mod: godbus/dbus/v5, gotk4, gotk4-adwaita, gotk4-layer-shell, gopxl/beep
+- [x] T002 [P] Create cmd/histuid/ directory with placeholder main.go
+- [x] T003 [P] Create internal/dbus/ package directory structure
+- [x] T004 [P] Create internal/daemon/ package directory structure
+- [x] T005 [P] Create internal/display/ package directory structure
+- [x] T006 [P] Create internal/theme/ package directory structure
+- [x] T007 [P] Create internal/audio/ package directory structure
+- [x] T008 Update Taskfile.yml with histuid build target (CGO_ENABLED=1)
 
 ---
 
@@ -51,13 +51,13 @@ Based on plan.md structure:
 
 **⚠️ CRITICAL**: No user story work can begin until this phase is complete
 
-- [ ] T009 Implement D-Bus type definitions in internal/dbus/types.go (DBusNotification, Action, CloseReason constants)
-- [ ] T010 [P] Implement SharedState struct in internal/store/state.go (DnDEnabled, DnDEnabledAt, SchemaVersion)
-- [ ] T011 [P] Implement DaemonConfig struct in internal/config/daemon.go with all config sections
-- [ ] T012 [P] Implement DefaultDaemonConfig() function in internal/config/daemon.go
-- [ ] T013 Implement LoadDaemonConfig() function in internal/config/daemon.go (TOML parsing)
-- [ ] T014 [P] Implement LoadSharedState() and SaveSharedState() functions in internal/store/state.go
-- [ ] T015 Extend Notification model Extensions struct with D-Bus fields in internal/model/notification.go (Actions, ImageData, SoundFile, DesktopEntry, Resident, Transient)
+- [x] T009 Implement D-Bus type definitions in internal/dbus/types.go (DBusNotification, Action, CloseReason constants)
+- [x] T010 [P] Implement SharedState struct in internal/store/state.go (DnDEnabled, DnDEnabledAt, SchemaVersion)
+- [x] T011 [P] Implement DaemonConfig struct in internal/config/daemon.go with all config sections
+- [x] T012 [P] Implement DefaultDaemonConfig() function in internal/config/daemon.go
+- [x] T013 Implement LoadDaemonConfig() function in internal/config/daemon.go (TOML parsing)
+- [x] T014 [P] Implement LoadSharedState() and SaveSharedState() functions in internal/store/state.go
+- [x] T015 Extend Notification model Extensions struct with D-Bus fields in internal/model/notification.go (Actions, ImageData, SoundFile, DesktopEntry, Resident, Transient)
 
 **Checkpoint**: Foundation ready - user story implementation can now begin
 
@@ -71,25 +71,25 @@ Based on plan.md structure:
 
 ### Implementation for User Story 1
 
-- [ ] T016 [US1] Implement NotificationServer struct in internal/dbus/server.go with nextID counter and channels
-- [ ] T017 [US1] Implement GetCapabilities method in internal/dbus/server.go (return supported features list)
-- [ ] T018 [US1] Implement GetServerInformation method in internal/dbus/server.go (histuid, histui, version, spec 1.2)
-- [ ] T019 [US1] Implement Notify method in internal/dbus/server.go (parse hints, generate ID, return ID)
-- [ ] T020 [US1] Implement CloseNotification method in internal/dbus/server.go
-- [ ] T021 [US1] Implement signal emission helpers in internal/dbus/signals.go (NotificationClosed, ActionInvoked)
-- [ ] T022 [US1] Implement D-Bus bus name claiming and object export in internal/dbus/server.go (Start method)
-- [ ] T023 [US1] Implement DisplayManager struct in internal/display/manager.go with popup tracking
-- [ ] T024 [US1] Implement popup window creation with layer-shell in internal/display/popup.go (InitLayerShell, SetLayer, SetAnchor)
-- [ ] T025 [US1] Implement notification widget construction in internal/display/widgets.go (icon, summary, body, app-name, timestamp)
-- [ ] T026 [US1] Implement Pango markup parsing for body text in internal/display/widgets.go
-- [ ] T027 [US1] Implement popup stacking and positioning in internal/display/layout.go (CalculatePosition, UpdateStack)
-- [ ] T028 [US1] Implement timeout handling in internal/display/manager.go (per-urgency timeouts, never-expire for critical)
-- [ ] T029 [US1] Implement multi-monitor support in internal/display/layout.go (0=all, 1+=specific, fallback to primary)
-- [ ] T030 [US1] Embed default CSS theme in internal/theme/default.go
-- [ ] T031 [US1] Implement GtkCssProvider loading in internal/theme/loader.go
-- [ ] T032 [US1] Apply urgency CSS classes to popups in internal/display/popup.go (urgency-low, urgency-normal, urgency-critical)
-- [ ] T033 [US1] Implement main daemon entry point in cmd/histuid/main.go (adw.Application, D-Bus + display integration)
-- [ ] T034 [US1] Implement graceful shutdown handling in cmd/histuid/main.go (SIGINT, SIGTERM)
+- [x] T016 [US1] Implement NotificationServer struct in internal/dbus/server.go with nextID counter and channels
+- [x] T017 [US1] Implement GetCapabilities method in internal/dbus/server.go (return supported features list)
+- [x] T018 [US1] Implement GetServerInformation method in internal/dbus/server.go (histuid, histui, version, spec 1.2)
+- [x] T019 [US1] Implement Notify method in internal/dbus/server.go (parse hints, generate ID, return ID)
+- [x] T020 [US1] Implement CloseNotification method in internal/dbus/server.go
+- [x] T021 [US1] Implement signal emission helpers in internal/dbus/signals.go (NotificationClosed, ActionInvoked)
+- [x] T022 [US1] Implement D-Bus bus name claiming and object export in internal/dbus/server.go (Start method)
+- [x] T023 [US1] Implement DisplayManager struct in internal/display/manager.go with popup tracking
+- [x] T024 [US1] Implement popup window creation with layer-shell in internal/display/popup.go (InitLayerShell, SetLayer, SetAnchor)
+- [x] T025 [US1] Implement notification widget construction in internal/display/widgets.go (icon, summary, body, app-name, timestamp)
+- [x] T026 [US1] Implement Pango markup parsing for body text in internal/display/widgets.go
+- [x] T027 [US1] Implement popup stacking and positioning in internal/display/layout.go (CalculatePosition, UpdateStack)
+- [x] T028 [US1] Implement timeout handling in internal/display/manager.go (per-urgency timeouts, never-expire for critical)
+- [x] T029 [US1] Implement multi-monitor support in internal/display/layout.go (0=all, 1+=specific, fallback to primary)
+- [x] T030 [US1] Embed default CSS theme in internal/theme/default.go
+- [x] T031 [US1] Implement GtkCssProvider loading in internal/theme/loader.go
+- [x] T032 [US1] Apply urgency CSS classes to popups in internal/display/popup.go (urgency-low, urgency-normal, urgency-critical)
+- [x] T033 [US1] Implement main daemon entry point in cmd/histuid/main.go (adw.Application, D-Bus + display integration)
+- [x] T034 [US1] Implement graceful shutdown handling in cmd/histuid/main.go (SIGINT, SIGTERM)
 
 **Checkpoint**: `notify-send` displays popup on screen with basic styling
 
@@ -103,14 +103,14 @@ Based on plan.md structure:
 
 ### Implementation for User Story 2
 
-- [ ] T035 [US2] Connect D-Bus Notify handler to existing store.Add() in internal/dbus/server.go
-- [ ] T036 [US2] Set histui_source="histuid" when creating notifications in internal/dbus/server.go
-- [ ] T037 [US2] Implement DisplayState struct in internal/daemon/display_state.go (HistuiID, DBusID, Status, CreatedAt, ExpiresAt)
-- [ ] T038 [US2] Implement DisplayStateManager for mapping ULIDs to popup state in internal/daemon/display_state.go
-- [ ] T039 [US2] Implement store file watching in internal/daemon/hotreload.go for external state changes
-- [ ] T040 [US2] Connect store changes to popup updates in internal/display/manager.go (close popup when dismissed externally)
-- [ ] T041 [US2] Update popup state when notification dismissed via click in internal/display/popup.go
-- [ ] T042 [US2] Emit NotificationClosed signal with correct reason codes in internal/dbus/signals.go
+- [x] T035 [US2] Connect D-Bus Notify handler to existing store.Add() in internal/dbus/server.go
+- [x] T036 [US2] Set histui_source="histuid" when creating notifications in internal/dbus/server.go
+- [x] T037 [US2] Implement DisplayState struct in internal/daemon/display_state.go (HistuiID, DBusID, Status, CreatedAt, ExpiresAt)
+- [x] T038 [US2] Implement DisplayStateManager for mapping ULIDs to popup state in internal/daemon/display_state.go
+- [x] T039 [US2] Implement store file watching in internal/daemon/hotreload.go for external state changes
+- [x] T040 [US2] Connect store changes to popup updates in internal/display/manager.go (close popup when dismissed externally)
+- [x] T041 [US2] Update popup state when notification dismissed via click in internal/display/popup.go
+- [x] T042 [US2] Emit NotificationClosed signal with correct reason codes in internal/dbus/signals.go
 
 **Checkpoint**: Notifications persist to store, `histui get` shows them, dismissing in histui closes popup
 
@@ -124,16 +124,16 @@ Based on plan.md structure:
 
 ### Implementation for User Story 3
 
-- [ ] T043 [US3] Implement Theme struct in internal/theme/theme.go (Name, Path, CSS, ModTime)
-- [ ] T044 [US3] Implement ThemeManager with LoadTheme() in internal/theme/loader.go
-- [ ] T045 [US3] Implement theme directory scanning in internal/theme/loader.go (~/.config/histui/themes/)
-- [ ] T046 [US3] Implement CSS hot-reload via file watching in internal/theme/watcher.go
-- [ ] T047 [US3] Apply CSS variables support via GtkCssProvider in internal/theme/loader.go
-- [ ] T048 [US3] Implement GdkPixbufAnimation wrapper for animated images in internal/display/animated.go
-- [ ] T049 [US3] Implement animated GIF/APNG loading from file path in internal/display/animated.go
-- [ ] T050 [US3] Implement animated image loading from D-Bus image-data hint in internal/display/animated.go
-- [ ] T051 [US3] Implement symbolic icon styling with CSS filters in internal/display/widgets.go
-- [ ] T052 [US3] Apply theme changes without daemon restart in internal/display/manager.go
+- [x] T043 [US3] Implement Theme struct in internal/theme/theme.go (Name, Path, CSS, ModTime)
+- [x] T044 [US3] Implement ThemeManager with LoadTheme() in internal/theme/loader.go
+- [x] T045 [US3] Implement theme directory scanning in internal/theme/loader.go (~/.config/histui/themes/)
+- [x] T046 [US3] Implement CSS hot-reload via file watching in internal/theme/watcher.go
+- [x] T047 [US3] Apply CSS variables support via GtkCssProvider in internal/theme/loader.go
+- [x] T048 [US3] Implement GdkPixbufAnimation wrapper for animated images in internal/display/animated.go
+- [x] T049 [US3] Implement animated GIF/APNG loading from file path in internal/display/animated.go
+- [x] T050 [US3] Implement animated image loading from D-Bus image-data hint in internal/display/animated.go
+- [x] T051 [US3] Implement symbolic icon styling with CSS filters in internal/display/widgets.go
+- [x] T052 [US3] Apply theme changes without daemon restart in internal/display/manager.go
 
 **Checkpoint**: Custom CSS themes work, animated GIFs play, theme hot-reload works
 
@@ -147,14 +147,14 @@ Based on plan.md structure:
 
 ### Implementation for User Story 4
 
-- [ ] T053 [US4] Implement AudioPlayer interface in internal/audio/player.go (PlaySound, SetVolume, Stop)
-- [ ] T054 [US4] Implement beep-based audio playback in internal/audio/player.go (speaker.Init, streamer)
-- [ ] T055 [US4] Implement sound file loading with format detection in internal/audio/loader.go (WAV, OGG, MP3)
-- [ ] T056 [US4] Implement volume control via beep/effects in internal/audio/player.go
-- [ ] T057 [US4] Implement sound caching/preloading in internal/audio/loader.go
-- [ ] T058 [US4] Implement audio file hot-reload in internal/audio/watcher.go
-- [ ] T059 [US4] Connect notification urgency to sound selection in internal/daemon/daemon.go
-- [ ] T060 [US4] Handle audio playback failures gracefully (log warning, continue) in internal/audio/player.go
+- [x] T053 [US4] Implement AudioPlayer interface in internal/audio/player.go (PlaySound, SetVolume, Stop)
+- [x] T054 [US4] Implement beep-based audio playback in internal/audio/player.go (speaker.Init, streamer)
+- [x] T055 [US4] Implement sound file loading with format detection in internal/audio/loader.go (WAV, OGG, MP3)
+- [x] T056 [US4] Implement volume control via beep/effects in internal/audio/player.go
+- [x] T057 [US4] Implement sound caching/preloading in internal/audio/loader.go
+- [x] T058 [US4] Implement audio file hot-reload in internal/audio/watcher.go
+- [x] T059 [US4] Connect notification urgency to sound selection in internal/daemon/daemon.go
+- [x] T060 [US4] Handle audio playback failures gracefully (log warning, continue) in internal/audio/player.go
 
 **Checkpoint**: Per-urgency sounds play, volume control works, missing files handled gracefully
 
@@ -168,15 +168,15 @@ Based on plan.md structure:
 
 ### Implementation for User Story 5
 
-- [ ] T061 [US5] Read DnD state from SharedState on daemon startup in internal/daemon/daemon.go
-- [ ] T062 [US5] Watch state.json for DnD changes in internal/daemon/hotreload.go
-- [ ] T063 [US5] Suppress popup display when DnD enabled in internal/display/manager.go
-- [ ] T064 [US5] Suppress audio playback when DnD enabled in internal/audio/player.go
-- [ ] T065 [US5] Implement critical bypass option (show critical notifications despite DnD) in internal/daemon/daemon.go
-- [ ] T066 [US5] Continue persisting notifications to store during DnD in internal/dbus/server.go
-- [ ] T067 [US5] Implement `histui dnd` command in cmd/histui/dnd.go (on, off, toggle subcommands)
-- [ ] T068 [US5] Implement `histui dnd` quiet mode with exit codes in cmd/histui/dnd.go
-- [ ] T069 [US5] Extend `histui status` output with DnD state in cmd/histui/status.go
+- [x] T061 [US5] Read DnD state from SharedState on daemon startup in internal/daemon/daemon.go
+- [x] T062 [US5] Watch state.json for DnD changes in internal/daemon/hotreload.go
+- [x] T063 [US5] Suppress popup display when DnD enabled in internal/display/manager.go
+- [x] T064 [US5] Suppress audio playback when DnD enabled in internal/audio/player.go
+- [x] T065 [US5] Implement critical bypass option (show critical notifications despite DnD) in internal/daemon/daemon.go
+- [x] T066 [US5] Continue persisting notifications to store during DnD in internal/dbus/server.go
+- [x] T067 [US5] Implement `histui dnd` command in cmd/histui/dnd.go (on, off, toggle subcommands)
+- [x] T068 [US5] Implement `histui dnd` quiet mode with exit codes in cmd/histui/dnd.go
+- [x] T069 [US5] Extend `histui status` output with DnD state in cmd/histui/status.go
 
 **Checkpoint**: DnD toggle works via CLI, popups/sounds suppressed, notifications still persist
 

@@ -1,0 +1,254 @@
+/* histui Catppuccin Theme
+ * Uses Catppuccin Latte (light) and Mocha (dark) color palettes.
+ * https://catppuccin.com/
+ *
+ * Light mode: Catppuccin Latte
+ * Dark mode: Catppuccin Mocha
+ */
+
+/* =============================================================================
+ * CATPPUCCIN COLOR TOKENS
+ * ============================================================================= */
+
+/* Latte (light mode) - applied to :root */
+:root {
+    --ctp-text: #4c4f69;
+    --ctp-subtext1: #5c5f77;
+    --ctp-subtext0: #6c6f85;
+    --ctp-overlay2: #7c7f93;
+    --ctp-overlay1: #8c8fa1;
+    --ctp-overlay0: #9ca0b0;
+    --ctp-surface2: #acb0be;
+    --ctp-surface1: #bcc0cc;
+    --ctp-surface0: #ccd0da;
+    --ctp-base: #eff1f5;
+    --ctp-mantle: #e6e9ef;
+    --ctp-crust: #dce0e8;
+
+    --ctp-rosewater: #dc8a78;
+    --ctp-flamingo: #dd7878;
+    --ctp-pink: #ea76cb;
+    --ctp-mauve: #8839ef;
+    --ctp-red: #d20f39;
+    --ctp-maroon: #e64553;
+    --ctp-peach: #fe640b;
+    --ctp-yellow: #df8e1d;
+    --ctp-green: #40a02b;
+    --ctp-teal: #179299;
+    --ctp-sky: #04a5e5;
+    --ctp-sapphire: #209fb5;
+    --ctp-blue: #1e66f5;
+    --ctp-lavender: #7287fd;
+}
+
+/* Mocha (dark mode) - applied when .dark class is present */
+.dark {
+    --ctp-text: #cdd6f4;
+    --ctp-subtext1: #bac2de;
+    --ctp-subtext0: #a6adc8;
+    --ctp-overlay2: #9399b2;
+    --ctp-overlay1: #7f849c;
+    --ctp-overlay0: #6c7086;
+    --ctp-surface2: #585b70;
+    --ctp-surface1: #45475a;
+    --ctp-surface0: #313244;
+    --ctp-base: #1e1e2e;
+    --ctp-mantle: #181825;
+    --ctp-crust: #11111b;
+
+    --ctp-rosewater: #f5e0dc;
+    --ctp-flamingo: #f2cdcd;
+    --ctp-pink: #f5c2e7;
+    --ctp-mauve: #cba6f7;
+    --ctp-red: #f38ba8;
+    --ctp-maroon: #eba0ac;
+    --ctp-peach: #fab387;
+    --ctp-yellow: #f9e2af;
+    --ctp-green: #a6e3a1;
+    --ctp-teal: #94e2d5;
+    --ctp-sky: #89dceb;
+    --ctp-sapphire: #74c7ec;
+    --ctp-blue: #89b4fa;
+    --ctp-lavender: #b4befe;
+}
+
+/* =============================================================================
+ * BASE POPUP CONTAINER
+ * ============================================================================= */
+
+.notification-popup {
+    background-color: var(--ctp-base);
+    color: var(--ctp-text);
+    border-radius: 12px;
+    border: 1px solid var(--ctp-surface0);
+    box-shadow: 0 4px 16px rgba(0, 0, 0, 0.2);
+    padding: 12px;
+    margin: 8px;
+}
+
+/* Translucent mode for compositor blur */
+.notification-popup.translucent {
+    background-color: color-mix(in srgb, var(--ctp-base) 90%, transparent);
+}
+
+/* =============================================================================
+ * HEADER
+ * ============================================================================= */
+
+.notification-header {
+    margin-bottom: 6px;
+}
+
+.notification-icon {
+    min-width: 48px;
+    min-height: 48px;
+    margin-right: 12px;
+}
+
+.notification-summary {
+    font-weight: bold;
+    font-size: 1.1em;
+    color: var(--ctp-text);
+}
+
+.notification-appname {
+    font-size: 0.85em;
+    color: var(--ctp-subtext0);
+}
+
+.notification-timestamp {
+    font-size: 0.85em;
+    color: var(--ctp-overlay1);
+}
+
+.notification-stack-count {
+    background-color: var(--ctp-blue);
+    color: var(--ctp-base);
+    border-radius: 10px;
+    padding: 2px 8px;
+    font-size: 0.8em;
+    font-weight: bold;
+    margin-left: 8px;
+}
+
+.notification-close {
+    min-width: 24px;
+    min-height: 24px;
+    padding: 4px;
+    border-radius: 50%;
+    color: var(--ctp-overlay1);
+}
+
+.notification-close:hover {
+    color: var(--ctp-text);
+    background-color: var(--ctp-surface0);
+}
+
+/* =============================================================================
+ * BODY
+ * ============================================================================= */
+
+.notification-body {
+    color: var(--ctp-subtext1);
+    margin-top: 4px;
+}
+
+.notification-body link {
+    color: var(--ctp-blue);
+}
+
+.notification-body link:hover {
+    color: var(--ctp-lavender);
+    text-decoration: underline;
+}
+
+/* =============================================================================
+ * PROGRESS
+ * ============================================================================= */
+
+.notification-progress {
+    margin-top: 8px;
+    min-height: 4px;
+    border-radius: 2px;
+    background-color: var(--ctp-surface0);
+}
+
+.notification-progress > trough > progress {
+    background-color: var(--ctp-blue);
+    border-radius: 2px;
+}
+
+/* Progress complete state */
+.notification-popup.progress-complete .notification-progress > trough > progress {
+    background-color: var(--ctp-green);
+}
+
+/* =============================================================================
+ * IMAGE
+ * ============================================================================= */
+
+.notification-image {
+    border-radius: 6px;
+    margin-top: 8px;
+    max-width: 100%;
+}
+
+/* =============================================================================
+ * ACTIONS
+ * ============================================================================= */
+
+.notification-actions {
+    margin-top: 10px;
+    padding-top: 8px;
+    border-top: 1px solid var(--ctp-surface0);
+}
+
+.notification-action {
+    padding: 6px 12px;
+    border-radius: 6px;
+    margin-right: 6px;
+    color: var(--ctp-text);
+    background-color: var(--ctp-surface0);
+}
+
+.notification-action:hover {
+    background-color: var(--ctp-surface1);
+}
+
+/* =============================================================================
+ * URGENCY MODIFIERS
+ * ============================================================================= */
+
+/* Low urgency - subtle */
+.notification-popup.urgency-low {
+    border-color: var(--ctp-surface0);
+    box-shadow: 0 2px 8px rgba(0, 0, 0, 0.1);
+}
+
+.notification-popup.urgency-low .notification-summary {
+    font-weight: normal;
+}
+
+/* Normal urgency - default styling */
+.notification-popup.urgency-normal {
+    /* Uses default styling */
+}
+
+/* Critical urgency - emphasized with red */
+.notification-popup.urgency-critical {
+    border-color: var(--ctp-red);
+    border-width: 2px;
+}
+
+.notification-popup.urgency-critical .notification-summary {
+    color: var(--ctp-red);
+}
+
+/* =============================================================================
+ * STATE CLASSES
+ * ============================================================================= */
+
+/* Transient notifications - slightly transparent */
+.notification-popup.is-transient {
+    opacity: 0.95;
+}

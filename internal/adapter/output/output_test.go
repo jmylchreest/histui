@@ -198,6 +198,29 @@ func TestFormatField(t *testing.T) {
 	}
 }
 
+func TestIDsFormatter_Format(t *testing.T) {
+	notifications := testNotifications()
+	var buf bytes.Buffer
+
+	formatter := NewIDsFormatter()
+	err := formatter.Format(&buf, notifications)
+	require.NoError(t, err)
+
+	lines := strings.Split(strings.TrimSpace(buf.String()), "\n")
+	assert.Len(t, lines, 2)
+	assert.Equal(t, "abc123", lines[0])
+	assert.Equal(t, "def456", lines[1])
+}
+
+func TestIDsFormatter_Empty(t *testing.T) {
+	var buf bytes.Buffer
+
+	formatter := NewIDsFormatter()
+	err := formatter.Format(&buf, []model.Notification{})
+	require.NoError(t, err)
+	assert.Empty(t, buf.String())
+}
+
 func TestNewFormatter(t *testing.T) {
 	opts := DefaultFormatterOptions()
 
@@ -216,6 +239,12 @@ func TestNewFormatter(t *testing.T) {
 	t.Run("plain", func(t *testing.T) {
 		f := NewFormatter(FormatPlain, opts)
 		_, ok := f.(*PlainFormatter)
+		assert.True(t, ok)
+	})
+
+	t.Run("ids", func(t *testing.T) {
+		f := NewFormatter(FormatIDs, opts)
+		_, ok := f.(*IDsFormatter)
 		assert.True(t, ok)
 	})
 

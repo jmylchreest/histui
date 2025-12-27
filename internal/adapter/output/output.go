@@ -20,6 +20,7 @@ const (
 	FormatDmenu FormatType = "dmenu"
 	FormatJSON  FormatType = "json"
 	FormatPlain FormatType = "plain"
+	FormatIDs   FormatType = "ids"
 )
 
 // NewFormatter creates a formatter for the specified format type.
@@ -29,6 +30,8 @@ func NewFormatter(format FormatType, opts FormatterOptions) Formatter {
 		return NewJSONFormatter(opts)
 	case FormatPlain:
 		return NewPlainFormatter(opts)
+	case FormatIDs:
+		return NewIDsFormatter()
 	case FormatDmenu:
 		fallthrough
 	default:

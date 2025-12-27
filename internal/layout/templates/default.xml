@@ -1,0 +1,16 @@
+<!-- Default notification layout template -->
+<popup min-width="300" max-width="300" min-height="0" max-height="900">
+  <header>
+    <icon />
+    <box orientation="vertical">
+      <summary />
+      <appname />
+    </box>
+    <stack-count />
+    <close />
+  </header>
+  <body />
+  <progress />
+  <image />
+  <actions />
+</popup>

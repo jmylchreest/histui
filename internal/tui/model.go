@@ -7,6 +7,7 @@ import (
 	"fmt"
 	"io"
 	"os"
+	"strings"
 	"time"
 
 	"github.com/charmbracelet/bubbles/help"
@@ -20,6 +21,7 @@ import (
 
 	"github.com/jmylchreest/histui/internal/adapter/input"
 	"github.com/jmylchreest/histui/internal/config"
+	"github.com/jmylchreest/histui/internal/core"
 	"github.com/jmylchreest/histui/internal/model"
 	"github.com/jmylchreest/histui/internal/store"
 )
@@ -57,6 +59,7 @@ type Model struct {
 	width         int
 	height        int
 	ready         bool
+	helpPage      int // 0 = keybindings, 1 = filter reference
 
 	// Key bindings
 	keys KeyMap
@@ -178,7 +181,7 @@ func New(cfg *config.Config, s *store.Store) Model {
 	l.DisableQuitKeybindings()
 
 	searchInput := textinput.New()
-	searchInput.Placeholder = "Search..."
+	searchInput.Placeholder = "Search or filter (e.g., app=discord)..."
 	searchInput.CharLimit = 100
 
 	h := help.New()
@@ -339,6 +342,18 @@ func (m Model) handleKey(msg tea.KeyMsg) (tea.Model, tea.Cmd) {
 	case ModeHelp:
 		if key.Matches(msg, m.keys.Back) {
 			m.mode = ModeList
+			m.helpPage = 0
+		}
+		// Navigate help pages with left/right or h/l
+		switch msg.String() {
+		case "left", "h":
+			if m.helpPage > 0 {
+				m.helpPage--
+			}
+		case "right", "l", "tab":
+			if m.helpPage < 1 {
+				m.helpPage++
+			}
 		}
 		return m, nil
 	}
@@ -575,16 +590,26 @@ func (m Model) buildListItems() []list.Item {
 
 	// Apply search filter if active
 	if m.searchQuery != "" {
-		var filtered []model.Notification
 		query := m.searchQuery
-		for _, n := range notifications {
-			if containsIgnoreCase(n.Summary, query) ||
-				containsIgnoreCase(n.Body, query) ||
-				containsIgnoreCase(n.AppName, query) {
-				filtered = append(filtered, n)
+
+		// Detect if this is a filter expression (contains operators like =, ~, <, >)
+		if isFilterExpression(query) {
+			// Parse and apply filter expression
+			if expr, err := core.ParseFilter(query); err == nil {
+				notifications = core.FilterWithExpr(notifications, expr)
 			}
+		} else {
+			// Regular text search
+			var filtered []model.Notification
+			for _, n := range notifications {
+				if containsIgnoreCase(n.Summary, query) ||
+					containsIgnoreCase(n.Body, query) ||
+					containsIgnoreCase(n.AppName, query) {
+					filtered = append(filtered, n)
+				}
+			}
+			notifications = filtered
 		}
-		notifications = filtered
 	}
 
 	items := make([]list.Item, len(notifications))
@@ -592,6 +617,35 @@ func (m Model) buildListItems() []list.Item {
 		items[i] = notificationItem{notification: n, index: i}
 	}
 	return items
+}
+
+// isFilterExpression checks if a query looks like a filter expression.
+// Filter expressions contain operators like =, !=, ~, ~=, <, >, <=, >=
+// and field names like app, summary, body, urgency, etc.
+func isFilterExpression(query string) bool {
+	// Check for filter operators
+	operators := []string{"!=", "~=", ">=", "<=", "=", "~", ">", "<"}
+	for _, op := range operators {
+		if strings.Contains(query, op) {
+			// Verify it looks like a valid filter (field<op>value pattern)
+			parts := strings.SplitN(query, op, 2)
+			if len(parts) == 2 && len(strings.TrimSpace(parts[0])) > 0 {
+				field := strings.ToLower(strings.TrimSpace(parts[0]))
+				// Check if the field looks like a valid filter field
+				validFields := []string{"app", "summary", "body", "urgency", "category", "dismissed", "seen", "timestamp"}
+				for _, vf := range validFields {
+					if field == vf || strings.HasPrefix(field, vf+",") || strings.Contains(field, ","+vf) {
+						return true
+					}
+				}
+				// Also check if comma-separated multiple conditions
+				if strings.Contains(query, ",") {
+					return true
+				}
+			}
+		}
+	}
+	return false
 }
 
 // renderDetail renders the detail view for a notification.
@@ -703,10 +757,16 @@ func (m Model) viewSearch() string {
 }
 
 func (m Model) viewHelp() string {
+	if m.helpPage == 0 {
+		return m.viewHelpKeybindings()
+	}
+	return m.viewHelpFilters()
+}
+
+func (m Model) viewHelpKeybindings() string {
 	titleStyle := lipgloss.NewStyle().
 		Bold(true).
-		Foreground(lipgloss.Color("12")).
-		MarginBottom(1)
+		Foreground(lipgloss.Color("12"))
 
 	sectionStyle := lipgloss.NewStyle().
 		Foreground(lipgloss.Color("8"))
@@ -714,7 +774,10 @@ func (m Model) viewHelp() string {
 	keyStyle := lipgloss.NewStyle().
 		Foreground(lipgloss.Color("10"))
 
-	s := titleStyle.Render("Keyboard Shortcuts") + "\n\n"
+	dimStyle := lipgloss.NewStyle().
+		Foreground(lipgloss.Color("8"))
+
+	s := titleStyle.Render("Keyboard Shortcuts") + dimStyle.Render(" (1/2)") + "\n\n"
 
 	s += sectionStyle.Render("Navigation") + "\n"
 	s += keyStyle.Render("  j/k, ↑/↓") + "     Move up/down\n"
@@ -723,25 +786,73 @@ func (m Model) viewHelp() string {
 	s += "\n"
 
 	s += sectionStyle.Render("Actions") + "\n"
-	s += keyStyle.Render("  enter") + "        View notification details\n"
-	s += keyStyle.Render("  c") + "            Copy body to clipboard\n"
-	s += keyStyle.Render("  s") + "            Copy summary to clipboard\n"
-	s += keyStyle.Render("  C") + "            Copy all visible as JSON\n"
-	s += keyStyle.Render("  alt+c") + "        Copy all visible as YAML\n"
-	s += keyStyle.Render("  d") + "            Dismiss notification (hide)\n"
-	s += keyStyle.Render("  D") + "            Delete permanently (won't reimport)\n"
-	s += keyStyle.Render("  a") + "            Toggle showing dismissed\n"
-	s += keyStyle.Render("  /") + "            Search\n"
-	s += keyStyle.Render("  r") + "            Refresh from source\n"
+	s += keyStyle.Render("  enter") + "        View details\n"
+	s += keyStyle.Render("  c") + "            Copy body\n"
+	s += keyStyle.Render("  s") + "            Copy summary\n"
+	s += keyStyle.Render("  C") + "            Copy all as JSON\n"
+	s += keyStyle.Render("  alt+c") + "        Copy all as YAML\n"
+	s += keyStyle.Render("  d") + "            Dismiss/undismiss\n"
+	s += keyStyle.Render("  D") + "            Delete permanently\n"
+	s += keyStyle.Render("  a") + "            Toggle dismissed\n"
+	s += keyStyle.Render("  /") + "            Search/filter\n"
+	s += keyStyle.Render("  r") + "            Refresh\n"
 	s += "\n"
 
 	s += sectionStyle.Render("General") + "\n"
-	s += keyStyle.Render("  ?") + "            Toggle this help\n"
-	s += keyStyle.Render("  esc") + "          Back / Cancel\n"
+	s += keyStyle.Render("  ?") + "            This help\n"
+	s += keyStyle.Render("  esc") + "          Back\n"
 	s += keyStyle.Render("  q") + "            Quit\n"
 
-	s += "\n" + lipgloss.NewStyle().Foreground(lipgloss.Color("8")).Render(
-		"Press ? or esc to return")
+	s += "\n" + dimStyle.Render("←/→ or h/l: switch pages  ?/esc: close")
+
+	return s
+}
+
+func (m Model) viewHelpFilters() string {
+	titleStyle := lipgloss.NewStyle().
+		Bold(true).
+		Foreground(lipgloss.Color("12"))
+
+	sectionStyle := lipgloss.NewStyle().
+		Foreground(lipgloss.Color("8"))
+
+	fieldStyle := lipgloss.NewStyle().
+		Foreground(lipgloss.Color("10"))
+
+	opStyle := lipgloss.NewStyle().
+		Foreground(lipgloss.Color("11"))
+
+	dimStyle := lipgloss.NewStyle().
+		Foreground(lipgloss.Color("8"))
+
+	s := titleStyle.Render("Filter Reference") + dimStyle.Render(" (2/2)") + "\n\n"
+
+	s += sectionStyle.Render("Fields") + "\n"
+	s += fieldStyle.Render("  app") + "        Application name\n"
+	s += fieldStyle.Render("  summary") + "    Notification title\n"
+	s += fieldStyle.Render("  body") + "       Notification body\n"
+	s += fieldStyle.Render("  urgency") + "    low, normal, critical\n"
+	s += fieldStyle.Render("  category") + "   Notification category\n"
+	s += fieldStyle.Render("  dismissed") + "  true/false\n"
+	s += fieldStyle.Render("  seen") + "       true/false\n"
+	s += fieldStyle.Render("  timestamp") + "  Duration (1h, 7d, 2w)\n"
+	s += "\n"
+
+	s += sectionStyle.Render("Operators") + "\n"
+	s += opStyle.Render("  =") + "   Equal          " + opStyle.Render("!=") + "  Not equal\n"
+	s += opStyle.Render("  ~") + "   Contains       " + opStyle.Render("~=") + "  Regex match\n"
+	s += opStyle.Render("  >") + "   Greater than   " + opStyle.Render("<") + "   Less than\n"
+	s += opStyle.Render("  >=") + "  Greater/equal  " + opStyle.Render("<=") + "  Less/equal\n"
+	s += "\n"
+
+	s += sectionStyle.Render("Examples") + "\n"
+	s += "  app=discord\n"
+	s += "  body~meeting\n"
+	s += "  urgency=critical\n"
+	s += "  timestamp<1h          " + dimStyle.Render("(last hour)") + "\n"
+	s += "  app=slack,seen=false  " + dimStyle.Render("(multiple)") + "\n"
+
+	s += "\n" + dimStyle.Render("←/→ or h/l: switch pages  ?/esc: close")
 
 	return s
 }

@@ -209,3 +209,99 @@ func TestEnsureDataDir(t *testing.T) {
 	require.NoError(t, err)
 	assert.True(t, info.IsDir())
 }
+
+func TestDuration_UnmarshalText(t *testing.T) {
+	tests := []struct {
+		name     string
+		input    string
+		wantMs   int
+		wantErr  bool
+	}{
+		{"seconds", "5s", 5000, false},
+		{"minutes", "2m", 120000, false},
+		{"hours", "1h", 3600000, false},
+		{"complex", "1h30m", 5400000, false},
+		{"zero", "0", 0, false},
+		{"milliseconds_int", "5000", 5000, false},
+		{"ms_suffix", "500ms", 500, false},
+		{"invalid", "invalid", 0, true},
+	}
+
+	for _, tt := range tests {
+		t.Run(tt.name, func(t *testing.T) {
+			var d Duration
+			err := d.UnmarshalText([]byte(tt.input))
+			if tt.wantErr {
+				assert.Error(t, err)
+			} else {
+				require.NoError(t, err)
+				assert.Equal(t, tt.wantMs, d.Milliseconds())
+			}
+		})
+	}
+}
+
+func TestDuration_MarshalText(t *testing.T) {
+	tests := []struct {
+		name   string
+		input  Duration
+		want   string
+	}{
+		{"5_seconds", Duration(5 * 1e9), "5s"},
+		{"2_minutes", Duration(120 * 1e9), "2m0s"},
+		{"zero", Duration(0), "0s"},
+	}
+
+	for _, tt := range tests {
+		t.Run(tt.name, func(t *testing.T) {
+			text, err := tt.input.MarshalText()
+			require.NoError(t, err)
+			assert.Equal(t, tt.want, string(text))
+		})
+	}
+}
+
+func TestDaemonConfig_Timeouts(t *testing.T) {
+	cfg := DefaultDaemonConfig()
+
+	assert.Equal(t, 5000, cfg.GetTimeoutForUrgency(0))  // Low
+	assert.Equal(t, 10000, cfg.GetTimeoutForUrgency(1)) // Normal
+	assert.Equal(t, 0, cfg.GetTimeoutForUrgency(2))     // Critical (never expires)
+}
+
+func TestDaemonConfig_LoadWithDurations(t *testing.T) {
+	dir := t.TempDir()
+	path := filepath.Join(dir, "histuid.toml")
+
+	content := `
+[timeouts]
+low = "3s"
+normal = "15s"
+critical = "0"
+`
+	err := os.WriteFile(path, []byte(content), 0644)
+	require.NoError(t, err)
+
+	// Temporarily override config path
+	oldConfigPath := os.Getenv("XDG_CONFIG_HOME")
+	t.Setenv("XDG_CONFIG_HOME", dir)
+	defer func() {
+		if oldConfigPath != "" {
+			os.Setenv("XDG_CONFIG_HOME", oldConfigPath)
+		} else {
+			os.Unsetenv("XDG_CONFIG_HOME")
+		}
+	}()
+
+	// Create the histui subdirectory and move the file
+	histuiDir := filepath.Join(dir, "histui")
+	require.NoError(t, os.MkdirAll(histuiDir, 0755))
+	require.NoError(t, os.Rename(path, filepath.Join(histuiDir, "histuid.toml")))
+
+	cfg, err := LoadDaemonConfig()
+	require.NoError(t, err)
+
+	assert.Equal(t, 3000, cfg.GetTimeoutForUrgency(0))  // 3s
+	assert.Equal(t, 15000, cfg.GetTimeoutForUrgency(1)) // 15s
+	assert.Equal(t, 0, cfg.GetTimeoutForUrgency(2))     // 0 (never)
+}

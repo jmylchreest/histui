@@ -68,6 +68,21 @@ type Extensions struct {
 	URLs       string `json:"urls,omitempty"`
 	Foreground string `json:"foreground,omitempty"`
 	Background string `json:"background,omitempty"`
+
+	// D-Bus notification fields (added by histuid)
+	Actions      []Action `json:"actions,omitempty"`       // Available actions
+	ImageData    []byte   `json:"image_data,omitempty"`    // Raw image data (if provided)
+	SoundFile    string   `json:"sound_file,omitempty"`    // Requested sound file
+	SoundName    string   `json:"sound_name,omitempty"`    // Named sound from spec
+	DesktopEntry string   `json:"desktop_entry,omitempty"` // .desktop file name
+	Resident     bool     `json:"resident,omitempty"`      // Don't auto-remove after action
+	Transient    bool     `json:"transient,omitempty"`     // Don't persist
+}
+
+// Action represents a notification action with key and label.
+type Action struct {
+	Key   string `json:"key"`
+	Label string `json:"label"`
 }
 
 // Validation errors.

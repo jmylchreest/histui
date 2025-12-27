@@ -74,8 +74,8 @@ type dunstEntry struct {
 // dunstValue represents a typed value in dunst JSON.
 // dunst uses {"type": "INT", "data": 123} format.
 type dunstValue struct {
-	Type string      `json:"type"`
-	Data interface{} `json:"data"`
+	Type string `json:"type"`
+	Data any    `json:"data"`
 }
 
 // String returns the value as a string.
