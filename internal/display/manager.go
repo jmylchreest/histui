@@ -68,6 +68,7 @@ type Manager struct {
 	// Timeout management
 	timeoutCh chan uint32
 	stopCh    chan struct{}
+	stopOnce  sync.Once
 }
 
 // NewManager creates a new display manager.
@@ -107,16 +108,18 @@ func (m *Manager) Start() error {
 
 // Stop shuts down the display manager.
 func (m *Manager) Stop() {
-	close(m.stopCh)
-	m.CloseAll()
+	m.stopOnce.Do(func() {
+		close(m.stopCh)
+		m.CloseAll()
 
-	// Clear the queue
-	m.mu.Lock()
-	m.queue.Init()
-	m.queueIndex = make(map[uint32]*list.Element)
-	m.mu.Unlock()
+		// Clear the queue
+		m.mu.Lock()
+		m.queue.Init()
+		m.queueIndex = make(map[uint32]*list.Element)
+		m.mu.Unlock()
 
-	m.logger.Info("display manager stopped")
+		m.logger.Info("display manager stopped")
+	})
 }
 
 // SetCloseCallback sets the callback for popup close events.
