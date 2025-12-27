@@ -7,6 +7,7 @@ import (
 	"encoding/hex"
 	"errors"
 	"fmt"
+	"log/slog"
 	"strings"
 	"time"
 
@@ -275,4 +276,50 @@ func (n *Notification) MarkDismissed() {
 // Undismiss clears the dismissed state.
 func (n *Notification) Undismiss() {
 	n.HistuiDismissedAt = 0
+}
+
+// LogValue implements slog.LogValuer for structured logging.
+// Returns all notification fields in alphabetical order.
+func (n *Notification) LogValue() slog.Value {
+	attrs := []slog.Attr{
+		slog.String("app", n.AppName),
+		slog.String("body", n.BodyTruncated(50)),
+		slog.String("category", n.Category),
+		slog.Int("id", n.ID),
+		slog.String("summary", n.Summary),
+		slog.String("timestamp", n.TimestampTime().Format(time.RFC3339)),
+		slog.String("urgency", n.UrgencyName),
+	}
+
+	// Add histui metadata
+	attrs = append(attrs,
+		slog.String("histui_id", n.HistuiID),
+		slog.String("histui_source", n.HistuiSource),
+	)
+
+	return slog.GroupValue(attrs...)
+}
+
+// LogAttrs returns slog attributes for the notification.
+// Useful for adding notification details to log messages.
+// Fields are sorted alphabetically.
+func (n *Notification) LogAttrs() []any {
+	// Ensure content hash is computed
+	hash := n.ContentHash
+	if hash == "" {
+		hash = n.ComputeContentHash()
+	}
+
+	return []any{
+		"app", n.AppName,
+		"body", n.BodyTruncated(50),
+		"category", n.Category,
+		"hash", hash[:12], // First 12 chars for brevity
+		"histui_id", n.HistuiID,
+		"id", n.ID,
+		"source", n.HistuiSource,
+		"summary", n.Summary,
+		"timestamp", n.TimestampTime().Format(time.RFC3339),
+		"urgency", n.UrgencyName,
+	}
 }

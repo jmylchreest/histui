@@ -169,8 +169,10 @@ func (m *Monitor) handleNotify(msg *dbus.Message) {
 
 	m.logger.Debug("captured notification",
 		"app", notification.AppName,
+		"body", truncateString(notification.Body, 50),
+		"id", id,
 		"summary", notification.Summary,
-		"id", id)
+		"urgency", notification.Urgency())
 
 	if m.onNotify != nil {
 		m.onNotify(notification, id)
@@ -203,4 +205,15 @@ func (m *Monitor) Stop() error {
 		return m.conn.Close()
 	}
 	return nil
+}
+
+// truncateString truncates a string to maxLen characters, adding "..." if truncated.
+func truncateString(s string, maxLen int) string {
+	if len(s) <= maxLen {
+		return s
+	}
+	if maxLen <= 3 {
+		return s[:maxLen]
+	}
+	return s[:maxLen-3] + "..."
 }

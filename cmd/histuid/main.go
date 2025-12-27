@@ -125,10 +125,10 @@ func runMonitorMode(logger *slog.Logger) {
 			if err := historyStore.Add(*n); err != nil {
 				logger.Error("failed to persist notification", "id", id, "error", err)
 			} else {
-				logger.Debug("persisted notification", "id", id, "app", n.AppName, "summary", n.Summary)
+				logger.Debug("persisted notification", n.LogAttrs()...)
 			}
 		} else {
-			logger.Debug("skipped transient notification", "id", id, "app", n.AppName)
+			logger.Debug("skipped transient notification", n.LogAttrs()...)
 		}
 	})
 
