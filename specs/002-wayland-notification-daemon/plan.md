@@ -5,7 +5,7 @@
 
 ## Summary
 
-histuid is a Wayland-native notification daemon that implements the org.freedesktop.Notifications D-Bus interface, displays styled popup windows using web rendering technology on Wayland layer-shell surfaces, and shares a unified history store with histui. The daemon supports CSS theming, per-urgency audio notifications, Do Not Disturb mode, and hot-reload via file watching.
+histuid is a Wayland-native notification daemon that implements the org.freedesktop.Notifications D-Bus interface, displays styled popup windows using GTK4/libadwaita on Wayland layer-shell surfaces, and shares a unified history store with histui. The daemon supports CSS theming, animated images, per-urgency audio notifications, Do Not Disturb mode, and hot-reload via file watching.
 
 ## Technical Context
 
@@ -15,7 +15,8 @@ histuid is a Wayland-native notification daemon that implements the org.freedesk
 - New:
   - godbus/dbus/v5 (D-Bus service)
   - gotk4 + gotk4-layer-shell (Wayland layer-shell popups)
-  - gotk4-webkitgtk / WebKitGTK (Web rendering)
+  - gotk4-adwaita (libadwaita for modern GNOME styling)
+  - GdkPixbufAnimation (animated GIF support via gotk4)
   - gopxl/beep (Audio playback)
 
 **Storage**: JSONL file (shared with histui at `~/.local/share/histui/`)
@@ -114,8 +115,9 @@ internal/
 │   └── signals.go       # Signal emission
 ├── display/             # NEW: Wayland popup display
 │   ├── manager.go       # Popup lifecycle management
-│   ├── popup.go         # Individual popup window
-│   ├── renderer.go      # WebView/HTML rendering
+│   ├── popup.go         # Individual popup window (GTK4/libadwaita)
+│   ├── widgets.go       # Notification widget construction
+│   ├── animated.go      # GdkPixbufAnimation paintable wrapper
 │   └── layout.go        # Stacking and positioning
 ├── theme/               # NEW: CSS theming
 │   ├── loader.go        # Theme file loading
@@ -133,7 +135,7 @@ internal/
 
 | Violation | Why Needed | Simpler Alternative Rejected Because |
 |-----------|------------|-------------------------------------|
-| CGO_ENABLED=1 | Wayland layer-shell and WebView rendering require C bindings | Pure Go alternatives don't exist for wlr-layer-shell protocol or WebView rendering |
+| CGO_ENABLED=1 | GTK4/libadwaita and layer-shell require C bindings | Pure Go alternatives don't exist for Wayland GUI toolkits |
 | Separate histuid binary | Daemon must run continuously and claim D-Bus name | Adding daemon mode to histui would complicate CLI ergonomics and make binary size larger for non-daemon users |
 
 ## Research Completed (Phase 0)
@@ -143,7 +145,8 @@ All technical unknowns have been resolved. See [research.md](./research.md) for 
 | Unknown | Decision | Rationale |
 |---------|----------|-----------|
 | Wayland Layer-Shell | gotk4 + gotk4-layer-shell | Production-ready GTK4 bindings with layer-shell support |
-| WebView Rendering | gotk4-webkitgtk / WebKitGTK | GTK4 integration, full CSS3 support, 60fps animations |
+| UI Rendering | GTK4 + libadwaita (no WebKit) | Reduced attack surface, native CSS theming, modern GNOME styling |
+| Animated Images | GdkPixbufAnimation | Native GTK4 support for animated GIF/APNG |
 | Audio Playback | gopxl/beep | Pure Go, WAV/OGG/MP3, volume control, non-blocking |
 | D-Bus Service | godbus/dbus/v5 | Mature, pure Go, full server/signal support |
 | File Watching | fsnotify | Already used in histui, works for hot-reload |
@@ -152,7 +155,9 @@ All technical unknowns have been resolved. See [research.md](./research.md) for 
 
 CGO_ENABLED=1 is required because:
 - No pure-Go Wayland layer-shell implementation exists
-- WebKitGTK requires C bindings for browser engine
-- GTK4 is the standard Linux desktop toolkit
+- GTK4/libadwaita are C libraries with no pure-Go alternatives
+- GdkPixbuf (for animated images) requires C bindings
 
 This is a justified deviation from the constitution's CGO_ENABLED=0 preference. The histui CLI binary remains CGO-free; only histuid requires CGO.
+
+**Security note**: By choosing GTK4/libadwaita over WebKit, we significantly reduce the attack surface - no browser engine, no JavaScript execution, no web content parsing.

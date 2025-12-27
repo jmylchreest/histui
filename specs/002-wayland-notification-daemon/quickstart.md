@@ -15,8 +15,8 @@ This guide provides step-by-step instructions for setting up the development env
 # Arch Linux
 sudo pacman -S \
     gtk4 \
+    libadwaita \
     gtk4-layer-shell \
-    webkit2gtk-4.1 \
     gobject-introspection \
     pkg-config \
     pipewire \
@@ -25,8 +25,8 @@ sudo pacman -S \
 # Ubuntu/Debian (24.04+)
 sudo apt install \
     libgtk-4-dev \
+    libadwaita-1-dev \
     libgtk4-layer-shell-dev \
-    libwebkit2gtk-4.1-dev \
     libglib2.0-dev \
     pkg-config
 ```
@@ -63,6 +63,7 @@ go get github.com/pelletier/go-toml/v2@latest
 # New dependencies for histuid
 go get github.com/godbus/dbus/v5@latest
 go get github.com/diamondburned/gotk4@latest
+go get github.com/diamondburned/gotk4-adwaita@latest
 go get github.com/diamondburned/gotk4-layer-shell@latest
 go get github.com/gopxl/beep@latest
 
@@ -75,10 +76,10 @@ go mod tidy
 # CGO must be enabled for histuid
 export CGO_ENABLED=1
 
-# Verify GTK4 is findable
+# Verify GTK4/libadwaita are findable
 pkg-config --cflags --libs gtk4
+pkg-config --cflags --libs libadwaita-1
 pkg-config --cflags --libs gtk4-layer-shell
-pkg-config --cflags --libs webkit2gtk-4.1
 ```
 
 ---
@@ -152,36 +153,37 @@ Follow this order for incremental development:
 
 **Test milestone**: Notifications appear in `histui get` output.
 
-### Phase 3: GTK4 + Layer Shell Display
+### Phase 3: GTK4 + libadwaita + Layer Shell Display
 
 7. **`internal/display/manager.go`** - Popup window manager
-8. **`internal/display/popup.go`** - Individual popup windows
-9. **`internal/display/layout.go`** - Stacking and positioning
+8. **`internal/display/popup.go`** - Individual popup windows (GTK4/libadwaita)
+9. **`internal/display/widgets.go`** - Notification widget construction
+10. **`internal/display/layout.go`** - Stacking and positioning
 
-**Test milestone**: Popups appear on screen (basic styling).
+**Test milestone**: Popups appear on screen (basic libadwaita styling).
 
-### Phase 4: WebKit Rendering
+### Phase 4: Theming and Animated Images
 
-10. **`internal/display/renderer.go`** - WebView content rendering
-11. **`internal/theme/loader.go`** - CSS theme loading
-12. **`internal/theme/default.go`** - Embedded default theme
+11. **`internal/display/animated.go`** - GdkPixbufAnimation paintable wrapper
+12. **`internal/theme/loader.go`** - CSS theme loading
+13. **`internal/theme/default.go`** - Embedded default theme
 
-**Test milestone**: Styled popups with CSS theming.
+**Test milestone**: Styled popups with CSS theming and animated GIF support.
 
 ### Phase 5: Audio and Hot-Reload
 
-13. **`internal/audio/player.go`** - Sound playback
-14. **`internal/daemon/hotreload.go`** - File watching for config/themes
-15. **`internal/config/daemon.go`** - TOML config parsing
+14. **`internal/audio/player.go`** - Sound playback
+15. **`internal/daemon/hotreload.go`** - File watching for config/themes
+16. **`internal/config/daemon.go`** - TOML config parsing
 
 **Test milestone**: Sounds play, config changes apply without restart.
 
 ### Phase 6: CLI Extensions
 
-16. **`cmd/histui/set.go`** - `histui set` command
-17. **`cmd/histui/dnd.go`** - `histui dnd` command
-18. **`internal/core/filter.go`** - Rich filter parsing
-19. **`internal/adapter/output/ids.go`** - `--format ids` output
+17. **`cmd/histui/set.go`** - `histui set` command
+18. **`cmd/histui/dnd.go`** - `histui dnd` command
+19. **`internal/core/filter.go`** - Rich filter parsing
+20. **`internal/adapter/output/ids.go`** - `--format ids` output
 
 **Test milestone**: Full CLI workflow with pipelines.
 
@@ -227,21 +229,21 @@ func (s *Server) Notify(
 }
 ```
 
-### GTK4 Main Loop Integration
+### GTK4/libadwaita Main Loop Integration
 
 ```go
 // cmd/histuid/main.go
 func main() {
-    app := gtk.NewApplication("io.github.histui.daemon", gio.ApplicationFlagsNone)
+    app := adw.NewApplication("io.github.histui.daemon", gio.ApplicationFlagsNone)
 
     app.ConnectActivate(func() {
         // Initialize D-Bus server
         server := dbus.NewServer(store)
 
-        // Initialize display manager
+        // Initialize display manager (GTK4/libadwaita + layer-shell)
         display := display.NewManager(app)
 
-        // Connect them
+        // Connect D-Bus notifications to display
         go func() {
             for notif := range server.DisplayChannel() {
                 glib.IdleAdd(func() {
@@ -332,12 +334,13 @@ Verify compositor supports wlr-layer-shell:
 wayland-info | grep layer
 ```
 
-### "WebKit crashes"
+### "Animated GIF not playing"
 
-Try with software rendering:
+Ensure GdkPixbuf animation support:
 
 ```bash
-WEBKIT_DISABLE_COMPOSITING_MODE=1 ./histuid
+# Check if gdk-pixbuf supports GIF
+gdk-pixbuf-query-loaders | grep gif
 ```
 
 ---
@@ -347,5 +350,7 @@ WEBKIT_DISABLE_COMPOSITING_MODE=1 ./histuid
 - [freedesktop.org Notification Spec](https://specifications.freedesktop.org/notification/latest/)
 - [godbus/dbus Documentation](https://pkg.go.dev/github.com/godbus/dbus/v5)
 - [gotk4 Documentation](https://pkg.go.dev/github.com/diamondburned/gotk4)
+- [gotk4-adwaita Documentation](https://pkg.go.dev/github.com/diamondburned/gotk4-adwaita)
 - [gtk4-layer-shell](https://github.com/wmww/gtk4-layer-shell)
+- [libadwaita](https://gnome.pages.gitlab.gnome.org/libadwaita/)
 - [beep Audio Library](https://github.com/gopxl/beep)

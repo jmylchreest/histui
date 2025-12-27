@@ -46,47 +46,91 @@ go get github.com/diamondburned/gotk4-layer-shell@latest
 
 ---
 
-## 2. WebView Rendering
+## 2. Notification Rendering
 
-### Decision: gotk4-webkitgtk (WebKitGTK via gotk4)
+### Decision: Pure GTK4 + libadwaita (No WebKit)
 
-Use `github.com/nicholasq/gotk4-webkitgtk` or embed WebKitGTK directly via gotk4 for HTML/CSS rendering in popup windows.
+Use native GTK4 widgets with libadwaita styling for notification popups. No WebKit/WebView dependency.
 
 ### Rationale
 
-- **GTK4 Integration**: Seamlessly embeds in layer-shell windows created with gotk4
-- **Full CSS Support**: CSS3, animations, @font-face, flexbox - all browser-standard
-- **Animated Content**: Native GIF, APNG, WebP animation support via WebKit
-- **60fps Rendering**: Hardware-accelerated compositing on Wayland
-- **Memory Efficiency**: Shares WebKit process, ~50-80MB for notification workload
+- **Reduced Attack Surface**: WebKit is a full browser engine with millions of LOC; GTK4 widgets are much simpler
+- **Fewer Dependencies**: No `webkit2gtk` or `webkitgtk-6.0` package required
+- **GTK4 CSS Support**: GTK4 has excellent native CSS theming capabilities
+- **libadwaita Integration**: Modern GNOME styling with rounded corners, shadows, animations
+- **Animated GIF Support**: GdkPixbufAnimation + custom GdkPaintable wrapper
+- **Lower Memory**: No WebKit process overhead
+- **Faster Startup**: No WebKit initialization
 
 ### Alternatives Considered
 
 | Option | Rejected Because |
 |--------|------------------|
-| webview/webview | Separate window management; harder to integrate with layer-shell |
-| Custom HTML renderer | Would require building CSS parser and renderer; years of work |
-| Pango/Cairo text only | Cannot render animated images or rich CSS layouts |
+| gotk4-webkitgtk | Unclear GTK4 support; WebKit adds attack surface |
+| malivvan/webkitgtk | Pre-release; WebKit overhead for simple notifications |
+| webview/webview | GTK3 only; separate window management |
 
-### Usage Pattern
+### Architecture
 
 ```go
-// Create WebView for notification content
-webView := webkit.NewWebView()
-webView.LoadHTML(notificationHTML, "")
+// Notification popup structure using GTK4/libadwaita
+popup := adw.NewWindow()
+layershell.InitForWindow(popup)
+layershell.SetLayer(popup, layershell.LayerTop)
 
-// Embed in layer-shell popup
-window := gtk.NewWindow()
-layershell.InitForWindow(window)
-layershell.SetLayer(window, layershell.LayerTop)
-window.SetChild(webView)
+// Content box with CSS styling
+box := gtk.NewBox(gtk.OrientationHorizontal, 12)
+box.AddCSSClass("notification")
+box.AddCSSClass("urgency-normal")
+
+// Icon (supports animated GIFs via custom paintable)
+icon := gtk.NewPicture()
+icon.SetPaintable(animatedPaintable)
+
+// Text content
+textBox := gtk.NewBox(gtk.OrientationVertical, 4)
+summary := gtk.NewLabel(notification.Summary)
+summary.AddCSSClass("summary")
+body := gtk.NewLabel(notification.Body)
+body.AddCSSClass("body")
+
+textBox.Append(summary)
+textBox.Append(body)
+box.Append(icon)
+box.Append(textBox)
+popup.SetContent(box)
 ```
+
+### Animated GIF Support
+
+GTK4 supports animated GIFs via `GdkPixbufAnimation`:
+
+```go
+// Load animated GIF from file or bytes
+animation, _ := gdkpixbuf.NewPixbufAnimationFromFile(path)
+
+// Or from base64/bytes (e.g., from D-Bus image-data hint)
+stream := gio.NewMemoryInputStreamFromBytes(gifBytes)
+animation, _ := gdkpixbuf.NewPixbufAnimationFromStream(stream, nil)
+
+// Wrap in custom GdkPaintable for GtkPicture
+paintable := NewAnimatedPaintable(animation)
+picture.SetPaintable(paintable)
+```
+
+Preloading strategy:
+- Load app-specific icons from `~/.config/histui/icons/` on startup
+- Cache frequently-used animations in memory
+- Decode D-Bus `image-data` hints on-demand
 
 ### Build Requirements
 
 ```bash
-# WebKitGTK 4.1 (GTK4 version)
-sudo pacman -S webkit2gtk-4.1
+# GTK4 + libadwaita + layer-shell (no WebKit needed)
+sudo pacman -S gtk4 libadwaita gtk4-layer-shell
+
+# Ubuntu/Debian
+sudo apt install libgtk-4-dev libadwaita-1-dev libgtk4-layer-shell-dev
 ```
 
 ---
@@ -413,7 +457,9 @@ for event := range watcher.Events {
 | Component | Library | CGO | Notes |
 |-----------|---------|-----|-------|
 | Wayland Popups | gotk4 + gotk4-layer-shell | Yes | GTK4 with layer-shell |
-| Web Rendering | gotk4-webkitgtk / WebKitGTK | Yes | CSS theming, animations |
+| UI Styling | gotk4-adwaita (libadwaita) | Yes | Modern GNOME theming |
+| Notification Widgets | GTK4 native (GtkBox, GtkLabel, GtkPicture) | Yes | CSS-styled widgets |
+| Animated Images | GdkPixbufAnimation + custom Paintable | Yes | GIF, APNG support |
 | Audio Playback | gopxl/beep | No | WAV, OGG, MP3 support |
 | D-Bus | godbus/dbus/v5 | No | Service implementation |
 | File Watching | fsnotify | No | Hot-reload support |
@@ -429,8 +475,16 @@ CGO_ENABLED=1 go build -o histuid ./cmd/histuid
 
 ```bash
 # Arch Linux
-sudo pacman -S gtk4 gtk4-layer-shell webkit2gtk-4.1 pipewire pulseaudio
+sudo pacman -S gtk4 libadwaita gtk4-layer-shell
 
 # Ubuntu/Debian
-sudo apt install libgtk-4-dev libgtk4-layer-shell-dev libwebkit2gtk-4.1-dev
+sudo apt install libgtk-4-dev libadwaita-1-dev libgtk4-layer-shell-dev
 ```
+
+### Security Improvement
+
+By using pure GTK4/libadwaita instead of WebKit:
+- No browser engine attack surface
+- No JavaScript execution context
+- No web content parsing vulnerabilities
+- Simpler dependency chain for security audits
