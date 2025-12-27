@@ -58,6 +58,7 @@ See [Configuration Reference](/docs/histuid/configuration) for all options.
 
 ## Next Steps
 
+- [Desktop Integration](/docs/histuid/integration) - Auto-start with Hyprland, Sway, systemd
 - [Configuration](/docs/histuid/configuration) - All configuration options
 - [Theming](/docs/histuid/theming) - Customize notification appearance
 - [Monitor Mode](/docs/histuid/monitor-mode) - Run alongside dunst
