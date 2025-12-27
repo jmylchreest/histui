@@ -1,0 +1,82 @@
+/**
+ * Custom CSS for histui documentation
+ * Overrides default Infima variables for a clean, terminal-inspired theme
+ */
+
+/* Light mode - clean gray/blue palette */
+:root {
+  --ifm-color-primary: #3b82f6;
+  --ifm-color-primary-dark: #2563eb;
+  --ifm-color-primary-darker: #1d4ed8;
+  --ifm-color-primary-darkest: #1e40af;
+  --ifm-color-primary-light: #60a5fa;
+  --ifm-color-primary-lighter: #93c5fd;
+  --ifm-color-primary-lightest: #bfdbfe;
+  --ifm-code-font-size: 95%;
+  --ifm-font-family-monospace: 'JetBrains Mono', 'Fira Code', 'Cascadia Code', Consolas, Monaco, monospace;
+  --docusaurus-highlighted-code-line-bg: rgba(0, 0, 0, 0.1);
+}
+
+/* Dark mode - terminal-inspired palette */
+[data-theme='dark'] {
+  --ifm-color-primary: #60a5fa;
+  --ifm-color-primary-dark: #3b82f6;
+  --ifm-color-primary-darker: #2563eb;
+  --ifm-color-primary-darkest: #1d4ed8;
+  --ifm-color-primary-light: #93c5fd;
+  --ifm-color-primary-lighter: #bfdbfe;
+  --ifm-color-primary-lightest: #dbeafe;
+  --ifm-background-color: #0f172a;
+  --ifm-background-surface-color: #1e293b;
+  --docusaurus-highlighted-code-line-bg: rgba(255, 255, 255, 0.1);
+}
+
+/* Code blocks styling */
+.theme-code-block {
+  border-radius: 8px;
+}
+
+/* Terminal-style command examples */
+pre code {
+  font-family: var(--ifm-font-family-monospace);
+}
+
+/* Navbar tweaks */
+.navbar {
+  box-shadow: 0 1px 2px 0 rgba(0, 0, 0, 0.05);
+}
+
+[data-theme='dark'] .navbar {
+  background-color: var(--ifm-background-surface-color);
+  box-shadow: 0 1px 2px 0 rgba(0, 0, 0, 0.3);
+}
+
+/* Footer styling */
+.footer--dark {
+  background-color: #0f172a;
+}
+
+/* Sidebar styling */
+.menu__link {
+  font-weight: 400;
+}
+
+.menu__link--active {
+  font-weight: 600;
+}
+
+/* Table styling for command reference */
+table {
+  display: table;
+  width: 100%;
+}
+
+table th {
+  font-weight: 600;
+  background-color: var(--ifm-background-surface-color);
+}
+
+/* Admonition/callout styling */
+.admonition {
+  border-radius: 8px;
+}

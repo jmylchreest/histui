@@ -1,0 +1,44 @@
+/* Dracula Theme for histuid
+ * Dark theme with vibrant accents
+ * Copy to ~/.config/histui/theme.css
+ */
+
+.notification {
+  background-color: #282a36;
+  color: #f8f8f2;
+  border: 1px solid #44475a;
+  border-radius: 10px;
+  padding: 12px;
+}
+
+.notification-summary {
+  color: #f8f8f2;
+  font-weight: bold;
+  font-size: 14px;
+}
+
+.notification-body {
+  color: #6272a4;
+  font-size: 12px;
+}
+
+.notification.critical {
+  border-left: 4px solid #ff5555;
+}
+
+.notification.low {
+  border-left: 4px solid #6272a4;
+}
+
+.notification-actions button {
+  background-color: #44475a;
+  color: #f8f8f2;
+  border-radius: 6px;
+  padding: 4px 12px;
+  border: none;
+}
+
+.notification-actions button:hover {
+  background-color: #bd93f9;
+  color: #282a36;
+}

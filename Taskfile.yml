@@ -103,6 +103,54 @@ tasks:
     desc: Clean build artifacts
     cmds:
       - rm -f histui histuid coverage.out coverage.html
+      - rm -rf dist/
+
+  dist:
+    desc: Build everything to dist/ folder for pre-commit verification
+    cmds:
+      - task: dist:clean
+      - task: dist:binaries
+      - task: dist:docs
+      - echo "Build complete. Check dist/ folder."
+      - echo "  - dist/histui"
+      - echo "  - dist/histuid"
+      - echo "  - dist/docs/ (run 'npx serve dist/docs' to preview)"
+
+  dist:clean:
+    desc: Clean dist folder
+    cmds:
+      - rm -rf dist/
+      - mkdir -p dist/
+
+  dist:binaries:
+    desc: Build binaries to dist/
+    cmds:
+      - task: dist:histui
+      - task: dist:histuid
+
+  dist:histui:
+    desc: Build histui to dist/
+    env:
+      CGO_ENABLED: '0'
+    cmds:
+      - mkdir -p dist/
+      - go build -ldflags "{{.LDFLAGS}}" -o dist/histui ./cmd/histui
+
+  dist:histuid:
+    desc: Build histuid to dist/
+    env:
+      CGO_ENABLED: '1'
+    cmds:
+      - mkdir -p dist/
+      - go build -ldflags "{{.LDFLAGS}}" -o dist/histuid ./cmd/histuid
+
+  dist:docs:
+    desc: Build docs to dist/docs/
+    dir: docs
+    cmds:
+      - npm run build
+      - rm -rf ../dist/docs
+      - mv build ../dist/docs
 
   run:
     desc: Build and run histui
@@ -117,3 +165,28 @@ tasks:
       - task: lint
       - task: test
       - task: build
+
+  # Documentation tasks
+  docs:dev:
+    desc: Start documentation development server
+    dir: docs
+    cmds:
+      - npm start
+
+  docs:build:
+    desc: Build documentation for production
+    dir: docs
+    cmds:
+      - npm run build
+
+  docs:serve:
+    desc: Serve built documentation locally
+    dir: docs
+    cmds:
+      - npm run serve
+
+  docs:install:
+    desc: Install documentation dependencies
+    dir: docs
+    cmds:
+      - npm install

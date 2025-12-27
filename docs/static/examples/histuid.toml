@@ -1,0 +1,135 @@
+# histuid Configuration
+# ======================
+# Location: ~/.config/histui/histuid.toml
+#
+# This file configures the histuid notification daemon.
+# All values shown are the defaults - you only need to include
+# settings you want to change.
+
+# Display Settings
+# ----------------
+# Controls where and how notification popups appear on screen.
+[display]
+# Where popups appear on screen.
+# Options: "top-left", "top-right", "top-center",
+#          "bottom-left", "bottom-right", "bottom-center"
+position = "top-right"
+
+# Offset from screen edges in pixels
+offset_x = 10
+offset_y = 10
+
+# Popup dimensions (pixels)
+width = 350       # Valid range: 100-1000
+max_height = 200  # Maximum height before scrolling
+
+# Maximum number of popups visible at once
+# Valid range: 1-20
+max_visible = 5
+
+# Gap between stacked popups (pixels)
+gap = 5
+
+# Which monitor to display on
+# 0 = all monitors, 1+ = specific monitor
+monitor = 0
+
+# Background opacity for blur effects
+# Range: 0.0 (transparent) to 1.0 (opaque)
+opacity = 1.0
+
+
+# Timeout Settings
+# ----------------
+# How long popups display before auto-dismissing.
+# Use duration strings like "5s", "30s", "1m", "1h30m"
+# or integer milliseconds for backwards compatibility.
+# Use "0" for never expire.
+[timeouts]
+low = "5s"       # Low urgency notifications
+normal = "10s"   # Normal urgency notifications
+critical = "0"   # Critical notifications (0 = never expire)
+
+
+# Behavior Settings
+# -----------------
+# Controls how notifications are handled and displayed.
+[behavior]
+# Combine identical notifications and show count
+stack_duplicates = true
+
+# Show "(2)" badge when notifications are stacked
+show_count = true
+
+# Pause timeout countdown when mouse hovers over popup
+pause_on_hover = true
+
+# Maximum notifications to keep in session memory
+history_length = 100
+
+
+# Audio Settings
+# --------------
+# Notification sounds. Paths can use ~ for home directory.
+[audio]
+enabled = true
+volume = 80  # 0-100
+
+[audio.sounds]
+# Sound files to play per urgency level (optional)
+# Supports OGG, WAV, MP3, FLAC
+low = ""
+normal = ""
+critical = ""
+
+# Example with custom sounds:
+# low = "~/.config/histui/sounds/low.ogg"
+# normal = "~/.config/histui/sounds/normal.ogg"
+# critical = "~/.config/histui/sounds/critical.ogg"
+
+
+# Theme Settings
+# --------------
+# Controls the visual appearance of notification popups.
+[theme]
+# Theme name (without .css extension)
+# Built-in themes: "default"
+# Custom themes: place in ~/.config/histui/themes/{name}.css
+name = "default"
+
+# Color scheme preference
+# "system" = follow system dark/light mode
+# "light"  = always use light mode
+# "dark"   = always use dark mode
+color_scheme = "system"
+
+
+# Layout Settings
+# ---------------
+# Controls the structure of notification popups.
+[layout]
+# Layout template name (without .xml extension)
+# Built-in layouts: "default"
+# Custom layouts: place in ~/.config/histui/layouts/{name}.xml
+template = "default"
+
+
+# Do Not Disturb Settings
+# -----------------------
+# Controls notification suppression.
+[dnd]
+# Whether DnD is enabled on startup
+enabled = false
+
+# Allow critical notifications even in DnD mode
+critical_bypass = true
+
+
+# Mouse Button Actions
+# --------------------
+# What happens when clicking on notifications.
+# Options: "dismiss", "do-action", "close-all", "context-menu", "none"
+[mouse]
+left = "dismiss"      # Dismiss this notification
+middle = "do-action"  # Invoke default action
+right = "close-all"   # Dismiss all notifications

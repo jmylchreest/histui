@@ -1,0 +1,61 @@
+# GitHub Actions Workflow: Version Documentation
+# Contract: Create documentation version snapshot on release tag
+#
+# Trigger: Release tag created (v*)
+# Output: New versioned documentation committed and deployed
+
+name: Version Documentation
+
+on:
+  release:
+    types: [published]
+
+permissions:
+  contents: write
+
+jobs:
+  version:
+    name: Create Documentation Version
+    runs-on: ubuntu-latest
+    if: startsWith(github.ref, 'refs/tags/v')
+    defaults:
+      run:
+        working-directory: docs
+    steps:
+      - name: Checkout
+        uses: actions/checkout@v4
+        with:
+          fetch-depth: 0
+          token: ${{ secrets.GITHUB_TOKEN }}
+
+      - name: Setup Node.js
+        uses: actions/setup-node@v4
+        with:
+          node-version: 20
+          cache: npm
+          cache-dependency-path: docs/package-lock.json
+
+      - name: Install dependencies
+        run: npm ci
+
+      - name: Extract version from tag
+        id: version
+        run: echo "VERSION=${GITHUB_REF#refs/tags/v}" >> $GITHUB_OUTPUT
+
+      - name: Create documentation version
+        run: npm run docusaurus docs:version ${{ steps.version.outputs.VERSION }}
+
+      - name: Commit version files
+        run: |
+          git config --local user.email "github-actions[bot]@users.noreply.github.com"
+          git config --local user.name "github-actions[bot]"
+          git add versioned_docs versioned_sidebars versions.json
+          git commit -m "docs: add version ${{ steps.version.outputs.VERSION }}"
+          git push
+
+  # Trigger documentation deployment after versioning
+  deploy:
+    name: Trigger Deployment
+    needs: version
+    uses: ./.github/workflows/docs.yml
+    secrets: inherit

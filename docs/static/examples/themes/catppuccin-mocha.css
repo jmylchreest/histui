@@ -1,0 +1,44 @@
+/* Catppuccin Mocha Theme for histuid
+ * A soothing pastel theme for dark backgrounds
+ * Copy to ~/.config/histui/theme.css
+ */
+
+.notification {
+  background-color: #1e1e2e;
+  color: #cdd6f4;
+  border: 1px solid #45475a;
+  border-radius: 12px;
+  padding: 12px;
+  box-shadow: 0 4px 6px rgba(0, 0, 0, 0.3);
+}
+
+.notification-summary {
+  color: #cdd6f4;
+  font-weight: bold;
+  font-size: 14px;
+}
+
+.notification-body {
+  color: #bac2de;
+  font-size: 12px;
+}
+
+.notification.critical {
+  border-left: 4px solid #f38ba8;
+}
+
+.notification.low {
+  opacity: 0.8;
+}
+
+.notification-actions button {
+  background-color: #45475a;
+  color: #cdd6f4;
+  border-radius: 6px;
+  padding: 4px 12px;
+  border: none;
+}
+
+.notification-actions button:hover {
+  background-color: #585b70;
+}
