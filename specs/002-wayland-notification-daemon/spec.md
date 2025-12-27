@@ -147,6 +147,7 @@ As a user, I want notifications to be automatically suppressed when specific win
 - What happens when the history store file is locked by histui? (Use file locking with retry, or shared lock for reads)
 - How does histuid handle notifications with embedded images (D-Bus image-data hint)? (Decode and display via GdkPixbufAnimation)
 - What happens when screen resolution changes while notifications are displayed? (Reposition popups to valid screen coordinates)
+- What happens when configured monitor is disconnected? (Fall back to primary monitor, reposition popups)
 
 ## Requirements *(mandatory)*
 
@@ -167,7 +168,10 @@ As a user, I want notifications to be automatically suppressed when specific win
 - **FR-010**: System MUST support stacking multiple notifications vertically
 - **FR-011**: System MUST respect maximum visible notification limit
 - **FR-012**: System MUST use GTK4/libadwaita widgets with native CSS theming for popup content
+- **FR-012a**: System MUST support Pango markup in notification body (bold, italic, underline, hyperlinks, spans)
 - **FR-013**: System MUST support configurable popup dimensions (width, max-height)
+- **FR-013a**: System MUST support multi-monitor configuration: 0 = all monitors, 1+ = specific monitor index
+- **FR-013b**: System MUST fall back to primary monitor if configured monitor becomes unavailable
 
 **History Integration**:
 - **FR-014**: System MUST persist all received notifications to the histui history store immediately
@@ -299,7 +303,7 @@ width = 350                 # Popup width in pixels
 max_height = 200            # Maximum popup height
 max_visible = 5             # Maximum simultaneous popups
 gap = 5                     # Gap between stacked popups
-monitor = 0                 # Monitor index (0 = primary)
+monitor = 0                 # Monitor: 0 = all monitors, 1+ = specific monitor index, falls back to primary if unavailable
 
 [timeouts]
 low = 5000                  # Milliseconds (0 = never expire)
@@ -579,3 +583,5 @@ This section documents design decisions made during specification review.
 |----------|----------|-----------|
 | How should action buttons be displayed in the popup UI? | On hover/focus only | Keeps the notification compact by default while still providing easy access to actions. Matches the behavior of modern notification systems like GNOME. |
 | What rendering technology for popup content? | GTK4/libadwaita (not WebKit) | Reduced attack surface (no browser engine), native CSS theming support, better desktop integration, lower memory footprint. |
+| Multi-monitor behavior and indexing? | 0 = all monitors, 1+ = specific index, fallback to primary | Intuitive indexing where 0 means broadcast to all displays. Graceful fallback prevents popups from disappearing when monitors change. |
+| Does notification body support markup? | Yes, Pango markup | GTK4 natively supports Pango markup via GtkLabel.set_markup(). Covers freedesktop.org spec's "subset of HTML" (bold, italic, underline, hyperlinks). |
