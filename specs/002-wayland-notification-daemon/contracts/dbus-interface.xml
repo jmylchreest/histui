@@ -1,0 +1,149 @@
+<!DOCTYPE node PUBLIC "-//freedesktop//DTD D-BUS Object Introspection 1.0//EN"
+ "http://www.freedesktop.org/standards/dbus/1.0/introspect.dtd">
+<!--
+  D-Bus Interface Contract: org.freedesktop.Notifications
+
+  This is the D-Bus interface that histuid implements according to
+  the Desktop Notifications Specification v1.2.
+
+  Object Path: /org/freedesktop/Notifications
+  Bus Name: org.freedesktop.Notifications
+-->
+<node name="/org/freedesktop/Notifications">
+  <interface name="org.freedesktop.Notifications">
+    <!--
+      GetCapabilities
+      Returns the capabilities supported by this notification server.
+
+      Returns:
+        as - Array of capability strings
+    -->
+    <method name="GetCapabilities">
+      <arg direction="out" type="as" name="capabilities"/>
+    </method>
+
+    <!--
+      Notify
+      Sends a notification to the notification server.
+
+      Parameters:
+        app_name     (s)     - Application name (e.g., "Slack")
+        replaces_id  (u)     - ID of notification to replace, or 0
+        app_icon     (s)     - Icon name or path
+        summary      (s)     - Notification title
+        body         (s)     - Notification body (supports markup)
+        actions      (as)    - Array of action key/label pairs
+        hints        (a{sv}) - Variant dict of hints
+        expire_timeout (i)   - Timeout in ms (-1=default, 0=never)
+
+      Returns:
+        u - Notification ID (>0)
+    -->
+    <method name="Notify">
+      <arg direction="in" type="s" name="app_name"/>
+      <arg direction="in" type="u" name="replaces_id"/>
+      <arg direction="in" type="s" name="app_icon"/>
+      <arg direction="in" type="s" name="summary"/>
+      <arg direction="in" type="s" name="body"/>
+      <arg direction="in" type="as" name="actions"/>
+      <arg direction="in" type="a{sv}" name="hints"/>
+      <arg direction="in" type="i" name="expire_timeout"/>
+      <arg direction="out" type="u" name="id"/>
+    </method>
+
+    <!--
+      CloseNotification
+      Forces a notification to be closed.
+      Emits NotificationClosed signal with reason=3.
+
+      Parameters:
+        id (u) - Notification ID to close
+    -->
+    <method name="CloseNotification">
+      <arg direction="in" type="u" name="id"/>
+    </method>
+
+    <!--
+      GetServerInformation
+      Returns information about the notification server.
+
+      Returns:
+        name         (s) - Server name (e.g., "histuid")
+        vendor       (s) - Vendor name (e.g., "histui")
+        version      (s) - Server version
+        spec_version (s) - Notification spec version (e.g., "1.2")
+    -->
+    <method name="GetServerInformation">
+      <arg direction="out" type="s" name="name"/>
+      <arg direction="out" type="s" name="vendor"/>
+      <arg direction="out" type="s" name="version"/>
+      <arg direction="out" type="s" name="spec_version"/>
+    </method>
+
+    <!--
+      NotificationClosed
+      Emitted when a notification is closed.
+
+      Parameters:
+        id     (u) - Notification ID
+        reason (u) - Close reason:
+                     1 = expired
+                     2 = dismissed by user
+                     3 = CloseNotification() called
+                     4 = undefined/reserved
+    -->
+    <signal name="NotificationClosed">
+      <arg type="u" name="id"/>
+      <arg type="u" name="reason"/>
+    </signal>
+
+    <!--
+      ActionInvoked
+      Emitted when an action is invoked.
+
+      Parameters:
+        id         (u) - Notification ID
+        action_key (s) - The key of the action invoked
+    -->
+    <signal name="ActionInvoked">
+      <arg type="u" name="id"/>
+      <arg type="s" name="action_key"/>
+    </signal>
+
+    <!--
+      ActivationToken (spec v1.2+)
+      Provides an activation token for focus handling.
+
+      Parameters:
+        id               (u) - Notification ID
+        activation_token (s) - Token for window activation
+    -->
+    <signal name="ActivationToken">
+      <arg type="u" name="id"/>
+      <arg type="s" name="activation_token"/>
+    </signal>
+  </interface>
+
+  <interface name="org.freedesktop.DBus.Introspectable">
+    <method name="Introspect">
+      <arg direction="out" type="s" name="xml"/>
+    </method>
+  </interface>
+
+  <interface name="org.freedesktop.DBus.Properties">
+    <method name="Get">
+      <arg direction="in" type="s" name="interface"/>
+      <arg direction="in" type="s" name="property"/>
+      <arg direction="out" type="v" name="value"/>
+    </method>
+    <method name="Set">
+      <arg direction="in" type="s" name="interface"/>
+      <arg direction="in" type="s" name="property"/>
+      <arg direction="in" type="v" name="value"/>
+    </method>
+    <method name="GetAll">
+      <arg direction="in" type="s" name="interface"/>
+      <arg direction="out" type="a{sv}" name="properties"/>
+    </method>
+  </interface>
+</node>

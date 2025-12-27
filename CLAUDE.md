@@ -3,6 +3,8 @@
 Auto-generated from all feature plans. Last updated: 2025-12-26
 
 ## Active Technologies
+- Go 1.21+ (required for stdlib `slog`, consistent with existing histui) (002-wayland-notification-daemon)
+- JSONL file (shared with histui at `~/.local/share/histui/`) (002-wayland-notification-daemon)
 
 - Go 1.21+ (required for stdlib `slog`) + Cobra (CLI), BubbleTea + Lipgloss (TUI), testify (assertions) (001-notification-history-browser)
 
@@ -22,6 +24,7 @@ tests/
 Go 1.21+ (required for stdlib `slog`): Follow standard conventions
 
 ## Recent Changes
+- 002-wayland-notification-daemon: Added Go 1.21+ (required for stdlib `slog`, consistent with existing histui)
 
 - 001-notification-history-browser: Added Go 1.21+ (required for stdlib `slog`) + Cobra (CLI), BubbleTea + Lipgloss (TUI), testify (assertions)
 
