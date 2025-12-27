@@ -12,11 +12,6 @@ on:
       - "v*"
   workflow_dispatch:
     inputs:
-      release:
-        description: "Create a release (will create and push a version tag)"
-        required: false
-        default: false
-        type: boolean
       snapshot_retention:
         description: "Number of snapshot releases to keep"
         required: false
@@ -49,22 +44,12 @@ jobs:
       - name: Determine version
         id: version
         run: |
-          # Check if this is a release (tag push or manual release trigger)
+          # Check if this is a release (tag push)
           if [[ "${{ github.ref }}" == refs/tags/v* ]]; then
             IS_RELEASE=true
             # Strip 'v' prefix from tag: v1.2.3 → 1.2.3
             VERSION="${GITHUB_REF_NAME#v}"
             VERSION_TAG="${GITHUB_REF_NAME}"
-          elif [[ "${{ github.event.inputs.release }}" == "true" ]]; then
-            IS_RELEASE=true
-            # For manual release, determine next version from git describe
-            if git describe --tags --abbrev=0 2>/dev/null | grep -q '^v'; then
-              LAST_TAG=$(git describe --tags --abbrev=0)
-              VERSION="${LAST_TAG#v}"
-            else
-              VERSION="0.0.1"
-            fi
-            VERSION_TAG="v${VERSION}"
           else
             IS_RELEASE=false
             # Snapshot version format: {major}.{minor}.{next_patch}-dev.{commits}+{hash}
@@ -102,14 +87,6 @@ jobs:
           echo "Is release: ${IS_RELEASE}"
           echo "Version: ${VERSION}"
           echo "Version tag: ${VERSION_TAG}"
-
-      - name: Create and push release tag
-        if: github.event.inputs.release == 'true'
-        run: |
-          git config user.name "github-actions[bot]"
-          git config user.email "github-actions[bot]@users.noreply.github.com"
-          git tag -a "${{ steps.version.outputs.version_tag }}" -m "Release ${{ steps.version.outputs.version_tag }}"
-          git push origin "${{ steps.version.outputs.version_tag }}"
 
   build:
     name: Build (${{ matrix.goos }}/${{ matrix.goarch }})
