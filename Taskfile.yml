@@ -55,13 +55,6 @@ tasks:
     generates:
       - histuid
 
-  build-static:
-    desc: Build static binary (CGO_ENABLED=0)
-    env:
-      CGO_ENABLED: '0'
-    cmds:
-      - go build -ldflags "{{.LDFLAGS}}" -o histui ./cmd/histui
-
   install:
     desc: Install histui to GOPATH/bin
     cmds:
