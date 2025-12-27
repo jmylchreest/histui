@@ -43,6 +43,10 @@ var (
 )
 
 func main() {
+	// Suppress verbose graphics debug output from Mesa/Vulkan
+	// These write directly to stderr and aren't controlled by our logging
+	suppressGraphicsDebug()
+
 	// Define command-line flags using pflag
 	monitorMode := pflag.Bool("monitor", false, "Run in monitor mode (passive, no popups/sounds, works alongside another notification daemon)")
 	showVersion := pflag.Bool("version", false, "Show version and exit")
@@ -58,6 +62,8 @@ func main() {
 	pflag.String("theme", "", "Override theme name")
 	pflag.String("font", "", "Override font family (e.g., 'Sans', 'Monospace', 'Ubuntu')")
 	pflag.Int("font-size", 0, "Override base font size in pixels (e.g., 14, 16, 18)")
+	pflag.Bool("no-audio", false, "Disable notification sounds (overrides theme and config)")
+	pflag.Float64("volume", -1, "Set global audio volume (0.0-1.0, -1 = use config)")
 
 	pflag.Parse()
 
@@ -210,6 +216,22 @@ func runDaemonMode(logger *slog.Logger) {
 	// Store Viper instance for config watching
 	config.SetGlobalViper(v)
 
+	// Apply audio flags (overrides config)
+	if pflag.CommandLine.Changed("no-audio") {
+		noAudio, _ := pflag.CommandLine.GetBool("no-audio")
+		if noAudio {
+			cfg.Audio.Enabled = false
+			logger.Info("audio disabled via --no-audio flag")
+		}
+	}
+	if pflag.CommandLine.Changed("volume") {
+		audioVolume, _ := pflag.CommandLine.GetFloat64("volume")
+		if audioVolume >= 0 && audioVolume <= 1.0 {
+			cfg.Audio.Volume = int(audioVolume * 100)
+			logger.Info("audio volume set via --volume flag", "volume", audioVolume)
+		}
+	}
+
 	// Log effective configuration (helpful for debugging overrides)
 	if v.IsSet("display.position") && v.GetString("display.position") != "" {
 		logger.Info("using display position", "position", cfg.Display.Position, "source", getConfigSource(v, "display.position"))
@@ -350,6 +372,9 @@ func runDaemonMode(logger *slog.Logger) {
 		if err := audioManager.Start(ctx); err != nil {
 			logger.Warn("failed to start audio manager", "error", err)
 		}
+
+		// Load theme sounds into audio manager (theme manifest takes priority over daemon config)
+		loadThemeSounds(themeLoader, audioManager, logger)
 
 		// Initialize display manager
 		displayManager = display.NewManager(&app.Application, cfg, logger)
@@ -552,6 +577,8 @@ func runDaemonMode(logger *slog.Logger) {
 							internalNotifier.NotifyThemeError(err)
 						} else {
 							themeLoader.Apply(nil)
+							// Reload sounds from new theme
+							loadThemeSounds(themeLoader, audioManager, logger)
 							internalNotifier.NotifyThemeReloaded(newConfig.Theme.Name)
 						}
 					}
@@ -560,6 +587,11 @@ func runDaemonMode(logger *slog.Logger) {
 					if newConfig.Theme.FontFamily != cfg.Theme.FontFamily ||
 						newConfig.Theme.FontSize != cfg.Theme.FontSize {
 						themeLoader.ApplyFontOverrides(newConfig.Theme.FontFamily, newConfig.Theme.FontSize)
+					}
+
+					// Update color scheme if changed
+					if newConfig.Theme.ColorScheme != cfg.Theme.ColorScheme {
+						display.ApplyColorScheme(newConfig.Theme.ColorScheme, logger)
 					}
 
 					// Update the config reference
@@ -761,4 +793,51 @@ func convertActions(dbusActions []dbus.Action) []model.Action {
 		}
 	}
 	return actions
+}
+
+// loadThemeSounds loads sounds from the theme manifest into the audio manager.
+// Theme sounds are the only source of notification sounds.
+func loadThemeSounds(themeLoader *theme.Loader, audioManager *audio.Manager, logger *slog.Logger) {
+	t := themeLoader.GetTheme()
+	if t == nil {
+		return
+	}
+
+	// Clear existing sounds first (in case switching to a theme without sounds)
+	audioManager.ClearSounds()
+
+	// Load sounds for each urgency level
+	// Paths are already resolved to absolute paths by theme.resolveManifestPaths()
+	for urgency := 0; urgency <= 2; urgency++ {
+		soundCfg := t.GetSoundConfig(urgency)
+		if soundCfg == nil || soundCfg.Path == "" {
+			continue
+		}
+
+		audioManager.SetSoundForUrgency(urgency, soundCfg.Path, soundCfg.Volume)
+		logger.Debug("loaded theme sound", "urgency", urgency, "path", soundCfg.Path, "volume", soundCfg.Volume)
+	}
+}
+
+// suppressGraphicsDebug sets environment variables to suppress verbose
+// debug output from Mesa/Vulkan/libGL that would otherwise pollute stderr.
+// These graphics libraries write directly to stderr without using Go's logging.
+func suppressGraphicsDebug() {
+	// Only set if not already set (allow user override)
+	envVars := map[string]string{
+		// Suppress Mesa debug output
+		"MESA_DEBUG": "silent",
+		// Suppress libGL debug output
+		"LIBGL_DEBUG": "quiet",
+		// Suppress Vulkan loader debug output (all levels)
+		"VK_LOADER_DEBUG": "none",
+		// Suppress GLib log messages from Vulkan loader (goes through GTK logging)
+		"G_MESSAGES_DEBUG": "",
+	}
+
+	for key, value := range envVars {
+		if os.Getenv(key) == "" {
+			_ = os.Setenv(key, value)
+		}
+	}
 }

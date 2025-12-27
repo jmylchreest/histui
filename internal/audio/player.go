@@ -18,6 +18,16 @@ import (
 	"github.com/gopxl/beep/v2/wav"
 )
 
+// UrgencyLevel represents notification urgency for audio priority.
+type UrgencyLevel int
+
+const (
+	UrgencyLow      UrgencyLevel = 0
+	UrgencyNormal   UrgencyLevel = 1
+	UrgencyCritical UrgencyLevel = 2
+	UrgencyNone     UrgencyLevel = -1 // No sound playing
+)
+
 // Player handles audio playback for notifications.
 type Player struct {
 	mu     sync.Mutex
@@ -35,6 +45,11 @@ type Player struct {
 	// Sound cache
 	cache      map[string]*cachedSound
 	cacheMutex sync.RWMutex
+
+	// Playback control
+	currentUrgency UrgencyLevel  // Urgency of currently playing sound
+	stopChan       chan struct{} // Channel to signal stop
+	playing        bool          // Whether a sound is currently playing
 }
 
 // cachedSound holds a decoded sound ready for playback.
@@ -50,10 +65,11 @@ func NewPlayer(logger *slog.Logger) *Player {
 	}
 
 	return &Player{
-		logger:     logger,
-		volume:     1.0,
-		sampleRate: beep.SampleRate(44100),
-		cache:      make(map[string]*cachedSound),
+		logger:         logger,
+		volume:         1.0,
+		sampleRate:     beep.SampleRate(44100),
+		cache:          make(map[string]*cachedSound),
+		currentUrgency: UrgencyNone,
 	}
 }
 
@@ -79,12 +95,39 @@ func (p *Player) GetVolume() float64 {
 	return p.volume
 }
 
-// Play plays a sound file.
-// Supports WAV, OGG, and MP3 formats.
-func (p *Player) Play(path string) error {
+// PlayWithUrgency plays a sound file with the specified urgency level and volume.
+// Critical urgency can interrupt any playing sound.
+// Other urgencies won't play if a sound is already playing.
+// If volume is <= 0, uses the player's global volume.
+func (p *Player) PlayWithUrgency(path string, urgency UrgencyLevel, volume ...float64) error {
 	if path == "" {
 		return nil
 	}
+
+	// Determine volume to use
+	var soundVolume float64
+	if len(volume) > 0 && volume[0] > 0 {
+		soundVolume = volume[0]
+		if soundVolume > 1.0 {
+			soundVolume = 1.0
+		}
+	}
+
+	// Check if we should play based on priority
+	p.mu.Lock()
+	if p.playing {
+		// Critical can always interrupt
+		if urgency == UrgencyCritical {
+			p.logger.Debug("critical sound interrupting current playback")
+			p.stopCurrentLocked()
+		} else {
+			// Non-critical won't interrupt any playing sound
+			p.mu.Unlock()
+			p.logger.Debug("sound skipped, another sound is playing", "urgency", urgency)
+			return nil
+		}
+	}
+	p.mu.Unlock()
 
 	// Expand path
 	if strings.HasPrefix(path, "~") {
@@ -100,7 +143,7 @@ func (p *Player) Play(path string) error {
 	p.cacheMutex.RUnlock()
 
 	if ok {
-		return p.playBuffer(cached.buffer)
+		return p.playBufferWithUrgency(cached.buffer, urgency, soundVolume)
 	}
 
 	// Load the sound
@@ -118,7 +161,26 @@ func (p *Player) Play(path string) error {
 	}
 	p.cacheMutex.Unlock()
 
-	return p.playBuffer(buffer)
+	return p.playBufferWithUrgency(buffer, urgency, soundVolume)
+}
+
+// Stop stops the currently playing sound.
+func (p *Player) Stop() {
+	p.mu.Lock()
+	defer p.mu.Unlock()
+	p.stopCurrentLocked()
+}
+
+// stopCurrentLocked stops the current playback. Must be called with mutex held.
+func (p *Player) stopCurrentLocked() {
+	if p.playing && p.stopChan != nil {
+		close(p.stopChan)
+		p.stopChan = nil
+		p.playing = false
+		p.currentUrgency = UrgencyNone
+		// Clear the speaker to stop immediately
+		speaker.Clear()
+	}
 }
 
 // loadSound loads and decodes a sound file into a buffer.
@@ -184,15 +246,37 @@ func (p *Player) ensureInitialized(sampleRate beep.SampleRate) error {
 	return nil
 }
 
-// playBuffer plays a buffered sound.
-func (p *Player) playBuffer(buffer *beep.Buffer) error {
+// playBufferWithUrgency plays a buffered sound with the specified urgency and volume.
+// The soundVolume is relative to the global volume (they are multiplied together).
+// If soundVolume is <= 0, uses the player's global volume alone.
+func (p *Player) playBufferWithUrgency(buffer *beep.Buffer, urgency UrgencyLevel, soundVolume float64) error {
 	if buffer == nil {
 		return nil
 	}
 
 	p.mu.Lock()
-	volume := p.volume
+	globalVolume := p.volume
+
+	// Calculate effective volume: sound volume is relative to global
+	// If soundVolume is 0 or less, use global volume alone
+	// Otherwise, multiply them together
+	var volume float64
+	if soundVolume <= 0 {
+		volume = globalVolume
+	} else {
+		volume = globalVolume * soundVolume
+	}
+	if volume > 1.0 {
+		volume = 1.0
+	}
+
 	sampleRate := p.sampleRate
+
+	// Set up playback tracking
+	p.playing = true
+	p.currentUrgency = urgency
+	stopChan := make(chan struct{})
+	p.stopChan = stopChan
 	p.mu.Unlock()
 
 	// Create a streamer from the buffer
@@ -213,8 +297,20 @@ func (p *Player) playBuffer(buffer *beep.Buffer) error {
 		}
 	}
 
-	// Play the sound
-	speaker.Play(streamer)
+	// Wrap in a callback to mark playback complete
+	callback := beep.Callback(func() {
+		p.mu.Lock()
+		defer p.mu.Unlock()
+		// Only clear if this is still our stopChan (not replaced by another playback)
+		if p.stopChan == stopChan {
+			p.playing = false
+			p.currentUrgency = UrgencyNone
+			p.stopChan = nil
+		}
+	})
+
+	// Play the sound with completion callback
+	speaker.Play(beep.Seq(streamer, callback))
 
 	return nil
 }

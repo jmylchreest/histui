@@ -182,20 +182,15 @@ func (n *DBusNotification) ImageData() *ImageDataStruct {
 	// Try image-data first (preferred), then icon_data (legacy)
 	var variant dbus.Variant
 	var ok bool
-	var hintName string
-	if variant, ok = n.Hints["image-data"]; ok {
-		hintName = "image-data"
-	} else if variant, ok = n.Hints["icon_data"]; ok {
-		hintName = "icon_data"
-	} else {
-		return nil
+	if variant, ok = n.Hints["image-data"]; !ok {
+		if variant, ok = n.Hints["icon_data"]; !ok {
+			return nil
+		}
 	}
 
 	// D-Bus structs come in as []interface{} with fields in order
 	fields, ok := variant.Value().([]interface{})
 	if !ok || len(fields) != 7 {
-		// Log debug info about what we received
-		_ = hintName // Used in debug
 		return nil
 	}
 
@@ -264,19 +259,25 @@ func (n *DBusNotification) Progress() int {
 }
 
 // StackTag extracts the stack-tag hint for notification grouping.
-// Notifications with the same stack-tag should replace each other.
-// This is used by dunstify with the -h string:x-dunst-stack-tag:TAG option.
+// Notifications with the same non-empty stack-tag should replace each other.
+// Supports dunst-compatible hints:
+//   - x-dunst-stack-tag (dunstify -h string:x-dunst-stack-tag:TAG)
+//   - synchronous
+//   - private-synchronous
+//   - x-canonical-private-synchronous (Ubuntu/Canonical apps)
 func (n *DBusNotification) StackTag() string {
-	// Check for dunst-specific stack tag
-	if v, ok := n.Hints["x-dunst-stack-tag"]; ok {
-		if s, ok := v.Value().(string); ok {
-			return s
-		}
+	// Check hints in priority order
+	hintNames := []string{
+		"x-dunst-stack-tag",
+		"synchronous",
+		"private-synchronous",
+		"x-canonical-private-synchronous",
 	}
-	// Also check for generic stack tag
-	if v, ok := n.Hints["stack-tag"]; ok {
-		if s, ok := v.Value().(string); ok {
-			return s
+	for _, hint := range hintNames {
+		if v, ok := n.Hints[hint]; ok {
+			if s, ok := v.Value().(string); ok && s != "" {
+				return s
+			}
 		}
 	}
 	return ""

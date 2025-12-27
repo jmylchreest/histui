@@ -267,28 +267,27 @@ func TestDuration_MarshalText(t *testing.T) {
 func TestDaemonConfig_Timeouts(t *testing.T) {
 	cfg := DefaultDaemonConfig()
 
-	// Default config: low=5s, normal=10s, critical=never
-	// These are overrides, so client timeout is ignored
-	assert.Equal(t, 5000, cfg.GetTimeoutForUrgency(0, -1))  // Low: override 5s
-	assert.Equal(t, 10000, cfg.GetTimeoutForUrgency(1, -1)) // Normal: override 10s
+	// Default config: low=0 (honor client), normal=0 (honor client), critical=never, fallback=10s
+	// When client timeout is -1 (server decides), use fallback
+	assert.Equal(t, 10000, cfg.GetTimeoutForUrgency(0, -1)) // Low: fallback 10s
+	assert.Equal(t, 10000, cfg.GetTimeoutForUrgency(1, -1)) // Normal: fallback 10s
 	assert.Equal(t, 0, cfg.GetTimeoutForUrgency(2, -1))     // Critical: never expires
 
-	// Client timeout should be ignored when config has positive override
-	assert.Equal(t, 5000, cfg.GetTimeoutForUrgency(0, 3000))  // Low: override wins
-	assert.Equal(t, 10000, cfg.GetTimeoutForUrgency(1, 3000)) // Normal: override wins
+	// Client timeout should be honored when config is 0
+	assert.Equal(t, 3000, cfg.GetTimeoutForUrgency(0, 3000))  // Low: honor client 3s
+	assert.Equal(t, 3000, cfg.GetTimeoutForUrgency(1, 3000))  // Normal: honor client 3s
 }
 
 func TestDaemonConfig_TimeoutsHonorClient(t *testing.T) {
 	cfg := DefaultDaemonConfig()
-	// Set config to "0" (honor client) for all urgencies
-	cfg.Timeouts.Low = Duration(0)
-	cfg.Timeouts.Normal = Duration(0)
+	// Default already has config to "0" (honor client) for low/normal
+	// Set critical to 0 as well for this test
 	cfg.Timeouts.Critical = Duration(0)
 
-	// Client timeout -1 means server decides -> use fallback defaults
-	assert.Equal(t, 5000, cfg.GetTimeoutForUrgency(0, -1))  // Low fallback
-	assert.Equal(t, 10000, cfg.GetTimeoutForUrgency(1, -1)) // Normal fallback
-	assert.Equal(t, 0, cfg.GetTimeoutForUrgency(2, -1))     // Critical fallback (never)
+	// Client timeout -1 means server decides -> use fallback (10s default)
+	assert.Equal(t, 10000, cfg.GetTimeoutForUrgency(0, -1)) // Low: fallback 10s
+	assert.Equal(t, 10000, cfg.GetTimeoutForUrgency(1, -1)) // Normal: fallback 10s
+	assert.Equal(t, 0, cfg.GetTimeoutForUrgency(2, -1))     // Critical: always 0 (never)
 
 	// Client timeout 0 means never expire
 	assert.Equal(t, 0, cfg.GetTimeoutForUrgency(0, 0)) // Honor client: never

@@ -38,7 +38,7 @@ var delay = 300 * time.Millisecond
 
 func main() {
 	clearFlag := flag.Bool("clear", false, "Clear all notifications before sending")
-	typeFlag := flag.String("type", "all", "Type of notification to send (all, simple, url, image, imagedata, tallimage, progress, actions, low, critical, html, long, stack, apps)")
+	typeFlag := flag.String("type", "all", "Type of notification to send (all, simple, url, image, imagedata, tallimage, progress, stacktag, progressupdate, actions, signal, low, critical, html, long, stack, duplicates, apps)")
 	stackCount := flag.Int("stack", 5, "Number of notifications for stack test")
 	screenshotFlag := flag.Bool("screenshot", false, "Take screenshot after sending notifications")
 	screenshotDir := flag.String("screenshot-dir", "/tmp/histui-test", "Directory to save screenshots")
@@ -69,8 +69,12 @@ func main() {
 		sendWithTallImage(conn)
 	case "progress":
 		sendWithProgress(conn)
+	case "stacktag":
+		sendStackTagProgress(conn)
 	case "actions":
 		sendWithActions(conn)
+	case "signal":
+		sendSignalStyle(conn)
 	case "low":
 		sendLowUrgency(conn)
 	case "critical":
@@ -81,6 +85,10 @@ func main() {
 		sendLongBody(conn)
 	case "stack":
 		sendStack(conn, *stackCount)
+	case "duplicates":
+		sendDuplicates(conn)
+	case "progressupdate":
+		sendProgressUpdating(conn)
 	case "imagepath":
 		sendWithImagePath(conn)
 	case "kitty":
@@ -132,17 +140,21 @@ func takeScreenshot(dir, testType string) {
 }
 
 func notify(conn *dbus.Conn, appName, summary, body, icon string, hints map[string]dbus.Variant, timeout int32) uint32 {
+	return notifyWithReplacesID(conn, appName, summary, body, icon, hints, timeout, 0)
+}
+
+func notifyWithReplacesID(conn *dbus.Conn, appName, summary, body, icon string, hints map[string]dbus.Variant, timeout int32, replacesID uint32) uint32 {
 	obj := conn.Object(notifyDest, notifyPath)
 	var id uint32
 	err := obj.Call(notifyIface+".Notify", 0,
-		appName,             // app_name
-		uint32(0),           // replaces_id
-		icon,                // app_icon
-		summary,             // summary
-		body,                // body
-		[]string{},          // actions
-		hints,               // hints
-		timeout,             // expire_timeout
+		appName,    // app_name
+		replacesID, // replaces_id
+		icon,       // app_icon
+		summary,    // summary
+		body,       // body
+		[]string{}, // actions
+		hints,      // hints
+		timeout,    // expire_timeout
 	).Store(&id)
 	if err != nil {
 		log.Printf("Failed to send notification: %v", err)
@@ -282,22 +294,26 @@ func sendWithTallImage(conn *dbus.Conn) {
 	channels := int32(4) // RGBA
 	rowstride := width * channels
 
-	// Create gradient pixel data (blue at top, green at bottom)
+	// Create 45-degree diagonal striped pattern (makes fade overlay more visible)
 	pixels := make([]byte, height*rowstride)
 	for y := int32(0); y < height; y++ {
-		// Gradient from blue (top) to green (bottom)
-		ratio := float32(y) / float32(height)
-		r := byte(50)
-		g := byte(100 + int(155*ratio)) // 100 -> 255
-		b := byte(255 - int(205*ratio)) // 255 -> 50
-		a := byte(255)
-
 		for x := int32(0); x < width; x++ {
+			// Diagonal stripes at 45 degrees, alternating every 20 pixels
+			isLightStripe := ((x+y)/20)%2 == 0
+			var r, g, b byte
+			if isLightStripe {
+				// Light cyan stripe
+				r, g, b = 100, 200, 255
+			} else {
+				// Dark blue stripe
+				r, g, b = 50, 100, 200
+			}
+
 			offset := y*rowstride + x*channels
 			pixels[offset] = r
 			pixels[offset+1] = g
 			pixels[offset+2] = b
-			pixels[offset+3] = a
+			pixels[offset+3] = 255
 		}
 	}
 
@@ -322,13 +338,29 @@ func sendWithTallImage(conn *dbus.Conn) {
 }
 
 func sendWithProgress(conn *dbus.Conn) {
-	fmt.Println("[TEST] Sending notification with progress (qbittorrent -> download)...")
-	hints := map[string]dbus.Variant{
-		"value": dbus.MakeVariant(int32(75)),
+	fmt.Println("[TEST] Sending progress notification with stack tag updates...")
+
+	// Use stack tag so progress updates replace each other
+	steps := []struct {
+		percent int32
+		body    string
+	}{
+		{10, "[TEST] ubuntu-24.04.iso - 10%"},
+		{35, "[TEST] ubuntu-24.04.iso - 35%"},
+		{60, "[TEST] ubuntu-24.04.iso - 60%"},
+		{85, "[TEST] ubuntu-24.04.iso - 85%"},
+		{100, "[TEST] ubuntu-24.04.iso - Complete!"},
 	}
-	notify(conn, "qbittorrent", "Downloading File",
-		"[TEST] ubuntu-24.04.iso - 75% complete",
-		"qbittorrent", hints, 5000)
+
+	for _, step := range steps {
+		hints := map[string]dbus.Variant{
+			"value":             dbus.MakeVariant(step.percent),
+			"x-dunst-stack-tag": dbus.MakeVariant("download-progress"),
+		}
+		notify(conn, "qbittorrent", "Downloading File", step.body, "qbittorrent", hints, 5000)
+		fmt.Printf("  -> Progress: %d%%\n", step.percent)
+		time.Sleep(600 * time.Millisecond)
+	}
 	time.Sleep(delay)
 }
 
@@ -537,6 +569,120 @@ func sendWithImagePath(conn *dbus.Conn) {
 	os.Remove(tmpFile)
 }
 
+// sendStackTagProgress sends progress updates using stack tag (dunst-compatible).
+// This tests the x-dunst-stack-tag hint - notifications with the same tag replace each other.
+// No need to track IDs - just use the same tag!
+func sendStackTagProgress(conn *dbus.Conn) {
+	fmt.Println("[TEST] Sending stack tag progress updates (like dunstify -h string:x-dunst-stack-tag:download)...")
+
+	// Send progress updates with the same stack tag
+	steps := []struct {
+		percent int32
+		body    string
+	}{
+		{0, "[TEST] large-file.tar.gz - Starting..."},
+		{25, "[TEST] large-file.tar.gz - 25%"},
+		{50, "[TEST] large-file.tar.gz - 50%"},
+		{75, "[TEST] large-file.tar.gz - 75%"},
+		{100, "[TEST] large-file.tar.gz - Complete!"},
+	}
+
+	for _, step := range steps {
+		hints := map[string]dbus.Variant{
+			"value":              dbus.MakeVariant(step.percent),
+			"x-dunst-stack-tag":  dbus.MakeVariant("download-test"),
+		}
+		notify(conn, "qbittorrent", "Downloading File", step.body, "qbittorrent", hints, 5000)
+		fmt.Printf("  -> Progress: %d%%\n", step.percent)
+		time.Sleep(800 * time.Millisecond)
+	}
+	time.Sleep(delay)
+}
+
+// sendProgressUpdating sends a notification and then updates it with increasing progress.
+// This tests the replaces_id behavior - when the same ID is used, the notification
+// should be updated in place rather than creating a new one.
+func sendProgressUpdating(conn *dbus.Conn) {
+	fmt.Println("[TEST] Sending progress update sequence (tests replaces_id)...")
+
+	// Send initial notification at 0%
+	hints := map[string]dbus.Variant{
+		"value": dbus.MakeVariant(int32(0)),
+	}
+	id := notify(conn, "qbittorrent", "Downloading File",
+		"[TEST] large-file.tar.gz - Starting...",
+		"qbittorrent", hints, 0) // 0 = never expires (we'll close it manually)
+
+	if id == 0 {
+		fmt.Println("[WARN] Failed to send initial notification")
+		return
+	}
+
+	// Update progress in steps
+	steps := []struct {
+		percent int32
+		body    string
+	}{
+		{20, "[TEST] large-file.tar.gz - 20%"},
+		{45, "[TEST] large-file.tar.gz - 45%"},
+		{70, "[TEST] large-file.tar.gz - 70%"},
+		{90, "[TEST] large-file.tar.gz - 90%"},
+		{100, "[TEST] large-file.tar.gz - Complete!"},
+	}
+
+	for _, step := range steps {
+		time.Sleep(800 * time.Millisecond)
+
+		hints := map[string]dbus.Variant{
+			"value": dbus.MakeVariant(step.percent),
+		}
+		notifyWithReplacesID(conn, "qbittorrent", "Downloading File",
+			step.body, "qbittorrent", hints, 5000, id)
+
+		fmt.Printf("  -> Progress: %d%%\n", step.percent)
+	}
+	time.Sleep(delay)
+}
+
+// sendSignalStyle sends a Signal-like notification with a "View" action button.
+// This mimics the deep-link behavior where clicking "View" opens the chat.
+func sendSignalStyle(conn *dbus.Conn) {
+	fmt.Println("[TEST] Sending Signal-style notification with View action...")
+
+	actions := []string{
+		"default", "View", // "default" is the action key, "View" is the button label
+	}
+
+	hints := map[string]dbus.Variant{
+		"urgency":  dbus.MakeVariant(byte(1)), // Normal urgency
+		"category": dbus.MakeVariant("im.received"),
+	}
+
+	notifyWithActions(conn, "signal-desktop", "Alice",
+		"[TEST] Hey! Are you coming to the meeting today?",
+		"signal-desktop",
+		actions,
+		hints,
+		5000)
+	time.Sleep(delay)
+}
+
+// sendDuplicates sends identical notifications to test duplicate stacking.
+// When StackDuplicates is enabled, these should stack with a count badge.
+func sendDuplicates(conn *dbus.Conn) {
+	fmt.Println("[TEST] Sending duplicate notifications (tests stacking)...")
+
+	// Send 4 identical notifications from the same app
+	for i := 1; i <= 4; i++ {
+		notify(conn, "discord", "New Message",
+			"[TEST] @everyone Someone mentioned you in #general",
+			"discord", nil, 8000)
+		fmt.Printf("  -> Duplicate %d sent\n", i)
+		time.Sleep(200 * time.Millisecond)
+	}
+	time.Sleep(delay)
+}
+
 func runAllTests(conn *dbus.Conn) {
 	fmt.Println("[TEST] Starting notification tests...")
 	fmt.Println()
@@ -551,6 +697,8 @@ func runAllTests(conn *dbus.Conn) {
 	sendWithProgress(conn)
 	sendLongBody(conn)
 	sendHTMLFormatted(conn)
+	sendSignalStyle(conn)        // Test View action button
+	sendDuplicates(conn)         // Test duplicate stacking
 	sendRandomAppSample(conn, 5) // Random sample of apps
 
 	fmt.Println()

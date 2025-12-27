@@ -3,13 +3,18 @@ package audio
 import (
 	"context"
 	"log/slog"
-	"maps"
 	"os"
 	"path/filepath"
 	"sync"
 
 	"github.com/jmylchreest/histui/internal/config"
 )
+
+// soundEntry holds the path and volume for a sound.
+type soundEntry struct {
+	path   string
+	volume float64
+}
 
 // Manager manages audio playback for notifications with urgency-based sounds.
 type Manager struct {
@@ -19,8 +24,8 @@ type Manager struct {
 	watcher *Watcher
 	config  *config.DaemonConfig
 
-	// Urgency to sound path mapping
-	sounds map[int]string
+	// Urgency to sound configuration mapping
+	sounds map[int]soundEntry
 }
 
 // NewManager creates a new audio manager.
@@ -36,7 +41,7 @@ func NewManager(cfg *config.DaemonConfig, logger *slog.Logger) *Manager {
 		player:  player,
 		watcher: NewWatcher(player, logger),
 		config:  cfg,
-		sounds:  make(map[int]string),
+		sounds:  make(map[int]soundEntry),
 	}
 
 	// Load sound configuration
@@ -45,7 +50,9 @@ func NewManager(cfg *config.DaemonConfig, logger *slog.Logger) *Manager {
 	return m
 }
 
-// loadSoundConfig loads sounds from the configuration.
+// loadSoundConfig loads audio settings from the configuration.
+// Note: Sound files come from theme manifests, not daemon config.
+// This only sets the global volume from daemon config.
 func (m *Manager) loadSoundConfig() {
 	if m.config == nil {
 		return
@@ -54,50 +61,71 @@ func (m *Manager) loadSoundConfig() {
 	m.mu.Lock()
 	defer m.mu.Unlock()
 
-	// Set volume (config uses 0-100, player uses 0.0-1.0)
+	// Set global volume (config uses 0-100, player uses 0.0-1.0)
 	if m.config.Audio.Volume > 0 {
-		m.player.SetVolume(float64(m.config.Audio.Volume) / 100.0)
+		globalVolume := float64(m.config.Audio.Volume) / 100.0
+		m.player.SetVolume(globalVolume)
 	}
 
-	// Load per-urgency sounds
-	sounds := map[int]string{
-		0: m.config.Audio.Sounds.Low,      // Low urgency
-		1: m.config.Audio.Sounds.Normal,   // Normal urgency
-		2: m.config.Audio.Sounds.Critical, // Critical urgency
+	// Sound files are loaded from theme manifests via SetSoundForUrgency
+	// called by the theme loader after loading a theme
+}
+
+// ClearSounds removes all configured sounds.
+// This is called when switching themes to ensure old theme sounds are cleared.
+func (m *Manager) ClearSounds() {
+	m.mu.Lock()
+	defer m.mu.Unlock()
+	m.sounds = make(map[int]soundEntry)
+	m.player.ClearCache()
+}
+
+// SetSoundForUrgency sets the sound path and volume for a specific urgency level.
+// The volume is relative to the global volume (0.0-1.0, where 0 means use global).
+// This is typically called when loading sounds from a theme manifest.
+func (m *Manager) SetSoundForUrgency(urgency int, path string, volume float64) {
+	m.mu.Lock()
+	defer m.mu.Unlock()
+
+	if path == "" {
+		delete(m.sounds, urgency)
+		return
 	}
 
-	for urgency, path := range sounds {
-		if path == "" {
-			continue
-		}
-
-		// Expand path
-		expandedPath := expandPath(path)
-
-		// Check if file exists
-		if _, err := os.Stat(expandedPath); err != nil {
-			m.logger.Warn("sound file not found", "urgency", urgency, "path", expandedPath)
-			continue
-		}
-
-		m.sounds[urgency] = expandedPath
-		m.logger.Debug("loaded sound", "urgency", urgency, "path", expandedPath)
+	expandedPath := expandPath(path)
+	if _, err := os.Stat(expandedPath); err != nil {
+		m.logger.Warn("sound file not found", "urgency", urgency, "path", expandedPath)
+		return
 	}
+
+	m.sounds[urgency] = soundEntry{
+		path:   expandedPath,
+		volume: volume,
+	}
+	m.logger.Debug("set sound", "urgency", urgency, "path", expandedPath, "volume", volume)
+
+	// Preload and watch the new sound
+	if err := m.player.Preload(expandedPath); err != nil {
+		m.logger.Warn("failed to preload sound", "path", expandedPath, "error", err)
+	}
+	m.watcher.Watch(expandedPath)
 }
 
 // Start initializes the audio manager and starts the file watcher.
 func (m *Manager) Start(ctx context.Context) error {
 	m.mu.RLock()
-	sounds := make(map[int]string, len(m.sounds))
-	maps.Copy(sounds, m.sounds)
+	sounds := make(map[int]soundEntry, len(m.sounds))
+	for k, v := range m.sounds {
+		sounds[k] = v
+	}
 	m.mu.RUnlock()
 
 	// Preload all sounds
-	for _, path := range sounds {
-		if err := m.player.Preload(path); err != nil {
-			m.logger.Warn("failed to preload sound", "path", path, "error", err)
+	for _, entry := range sounds {
+		if err := m.player.Preload(entry.path); err != nil {
+			m.logger.Warn("failed to preload sound", "path", entry.path, "error", err)
 		}
-		m.watcher.Watch(path)
+		m.watcher.Watch(entry.path)
 	}
 
 	// Start the watcher
@@ -117,29 +145,36 @@ func (m *Manager) Stop() {
 }
 
 // PlayForUrgency plays the sound configured for the given urgency level.
+// Critical sounds (urgency 2) can interrupt any playing sound.
+// Other urgencies won't play if a sound is already playing.
 func (m *Manager) PlayForUrgency(urgency int) error {
 	if !m.config.Audio.Enabled {
 		return nil
 	}
 
 	m.mu.RLock()
-	path, ok := m.sounds[urgency]
+	entry, ok := m.sounds[urgency]
 	m.mu.RUnlock()
 
 	if !ok {
-		m.logger.Debug("no sound configured for urgency", "urgency", urgency)
 		return nil
 	}
 
-	return m.player.Play(path)
+	return m.player.PlayWithUrgency(entry.path, UrgencyLevel(urgency), entry.volume)
 }
 
-// PlayFile plays a specific sound file.
+// PlayFile plays a specific sound file with normal urgency.
 func (m *Manager) PlayFile(path string) error {
+	return m.PlayFileWithUrgency(path, int(UrgencyNormal))
+}
+
+// PlayFileWithUrgency plays a specific sound file with the specified urgency.
+// Uses the global volume (no per-sound override).
+func (m *Manager) PlayFileWithUrgency(path string, urgency int) error {
 	if !m.config.Audio.Enabled {
 		return nil
 	}
-	return m.player.Play(path)
+	return m.player.PlayWithUrgency(path, UrgencyLevel(urgency), 0) // 0 = use global volume
 }
 
 // SetVolume sets the playback volume (0.0 to 1.0).
@@ -159,15 +194,17 @@ func (m *Manager) Reload() {
 
 	// Re-preload and watch sounds
 	m.mu.RLock()
-	sounds := make(map[int]string, len(m.sounds))
-	maps.Copy(sounds, m.sounds)
+	sounds := make(map[int]soundEntry, len(m.sounds))
+	for k, v := range m.sounds {
+		sounds[k] = v
+	}
 	m.mu.RUnlock()
 
-	for _, path := range sounds {
-		if err := m.player.Preload(path); err != nil {
-			m.logger.Warn("failed to preload sound on reload", "path", path, "error", err)
+	for _, entry := range sounds {
+		if err := m.player.Preload(entry.path); err != nil {
+			m.logger.Warn("failed to preload sound on reload", "path", entry.path, "error", err)
 		}
-		m.watcher.Watch(path)
+		m.watcher.Watch(entry.path)
 	}
 
 	m.logger.Debug("audio manager reloaded")

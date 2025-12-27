@@ -4,6 +4,7 @@ package theme
 import (
 	"embed"
 	"io/fs"
+	"os"
 	"strings"
 )
 
@@ -132,4 +133,63 @@ func GetEmbeddedManifest(name string) (string, bool) {
 		return "", false
 	}
 	return string(data), true
+}
+
+// GetEmbeddedSound retrieves a bundled sound file by theme name and relative path.
+// Returns the sound data and whether it was found.
+// Sound paths are relative to the theme directory (e.g., "sounds/normal.wav").
+func GetEmbeddedSound(themeName, soundPath string) ([]byte, bool) {
+	path := "themes/" + themeName + "/" + soundPath
+	data, err := EmbeddedThemes.ReadFile(path)
+	if err != nil {
+		return nil, false
+	}
+	return data, true
+}
+
+// ExtractEmbeddedSounds extracts all embedded sounds for a theme to a directory.
+// Returns a map of original paths to extracted paths.
+// The extractDir should be a writable directory (e.g., a temp dir or cache dir).
+func ExtractEmbeddedSounds(themeName, extractDir string) (map[string]string, error) {
+	pathMap := make(map[string]string)
+
+	// List files in the theme's sounds directory
+	soundsDir := "themes/" + themeName + "/sounds"
+	entries, err := fs.ReadDir(EmbeddedThemes, soundsDir)
+	if err != nil {
+		// No sounds directory is not an error
+		return pathMap, nil
+	}
+
+	// Create the extraction directory
+	if err := os.MkdirAll(extractDir, 0755); err != nil {
+		return nil, err
+	}
+
+	for _, entry := range entries {
+		if entry.IsDir() {
+			continue
+		}
+
+		name := entry.Name()
+		srcPath := soundsDir + "/" + name
+		dstPath := extractDir + "/" + name
+
+		// Read embedded file
+		data, err := EmbeddedThemes.ReadFile(srcPath)
+		if err != nil {
+			continue
+		}
+
+		// Write to extraction directory
+		if err := os.WriteFile(dstPath, data, 0644); err != nil {
+			continue
+		}
+
+		// Map relative path (sounds/name) to extracted absolute path
+		relativePath := "sounds/" + name
+		pathMap[relativePath] = dstPath
+	}
+
+	return pathMap, nil
 }

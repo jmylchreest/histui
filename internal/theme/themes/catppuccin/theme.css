@@ -235,11 +235,11 @@ window {
 
 /* Fade gradient overlay when image is cropped */
 .notification-image-fade {
-    background: linear-gradient(
+    background-image: linear-gradient(
         to bottom,
-        transparent 0%,
-        color-mix(in srgb, var(--ctp-base) 70%, transparent) 60%,
-        var(--ctp-base) 100%
+        alpha(#1e1e2e, 0.0) 0%,
+        alpha(#1e1e2e, 0.7) 60%,
+        #1e1e2e 100%
     );
     border-bottom-left-radius: 6px;
     border-bottom-right-radius: 6px;
@@ -247,11 +247,11 @@ window {
 
 /* Translucent mode gradient */
 .notification-popup.translucent .notification-image-fade {
-    background: linear-gradient(
+    background-image: linear-gradient(
         to bottom,
-        transparent 0%,
-        color-mix(in srgb, var(--ctp-base) 60%, transparent) 60%,
-        color-mix(in srgb, var(--ctp-base) 90%, transparent) 100%
+        alpha(#1e1e2e, 0.0) 0%,
+        alpha(#1e1e2e, 0.6) 60%,
+        alpha(#1e1e2e, 0.9) 100%
     );
 }
 

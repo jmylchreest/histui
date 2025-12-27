@@ -42,7 +42,6 @@ const (
 	ElementTypeAppName    ElementType = "appname"
 	ElementTypeTimestamp  ElementType = "timestamp"
 	ElementTypeStackCount ElementType = "stack-count"
-	ElementTypeClose      ElementType = "close"
 	ElementTypeImage      ElementType = "image"
 	ElementTypeBox        ElementType = "box"
 )
@@ -58,7 +57,6 @@ var ValidElements = map[string]ElementType{
 	"appname":     ElementTypeAppName,
 	"timestamp":   ElementTypeTimestamp,
 	"stack-count": ElementTypeStackCount,
-	"close":       ElementTypeClose,
 	"image":       ElementTypeImage,
 	"box":         ElementTypeBox,
 }
@@ -260,7 +258,6 @@ func DefaultLayout() *LayoutConfig {
 						},
 					},
 					{Type: ElementTypeStackCount},
-					{Type: ElementTypeClose},
 				},
 			},
 			{Type: ElementTypeBody},
@@ -285,7 +282,6 @@ func CompactLayout() *LayoutConfig {
 					{Type: ElementTypeIcon},
 					{Type: ElementTypeSummary},
 					{Type: ElementTypeStackCount},
-					{Type: ElementTypeClose},
 				},
 			},
 			{Type: ElementTypeBody},
@@ -305,7 +301,6 @@ func DefaultTemplateXML() string {
       <appname />
     </box>
     <stack-count />
-    <close />
   </header>
   <body />
   <progress />

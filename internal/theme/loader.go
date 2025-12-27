@@ -116,9 +116,32 @@ func (l *Loader) LoadTheme(name string) error {
 			CSS:       processedCSS,
 			IsDefault: name == DefaultThemeName,
 		}
+
+		// Load embedded manifest if present
+		if manifestData, found := GetEmbeddedManifest(name); found {
+			manifest, err := ParseManifest([]byte(manifestData), ".toml")
+			if err == nil {
+				l.theme.Manifest = manifest
+
+				// Extract embedded sounds to cache directory
+				cacheDir, err := l.getSoundsCacheDir(name)
+				if err == nil {
+					pathMap, err := ExtractEmbeddedSounds(name, cacheDir)
+					if err == nil && len(pathMap) > 0 {
+						l.theme.Dir = cacheDir
+						// Update manifest paths to point to extracted sounds
+						l.updateManifestSoundPaths(pathMap)
+						l.logger.Debug("extracted embedded sounds", "theme", name, "count", len(pathMap))
+					}
+				}
+			} else {
+				l.logger.Warn("failed to parse embedded manifest", "theme", name, "error", err)
+			}
+		}
+
 		l.provider.LoadFromString(processedCSS)
 		l.currentName = name
-		l.logger.Info("loaded bundled theme", "name", name)
+		l.logger.Info("loaded bundled theme", "name", name, "has_manifest", l.theme.Manifest != nil)
 		return nil
 	}
 
@@ -132,9 +155,28 @@ func (l *Loader) LoadTheme(name string) error {
 		CSS:       processedCSS,
 		IsDefault: true,
 	}
+
+	// Load embedded manifest for default theme
+	if manifestData, found := GetEmbeddedManifest(DefaultThemeName); found {
+		manifest, err := ParseManifest([]byte(manifestData), ".toml")
+		if err == nil {
+			l.theme.Manifest = manifest
+
+			// Extract embedded sounds to cache directory
+			cacheDir, err := l.getSoundsCacheDir(DefaultThemeName)
+			if err == nil {
+				pathMap, err := ExtractEmbeddedSounds(DefaultThemeName, cacheDir)
+				if err == nil && len(pathMap) > 0 {
+					l.theme.Dir = cacheDir
+					l.updateManifestSoundPaths(pathMap)
+				}
+			}
+		}
+	}
+
 	l.provider.LoadFromString(processedCSS)
 	l.currentName = DefaultThemeName
-	l.logger.Info("loaded default theme")
+	l.logger.Info("loaded default theme", "has_manifest", l.theme.Manifest != nil)
 	return nil
 }
 
@@ -343,4 +385,34 @@ func (l *Loader) GetFontSettings() (fontFamily string, fontSize int) {
 	l.mu.RLock()
 	defer l.mu.RUnlock()
 	return l.fontFamily, l.fontSize
+}
+
+// getSoundsCacheDir returns the cache directory for a theme's extracted sounds.
+func (l *Loader) getSoundsCacheDir(themeName string) (string, error) {
+	cacheDir, err := os.UserCacheDir()
+	if err != nil {
+		return "", err
+	}
+	return filepath.Join(cacheDir, "histui", "themes", themeName, "sounds"), nil
+}
+
+// updateManifestSoundPaths updates the manifest's sound paths using the path map.
+// The pathMap maps relative paths (e.g., "sounds/normal.wav") to absolute paths.
+func (l *Loader) updateManifestSoundPaths(pathMap map[string]string) {
+	if l.theme == nil || l.theme.Manifest == nil {
+		return
+	}
+
+	m := l.theme.Manifest
+
+	// Update each urgency level's sound path
+	if newPath, ok := pathMap[m.Audio.Low.Path]; ok {
+		m.Audio.Low.Path = newPath
+	}
+	if newPath, ok := pathMap[m.Audio.Normal.Path]; ok {
+		m.Audio.Normal.Path = newPath
+	}
+	if newPath, ok := pathMap[m.Audio.Critical.Path]; ok {
+		m.Audio.Critical.Path = newPath
+	}
 }

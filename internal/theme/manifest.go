@@ -134,15 +134,23 @@ func LoadManifest(path string) (*Manifest, error) {
 		return nil, err
 	}
 
-	manifest := &Manifest{}
 	ext := strings.ToLower(filepath.Ext(path))
+	return ParseManifest(data, ext)
+}
+
+// ParseManifest parses a manifest from bytes.
+// The ext parameter hints at the format (.toml, .yaml, .yml, .json).
+// If ext is empty, TOML is tried first, then YAML.
+func ParseManifest(data []byte, ext string) (*Manifest, error) {
+	manifest := &Manifest{}
+	var err error
 
 	switch ext {
-	case ".toml":
+	case ".toml", "toml":
 		err = toml.Unmarshal(data, manifest)
-	case ".yaml", ".yml":
+	case ".yaml", ".yml", "yaml", "yml":
 		err = yaml.Unmarshal(data, manifest)
-	case ".json":
+	case ".json", "json":
 		// JSON is handled by yaml.Unmarshal since it's a subset of YAML
 		err = yaml.Unmarshal(data, manifest)
 	default:

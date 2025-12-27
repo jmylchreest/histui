@@ -165,9 +165,9 @@ window {
 
 /* Fade gradient overlay when image is cropped */
 .notification-image-fade {
-    background: linear-gradient(
+    background-image: linear-gradient(
         to bottom,
-        transparent 0%,
+        alpha(@window_bg_color, 0.0) 0%,
         alpha(@window_bg_color, 0.7) 60%,
         @window_bg_color 100%
     );
@@ -176,9 +176,9 @@ window {
 }
 
 .notification-popup.translucent .notification-image-fade {
-    background: linear-gradient(
+    background-image: linear-gradient(
         to bottom,
-        transparent 0%,
+        alpha(@window_bg_color, 0.0) 0%,
         alpha(@window_bg_color, 0.6) 60%,
         alpha(@window_bg_color, 0.9) 100%
     );

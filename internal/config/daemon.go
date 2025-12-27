@@ -100,6 +100,7 @@ type TimeoutConfig struct {
 	Low      Duration `toml:"low" mapstructure:"low"`           // e.g., "5s", "0" (honor client), or "never"
 	Normal   Duration `toml:"normal" mapstructure:"normal"`     // e.g., "10s", "0" (honor client), or "never"
 	Critical Duration `toml:"critical" mapstructure:"critical"` // e.g., "never" (default), "0" (honor client), or "30s"
+	Fallback Duration `toml:"fallback" mapstructure:"fallback"` // Used when honoring client but client says "server decides" (-1)
 }
 
 // BehaviorConfig contains behavior settings.
@@ -206,9 +207,10 @@ func setDefaults(v *viper.Viper) {
 
 	// Timeout defaults (as strings for Duration parsing)
 	// "0" = honor client, "-1" or "never" = never expire, positive = override
-	v.SetDefault("timeouts.low", "5s")
-	v.SetDefault("timeouts.normal", "10s")
+	v.SetDefault("timeouts.low", "0")
+	v.SetDefault("timeouts.normal", "0")
 	v.SetDefault("timeouts.critical", "never")
+	v.SetDefault("timeouts.fallback", "10s") // Used when client says "server decides"
 
 	// Behavior defaults
 	v.SetDefault("behavior.stack_duplicates", true)
@@ -293,9 +295,10 @@ func DefaultDaemonConfig() *DaemonConfig {
 			Monitor:    0,
 		},
 		Timeouts: TimeoutConfig{
-			Low:      Duration(5 * time.Second),
-			Normal:   Duration(10 * time.Second),
+			Low:      Duration(0),                     // Honor client
+			Normal:   Duration(0),                     // Honor client
 			Critical: Duration(-1 * time.Millisecond), // Never expires (-1)
+			Fallback: Duration(10 * time.Second),      // Used when client says "server decides"
 		},
 		Behavior: BehaviorConfig{
 			StackDuplicates: true,
@@ -547,15 +550,15 @@ func (c *DaemonConfig) GetTimeoutForUrgency(urgency int, clientTimeout int32) in
 	if configMs == 0 {
 		// Client requested server to decide
 		if clientTimeout == -1 {
-			// Use hardcoded fallbacks when both sides defer
-			switch urgency {
-			case 0: // Low
-				return 5000
-			case 2: // Critical
-				return 0 // never expire
-			default: // Normal
-				return 10000
+			// Use configurable fallback (critical always uses 0 = never expire)
+			if urgency == 2 {
+				return 0 // Critical never expires by default
 			}
+			fallbackMs := c.Timeouts.Fallback.Milliseconds()
+			if fallbackMs <= 0 {
+				return 10000 // Default fallback if not configured
+			}
+			return fallbackMs
 		}
 		// Client requested never expire
 		if clientTimeout == 0 {

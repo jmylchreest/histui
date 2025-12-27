@@ -37,7 +37,6 @@ The layout file defines which widgets appear and their arrangement.
       <appname />
     </box>
     <stack-count />
-    <close />
   </header>
   <body />
   <progress />
@@ -67,7 +66,6 @@ The layout file defines which widgets appear and their arrangement.
 | `<progress>`   |                  | Progress bar (if hint provided)       |
 | `<image>`      |                  | Notification image                    |
 | `<actions>`    |                  | Action buttons                        |
-| `<close>`      |                  | Close button                          |
 | `<stack-count>`|                  | Badge showing stacked notification count |
 | `<header>`     |                  | Container for header elements         |
 | `<box>`        | `orientation`    | Container with vertical/horizontal layout |
@@ -90,7 +88,6 @@ The layout file defines which widgets appear and their arrangement.
     <icon size="32" />
     <summary />
     <stack-count />
-    <close />
   </header>
   <body />
   <progress />
@@ -111,7 +108,6 @@ The layout file defines which widgets appear and their arrangement.
       </box>
     </box>
     <stack-count />
-    <close />
   </header>
   <body />
   <progress />
@@ -165,10 +161,18 @@ repeat_delay = "10s"           # Delay between repeats
 
 ### Supported Audio Formats
 
-- WAV (`.wav`)
-- OGG Vorbis (`.ogg`)
-- MP3 (`.mp3`)
-- FLAC (`.flac`)
+| Format | Extension | Notes |
+|--------|-----------|-------|
+| WAV | `.wav` | **PCM only** (16-bit signed little-endian). IEEE Float format is not supported |
+| Ogg Vorbis | `.ogg` | Fully supported |
+| MP3 | `.mp3` | Fully supported |
+
+:::tip Converting WAV files
+If your WAV file doesn't play, it may be in IEEE Float format. Convert to PCM:
+```bash
+ffmpeg -i input.wav -acodec pcm_s16le -ar 44100 -ac 2 output.wav
+```
+:::
 
 ## Icon Configuration
 
@@ -369,7 +373,6 @@ GTK4 CSS supports `color-mix()` for solid blended colors:
       <appname />
     </box>
     <stack-count />
-    <close />
   </header>
   <body />
   <progress />

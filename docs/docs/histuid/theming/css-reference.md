@@ -26,8 +26,7 @@ Complete reference for histuid CSS selectors and GTK4 CSS properties.
 │   ├── .notification-summary          <- Title
 │   ├── .notification-appname          <- App name
 │   ├── .notification-timestamp        <- Time
-│   ├── .notification-stack-count      <- Badge
-│   └── .notification-close            <- Close button
+│   └── .notification-stack-count      <- Badge
 │
 ├── .notification-body                 <- Body text
 │   └── link                           <- Hyperlinks
@@ -64,7 +63,6 @@ Complete reference for histuid CSS selectors and GTK4 CSS properties.
 | Class                      | Element                      |
 |----------------------------|------------------------------|
 | `.notification-icon`       | Application icon             |
-| `.notification-close`      | Close button (X)             |
 | `.notification-action`     | Individual action button     |
 | `.notification-progress`   | Progress bar                 |
 | `.notification-image`      | Embedded image               |

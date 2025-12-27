@@ -8,6 +8,7 @@ import (
 	"sync"
 	"time"
 
+	"github.com/diamondburned/gotk4-adwaita/pkg/adw"
 	"github.com/diamondburned/gotk4/pkg/gdk/v4"
 	"github.com/diamondburned/gotk4/pkg/gtk/v4"
 
@@ -129,10 +130,34 @@ func NewManager(app *gtk.Application, cfg *config.DaemonConfig, logger *slog.Log
 		})
 	}
 
+	// Apply color scheme preference
+	ApplyColorScheme(cfg.Theme.ColorScheme, logger)
+
 	// Create the single notification stack window
 	m.stack = NewNotificationStack(app, cfg, logger)
 
 	return m
+}
+
+// ApplyColorScheme sets the libadwaita color scheme based on config.
+// Exported for use in hot-reload callbacks.
+func ApplyColorScheme(scheme string, logger *slog.Logger) {
+	styleManager := adw.StyleManagerGetDefault()
+	if styleManager == nil {
+		return
+	}
+
+	switch config.ColorScheme(scheme) {
+	case config.ColorSchemeLight:
+		styleManager.SetColorScheme(adw.ColorSchemeForceLight)
+		logger.Debug("applied color scheme", "scheme", "light")
+	case config.ColorSchemeDark:
+		styleManager.SetColorScheme(adw.ColorSchemeForceDark)
+		logger.Debug("applied color scheme", "scheme", "dark")
+	default:
+		styleManager.SetColorScheme(adw.ColorSchemeDefault)
+		logger.Debug("applied color scheme", "scheme", "system")
+	}
 }
 
 // Start initializes the display manager.
@@ -201,12 +226,13 @@ func isDuplicate(a, b *dbus.DBusNotification) bool {
 
 // Show queues a notification for display.
 // If there's room, it displays immediately. Otherwise, it's queued by priority.
+// Stack tag matching: notifications with the same stack tag replace each other.
 // If stacking is enabled and a duplicate exists, the stack count is incremented instead.
 func (m *Manager) Show(notification *dbus.DBusNotification, dbusID uint32, histuiID string) error {
 	m.mu.Lock()
 	defer m.mu.Unlock()
 
-	// Check if this notification is replacing an existing one
+	// Check if this notification is replacing an existing one via replaces_id
 	if state, exists := m.popups[dbusID]; exists {
 		// It's already visible - remove old and re-show
 		m.stack.Remove(dbusID)
@@ -214,6 +240,39 @@ func (m *Manager) Show(notification *dbus.DBusNotification, dbusID uint32, histu
 		delete(m.popups, dbusID)
 		// Re-show immediately
 		return m.showPopupLocked(notification, dbusID, histuiID)
+	}
+
+	// Check for stack tag replacement (dunst-compatible)
+	// Notifications with the same stack tag replace each other in place
+	stackTag := notification.StackTag()
+	if stackTag != "" {
+		for existingID, state := range m.popups {
+			existingTag := state.Notification.StackTag()
+			// Match on stack tag AND app name (for safety)
+			if existingTag == stackTag && state.Notification.AppName == notification.AppName {
+				// Update the existing popup's content in place
+				state.Notification = notification
+				state.Popup.UpdateContent(notification)
+
+				// Reset the timeout
+				if timeout := m.config.GetTimeoutForUrgency(notification.Urgency(), notification.ExpireTimeout); timeout > 0 {
+					state.ExpiresAt = time.Now().Add(time.Duration(timeout) * time.Millisecond)
+				}
+
+				m.logger.Debug("replaced notification via stack tag",
+					"stack_tag", stackTag,
+					"new_dbus_id", dbusID,
+					"existing_dbus_id", existingID,
+				)
+
+				// Close the incoming notification immediately since we're reusing the existing one
+				if m.onClose != nil {
+					go m.onClose(dbusID, dbus.CloseReasonDismissed)
+				}
+
+				return nil
+			}
+		}
 	}
 
 	// Check for duplicate stacking if enabled

@@ -8,6 +8,7 @@ import (
 
 	"github.com/diamondburned/gotk4-adwaita/pkg/adw"
 	layershell "github.com/diamondburned/gotk4-layer-shell/pkg/gtk4layershell"
+	"github.com/diamondburned/gotk4/pkg/gdk/v4"
 	"github.com/diamondburned/gotk4/pkg/gdkpixbuf/v2"
 	"github.com/diamondburned/gotk4/pkg/glib/v2"
 	"github.com/diamondburned/gotk4/pkg/gtk/v4"
@@ -37,9 +38,7 @@ type Popup struct {
 	iconImage     *gtk.Image
 	actionBox     *gtk.Box
 	progressBar   *gtk.ProgressBar
-	closeBtn      *gtk.Button
 	stackCountLbl *gtk.Label
-	imageWidget   *gtk.Image
 
 	// Callbacks
 	onClose       func(reason dbus.CloseReason)
@@ -304,8 +303,6 @@ func (p *Popup) buildElement(elem layout.LayoutElement) gtk.Widgetter {
 		return p.buildTimestamp()
 	case layout.ElementTypeStackCount:
 		return p.buildStackCount()
-	case layout.ElementTypeClose:
-		return p.buildClose()
 	case layout.ElementTypeImage:
 		return p.buildImage()
 	case layout.ElementTypeBox:
@@ -504,14 +501,6 @@ func (p *Popup) buildStackCount() gtk.Widgetter {
 	return p.stackCountLbl
 }
 
-// buildClose creates the close button.
-func (p *Popup) buildClose() gtk.Widgetter {
-	p.closeBtn = gtk.NewButtonFromIconName("window-close-symbolic")
-	p.closeBtn.AddCSSClass("notification-close")
-	p.closeBtn.SetVisible(false) // Hidden by default, shown on hover
-	return p.closeBtn
-}
-
 // buildBody creates the body text label.
 func (p *Popup) buildBody() gtk.Widgetter {
 	if p.notification.Body == "" {
@@ -618,7 +607,8 @@ func (p *Popup) createPixbufFromData(imgData *dbus.ImageDataStruct) *gdkpixbuf.P
 		return nil
 	}
 
-	bytes := glib.NewBytesWithGo(imgData.Data)
+	// Use NewBytes to copy the data, ensuring it remains valid
+	bytes := glib.NewBytes(imgData.Data)
 	pixbuf := gdkpixbuf.NewPixbufFromBytes(
 		bytes,
 		gdkpixbuf.ColorspaceRGB,
@@ -633,7 +623,6 @@ func (p *Popup) createPixbufFromData(imgData *dbus.ImageDataStruct) *gdkpixbuf.P
 		p.logger.Warn("failed to create pixbuf from image data",
 			"width", imgData.Width,
 			"height", imgData.Height,
-			"has_alpha", imgData.HasAlpha,
 		)
 	}
 
@@ -655,8 +644,8 @@ func (p *Popup) createPixbufFromFile(path string) *gdkpixbuf.Pixbuf {
 
 // buildImageContainer creates the image widget with proper sizing and cropping.
 // - Scales image to fit popup width
-// - Crops from top if too tall, showing top portion
-// - Adds fade gradient at bottom when cropped
+// - Crops from bottom if too tall, showing top portion
+// - Adds fade gradient at bottom edge (~10px) blending into background
 func (p *Popup) buildImageContainer(pixbuf *gdkpixbuf.Pixbuf) gtk.Widgetter {
 	if pixbuf == nil {
 		return nil
@@ -672,72 +661,99 @@ func (p *Popup) buildImageContainer(pixbuf *gdkpixbuf.Pixbuf) gtk.Widgetter {
 	origWidth := pixbuf.Width()
 	origHeight := pixbuf.Height()
 
-	// Scale to fit width
-	scale := float64(availableWidth) / float64(origWidth)
-	newWidth := availableWidth
-	newHeight := int(float64(origHeight) * scale)
+	// Only scale DOWN if wider than available width - never scale up
+	var scaledPixbuf *gdkpixbuf.Pixbuf
+	var newWidth, newHeight int
 
-	// Scale the pixbuf to fit width
-	scaledPixbuf := pixbuf.ScaleSimple(newWidth, newHeight, gdkpixbuf.InterpBilinear)
-	if scaledPixbuf == nil {
-		return nil
+	if origWidth > availableWidth {
+		// Scale down to fit width
+		scale := float64(availableWidth) / float64(origWidth)
+		newWidth = availableWidth
+		newHeight = int(float64(origHeight) * scale)
+		scaledPixbuf = pixbuf.ScaleSimple(newWidth, newHeight, gdkpixbuf.InterpBilinear)
+		if scaledPixbuf == nil {
+			return nil
+		}
+	} else {
+		// Keep original size
+		newWidth = origWidth
+		newHeight = origHeight
+		scaledPixbuf = pixbuf
 	}
 
 	// Determine if cropping is needed
 	isCropped := newHeight > imageMaxHeight
 
 	p.logger.Debug("created notification image",
-		"orig_width", origWidth,
-		"orig_height", origHeight,
-		"scaled_width", newWidth,
-		"scaled_height", newHeight,
+		"orig_size", strconv.Itoa(origWidth)+"x"+strconv.Itoa(origHeight),
+		"scaled_size", strconv.Itoa(newWidth)+"x"+strconv.Itoa(newHeight),
 		"cropped", isCropped,
 	)
 
 	if !isCropped {
-		// No cropping needed, return image directly
-		p.imageWidget = gtk.NewImage()
-		p.imageWidget.AddCSSClass("notification-image")
-		p.imageWidget.SetFromPixbuf(scaledPixbuf)
-		return p.imageWidget
+		// No cropping needed - use gtk.Image which respects intrinsic size
+		texture := gdk.NewTextureForPixbuf(scaledPixbuf)
+		if texture == nil {
+			p.logger.Warn("failed to create texture from pixbuf")
+			return nil
+		}
+		image := gtk.NewImageFromPaintable(texture)
+		image.AddCSSClass("notification-image")
+		image.SetPixelSize(newHeight) // Use height as pixel size for proper scaling
+		// Prevent expansion when container resizes
+		image.SetHExpand(false)
+		image.SetVExpand(false)
+		image.SetHAlign(gtk.AlignCenter)
+		image.SetVAlign(gtk.AlignStart)
+		return image
 	}
 
-	// Crop the pixbuf to max height (keep top portion)
-	// GTK4 doesn't support CSS overflow:hidden, so we crop the pixbuf directly
-	croppedPixbuf := gdkpixbuf.NewPixbuf(
-		scaledPixbuf.Colorspace(),
-		scaledPixbuf.HasAlpha(),
-		scaledPixbuf.BitsPerSample(),
-		newWidth,
-		imageMaxHeight,
-	)
+	// Crop from bottom (keep top portion of the image)
+	croppedPixbuf := scaledPixbuf.NewSubpixbuf(0, 0, newWidth, imageMaxHeight)
 	if croppedPixbuf == nil {
-		// Fallback to uncropped
-		p.imageWidget = gtk.NewImage()
-		p.imageWidget.AddCSSClass("notification-image")
-		p.imageWidget.SetFromPixbuf(scaledPixbuf)
-		return p.imageWidget
+		// Fallback to uncropped - use gtk.Image
+		texture := gdk.NewTextureForPixbuf(scaledPixbuf)
+		if texture == nil {
+			return nil
+		}
+		image := gtk.NewImageFromPaintable(texture)
+		image.AddCSSClass("notification-image")
+		image.SetPixelSize(newHeight)
+		image.SetHExpand(false)
+		image.SetVExpand(false)
+		image.SetHAlign(gtk.AlignCenter)
+		image.SetVAlign(gtk.AlignStart)
+		return image
 	}
 
-	// Copy the top portion of the scaled image
-	scaledPixbuf.CopyArea(0, 0, newWidth, imageMaxHeight, croppedPixbuf, 0, 0)
-
-	// Create the cropped image widget
-	p.imageWidget = gtk.NewImage()
-	p.imageWidget.AddCSSClass("notification-image")
-	p.imageWidget.SetFromPixbuf(croppedPixbuf)
+	// Create the cropped image widget using texture and gtk.Picture
+	texture := gdk.NewTextureForPixbuf(croppedPixbuf)
+	if texture == nil {
+		p.logger.Warn("failed to create texture from cropped pixbuf")
+		return nil
+	}
+	picture := gtk.NewPictureForPaintable(texture)
+	picture.AddCSSClass("notification-image")
+	picture.SetCanShrink(false)
+	picture.SetSizeRequest(newWidth, imageMaxHeight)
+	// Prevent expansion when container resizes
+	picture.SetHExpand(false)
+	picture.SetVExpand(false)
+	picture.SetHAlign(gtk.AlignCenter)
+	picture.SetVAlign(gtk.AlignStart)
 
 	// Create an overlay for the fade gradient
 	overlay := gtk.NewOverlay()
 	overlay.AddCSSClass("notification-image-container")
 	overlay.AddCSSClass("cropped")
-	overlay.SetChild(p.imageWidget)
+	overlay.SetChild(picture)
 
-	// Add gradient overlay for fade effect at the bottom
+	// Add gradient overlay for fade effect at the bottom (~10px)
 	gradientOverlay := gtk.NewBox(gtk.OrientationVertical, 0)
 	gradientOverlay.AddCSSClass("notification-image-fade")
 	gradientOverlay.SetVAlign(gtk.AlignEnd)
-	gradientOverlay.SetSizeRequest(-1, 40) // Gradient height
+	gradientOverlay.SetHExpand(true) // Fill width
+	gradientOverlay.SetSizeRequest(-1, 10) // Gradient height
 	overlay.AddOverlay(gradientOverlay)
 
 	return overlay
@@ -760,22 +776,9 @@ func formatRelativeTime(t time.Time) string {
 
 // connectSignals sets up event handlers.
 func (p *Popup) connectSignals() {
-	// Close button click (if present in layout)
-	if p.closeBtn != nil {
-		p.closeBtn.ConnectClicked(func() {
-			p.Close()
-			if p.onClose != nil {
-				p.onClose(dbus.CloseReasonDismissed)
-			}
-		})
-	}
-
 	// Mouse enter/leave for hover effects
 	motionCtrl := gtk.NewEventControllerMotion()
 	motionCtrl.ConnectEnter(func(x, y float64) {
-		if p.closeBtn != nil {
-			p.closeBtn.SetVisible(true)
-		}
 		if p.actionBox != nil {
 			p.actionBox.SetVisible(true)
 		}
@@ -784,9 +787,6 @@ func (p *Popup) connectSignals() {
 		}
 	})
 	motionCtrl.ConnectLeave(func() {
-		if p.closeBtn != nil {
-			p.closeBtn.SetVisible(false)
-		}
 		if p.actionBox != nil {
 			p.actionBox.SetVisible(false)
 		}
@@ -809,22 +809,9 @@ func (p *Popup) connectSignals() {
 // connectWidgetSignals sets up event handlers on the box widget (for embedded mode).
 // Similar to connectSignals but attaches to p.box instead of p.window.
 func (p *Popup) connectWidgetSignals() {
-	// Close button click (if present in layout)
-	if p.closeBtn != nil {
-		p.closeBtn.ConnectClicked(func() {
-			p.Close()
-			if p.onClose != nil {
-				p.onClose(dbus.CloseReasonDismissed)
-			}
-		})
-	}
-
 	// Mouse enter/leave for hover effects
 	motionCtrl := gtk.NewEventControllerMotion()
 	motionCtrl.ConnectEnter(func(x, y float64) {
-		if p.closeBtn != nil {
-			p.closeBtn.SetVisible(true)
-		}
 		if p.actionBox != nil {
 			p.actionBox.SetVisible(true)
 		}
@@ -833,9 +820,6 @@ func (p *Popup) connectWidgetSignals() {
 		}
 	})
 	motionCtrl.ConnectLeave(func() {
-		if p.closeBtn != nil {
-			p.closeBtn.SetVisible(false)
-		}
 		if p.actionBox != nil {
 			p.actionBox.SetVisible(false)
 		}
@@ -1221,6 +1205,56 @@ func (p *Popup) GetStackCount() int {
 // IncrementStackCount increases the stack count by 1 and updates the display.
 func (p *Popup) IncrementStackCount() {
 	p.SetStackCount(p.stackCount + 1)
+}
+
+// UpdateContent updates the popup's visible content from a new notification.
+// Used for stack-tag replacement where the same popup is reused with new content.
+// Thread-safe: defers GTK operations to main thread.
+func (p *Popup) UpdateContent(notification *dbus.DBusNotification) {
+	p.notification = notification
+
+	glib.IdleAdd(func() {
+		// Update summary
+		if p.summaryLbl != nil {
+			p.summaryLbl.SetText(notification.Summary)
+		}
+
+		// Update body
+		if p.bodyLbl != nil {
+			if strings.Contains(notification.Body, "<") {
+				p.bodyLbl.SetMarkup(sanitizeMarkup(notification.Body))
+			} else {
+				p.bodyLbl.SetText(notification.Body)
+			}
+		}
+
+		// Update progress bar
+		if p.progressBar != nil {
+			progress := notification.Progress()
+			if progress >= 0 {
+				p.progressBar.SetFraction(float64(progress) / 100.0)
+				p.progressBar.SetVisible(true)
+
+				// Add/remove progress-complete class
+				if progress >= 100 {
+					p.box.AddCSSClass("progress-complete")
+				} else {
+					p.box.RemoveCSSClass("progress-complete")
+				}
+			}
+		}
+
+		// Update app name if visible
+		if p.appNameLbl != nil {
+			p.appNameLbl.SetText(notification.AppName)
+		}
+
+		// Reset timestamp to now
+		p.timestamp = time.Now()
+		if p.timestampLbl != nil {
+			p.timestampLbl.SetText("now")
+		}
+	})
 }
 
 // itoa is a simple int to string conversion.

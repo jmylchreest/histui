@@ -44,9 +44,10 @@ Controls how long notifications are displayed by urgency level.
 
 | Key | Type | Default | Description |
 |-----|------|---------|-------------|
-| `low` | duration | "5s" | Timeout for low urgency |
-| `normal` | duration | "10s" | Timeout for normal urgency |
+| `low` | duration | "0" | Timeout for low urgency (default: honor client) |
+| `normal` | duration | "0" | Timeout for normal urgency (default: honor client) |
 | `critical` | duration | "never" | Timeout for critical urgency |
+| `fallback` | duration | "10s" | Fallback timeout when client says "server decides" |
 
 **Timeout Values:**
 
@@ -68,7 +69,7 @@ Durations can be specified as:
 **Client Timeout Behavior:**
 
 When set to `"0"` (honor client), the daemon respects what the sending application requested:
-- If the client requests `-1` (server decides), the daemon uses fallback defaults (5s low, 10s normal, never critical)
+- If the client requests `-1` (server decides), the daemon uses the `fallback` timeout (default 10s, critical always uses 0/never)
 - If the client requests `0` (never expire), the notification stays until dismissed
 - If the client requests a positive value, that timeout is used
 
@@ -89,6 +90,40 @@ Controls daemon behavior.
 |-----|------|---------|-------------|
 | `monitor_mode` | bool | false | Run alongside another daemon |
 
+### [audio]
+
+Controls notification sounds.
+
+| Key | Type | Default | Description |
+|-----|------|---------|-------------|
+| `enabled` | bool | true | Enable notification sounds |
+| `volume` | int | 80 | Global volume (0-100) |
+
+**Audio Behavior:**
+
+- Sounds are defined in theme manifests (see [Theming](/docs/histuid/theming))
+- Only one sound plays at a time (newer sounds are skipped unless critical)
+- Critical notifications can interrupt any playing sound
+- Per-theme volumes are multiplied with the global volume
+
+**Supported Formats:**
+
+| Format | Extension | Notes |
+|--------|-----------|-------|
+| WAV | `.wav` | PCM only (16-bit signed little-endian). IEEE Float format is **not** supported |
+| Ogg Vorbis | `.ogg` | Fully supported |
+| MP3 | `.mp3` | Fully supported |
+
+**Command-line Flags:**
+
+```bash
+# Disable all sounds (overrides theme and config)
+histuid --no-audio
+
+# Override global volume (0.0 to 1.0)
+histuid --volume 0.5
+```
+
 ## Example Configuration
 
 ```toml
@@ -99,18 +134,23 @@ offset_x = 10
 offset_y = 10
 
 [timeouts]
-# Override low urgency to 3 seconds
-low = "3s"
-
-# Honor whatever the application requests for normal urgency
+# Honor whatever the application requests (default for low/normal)
+low = "0"
 normal = "0"
 
 # Critical notifications never expire (default)
 critical = "never"
 
+# Fallback timeout when client says "server decides" (-1)
+fallback = "10s"
+
 [behavior]
 stack_duplicates = true
 pause_on_hover = true
+
+[audio]
+enabled = true
+volume = 80
 ```
 
 ## Icon Aliases
