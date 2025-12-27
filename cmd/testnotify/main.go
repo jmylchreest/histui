@@ -10,9 +10,11 @@
 package main
 
 import (
+	_ "embed"
 	"flag"
 	"fmt"
 	"log"
+	"math/rand"
 	"os"
 	"os/exec"
 	"path/filepath"
@@ -20,6 +22,9 @@ import (
 
 	"github.com/godbus/dbus/v5"
 )
+
+//go:embed kitty.png
+var kittyIconData []byte
 
 const (
 	notifyDest   = "org.freedesktop.Notifications"
@@ -33,7 +38,7 @@ var delay = 300 * time.Millisecond
 
 func main() {
 	clearFlag := flag.Bool("clear", false, "Clear all notifications before sending")
-	typeFlag := flag.String("type", "all", "Type of notification to send (all, simple, url, image, imagedata, tallimage, progress, actions, low, critical, html, long, stack)")
+	typeFlag := flag.String("type", "all", "Type of notification to send (all, simple, url, image, imagedata, tallimage, progress, actions, low, critical, html, long, stack, apps)")
 	stackCount := flag.Int("stack", 5, "Number of notifications for stack test")
 	screenshotFlag := flag.Bool("screenshot", false, "Take screenshot after sending notifications")
 	screenshotDir := flag.String("screenshot-dir", "/tmp/histui-test", "Directory to save screenshots")
@@ -80,6 +85,8 @@ func main() {
 		sendWithImagePath(conn)
 	case "kitty":
 		sendKittyStyle(conn)
+	case "apps":
+		sendAppNotifications(conn)
 	default:
 		fmt.Printf("Unknown type: %s\n", *typeFlag)
 		os.Exit(1)
@@ -172,18 +179,18 @@ func clearNotifications(conn *dbus.Conn) {
 }
 
 func sendSimple(conn *dbus.Conn) {
-	fmt.Println("[TEST] Sending simple notification...")
-	notify(conn, "Test App", "Simple Notification",
-		"This is a basic test notification with just text content.",
-		"", nil, 5000)
+	fmt.Println("[TEST] Sending simple notification (vesktop -> discord)...")
+	notify(conn, "vesktop", "New Message",
+		"[TEST] You have a new message from @friend in #general",
+		"vesktop", nil, 5000)
 	time.Sleep(delay)
 }
 
 func sendWithURL(conn *dbus.Conn) {
-	fmt.Println("[TEST] Sending notification with URL...")
-	notify(conn, "Browser", "Link Notification",
-		`Check out this link: <a href="https://github.com/jmylchreest/histui">histui on GitHub</a>`,
-		"", nil, 5000)
+	fmt.Println("[TEST] Sending notification with URL (librewolf -> firefox)...")
+	notify(conn, "librewolf", "Link Notification",
+		`[TEST] Check out: <a href="https://github.com/jmylchreest/histui">histui on GitHub</a>`,
+		"librewolf", nil, 5000)
 	time.Sleep(delay)
 }
 
@@ -204,7 +211,7 @@ func sendWithImage(conn *dbus.Conn) {
 		}
 	}
 	notify(conn, "Image Test", "Notification with Icon",
-		"This notification includes an application icon.",
+		"[TEST] This notification includes an application icon.",
 		icon, nil, 5000)
 	time.Sleep(delay)
 }
@@ -259,7 +266,7 @@ func sendWithImageData(conn *dbus.Conn) {
 	}
 
 	notify(conn, "Image Data Test", "Embedded Image",
-		"This notification has raw pixel data embedded (32x32 red square).",
+		"[TEST] Raw pixel data embedded (32x32 red square).",
 		"", hints, 5000)
 	time.Sleep(delay)
 }
@@ -309,79 +316,114 @@ func sendWithTallImage(conn *dbus.Conn) {
 	}
 
 	notify(conn, "Tall Image Test", "Cropped Image",
-		"This tall image should be cropped with a fade gradient at the bottom.",
+		"[TEST] Tall image cropped with fade gradient at bottom.",
 		"", hints, 5000)
 	time.Sleep(delay)
 }
 
 func sendWithProgress(conn *dbus.Conn) {
-	fmt.Println("[TEST] Sending notification with progress...")
+	fmt.Println("[TEST] Sending notification with progress (qbittorrent -> download)...")
 	hints := map[string]dbus.Variant{
 		"value": dbus.MakeVariant(int32(75)),
 	}
-	notify(conn, "Download Manager", "Downloading File",
-		"file.zip - 75% complete",
-		"", hints, 5000)
+	notify(conn, "qbittorrent", "Downloading File",
+		"[TEST] ubuntu-24.04.iso - 75% complete",
+		"qbittorrent", hints, 5000)
 	time.Sleep(delay)
 }
 
 func sendWithActions(conn *dbus.Conn) {
-	fmt.Println("[TEST] Sending notification with actions...")
+	fmt.Println("[TEST] Sending notification with actions (rhythmbox -> music)...")
 	actions := []string{
 		"prev", "Previous",
 		"play", "Play/Pause",
 		"next", "Next",
 	}
-	notifyWithActions(conn, "Music Player", "Now Playing",
-		"Artist - Song Title",
-		"", actions, nil, 5000)
+	notifyWithActions(conn, "rhythmbox", "Now Playing",
+		"[TEST] Miles Davis - So What",
+		"rhythmbox", actions, nil, 5000)
 	time.Sleep(delay)
 }
 
 func sendLowUrgency(conn *dbus.Conn) {
-	fmt.Println("[TEST] Sending low urgency notification...")
+	fmt.Println("[TEST] Sending low urgency notification (spotify -> spotify)...")
 	hints := map[string]dbus.Variant{
 		"urgency": dbus.MakeVariant(byte(0)), // Low
 	}
-	notify(conn, "System", "Low Priority",
-		"This is a low urgency notification that can be easily dismissed.",
-		"", hints, 5000)
+	notify(conn, "spotify", "Now Playing",
+		"[TEST] Artist Name - Song Title (Discover Weekly)",
+		"spotify", hints, 5000)
 	time.Sleep(delay)
 }
 
 func sendCriticalUrgency(conn *dbus.Conn) {
-	fmt.Println("[TEST] Sending critical urgency notification...")
+	fmt.Println("[TEST] Sending critical urgency notification (gufw -> security)...")
 	hints := map[string]dbus.Variant{
 		"urgency": dbus.MakeVariant(byte(2)), // Critical
 	}
-	notify(conn, "System Monitor", "Critical Alert!",
-		"System temperature is dangerously high!",
-		"", hints, 5000)
+	notify(conn, "gufw", "Firewall Alert!",
+		"[TEST] Blocked incoming connection from suspicious IP.",
+		"gufw", hints, 5000)
 	time.Sleep(delay)
 }
 
 func sendHTMLFormatted(conn *dbus.Conn) {
-	fmt.Println("[TEST] Sending HTML formatted notification...")
-	notify(conn, "Messenger", "Message from Alice",
-		"<b>Bold text</b>, <i>italic text</i>, and <u>underlined text</u>.",
-		"", nil, 5000)
+	fmt.Println("[TEST] Sending HTML formatted notification (telegram-desktop -> telegram)...")
+	notify(conn, "telegram-desktop", "Message from Alice",
+		"[TEST] <b>Bold</b>, <i>italic</i>, and <u>underlined</u> text.",
+		"telegram-desktop", nil, 5000)
 	time.Sleep(delay)
 }
 
 func sendLongBody(conn *dbus.Conn) {
-	fmt.Println("[TEST] Sending notification with long body...")
-	notify(conn, "Email", "New Email from John Doe",
-		"Lorem ipsum dolor sit amet, consectetur adipiscing elit. Sed do eiusmod tempor incididunt ut labore et dolore magna aliqua. Ut enim ad minim veniam, quis nostrud exercitation ullamco laboris.",
-		"", nil, 5000)
+	fmt.Println("[TEST] Sending notification with long body (thunderbird -> email)...")
+	notify(conn, "thunderbird", "New Email from John Doe",
+		"[TEST] Lorem ipsum dolor sit amet, consectetur adipiscing elit. Sed do eiusmod tempor incididunt ut labore et dolore magna aliqua. Ut enim ad minim veniam.",
+		"thunderbird", nil, 5000)
 	time.Sleep(delay)
 }
 
 func sendStack(conn *dbus.Conn, count int) {
 	fmt.Printf("[TEST] Sending stack of %d notifications...\n", count)
 	for i := 1; i <= count; i++ {
-		notify(conn, "Stack Test", fmt.Sprintf("Notification %d of %d", i, count),
-			fmt.Sprintf("This is notification number %d in the stack.", i),
-			"", nil, 5000)
+		var hints map[string]dbus.Variant
+
+		// Include a large image on every 3rd notification to test image cropping in stack
+		if i%3 == 0 {
+			// Create a tall image (400x600) that will be cropped
+			width, height := 400, 600
+			rowstride := width * 3
+			pixels := make([]byte, rowstride*height)
+
+			// Create gradient pattern
+			for y := 0; y < height; y++ {
+				for x := 0; x < width; x++ {
+					offset := y*rowstride + x*3
+					pixels[offset] = byte((x * 255) / width)       // R: horizontal gradient
+					pixels[offset+1] = byte((y * 255) / height)   // G: vertical gradient
+					pixels[offset+2] = byte(128)                   // B: constant
+				}
+			}
+
+			hints = map[string]dbus.Variant{
+				"image-data": dbus.MakeVariant(ImageDataStruct{
+					Width:         int32(width),
+					Height:        int32(height),
+					Rowstride:     int32(rowstride),
+					HasAlpha:      false,
+					BitsPerSample: 8,
+					Channels:      3,
+					Data:          pixels,
+				}),
+			}
+			notify(conn, "Stack Test", fmt.Sprintf("Notification %d of %d (with image)", i, count),
+				"This notification includes a large image that should be cropped.",
+				"", hints, 10000)
+		} else {
+			notify(conn, "Stack Test", fmt.Sprintf("Notification %d of %d", i, count),
+				fmt.Sprintf("This is notification number %d in the stack.", i),
+				"", nil, 10000)
+		}
 		time.Sleep(100 * time.Millisecond)
 	}
 	time.Sleep(delay)
@@ -396,8 +438,20 @@ func sendKittyStyle(conn *dbus.Conn) {
 	// body: "Claude needs your permission to use Bash"
 	// expire_timeout: -1
 	// urgency: 1 (normal)
-	// icon (app_icon): "/usr/lib/kitty/logo/kitty.png"
+	// icon (app_icon): "/usr/lib/kitty/logo/kitty.png" (absolute path to PNG)
 	// actions: [{"key": "default", "label": " "}]
+
+	// Write embedded kitty icon to temp file (mimics kitty sending absolute path to PNG)
+	iconPath := filepath.Join(os.TempDir(), "histui-test-kitty.png")
+	if err := os.WriteFile(iconPath, kittyIconData, 0644); err != nil {
+		log.Printf("Failed to write kitty icon: %v", err)
+		iconPath = ""
+	}
+	defer func() {
+		if iconPath != "" {
+			os.Remove(iconPath)
+		}
+	}()
 
 	actions := []string{
 		"default", " ", // Kitty uses a single space as the label
@@ -409,7 +463,7 @@ func sendKittyStyle(conn *dbus.Conn) {
 
 	notifyWithActions(conn, "kitty", "Claude Code",
 		"Claude needs your permission to use Bash",
-		"/usr/lib/kitty/logo/kitty.png", // app_icon
+		iconPath, // app_icon as absolute path to PNG file
 		actions,
 		hints,
 		-1, // expire_timeout: never expires
@@ -477,14 +531,10 @@ func sendWithImagePath(conn *dbus.Conn) {
 		"This notification uses image-path hint to load from a PPM file.",
 		"", hints, 5000)
 
-	// Clean up temp files after a delay
-	go func() {
-		time.Sleep(10 * time.Second)
-		os.Remove(ppmFile)
-		os.Remove(tmpFile)
-	}()
-
+	// Give notification daemon time to read the file, then clean up
 	time.Sleep(delay)
+	os.Remove(ppmFile)
+	os.Remove(tmpFile)
 }
 
 func runAllTests(conn *dbus.Conn) {
@@ -501,7 +551,114 @@ func runAllTests(conn *dbus.Conn) {
 	sendWithProgress(conn)
 	sendLongBody(conn)
 	sendHTMLFormatted(conn)
+	sendRandomAppSample(conn, 5) // Random sample of apps
 
 	fmt.Println()
 	fmt.Println("[OK] All test notifications sent!")
+}
+
+// appNotification defines a mock notification from an app.
+type appNotification struct {
+	appName string
+	icon    string // icon name or path
+	summary string
+	body    string
+	urgency byte
+}
+
+// getTestApps returns the list of mock app notifications for testing icon resolution.
+func getTestApps() []appNotification {
+	return []appNotification{
+		// Messaging apps
+		{"discord", "discord", "New Message", "You have a new message from @user", 1},
+		{"vesktop", "vesktop", "Server Alert", "Someone mentioned you in #general", 1},
+		{"telegram-desktop", "telegram", "Telegram", "New message from Alice", 1},
+		{"org.telegram.desktop", "telegram", "Group Chat", "5 new messages in Work Group", 1},
+		{"whatsapp-desktop", "whatsapp", "WhatsApp", "Message from Mom", 1},
+		{"elecwhat", "elecwhat", "WhatsApp Web", "New message received", 1},
+		{"signal-desktop", "signal", "Signal", "Encrypted message received", 1},
+		{"slack", "slack", "Slack", "New message in #engineering", 1},
+		{"Element", "element", "Matrix", "New message in !room:matrix.org", 1},
+
+		// Browsers
+		{"firefox", "firefox", "Download Complete", "document.pdf has finished downloading", 0},
+		{"librewolf", "librewolf", "Page Crashed", "A tab has crashed unexpectedly", 2},
+		{"google-chrome", "google-chrome", "Chrome", "Update available", 1},
+		{"chromium", "chromium", "Chromium", "Permission requested", 1},
+		{"brave-browser", "brave", "Brave", "Shields blocked 42 trackers", 0},
+
+		// Media
+		{"spotify", "spotify", "Now Playing", "Artist - Song Title", 0},
+		{"Spotify", "spotify", "Spotify", "Your Discover Weekly is ready", 1},
+		{"vlc", "vlc", "VLC", "Playback started", 0},
+		{"rhythmbox", "rhythmbox", "Rhythmbox", "Now playing: Jazz Album", 0},
+
+		// Development
+		{"code", "code", "VS Code", "Extension update available", 0},
+		{"code-oss", "code-oss", "VS Code OSS", "Build completed successfully", 1},
+		{"jetbrains-idea", "idea", "IntelliJ IDEA", "Indexing complete", 0},
+		{"docker-desktop", "docker", "Docker", "Container started", 1},
+
+		// System
+		{"gnome-software", "gnome-software", "Software", "Updates available", 1},
+		{"org.kde.discover", "discover", "Discover", "3 updates available", 1},
+		{"nm-applet", "nm-applet", "Network", "Connected to WiFi", 0},
+		{"blueman", "blueman", "Bluetooth", "Device connected", 1},
+
+		// Email
+		{"thunderbird", "thunderbird", "New Email", "You have 3 new messages", 1},
+		{"evolution", "evolution", "Calendar Reminder", "Meeting in 15 minutes", 2},
+		{"geary", "geary", "Geary", "New message from work@example.com", 1},
+
+		// Cloud & Sync
+		{"dropbox", "dropbox", "Dropbox", "File synced successfully", 0},
+		{"nextcloud", "nextcloud", "Nextcloud", "Sync complete", 0},
+
+		// Gaming
+		{"steam", "steam", "Steam", "Friend is now playing", 0},
+		{"lutris", "lutris", "Lutris", "Game installation complete", 1},
+
+		// Other
+		{"keepassxc", "keepassxc", "KeePassXC", "Database locked due to inactivity", 1},
+		{"obs-studio", "obs-studio", "OBS", "Recording started", 1},
+		{"flameshot", "flameshot", "Flameshot", "Screenshot saved", 0},
+	}
+}
+
+func sendRandomAppSample(conn *dbus.Conn, count int) {
+	fmt.Printf("[TEST] Sending %d random app notifications...\n", count)
+
+	apps := getTestApps()
+
+	// Shuffle and pick first 'count' apps
+	rand.Shuffle(len(apps), func(i, j int) {
+		apps[i], apps[j] = apps[j], apps[i]
+	})
+
+	if count > len(apps) {
+		count = len(apps)
+	}
+
+	for _, app := range apps[:count] {
+		hints := map[string]dbus.Variant{
+			"urgency": dbus.MakeVariant(app.urgency),
+		}
+		notify(conn, app.appName, app.summary, app.body, app.icon, hints, 5000)
+		time.Sleep(100 * time.Millisecond)
+	}
+	time.Sleep(delay)
+}
+
+func sendAppNotifications(conn *dbus.Conn) {
+	fmt.Println("[TEST] Sending all app notifications (testing icon resolution)...")
+
+	apps := getTestApps()
+	for _, app := range apps {
+		hints := map[string]dbus.Variant{
+			"urgency": dbus.MakeVariant(app.urgency),
+		}
+		notify(conn, app.appName, app.summary, app.body, app.icon, hints, 5000)
+		time.Sleep(100 * time.Millisecond)
+	}
+	time.Sleep(delay)
 }

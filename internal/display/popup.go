@@ -2,6 +2,7 @@ package display
 
 import (
 	"log/slog"
+	"strconv"
 	"strings"
 	"time"
 
@@ -13,6 +14,7 @@ import (
 
 	"github.com/jmylchreest/histui/internal/config"
 	"github.com/jmylchreest/histui/internal/dbus"
+	"github.com/jmylchreest/histui/internal/icon"
 	"github.com/jmylchreest/histui/internal/layout"
 	"github.com/jmylchreest/histui/internal/model"
 )
@@ -24,6 +26,7 @@ type Popup struct {
 	config       *config.DaemonConfig
 	layout       *layout.LayoutConfig
 	logger       *slog.Logger
+	iconResolver *icon.Resolver
 
 	// Widgets
 	box           *gtk.Box
@@ -68,33 +71,12 @@ type Popup struct {
 	maxHeight int
 }
 
-// NewPopup creates a new notification popup.
+// NewPopup creates a new notification popup with its own layer-shell window.
+// Use NewPopupWidget for embedding in a container (single-window mode).
 func NewPopup(app *gtk.Application, notification *dbus.DBusNotification, cfg *config.DaemonConfig, logger *slog.Logger) (*Popup, error) {
-	if logger == nil {
-		logger = slog.Default()
-	}
-
-	// Load layout template
-	var layoutConfig *layout.LayoutConfig
-	templateName := cfg.Layout.Template
-	if templateName == "" {
-		templateName = "default"
-	}
-
-	if tmpl, found := layout.GetEmbeddedTemplate(templateName); found {
-		layoutConfig = tmpl
-	} else {
-		// Fall back to default layout
-		layoutConfig = layout.DefaultLayout()
-		logger.Warn("layout template not found, using default", "template", templateName)
-	}
-
-	p := &Popup{
-		notification: notification,
-		config:       cfg,
-		layout:       layoutConfig,
-		logger:       logger,
-		timestamp:    time.Now(),
+	p, err := newPopupBase(notification, cfg, logger)
+	if err != nil {
+		return nil, err
 	}
 
 	// Create the window
@@ -103,24 +85,9 @@ func NewPopup(app *gtk.Application, notification *dbus.DBusNotification, cfg *co
 	p.window.SetDecorated(false)
 	p.window.SetResizable(false)
 
-	// Use layout sizing if specified, otherwise fall back to config
-	p.minWidth = layoutConfig.MinWidth
-	if p.minWidth == 0 {
-		p.minWidth = cfg.Display.Width
-	}
-	p.maxWidth = layoutConfig.MaxWidth
-	if p.maxWidth == 0 {
-		p.maxWidth = cfg.Display.Width
-	}
-	p.maxHeight = layoutConfig.MaxHeight
-	if p.maxHeight == 0 {
-		p.maxHeight = cfg.Display.MaxHeight
-	}
-
 	// Set window size constraints
-	// Width is constrained, height will be measured after layout
 	p.window.SetDefaultSize(p.maxWidth, -1)
-	p.window.SetSizeRequest(p.minWidth, layoutConfig.MinHeight)
+	p.window.SetSizeRequest(p.minWidth, p.layout.MinHeight)
 
 	// Initialize layer-shell
 	layershell.InitForWindow(p.window)
@@ -137,8 +104,74 @@ func NewPopup(app *gtk.Application, notification *dbus.DBusNotification, cfg *co
 	// Apply CSS classes for theming
 	p.applyThemeClasses()
 
-	// Connect signals
+	// Connect signals (window-level)
 	p.connectSignals()
+
+	// Set the box as window child
+	p.window.SetChild(p.box)
+
+	return p, nil
+}
+
+// NewPopupWidget creates a notification popup widget for embedding in a container.
+// Unlike NewPopup, this does not create a window - just the notification content box.
+// Use this for single-window mode where all notifications share one layer-shell window.
+func NewPopupWidget(notification *dbus.DBusNotification, cfg *config.DaemonConfig, logger *slog.Logger, iconResolver *icon.Resolver) (*Popup, error) {
+	p, err := newPopupBase(notification, cfg, logger)
+	if err != nil {
+		return nil, err
+	}
+	p.iconResolver = iconResolver
+
+	// Build the UI from layout template
+	p.buildUI()
+
+	// Apply CSS classes for theming
+	p.applyThemeClasses()
+
+	// Connect widget-level signals (hover, click on box instead of window)
+	p.connectWidgetSignals()
+
+	// Set size constraints on the box itself
+	p.box.SetSizeRequest(p.minWidth, -1)
+
+	return p, nil
+}
+
+// newPopupBase creates the base Popup with configuration but no window or UI.
+func newPopupBase(notification *dbus.DBusNotification, cfg *config.DaemonConfig, logger *slog.Logger) (*Popup, error) {
+	if logger == nil {
+		logger = slog.Default()
+	}
+
+	// Load layout template from theme
+	// Layout is bundled with the theme (themes/{name}/layout.xml)
+	var layoutConfig *layout.LayoutConfig
+	themeName := cfg.Theme.Name
+	if themeName == "" {
+		themeName = "default"
+	}
+
+	if tmpl, found := layout.GetEmbeddedTemplate(themeName); found {
+		layoutConfig = tmpl
+	} else {
+		// Fall back to default layout
+		layoutConfig = layout.DefaultLayout()
+		logger.Debug("theme has no layout.xml, using default layout", "theme", themeName)
+	}
+
+	p := &Popup{
+		notification: notification,
+		config:       cfg,
+		layout:       layoutConfig,
+		logger:       logger,
+		timestamp:    time.Now(),
+	}
+
+	// Use layout sizing (layout package provides sensible defaults)
+	p.minWidth = layoutConfig.MinWidth
+	p.maxWidth = layoutConfig.MaxWidth
+	p.maxHeight = layoutConfig.MaxHeight
 
 	return p, nil
 }
@@ -150,11 +183,6 @@ func (p *Popup) applyThemeClasses() {
 
 	// Urgency class
 	p.box.AddCSSClass(urgencyToClass(p.notification.Urgency()))
-
-	// Opacity class for compositor blur effects
-	if p.config.Display.Opacity < 1.0 {
-		p.box.AddCSSClass("translucent")
-	}
 
 	// Per-app class (sanitized app name)
 	if p.notification.AppName != "" {
@@ -240,6 +268,7 @@ func sanitizeClassName(name string) string {
 }
 
 // buildUI constructs the popup widget hierarchy from the layout template.
+// Note: Does NOT set window child - caller must do that if using windowed mode.
 func (p *Popup) buildUI() {
 	// Main container
 	// Margins are set via CSS for flexibility with stack positions
@@ -252,8 +281,6 @@ func (p *Popup) buildUI() {
 			p.box.Append(widget)
 		}
 	}
-
-	p.window.SetChild(p.box)
 }
 
 // buildElement builds a GTK widget from a layout element.
@@ -268,7 +295,7 @@ func (p *Popup) buildElement(elem layout.LayoutElement) gtk.Widgetter {
 	case layout.ElementTypeProgress:
 		return p.buildProgress()
 	case layout.ElementTypeIcon:
-		return p.buildIcon()
+		return p.buildIcon(elem)
 	case layout.ElementTypeSummary:
 		return p.buildSummary()
 	case layout.ElementTypeAppName:
@@ -323,57 +350,123 @@ func (p *Popup) buildBox(elem layout.LayoutElement) gtk.Widgetter {
 	return box
 }
 
+// DefaultIconSize is the default icon size in pixels.
+const DefaultIconSize = 48
+
 // buildIcon creates the notification icon.
 // Handles both icon names (e.g., "dialog-information") and file paths (e.g., "/usr/lib/kitty/logo/kitty.png").
-func (p *Popup) buildIcon() gtk.Widgetter {
+// The icon size can be configured via the layout element's "size" attribute (e.g., <icon size="32"/>).
+// Falls back to Nerd Font symbols when icon theme lookup fails.
+func (p *Popup) buildIcon(elem layout.LayoutElement) gtk.Widgetter {
+	// Parse icon size from layout attributes (default: 48)
+	iconSize := DefaultIconSize
+	if sizeStr, ok := elem.Attributes["size"]; ok {
+		if size, err := strconv.Atoi(sizeStr); err == nil && size > 0 {
+			iconSize = size
+		}
+	}
+
+	iconName := p.notification.AppIcon
+	appName := p.notification.AppName
+
+	// Helper to create a Nerd Font symbol label as fallback
+	createNerdLabel := func(symbol string) gtk.Widgetter {
+		label := gtk.NewLabel(symbol)
+		label.AddCSSClass("notification-icon")
+		label.AddCSSClass("notification-icon-nerd")
+		return label
+	}
+
+	// Helper to get Nerd Font symbol for app/category
+	getNerdSymbol := func() string {
+		if p.iconResolver != nil {
+			// Try app name first
+			if symbol := p.iconResolver.GetNerdSymbol(appName); symbol != "" {
+				return symbol
+			}
+			// Try resolved icon name
+			if iconName != "" {
+				resolved := p.iconResolver.Resolve(iconName)
+				if symbol := p.iconResolver.GetNerdSymbol(resolved); symbol != "" {
+					return symbol
+				}
+			}
+			// Try notification category
+			if symbol := p.iconResolver.GetNerdSymbolForCategory(p.notification.Category()); symbol != "" {
+				return symbol
+			}
+		}
+		// Fallback based on urgency
+		return icon.FallbackNerdSymbolForUrgency(p.notification.Urgency())
+	}
+
 	p.iconImage = gtk.NewImage()
 	p.iconImage.AddCSSClass("notification-icon")
-	p.iconImage.SetPixelSize(48)
+	p.iconImage.SetPixelSize(iconSize)
 
-	icon := p.notification.AppIcon
-	if icon == "" {
-		p.logger.Debug("no app icon provided, using default")
-		p.iconImage.SetFromIconName("dialog-information")
+	if iconName == "" {
+		// No icon provided - use Nerd Font symbol
+		p.logger.Debug("no app icon provided, using nerd font symbol", "app", appName)
+		return createNerdLabel(getNerdSymbol())
+	}
+
+	p.logger.Debug("loading app icon", "icon", iconName, "size", iconSize)
+
+	// Check if it's a file path (absolute path or file:// URI)
+	if strings.HasPrefix(iconName, "/") {
+		// Absolute file path - load from file
+		pixbuf, err := gdkpixbuf.NewPixbufFromFileAtSize(iconName, iconSize, iconSize)
+		if err != nil {
+			p.logger.Debug("failed to load icon from file, using nerd font symbol",
+				"path", iconName,
+				"error", err,
+			)
+			return createNerdLabel(getNerdSymbol())
+		}
+		p.logger.Debug("loaded icon from file", "path", iconName, "width", pixbuf.Width(), "height", pixbuf.Height())
+		p.iconImage.SetFromPixbuf(pixbuf)
 		return p.iconImage
 	}
 
-	p.logger.Debug("loading app icon", "icon", icon)
-
-	// Check if it's a file path (absolute path or file:// URI)
-	if strings.HasPrefix(icon, "/") {
-		// Absolute file path - load from file
-		pixbuf, err := gdkpixbuf.NewPixbufFromFileAtSize(icon, 48, 48)
-		if err != nil {
-			p.logger.Warn("failed to load icon from file, falling back to default",
-				"path", icon,
-				"error", err,
-			)
-			p.iconImage.SetFromIconName("dialog-information")
-		} else {
-			p.logger.Debug("loaded icon from file", "path", icon, "width", pixbuf.Width(), "height", pixbuf.Height())
-			p.iconImage.SetFromPixbuf(pixbuf)
-		}
-	} else if strings.HasPrefix(icon, "file://") {
+	if strings.HasPrefix(iconName, "file://") {
 		// File URI - strip prefix and load from file
-		path := strings.TrimPrefix(icon, "file://")
-		pixbuf, err := gdkpixbuf.NewPixbufFromFileAtSize(path, 48, 48)
+		path := strings.TrimPrefix(iconName, "file://")
+		pixbuf, err := gdkpixbuf.NewPixbufFromFileAtSize(path, iconSize, iconSize)
 		if err != nil {
-			p.logger.Warn("failed to load icon from file URI, falling back to default",
-				"uri", icon,
+			p.logger.Debug("failed to load icon from file URI, using nerd font symbol",
+				"uri", iconName,
 				"error", err,
 			)
-			p.iconImage.SetFromIconName("dialog-information")
-		} else {
-			p.logger.Debug("loaded icon from file URI", "path", path, "width", pixbuf.Width(), "height", pixbuf.Height())
-			p.iconImage.SetFromPixbuf(pixbuf)
+			return createNerdLabel(getNerdSymbol())
 		}
-	} else {
-		// Icon name - use theme lookup
-		p.logger.Debug("using icon name for theme lookup", "icon_name", icon)
-		p.iconImage.SetFromIconName(icon)
+		p.logger.Debug("loaded icon from file URI", "path", path, "width", pixbuf.Width(), "height", pixbuf.Height())
+		p.iconImage.SetFromPixbuf(pixbuf)
+		return p.iconImage
 	}
 
-	return p.iconImage
+	// Icon name - resolve aliases and check theme
+	resolvedIcon := iconName
+	if p.iconResolver != nil {
+		resolvedIcon = p.iconResolver.Resolve(iconName)
+		if resolvedIcon != iconName {
+			p.logger.Debug("resolved icon alias", "original", iconName, "resolved", resolvedIcon)
+		}
+	}
+
+	// Check if icon exists in theme
+	iconTheme := gtk.IconThemeGetForDisplay(p.iconImage.Display())
+	if iconTheme != nil && iconTheme.HasIcon(resolvedIcon) {
+		p.logger.Debug("using icon from theme", "icon_name", resolvedIcon)
+		p.iconImage.SetFromIconName(resolvedIcon)
+		return p.iconImage
+	}
+
+	// Icon not in theme - use Nerd Font symbol
+	p.logger.Debug("icon not found in theme, using nerd font symbol",
+		"icon_name", resolvedIcon,
+		"app", appName,
+	)
+	return createNerdLabel(getNerdSymbol())
 }
 
 // buildSummary creates the summary label.
@@ -713,6 +806,55 @@ func (p *Popup) connectSignals() {
 	p.window.AddController(clickCtrl)
 }
 
+// connectWidgetSignals sets up event handlers on the box widget (for embedded mode).
+// Similar to connectSignals but attaches to p.box instead of p.window.
+func (p *Popup) connectWidgetSignals() {
+	// Close button click (if present in layout)
+	if p.closeBtn != nil {
+		p.closeBtn.ConnectClicked(func() {
+			p.Close()
+			if p.onClose != nil {
+				p.onClose(dbus.CloseReasonDismissed)
+			}
+		})
+	}
+
+	// Mouse enter/leave for hover effects
+	motionCtrl := gtk.NewEventControllerMotion()
+	motionCtrl.ConnectEnter(func(x, y float64) {
+		if p.closeBtn != nil {
+			p.closeBtn.SetVisible(true)
+		}
+		if p.actionBox != nil {
+			p.actionBox.SetVisible(true)
+		}
+		if p.onHover != nil {
+			p.onHover(true)
+		}
+	})
+	motionCtrl.ConnectLeave(func() {
+		if p.closeBtn != nil {
+			p.closeBtn.SetVisible(false)
+		}
+		if p.actionBox != nil {
+			p.actionBox.SetVisible(false)
+		}
+		if p.onHover != nil {
+			p.onHover(false)
+		}
+	})
+	p.box.AddController(motionCtrl)
+
+	// Click handler for configurable mouse actions
+	clickCtrl := gtk.NewGestureClick()
+	clickCtrl.SetButton(0) // All buttons
+	clickCtrl.ConnectReleased(func(nPress int, x, y float64) {
+		button := clickCtrl.CurrentButton()
+		p.handleClick(button)
+	})
+	p.box.AddController(clickCtrl)
+}
+
 // handleClick processes mouse button clicks.
 func (p *Popup) handleClick(button uint) {
 	var action string
@@ -818,12 +960,27 @@ func (p *Popup) Show(offsetY int) {
 }
 
 // Close closes the popup.
+// For windowed popups, this closes the window.
+// For embedded widgets, this just marks as closed (container handles removal).
 func (p *Popup) Close() {
 	if p.closed {
 		return
 	}
 	p.closed = true
-	p.window.Close()
+	if p.window != nil {
+		p.window.Close()
+	}
+}
+
+// Widget returns the notification box widget for embedding in a container.
+// Returns nil if called on a windowed popup.
+func (p *Popup) Widget() *gtk.Box {
+	return p.box
+}
+
+// IsEmbedded returns true if this popup is a widget (no window).
+func (p *Popup) IsEmbedded() bool {
+	return p.window == nil
 }
 
 // UpdatePosition updates the popup's vertical offset with animation.
@@ -993,21 +1150,29 @@ func (p *Popup) GetActualWidth() int {
 // SetStackPosition updates the popup's position in the notification stack.
 // Valid values: "single", "first", "middle", "last"
 // This updates CSS classes for unified stack styling.
+// Thread-safe: defers GTK operations to main thread.
 func (p *Popup) SetStackPosition(position string) {
 	if p.stackPosition == position {
 		return
 	}
 
-	// Remove old stack position class
-	if p.stackPosition != "" {
-		p.box.RemoveCSSClass("stack-" + p.stackPosition)
-	}
-
+	oldPosition := p.stackPosition
 	p.stackPosition = position
 
-	// Add new stack position class
+	// Defer GTK operations to main thread
+	glib.IdleAdd(func() {
+		// Remove old stack position class
+		if oldPosition != "" {
+			p.box.RemoveCSSClass("stack-" + oldPosition)
+		}
+
+		// Add new stack position class
+		if position != "" {
+			p.box.AddCSSClass("stack-" + position)
+		}
+	})
+
 	if position != "" {
-		p.box.AddCSSClass("stack-" + position)
 		p.logger.Debug("set stack position CSS class",
 			"position", position,
 			"class", "stack-"+position,
@@ -1030,17 +1195,22 @@ func (p *Popup) SetWidth(width int) {
 
 // SetStackCount updates the stack count badge.
 // A count of 1 or less hides the badge.
+// Thread-safe: defers GTK operations to main thread.
 func (p *Popup) SetStackCount(count int) {
 	p.stackCount = count
 	if p.stackCountLbl == nil {
 		return
 	}
-	if count > 1 {
-		p.stackCountLbl.SetText("(" + itoa(count) + ")")
-		p.stackCountLbl.SetVisible(true)
-	} else {
-		p.stackCountLbl.SetVisible(false)
-	}
+
+	// Defer GTK operations to main thread
+	glib.IdleAdd(func() {
+		if count > 1 {
+			p.stackCountLbl.SetText("(" + itoa(count) + ")")
+			p.stackCountLbl.SetVisible(true)
+		} else {
+			p.stackCountLbl.SetVisible(false)
+		}
+	})
 }
 
 // GetStackCount returns the current stack count.

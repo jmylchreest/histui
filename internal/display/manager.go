@@ -3,6 +3,7 @@ package display
 
 import (
 	"container/list"
+	"context"
 	"log/slog"
 	"sync"
 	"time"
@@ -12,6 +13,8 @@ import (
 
 	"github.com/jmylchreest/histui/internal/config"
 	"github.com/jmylchreest/histui/internal/dbus"
+	"github.com/jmylchreest/histui/internal/icon"
+	"github.com/jmylchreest/histui/internal/model"
 )
 
 // QueuedNotification represents a notification waiting to be displayed.
@@ -27,16 +30,18 @@ type QueuedNotification struct {
 // PopupState represents the state of an active notification popup.
 // Only created for visible notifications.
 type PopupState struct {
-	DBusID       uint32
-	HistuiID     string
-	Popup        *Popup
-	Notification *dbus.DBusNotification // Stored for duplicate detection
-	CreatedAt    time.Time
-	ExpiresAt    time.Time // Zero means never expires
-	Paused       bool      // Timeout paused (e.g., on hover)
-	StackCount   int       // Number of stacked identical notifications
-	ActualHeight int       // Measured height after GTK layout (for dynamic stacking)
-	ActualWidth  int       // Measured width after GTK layout (for unified stack width)
+	DBusID        uint32
+	HistuiID      string
+	Popup         *Popup
+	Notification  *dbus.DBusNotification // Stored for duplicate detection
+	Urgency       int                    // Cached urgency level for preemption comparison
+	ClientTimeout int32                  // Client's requested timeout (-1=server decides, 0=never, >0=ms)
+	CreatedAt     time.Time
+	ExpiresAt     time.Time // Zero means never expires
+	Paused        bool      // Timeout paused (e.g., on hover)
+	StackCount    int       // Number of stacked identical notifications
+	ActualHeight  int       // Measured height after GTK layout (for dynamic stacking)
+	ActualWidth   int       // Measured width after GTK layout (for unified stack width)
 }
 
 // CloseCallback is called when a popup is closed.
@@ -46,13 +51,22 @@ type CloseCallback func(dbusID uint32, reason dbus.CloseReason)
 type ActionCallback func(dbusID uint32, actionKey string)
 
 // Manager manages notification popup windows with memory-efficient queuing.
+// Uses a single-window approach where all notifications are widgets inside one
+// layer-shell window, eliminating gaps between notifications.
 // Only MaxVisible popups exist as GTK objects at any time.
 // Additional notifications are queued and displayed when space becomes available.
 type Manager struct {
-	app     *gtk.Application
-	config  *config.DaemonConfig
-	logger  *slog.Logger
-	display *gdk.Display
+	app          *gtk.Application
+	config       *config.DaemonConfig
+	logger       *slog.Logger
+	display      *gdk.Display
+	iconResolver *icon.Resolver
+
+	// Icon aliases hot-reloading
+	aliasesWatcher *icon.AliasesWatcher
+
+	// Single window containing all notifications
+	stack *NotificationStack
 
 	// Active popups - only MaxVisible at a time
 	mu     sync.RWMutex
@@ -82,29 +96,63 @@ func NewManager(app *gtk.Application, cfg *config.DaemonConfig, logger *slog.Log
 		cfg = config.DefaultDaemonConfig()
 	}
 
-	return &Manager{
-		app:        app,
-		config:     cfg,
-		logger:     logger,
-		popups:     make(map[uint32]*PopupState),
-		queue:      list.New(),
-		queueIndex: make(map[uint32]*list.Element),
-		timeoutCh:  make(chan uint32, 100),
-		stopCh:     make(chan struct{}),
+	// Create icon resolver with default mappings and load user aliases from file
+	iconResolver, err := icon.NewResolverWithAliases()
+	if err != nil {
+		logger.Warn("failed to load icon aliases file", "error", err)
 	}
+
+	m := &Manager{
+		app:          app,
+		config:       cfg,
+		logger:       logger,
+		iconResolver: iconResolver,
+		popups:       make(map[uint32]*PopupState),
+		queue:        list.New(),
+		queueIndex:   make(map[uint32]*list.Element),
+		timeoutCh:    make(chan uint32, 100),
+		stopCh:       make(chan struct{}),
+	}
+
+	// Create icon aliases watcher for hot-reloading
+	aliasesWatcher, err := icon.NewAliasesWatcher(logger)
+	if err != nil {
+		logger.Warn("failed to create icon aliases watcher", "error", err)
+	} else {
+		m.aliasesWatcher = aliasesWatcher
+		// Set callback to reload aliases into the resolver
+		aliasesWatcher.SetReloadCallback(func(aliases map[string]string) {
+			iconResolver.SetUserAliases(aliases)
+		})
+		aliasesWatcher.SetErrorCallback(func(err error) {
+			logger.Warn("failed to reload icon aliases", "error", err)
+		})
+	}
+
+	// Create the single notification stack window
+	m.stack = NewNotificationStack(app, cfg, logger)
+
+	return m
 }
 
 // Start initializes the display manager.
-func (m *Manager) Start() error {
+func (m *Manager) Start(ctx context.Context) error {
 	m.display = gdk.DisplayGetDefault()
 	if m.display == nil {
 		return &DisplayError{Message: "no display available"}
 	}
 
+	// Start icon aliases watcher for hot-reloading
+	if m.aliasesWatcher != nil {
+		if err := m.aliasesWatcher.Start(ctx); err != nil {
+			m.logger.Warn("failed to start icon aliases watcher", "error", err)
+		}
+	}
+
 	// Start timeout handler goroutine
 	go m.handleTimeouts()
 
-	m.logger.Info("display manager started")
+	m.logger.Info("display manager started (single-window mode)")
 	return nil
 }
 
@@ -114,11 +162,21 @@ func (m *Manager) Stop() {
 		close(m.stopCh)
 		m.CloseAll()
 
+		// Stop icon aliases watcher
+		if m.aliasesWatcher != nil {
+			m.aliasesWatcher.Stop()
+		}
+
 		// Clear the queue
 		m.mu.Lock()
 		m.queue.Init()
 		m.queueIndex = make(map[uint32]*list.Element)
 		m.mu.Unlock()
+
+		// Destroy the notification stack window
+		if m.stack != nil {
+			m.stack.Destroy()
+		}
 
 		m.logger.Info("display manager stopped")
 	})
@@ -150,7 +208,8 @@ func (m *Manager) Show(notification *dbus.DBusNotification, dbusID uint32, histu
 
 	// Check if this notification is replacing an existing one
 	if state, exists := m.popups[dbusID]; exists {
-		// It's already visible - update in place
+		// It's already visible - remove old and re-show
+		m.stack.Remove(dbusID)
 		state.Popup.Close()
 		delete(m.popups, dbusID)
 		// Re-show immediately
@@ -166,7 +225,7 @@ func (m *Manager) Show(notification *dbus.DBusNotification, dbusID uint32, histu
 				state.Popup.IncrementStackCount()
 
 				// Reset the timeout for the stacked notification
-				if timeout := m.config.GetTimeoutForUrgency(notification.Urgency()); timeout > 0 {
+				if timeout := m.config.GetTimeoutForUrgency(notification.Urgency(), notification.ExpireTimeout); timeout > 0 {
 					state.ExpiresAt = time.Now().Add(time.Duration(timeout) * time.Millisecond)
 				}
 
@@ -214,6 +273,7 @@ func (m *Manager) Show(notification *dbus.DBusNotification, dbusID uint32, histu
 				// Note: We need the original notification to re-queue - for simplicity,
 				// we just close it with "expired" reason. A more sophisticated implementation
 				// would store the original notification data.
+				m.stack.Remove(preemptedID)
 				state.Popup.Close()
 				delete(m.popups, preemptedID)
 				if m.onClose != nil {
@@ -245,13 +305,11 @@ func (m *Manager) Show(notification *dbus.DBusNotification, dbusID uint32, histu
 	return nil
 }
 
-// showPopupLocked creates and displays a popup. Caller must hold the lock.
+// showPopupLocked creates and displays a popup widget. Caller must hold the lock.
+// Uses single-window mode where notifications are widgets inside a shared container.
 func (m *Manager) showPopupLocked(notification *dbus.DBusNotification, dbusID uint32, histuiID string) error {
-	// Calculate initial Y offset based on accumulated heights of existing popups
-	offsetY := m.calculateOffsetYLocked()
-
-	// Create the popup (this is where GTK objects are allocated)
-	popup, err := NewPopup(m.app, notification, m.config, m.logger)
+	// Create the popup widget (no window - will be added to stack container)
+	popup, err := NewPopupWidget(notification, m.config, m.logger, m.iconResolver)
 	if err != nil {
 		return err
 	}
@@ -277,52 +335,38 @@ func (m *Manager) showPopupLocked(notification *dbus.DBusNotification, dbusID ui
 	})
 
 	// Calculate expiration time
-	timeout := m.config.GetTimeoutForUrgency(notification.Urgency())
+	clientTimeout := notification.ExpireTimeout
+	timeout := m.config.GetTimeoutForUrgency(notification.Urgency(), clientTimeout)
 	var expiresAt time.Time
 	if timeout > 0 {
 		expiresAt = time.Now().Add(time.Duration(timeout) * time.Millisecond)
 	}
 
-	// Store state with estimated height (will be updated after layout)
+	// Store state
 	state := &PopupState{
-		DBusID:       dbusID,
-		HistuiID:     histuiID,
-		Popup:        popup,
-		Notification: notification,
-		CreatedAt:    time.Now(),
-		ExpiresAt:    expiresAt,
-		StackCount:   1,                      // Initial count
-		ActualHeight: popup.GetMaxHeight(),   // Use max as initial estimate
+		DBusID:        dbusID,
+		HistuiID:      histuiID,
+		Popup:         popup,
+		Notification:  notification,
+		Urgency:       notification.Urgency(),
+		ClientTimeout: clientTimeout,
+		CreatedAt:     time.Now(),
+		ExpiresAt:     expiresAt,
+		StackCount:    1,
 	}
 	m.popups[dbusID] = state
-
-	// Set up callback to update actual height after measurement
-	popup.OnHeightReady(func(height int) {
-		m.mu.Lock()
-		if s, exists := m.popups[dbusID]; exists {
-			s.ActualHeight = height
-		}
-		m.mu.Unlock()
-		// Recalculate positions now that we know actual height
-		m.updatePositions()
-	})
-
-	// Set up callback to update actual width after measurement
-	popup.OnWidthReady(func(width int) {
-		m.mu.Lock()
-		if s, exists := m.popups[dbusID]; exists {
-			s.ActualWidth = width
-		}
-		m.mu.Unlock()
-		// Recalculate unified stack width and positions
-		m.updatePositions()
-	})
 
 	// Initialize the popup's stack count (shows badge only if count > 1)
 	popup.SetStackCount(1)
 
-	// Show the popup at the calculated offset
-	popup.Show(offsetY)
+	// Add the widget to the notification stack
+	widget := &NotificationWidget{
+		DBusID:    dbusID,
+		HistuiID:  histuiID,
+		Container: popup.Widget(),
+		Popup:     popup,
+	}
+	m.stack.Add(widget)
 
 	// Schedule timeout if applicable
 	if timeout > 0 {
@@ -335,44 +379,14 @@ func (m *Manager) showPopupLocked(notification *dbus.DBusNotification, dbusID ui
 		}()
 	}
 
-	m.logger.Debug("showed popup",
+	m.logger.Debug("showed popup widget",
 		"dbus_id", dbusID,
 		"histui_id", histuiID,
-		"offset_y", offsetY,
 		"timeout_ms", timeout,
 		"active_popups", len(m.popups),
 	)
 
 	return nil
-}
-
-// calculateOffsetYLocked calculates the Y offset for a new popup based on existing popups.
-// Caller must hold the lock.
-func (m *Manager) calculateOffsetYLocked() int {
-	offsetY := m.config.Display.OffsetY
-	gap := m.config.Display.Gap
-
-	// Collect and sort existing popups by creation time
-	states := make([]*PopupState, 0, len(m.popups))
-	for _, state := range m.popups {
-		states = append(states, state)
-	}
-
-	// Sort by creation time (oldest first = top of stack)
-	for i := range states {
-		for j := i + 1; j < len(states); j++ {
-			if states[j].CreatedAt.Before(states[i].CreatedAt) {
-				states[i], states[j] = states[j], states[i]
-			}
-		}
-	}
-
-	// Sum up heights of existing popups
-	for _, state := range states {
-		offsetY += state.ActualHeight + gap
-	}
-
-	return offsetY
 }
 
 // addToQueueLocked adds a notification to the queue in priority order.
@@ -431,23 +445,30 @@ func (m *Manager) reorderQueueLocked() {
 // shouldPreempt returns true if the given urgency should preempt existing popups.
 func (m *Manager) shouldPreempt(urgency int) bool {
 	// Only critical notifications can preempt
-	return urgency >= 2
+	return urgency >= model.UrgencyCritical
 }
 
 // findLowestPriorityPopupLocked finds the visible popup with lowest urgency.
+// Critical notifications cannot be preempted.
+// Among equal urgency, the oldest notification is selected.
 // Returns 0 if no suitable popup found. Caller must hold the lock.
 func (m *Manager) findLowestPriorityPopupLocked() uint32 {
 	var lowestID uint32
-	lowestUrgency := 3 // Higher than any valid urgency
+	lowestUrgency := model.UrgencyCritical + 1 // Higher than any valid urgency
+	var oldestTime time.Time
 
 	for id, state := range m.popups {
-		// Get urgency from the popup's notification (would need to store it)
-		// For now, assume we can preempt any non-critical popup
-		// A better implementation would store urgency in PopupState
-		_ = state
-		if lowestUrgency > 0 {
+		// Critical notifications cannot be preempted
+		if state.Urgency >= model.UrgencyCritical {
+			continue
+		}
+
+		// Find lowest urgency, or oldest if same urgency
+		if state.Urgency < lowestUrgency ||
+			(state.Urgency == lowestUrgency && (oldestTime.IsZero() || state.CreatedAt.Before(oldestTime))) {
 			lowestID = id
-			lowestUrgency = 0 // Assume normal urgency
+			lowestUrgency = state.Urgency
+			oldestTime = state.CreatedAt
 		}
 	}
 
@@ -491,6 +512,9 @@ func (m *Manager) CloseByHistuiID(histuiID string, reason dbus.CloseReason) bool
 	delete(m.popups, dbusID)
 	m.mu.Unlock()
 
+	// Remove from notification stack
+	m.stack.RemoveByHistuiID(histuiID)
+
 	state.Popup.Close()
 	state.Popup = nil // Help GC
 
@@ -500,7 +524,6 @@ func (m *Manager) CloseByHistuiID(histuiID string, reason dbus.CloseReason) bool
 
 	// Try to show next queued notification
 	m.showNextQueued()
-	m.updatePositions()
 
 	m.logger.Debug("closed popup by histui_id",
 		"histui_id", histuiID,
@@ -549,6 +572,9 @@ func (m *Manager) Close(dbusID uint32, reason dbus.CloseReason) {
 	m.mu.Unlock()
 
 	if exists {
+		// Remove from notification stack
+		m.stack.Remove(dbusID)
+
 		state.Popup.Close()
 		// Set popup to nil to help GC
 		state.Popup = nil
@@ -559,7 +585,6 @@ func (m *Manager) Close(dbusID uint32, reason dbus.CloseReason) {
 
 		// Try to show next queued notification
 		m.showNextQueued()
-		m.updatePositions()
 	}
 }
 
@@ -576,6 +601,9 @@ func (m *Manager) CloseAll() {
 	m.queue.Init()
 	m.queueIndex = make(map[uint32]*list.Element)
 	m.mu.Unlock()
+
+	// Clear the notification stack (removes all widgets from container)
+	m.stack.Clear()
 
 	for _, state := range popups {
 		state.Popup.Close()
@@ -628,31 +656,67 @@ func (m *Manager) handlePopupClosed(dbusID uint32, reason dbus.CloseReason) {
 	}
 	m.mu.Unlock()
 
+	// Remove from notification stack
+	m.stack.Remove(dbusID)
+
 	if exists && m.onClose != nil {
 		m.onClose(dbusID, reason)
 	}
 
 	// Show next queued notification
 	m.showNextQueued()
-	m.updatePositions()
 }
 
 // handleHover handles hover state changes for pause-on-hover.
+// When ANY notification in the stack is hovered, ALL notifications are paused.
 func (m *Manager) handleHover(dbusID uint32, hovering bool) {
 	if !m.config.Behavior.PauseOnHover {
 		return
 	}
 
 	m.mu.Lock()
-	if state, exists := m.popups[dbusID]; exists {
+
+	// Collect notifications that need new timeout goroutines
+	var needsReschedule []struct {
+		dbusID  uint32
+		timeout int
+	}
+
+	// Pause or unpause ALL notifications in the stack
+	for id, state := range m.popups {
 		state.Paused = hovering
 		if !hovering && !state.ExpiresAt.IsZero() {
-			// Resume timeout from now
-			timeout := m.config.GetTimeoutForUrgency(1) // Use normal timeout for resumed
-			state.ExpiresAt = time.Now().Add(time.Duration(timeout) * time.Millisecond)
+			// Resume timeout from now - use each notification's own urgency and client timeout
+			timeout := m.config.GetTimeoutForUrgency(state.Urgency, state.ClientTimeout)
+			if timeout > 0 {
+				state.ExpiresAt = time.Now().Add(time.Duration(timeout) * time.Millisecond)
+				needsReschedule = append(needsReschedule, struct {
+					dbusID  uint32
+					timeout int
+				}{id, timeout})
+			}
 		}
 	}
+
+	m.logger.Debug("hover state changed for stack",
+		"hovering", hovering,
+		"affected_popups", len(m.popups),
+	)
+
 	m.mu.Unlock()
+
+	// Schedule new timeout goroutines for resumed notifications (outside lock)
+	for _, item := range needsReschedule {
+		id := item.dbusID
+		timeout := item.timeout
+		go func() {
+			time.Sleep(time.Duration(timeout) * time.Millisecond)
+			select {
+			case m.timeoutCh <- id:
+			case <-m.stopCh:
+			}
+		}()
+	}
 }
 
 // handleTimeouts processes timeout events.
@@ -671,73 +735,6 @@ func (m *Manager) handleTimeouts() {
 		case <-m.stopCh:
 			return
 		}
-	}
-}
-
-// updatePositions updates the position of all remaining popups with animation.
-// Calculates new Y offsets based on accumulated actual heights.
-// Also updates stack position CSS classes and unified width for unified stack appearance.
-func (m *Manager) updatePositions() {
-	m.mu.RLock()
-	defer m.mu.RUnlock()
-
-	if len(m.popups) == 0 {
-		return
-	}
-
-	// Collect states
-	states := make([]*PopupState, 0, len(m.popups))
-	for _, state := range m.popups {
-		states = append(states, state)
-	}
-
-	// Sort by creation time (oldest first = top of stack)
-	for i := range states {
-		for j := i + 1; j < len(states); j++ {
-			if states[j].CreatedAt.Before(states[i].CreatedAt) {
-				states[i], states[j] = states[j], states[i]
-			}
-		}
-	}
-
-	// Calculate max width across all popups for unified stack appearance
-	maxWidth := 0
-	for _, state := range states {
-		if state.ActualWidth > maxWidth {
-			maxWidth = state.ActualWidth
-		}
-	}
-
-	// Calculate new offsets based on accumulated heights
-	offsetY := m.config.Display.OffsetY
-	gap := m.config.Display.Gap
-	numPopups := len(states)
-
-	for i, state := range states {
-		// Update popup position (will animate if changed)
-		state.Popup.UpdatePosition(offsetY)
-
-		// Update stack position CSS class
-		var position string
-		switch {
-		case numPopups == 1:
-			position = "single"
-		case i == 0:
-			position = "first"
-		case i == numPopups-1:
-			position = "last"
-		default:
-			position = "middle"
-		}
-		state.Popup.SetStackPosition(position)
-
-		// Apply unified width to all popups
-		if maxWidth > 0 {
-			state.Popup.SetWidth(maxWidth)
-		}
-
-		// Add this popup's height + gap for next popup
-		offsetY += state.ActualHeight + gap
 	}
 }
 
@@ -775,8 +772,8 @@ func (m *Manager) UpdateConfig(cfg *config.DaemonConfig) {
 		"new_max_visible", cfg.Display.MaxVisible,
 	)
 
-	// Update positions of existing popups (in case position or offsets changed)
-	m.updatePositions()
+	// Update stack configuration (position, offsets)
+	m.stack.UpdateConfig(cfg)
 
 	// If max_visible increased, show more queued notifications
 	if cfg.Display.MaxVisible > oldMaxVisible {

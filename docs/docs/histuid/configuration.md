@@ -40,13 +40,37 @@ Controls notification popup appearance and behavior.
 
 ### [timeouts]
 
-Controls how long notifications are displayed.
+Controls how long notifications are displayed by urgency level.
 
 | Key | Type | Default | Description |
 |-----|------|---------|-------------|
-| `default` | int | 5000 | Default timeout in milliseconds |
-| `low` | int | 3000 | Timeout for low urgency |
-| `critical` | int | 0 | Timeout for critical (0 = never) |
+| `low` | duration | "5s" | Timeout for low urgency |
+| `normal` | duration | "10s" | Timeout for normal urgency |
+| `critical` | duration | "never" | Timeout for critical urgency |
+
+**Timeout Values:**
+
+| Value | Meaning |
+|-------|---------|
+| `"0"` or `"0s"` | Honor the client's requested timeout |
+| `"never"` or `"-1"` | Notification never expires (must be dismissed) |
+| Positive duration (e.g., `"5s"`, `"30s"`, `"2m"`) | Override with this timeout |
+
+**Duration Format:**
+
+Durations can be specified as:
+- `"5s"` - 5 seconds
+- `"500ms"` - 500 milliseconds
+- `"2m"` - 2 minutes
+- `"1h30m"` - 1 hour 30 minutes
+- `"5000"` - 5000 milliseconds (integer)
+
+**Client Timeout Behavior:**
+
+When set to `"0"` (honor client), the daemon respects what the sending application requested:
+- If the client requests `-1` (server decides), the daemon uses fallback defaults (5s low, 10s normal, never critical)
+- If the client requests `0` (never expire), the notification stays until dismissed
+- If the client requests a positive value, that timeout is used
 
 ### [history]
 
@@ -70,16 +94,48 @@ Controls daemon behavior.
 ```toml
 [display]
 position = "top-right"
-width = 400
-margin = 15
+max_visible = 5
+offset_x = 10
+offset_y = 10
 
 [timeouts]
-default = 5000
-critical = 0
+# Override low urgency to 3 seconds
+low = "3s"
 
-[history]
-max_count = 500
+# Honor whatever the application requests for normal urgency
+normal = "0"
+
+# Critical notifications never expire (default)
+critical = "never"
+
+[behavior]
+stack_duplicates = true
+pause_on_hover = true
 ```
+
+## Icon Aliases
+
+Icon aliases are configured in a separate file for easy sharing:
+
+```
+~/.config/histui/icon-aliases.toml
+```
+
+This maps application names to standard icon names:
+
+```toml
+# ~/.config/histui/icon-aliases.toml
+
+[aliases]
+zapzap = "whatsapp"
+telegram-desktop = "telegram"
+firefox-esr = "firefox"
+vesktop = "discord"
+signal-desktop = "signal"
+```
+
+Built-in aliases are provided for common apps. User aliases take precedence.
+See [Advanced Theming](/docs/histuid/theming/advanced#icon-resolution) for more details.
 
 ## See Also
 

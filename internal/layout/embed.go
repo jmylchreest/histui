@@ -1,23 +1,19 @@
 package layout
 
 import (
-	"embed"
-	"strings"
+	"github.com/jmylchreest/histui/internal/theme"
 )
 
-//go:embed templates/*.xml
-var EmbeddedTemplates embed.FS
-
 // GetEmbeddedTemplate returns an embedded template by name.
-// The name should not include the .xml extension.
+// Templates are stored in theme directories as layout.xml.
+// The name should match the theme name (e.g., "default", "minimal").
 func GetEmbeddedTemplate(name string) (*LayoutConfig, bool) {
-	path := "templates/" + name + ".xml"
-	data, err := EmbeddedTemplates.ReadFile(path)
-	if err != nil {
+	layoutXML, found := theme.GetEmbeddedLayout(name)
+	if !found {
 		return nil, false
 	}
 
-	config, err := ParseTemplateString(string(data))
+	config, err := ParseTemplateString(layoutXML)
 	if err != nil {
 		return nil, false
 	}
@@ -27,17 +23,5 @@ func GetEmbeddedTemplate(name string) (*LayoutConfig, bool) {
 
 // ListEmbeddedTemplates returns the names of all embedded templates.
 func ListEmbeddedTemplates() []string {
-	entries, err := EmbeddedTemplates.ReadDir("templates")
-	if err != nil {
-		return nil
-	}
-
-	var names []string
-	for _, entry := range entries {
-		if !entry.IsDir() && strings.HasSuffix(entry.Name(), ".xml") {
-			name := strings.TrimSuffix(entry.Name(), ".xml")
-			names = append(names, name)
-		}
-	}
-	return names
+	return theme.ListEmbeddedLayouts()
 }

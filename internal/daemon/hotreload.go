@@ -5,26 +5,27 @@ import (
 	"context"
 	"log/slog"
 	"os"
+	"path/filepath"
 	"sync"
-	"time"
+
+	"github.com/fsnotify/fsnotify"
 
 	"github.com/jmylchreest/histui/internal/config"
 )
 
 // StoreWatcher watches the notification history file for external changes.
 // This allows histuid to detect when notifications are dismissed via histui CLI.
+// Uses inotify (via fsnotify) for efficient file system event notification.
 type StoreWatcher struct {
-	mu     sync.RWMutex
-	logger *slog.Logger
+	mu       sync.RWMutex
+	logger   *slog.Logger
+	watcher  *fsnotify.Watcher
+	watchErr error
 
 	// Path to watch
 	historyPath string
-
-	// Last known modification time
-	lastModTime time.Time
-
-	// Polling interval
-	pollInterval time.Duration
+	absPath     string
+	dir         string
 
 	// Callback for changes
 	onChangeCallback func()
@@ -38,20 +39,29 @@ type StoreWatcher struct {
 
 // NewStoreWatcher creates a new StoreWatcher for the given history file path.
 func NewStoreWatcher(historyPath string, logger *slog.Logger) *StoreWatcher {
-	return &StoreWatcher{
-		logger:       logger,
-		historyPath:  historyPath,
-		pollInterval: 500 * time.Millisecond, // Poll every 500ms
-		stopCh:       make(chan struct{}),
-		doneCh:       make(chan struct{}),
+	w := &StoreWatcher{
+		logger:      logger,
+		historyPath: historyPath,
+		stopCh:      make(chan struct{}),
+		doneCh:      make(chan struct{}),
 	}
-}
 
-// SetPollInterval sets the polling interval for file changes.
-func (w *StoreWatcher) SetPollInterval(interval time.Duration) {
-	w.mu.Lock()
-	defer w.mu.Unlock()
-	w.pollInterval = interval
+	// Resolve absolute path
+	if absPath, err := filepath.Abs(historyPath); err == nil {
+		w.absPath = absPath
+		w.dir = filepath.Dir(absPath)
+	}
+
+	// Create fsnotify watcher
+	fsw, err := fsnotify.NewWatcher()
+	if err != nil {
+		w.watchErr = err
+		logger.Warn("failed to create inotify watcher for store", "error", err)
+	} else {
+		w.watcher = fsw
+	}
+
+	return w
 }
 
 // SetChangeCallback sets the callback to invoke when the store file changes.
@@ -63,25 +73,39 @@ func (w *StoreWatcher) SetChangeCallback(callback func()) {
 
 // Start begins watching the store file for changes.
 func (w *StoreWatcher) Start(ctx context.Context) error {
+	if w.watcher == nil {
+		w.logger.Warn("inotify watcher not available, store file watching disabled")
+		return nil
+	}
+
 	w.mu.Lock()
 	if w.running {
 		w.mu.Unlock()
 		return nil
 	}
 	w.running = true
-
-	// Get initial modification time
-	if info, err := os.Stat(w.historyPath); err == nil {
-		w.lastModTime = info.ModTime()
-	}
-
 	w.stopCh = make(chan struct{})
 	w.doneCh = make(chan struct{})
+
+	// Ensure the directory exists
+	if w.dir != "" {
+		if err := os.MkdirAll(w.dir, 0755); err != nil {
+			w.mu.Unlock()
+			return err
+		}
+	}
+
 	w.mu.Unlock()
 
-	go w.watchLoop(ctx)
+	// Watch the directory containing the file
+	if err := w.watcher.Add(w.dir); err != nil {
+		w.logger.Warn("failed to watch store directory", "dir", w.dir, "error", err)
+		return err
+	}
 
-	w.logger.Debug("store watcher started", "path", w.historyPath, "interval", w.pollInterval)
+	go w.eventLoop(ctx)
+
+	w.logger.Debug("store inotify watcher started", "path", w.historyPath)
 	return nil
 }
 
@@ -90,23 +114,27 @@ func (w *StoreWatcher) Stop() {
 	w.mu.Lock()
 	if !w.running {
 		w.mu.Unlock()
+		if w.watcher != nil {
+			_ = w.watcher.Close()
+		}
 		return
 	}
 	w.running = false
 	close(w.stopCh)
 	w.mu.Unlock()
 
-	// Wait for goroutine to finish
 	<-w.doneCh
-	w.logger.Debug("store watcher stopped")
+
+	if w.watcher != nil {
+		_ = w.watcher.Close()
+	}
+
+	w.logger.Debug("store inotify watcher stopped")
 }
 
-// watchLoop is the main polling loop.
-func (w *StoreWatcher) watchLoop(ctx context.Context) {
+// eventLoop processes inotify events.
+func (w *StoreWatcher) eventLoop(ctx context.Context) {
 	defer close(w.doneCh)
-
-	ticker := time.NewTicker(w.pollInterval)
-	defer ticker.Stop()
 
 	for {
 		select {
@@ -114,35 +142,39 @@ func (w *StoreWatcher) watchLoop(ctx context.Context) {
 			return
 		case <-w.stopCh:
 			return
-		case <-ticker.C:
-			w.checkForChanges()
+		case event, ok := <-w.watcher.Events:
+			if !ok {
+				return
+			}
+			w.handleEvent(event)
+		case err, ok := <-w.watcher.Errors:
+			if !ok {
+				return
+			}
+			w.logger.Warn("store inotify watcher error", "error", err)
 		}
 	}
 }
 
-// checkForChanges checks if the store file has been modified.
-func (w *StoreWatcher) checkForChanges() {
-	w.mu.RLock()
-	callback := w.onChangeCallback
-	lastModTime := w.lastModTime
-	w.mu.RUnlock()
-
-	info, err := os.Stat(w.historyPath)
+// handleEvent processes a single file system event.
+func (w *StoreWatcher) handleEvent(event fsnotify.Event) {
+	// Check if this is our file
+	eventPath, err := filepath.Abs(event.Name)
 	if err != nil {
-		// File might not exist yet or was deleted
-		if !os.IsNotExist(err) {
-			w.logger.Debug("failed to stat store file", "path", w.historyPath, "error", err)
-		}
 		return
 	}
 
-	modTime := info.ModTime()
-	if modTime.After(lastModTime) {
-		w.mu.Lock()
-		w.lastModTime = modTime
-		w.mu.Unlock()
+	if eventPath != w.absPath {
+		return
+	}
 
-		w.logger.Debug("store file changed", "path", w.historyPath, "modTime", modTime)
+	// Only care about write and create events
+	if event.Has(fsnotify.Write) || event.Has(fsnotify.Create) {
+		w.logger.Debug("store file changed", "path", w.historyPath, "op", event.Op.String())
+
+		w.mu.RLock()
+		callback := w.onChangeCallback
+		w.mu.RUnlock()
 
 		if callback != nil {
 			callback()
@@ -151,18 +183,17 @@ func (w *StoreWatcher) checkForChanges() {
 }
 
 // StateWatcher watches the shared state file for DnD changes.
+// Uses inotify (via fsnotify) for efficient file system event notification.
 type StateWatcher struct {
-	mu     sync.RWMutex
-	logger *slog.Logger
+	mu       sync.RWMutex
+	logger   *slog.Logger
+	watcher  *fsnotify.Watcher
+	watchErr error
 
 	// Path to watch
 	statePath string
-
-	// Last known modification time
-	lastModTime time.Time
-
-	// Polling interval
-	pollInterval time.Duration
+	absPath   string
+	dir       string
 
 	// Callback for changes
 	onChangeCallback func()
@@ -176,20 +207,29 @@ type StateWatcher struct {
 
 // NewStateWatcher creates a new StateWatcher for the given state file path.
 func NewStateWatcher(statePath string, logger *slog.Logger) *StateWatcher {
-	return &StateWatcher{
-		logger:       logger,
-		statePath:    statePath,
-		pollInterval: 500 * time.Millisecond, // Poll every 500ms
-		stopCh:       make(chan struct{}),
-		doneCh:       make(chan struct{}),
+	w := &StateWatcher{
+		logger:    logger,
+		statePath: statePath,
+		stopCh:    make(chan struct{}),
+		doneCh:    make(chan struct{}),
 	}
-}
 
-// SetPollInterval sets the polling interval for file changes.
-func (w *StateWatcher) SetPollInterval(interval time.Duration) {
-	w.mu.Lock()
-	defer w.mu.Unlock()
-	w.pollInterval = interval
+	// Resolve absolute path
+	if absPath, err := filepath.Abs(statePath); err == nil {
+		w.absPath = absPath
+		w.dir = filepath.Dir(absPath)
+	}
+
+	// Create fsnotify watcher
+	fsw, err := fsnotify.NewWatcher()
+	if err != nil {
+		w.watchErr = err
+		logger.Warn("failed to create inotify watcher for state", "error", err)
+	} else {
+		w.watcher = fsw
+	}
+
+	return w
 }
 
 // SetChangeCallback sets the callback to invoke when the state file changes.
@@ -201,25 +241,39 @@ func (w *StateWatcher) SetChangeCallback(callback func()) {
 
 // Start begins watching the state file for changes.
 func (w *StateWatcher) Start(ctx context.Context) error {
+	if w.watcher == nil {
+		w.logger.Warn("inotify watcher not available, state file watching disabled")
+		return nil
+	}
+
 	w.mu.Lock()
 	if w.running {
 		w.mu.Unlock()
 		return nil
 	}
 	w.running = true
-
-	// Get initial modification time
-	if info, err := os.Stat(w.statePath); err == nil {
-		w.lastModTime = info.ModTime()
-	}
-
 	w.stopCh = make(chan struct{})
 	w.doneCh = make(chan struct{})
+
+	// Ensure the directory exists
+	if w.dir != "" {
+		if err := os.MkdirAll(w.dir, 0755); err != nil {
+			w.mu.Unlock()
+			return err
+		}
+	}
+
 	w.mu.Unlock()
 
-	go w.watchLoop(ctx)
+	// Watch the directory containing the file
+	if err := w.watcher.Add(w.dir); err != nil {
+		w.logger.Warn("failed to watch state directory", "dir", w.dir, "error", err)
+		return err
+	}
 
-	w.logger.Debug("state watcher started", "path", w.statePath, "interval", w.pollInterval)
+	go w.eventLoop(ctx)
+
+	w.logger.Debug("state inotify watcher started", "path", w.statePath)
 	return nil
 }
 
@@ -228,23 +282,27 @@ func (w *StateWatcher) Stop() {
 	w.mu.Lock()
 	if !w.running {
 		w.mu.Unlock()
+		if w.watcher != nil {
+			_ = w.watcher.Close()
+		}
 		return
 	}
 	w.running = false
 	close(w.stopCh)
 	w.mu.Unlock()
 
-	// Wait for goroutine to finish
 	<-w.doneCh
-	w.logger.Debug("state watcher stopped")
+
+	if w.watcher != nil {
+		_ = w.watcher.Close()
+	}
+
+	w.logger.Debug("state inotify watcher stopped")
 }
 
-// watchLoop is the main polling loop.
-func (w *StateWatcher) watchLoop(ctx context.Context) {
+// eventLoop processes inotify events.
+func (w *StateWatcher) eventLoop(ctx context.Context) {
 	defer close(w.doneCh)
-
-	ticker := time.NewTicker(w.pollInterval)
-	defer ticker.Stop()
 
 	for {
 		select {
@@ -252,35 +310,39 @@ func (w *StateWatcher) watchLoop(ctx context.Context) {
 			return
 		case <-w.stopCh:
 			return
-		case <-ticker.C:
-			w.checkForChanges()
+		case event, ok := <-w.watcher.Events:
+			if !ok {
+				return
+			}
+			w.handleEvent(event)
+		case err, ok := <-w.watcher.Errors:
+			if !ok {
+				return
+			}
+			w.logger.Warn("state inotify watcher error", "error", err)
 		}
 	}
 }
 
-// checkForChanges checks if the state file has been modified.
-func (w *StateWatcher) checkForChanges() {
-	w.mu.RLock()
-	callback := w.onChangeCallback
-	lastModTime := w.lastModTime
-	w.mu.RUnlock()
-
-	info, err := os.Stat(w.statePath)
+// handleEvent processes a single file system event.
+func (w *StateWatcher) handleEvent(event fsnotify.Event) {
+	// Check if this is our file
+	eventPath, err := filepath.Abs(event.Name)
 	if err != nil {
-		// File might not exist yet or was deleted
-		if !os.IsNotExist(err) {
-			w.logger.Debug("failed to stat state file", "path", w.statePath, "error", err)
-		}
 		return
 	}
 
-	modTime := info.ModTime()
-	if modTime.After(lastModTime) {
-		w.mu.Lock()
-		w.lastModTime = modTime
-		w.mu.Unlock()
+	if eventPath != w.absPath {
+		return
+	}
 
-		w.logger.Debug("state file changed", "path", w.statePath, "modTime", modTime)
+	// Only care about write and create events
+	if event.Has(fsnotify.Write) || event.Has(fsnotify.Create) {
+		w.logger.Debug("state file changed", "path", w.statePath, "op", event.Op.String())
+
+		w.mu.RLock()
+		callback := w.onChangeCallback
+		w.mu.RUnlock()
 
 		if callback != nil {
 			callback()
@@ -289,21 +351,20 @@ func (w *StateWatcher) checkForChanges() {
 }
 
 // ConfigWatcher watches the daemon config file for changes and validates new configs.
+// Uses inotify (via fsnotify) for efficient file system event notification.
 type ConfigWatcher struct {
-	mu     sync.RWMutex
-	logger *slog.Logger
+	mu       sync.RWMutex
+	logger   *slog.Logger
+	watcher  *fsnotify.Watcher
+	watchErr error
 
 	// Path to watch
 	configPath string
-
-	// Last known modification time
-	lastModTime time.Time
+	absPath    string
+	dir        string
 
 	// Current valid config
 	currentConfig *config.DaemonConfig
-
-	// Polling interval
-	pollInterval time.Duration
 
 	// Callbacks
 	onReloadCallback func(newConfig *config.DaemonConfig)
@@ -323,20 +384,29 @@ func NewConfigWatcher(logger *slog.Logger) (*ConfigWatcher, error) {
 		return nil, err
 	}
 
-	return &ConfigWatcher{
-		logger:       logger,
-		configPath:   configPath,
-		pollInterval: 1 * time.Second, // Poll every second
-		stopCh:       make(chan struct{}),
-		doneCh:       make(chan struct{}),
-	}, nil
-}
+	w := &ConfigWatcher{
+		logger:     logger,
+		configPath: configPath,
+		stopCh:     make(chan struct{}),
+		doneCh:     make(chan struct{}),
+	}
 
-// SetPollInterval sets the polling interval for file changes.
-func (w *ConfigWatcher) SetPollInterval(interval time.Duration) {
-	w.mu.Lock()
-	defer w.mu.Unlock()
-	w.pollInterval = interval
+	// Resolve absolute path
+	if absPath, err := filepath.Abs(configPath); err == nil {
+		w.absPath = absPath
+		w.dir = filepath.Dir(absPath)
+	}
+
+	// Create fsnotify watcher
+	fsw, err := fsnotify.NewWatcher()
+	if err != nil {
+		w.watchErr = err
+		logger.Warn("failed to create inotify watcher for config", "error", err)
+	} else {
+		w.watcher = fsw
+	}
+
+	return w, nil
 }
 
 // SetReloadCallback sets the callback to invoke when config is successfully reloaded.
@@ -355,6 +425,11 @@ func (w *ConfigWatcher) SetErrorCallback(callback func(err error)) {
 
 // Start begins watching the config file for changes.
 func (w *ConfigWatcher) Start(ctx context.Context, initialConfig *config.DaemonConfig) error {
+	if w.watcher == nil {
+		w.logger.Warn("inotify watcher not available, config file watching disabled")
+		return nil
+	}
+
 	w.mu.Lock()
 	if w.running {
 		w.mu.Unlock()
@@ -362,19 +437,28 @@ func (w *ConfigWatcher) Start(ctx context.Context, initialConfig *config.DaemonC
 	}
 	w.running = true
 	w.currentConfig = initialConfig
-
-	// Get initial modification time
-	if info, err := os.Stat(w.configPath); err == nil {
-		w.lastModTime = info.ModTime()
-	}
-
 	w.stopCh = make(chan struct{})
 	w.doneCh = make(chan struct{})
+
+	// Ensure the directory exists
+	if w.dir != "" {
+		if err := os.MkdirAll(w.dir, 0755); err != nil {
+			w.mu.Unlock()
+			return err
+		}
+	}
+
 	w.mu.Unlock()
 
-	go w.watchLoop(ctx)
+	// Watch the directory containing the file
+	if err := w.watcher.Add(w.dir); err != nil {
+		w.logger.Warn("failed to watch config directory", "dir", w.dir, "error", err)
+		return err
+	}
 
-	w.logger.Debug("config watcher started", "path", w.configPath, "interval", w.pollInterval)
+	go w.eventLoop(ctx)
+
+	w.logger.Debug("config inotify watcher started", "path", w.configPath)
 	return nil
 }
 
@@ -383,15 +467,22 @@ func (w *ConfigWatcher) Stop() {
 	w.mu.Lock()
 	if !w.running {
 		w.mu.Unlock()
+		if w.watcher != nil {
+			_ = w.watcher.Close()
+		}
 		return
 	}
 	w.running = false
 	close(w.stopCh)
 	w.mu.Unlock()
 
-	// Wait for goroutine to finish
 	<-w.doneCh
-	w.logger.Debug("config watcher stopped")
+
+	if w.watcher != nil {
+		_ = w.watcher.Close()
+	}
+
+	w.logger.Debug("config inotify watcher stopped")
 }
 
 // GetCurrentConfig returns the current valid configuration.
@@ -401,12 +492,9 @@ func (w *ConfigWatcher) GetCurrentConfig() *config.DaemonConfig {
 	return w.currentConfig
 }
 
-// watchLoop is the main polling loop.
-func (w *ConfigWatcher) watchLoop(ctx context.Context) {
+// eventLoop processes inotify events.
+func (w *ConfigWatcher) eventLoop(ctx context.Context) {
 	defer close(w.doneCh)
-
-	ticker := time.NewTicker(w.pollInterval)
-	defer ticker.Stop()
 
 	for {
 		select {
@@ -414,36 +502,40 @@ func (w *ConfigWatcher) watchLoop(ctx context.Context) {
 			return
 		case <-w.stopCh:
 			return
-		case <-ticker.C:
-			w.checkForChanges()
+		case event, ok := <-w.watcher.Events:
+			if !ok {
+				return
+			}
+			w.handleEvent(event)
+		case err, ok := <-w.watcher.Errors:
+			if !ok {
+				return
+			}
+			w.logger.Warn("config inotify watcher error", "error", err)
 		}
 	}
 }
 
-// checkForChanges checks if the config file has been modified.
-func (w *ConfigWatcher) checkForChanges() {
-	w.mu.RLock()
-	reloadCallback := w.onReloadCallback
-	errorCallback := w.onErrorCallback
-	lastModTime := w.lastModTime
-	w.mu.RUnlock()
-
-	info, err := os.Stat(w.configPath)
+// handleEvent processes a single file system event.
+func (w *ConfigWatcher) handleEvent(event fsnotify.Event) {
+	// Check if this is our file
+	eventPath, err := filepath.Abs(event.Name)
 	if err != nil {
-		// File might not exist yet or was deleted
-		if !os.IsNotExist(err) {
-			w.logger.Debug("failed to stat config file", "path", w.configPath, "error", err)
-		}
 		return
 	}
 
-	modTime := info.ModTime()
-	if modTime.After(lastModTime) {
-		w.mu.Lock()
-		w.lastModTime = modTime
-		w.mu.Unlock()
+	if eventPath != w.absPath {
+		return
+	}
 
-		w.logger.Debug("config file changed", "path", w.configPath, "modTime", modTime)
+	// Only care about write and create events
+	if event.Has(fsnotify.Write) || event.Has(fsnotify.Create) {
+		w.logger.Debug("config file changed", "path", w.configPath, "op", event.Op.String())
+
+		w.mu.RLock()
+		reloadCallback := w.onReloadCallback
+		errorCallback := w.onErrorCallback
+		w.mu.RUnlock()
 
 		// Try to load and validate the new config
 		newConfig, err := config.LoadDaemonConfig()

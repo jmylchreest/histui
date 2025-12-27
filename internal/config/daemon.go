@@ -4,35 +4,49 @@ import (
 	"fmt"
 	"os"
 	"path/filepath"
-	"strconv"
+	"reflect"
 	"strings"
 	"time"
 
+	"github.com/go-viper/mapstructure/v2"
 	"github.com/pelletier/go-toml/v2"
+	"github.com/spf13/pflag"
+	"github.com/spf13/viper"
 )
 
 // Duration is a time.Duration that can be unmarshaled from human-readable strings.
 // Supports formats like "5s", "10s", "1m", "1h30m", or integer milliseconds for backwards compatibility.
-// A value of "0" or 0 means never expire.
+//
+// Special values for timeout configuration:
+//   - "0" or "0s" = honor the client's requested timeout
+//   - "-1", "-1s", or "never" = notification never expires
+//   - positive value (e.g., "10s") = override with this timeout
 type Duration time.Duration
 
 // UnmarshalText implements encoding.TextUnmarshaler for TOML parsing.
 func (d *Duration) UnmarshalText(text []byte) error {
-	s := string(text)
+	s := strings.TrimSpace(string(text))
+
+	// Handle "never" as alias for -1 (never expire)
+	if strings.EqualFold(s, "never") {
+		*d = Duration(-1 * time.Millisecond)
+		return nil
+	}
+
+	// Try parsing as duration string first (e.g., "5s", "1m", "1h30m", "-1s")
+	if dur, err := time.ParseDuration(s); err == nil {
+		*d = Duration(dur)
+		return nil
+	}
 
 	// Try parsing as integer (milliseconds) for backwards compatibility
-	if ms, err := strconv.ParseInt(s, 10, 64); err == nil {
+	var ms int64
+	if _, err := fmt.Sscanf(s, "%d", &ms); err == nil {
 		*d = Duration(time.Duration(ms) * time.Millisecond)
 		return nil
 	}
 
-	// Parse as duration string (e.g., "5s", "1m", "1h30m")
-	dur, err := time.ParseDuration(s)
-	if err != nil {
-		return fmt.Errorf("invalid duration %q: must be like '5s', '1m', '1h30m' or milliseconds: %w", s, err)
-	}
-	*d = Duration(dur)
-	return nil
+	return fmt.Errorf("invalid duration %q: must be like '5s', '1m', '1h30m', 'never', or milliseconds", s)
 }
 
 // MarshalText implements encoding.TextMarshaler for TOML output.
@@ -52,70 +66,70 @@ func (d Duration) Duration() time.Duration {
 
 // DaemonConfig is the configuration for histuid.
 // Loaded from ~/.config/histui/histuid.toml
+// Can be overridden via environment variables (HISTUID_*) or command-line flags.
 type DaemonConfig struct {
-	Display  DisplayConfig  `toml:"display"`
-	Timeouts TimeoutConfig  `toml:"timeouts"`
-	Behavior BehaviorConfig `toml:"behavior"`
-	Audio    AudioConfig    `toml:"audio"`
-	Theme    ThemeConfig    `toml:"theme"`
-	Layout   LayoutConfig   `toml:"layout"`
-	DnD      DnDConfig      `toml:"dnd"`
-	Mouse    MouseConfig    `toml:"mouse"`
-}
-
-// LayoutConfig contains layout template settings.
-type LayoutConfig struct {
-	Template string `toml:"template"` // Template name without .xml extension
+	Display  DisplayConfig  `toml:"display" mapstructure:"display"`
+	Timeouts TimeoutConfig  `toml:"timeouts" mapstructure:"timeouts"`
+	Behavior BehaviorConfig `toml:"behavior" mapstructure:"behavior"`
+	Audio    AudioConfig    `toml:"audio" mapstructure:"audio"`
+	Theme    ThemeConfig    `toml:"theme" mapstructure:"theme"`
+	DnD      DnDConfig      `toml:"dnd" mapstructure:"dnd"`
+	Mouse    MouseConfig    `toml:"mouse" mapstructure:"mouse"`
 }
 
 // DisplayConfig contains display-related settings.
+// Note: Sizing (width, height) is controlled by layout templates.
+// Note: Opacity/translucency is controlled by CSS themes.
 type DisplayConfig struct {
-	Position   string  `toml:"position"`    // "top-right", "top-left", etc.
-	OffsetX    int     `toml:"offset_x"`    // Pixels from screen edge
-	OffsetY    int     `toml:"offset_y"`    // Pixels from screen edge
-	Width      int     `toml:"width"`       // Popup width in pixels
-	MaxHeight  int     `toml:"max_height"`  // Maximum popup height
-	MaxVisible int     `toml:"max_visible"` // Maximum simultaneous popups
-	Gap        int     `toml:"gap"`         // Gap between stacked popups
-	Monitor    int     `toml:"monitor"`     // 0 = all, 1+ = specific monitor
-	Opacity    float64 `toml:"opacity"`     // 0.0-1.0, background opacity for blur effects
+	Position   string `toml:"position" mapstructure:"position"`       // "top-right", "top-left", etc.
+	OffsetX    int    `toml:"offset_x" mapstructure:"offset_x"`       // Pixels from screen edge
+	OffsetY    int    `toml:"offset_y" mapstructure:"offset_y"`       // Pixels from screen edge
+	MaxVisible int    `toml:"max_visible" mapstructure:"max_visible"` // Maximum simultaneous popups
+	Monitor    int    `toml:"monitor" mapstructure:"monitor"`         // 0 = all, 1+ = specific monitor
+	NewOnTop   bool   `toml:"new_on_top" mapstructure:"new_on_top"`   // If true, new notifications appear at top of stack
 }
 
 // TimeoutConfig contains timeout settings per urgency level.
 // Durations can be specified as "5s", "10s", "1m", etc. or as integer milliseconds.
-// A value of "0" or 0 means never expire.
+//
+// Special values:
+//   - "0" or "0s" = honor the client's requested timeout (from the notification)
+//   - "-1", "-1s", or "never" = notification never expires
+//   - positive value (e.g., "10s") = override with this timeout regardless of client request
 type TimeoutConfig struct {
-	Low      Duration `toml:"low"`      // e.g., "5s", "1m", or 5000
-	Normal   Duration `toml:"normal"`   // e.g., "10s", "1m", or 10000
-	Critical Duration `toml:"critical"` // e.g., "0" for never expire
+	Low      Duration `toml:"low" mapstructure:"low"`           // e.g., "5s", "0" (honor client), or "never"
+	Normal   Duration `toml:"normal" mapstructure:"normal"`     // e.g., "10s", "0" (honor client), or "never"
+	Critical Duration `toml:"critical" mapstructure:"critical"` // e.g., "never" (default), "0" (honor client), or "30s"
 }
 
 // BehaviorConfig contains behavior settings.
 type BehaviorConfig struct {
-	StackDuplicates bool `toml:"stack_duplicates"` // Combine identical notifications
-	ShowCount       bool `toml:"show_count"`       // Show "(2)" for stacked duplicates
-	PauseOnHover    bool `toml:"pause_on_hover"`   // Pause timeout when mouse hovers
-	HistoryLength   int  `toml:"history_length"`   // Max notifications in session memory
+	StackDuplicates bool `toml:"stack_duplicates" mapstructure:"stack_duplicates"` // Combine identical notifications
+	ShowCount       bool `toml:"show_count" mapstructure:"show_count"`             // Show "(2)" for stacked duplicates
+	PauseOnHover    bool `toml:"pause_on_hover" mapstructure:"pause_on_hover"`     // Pause timeout when mouse hovers
+	HistoryLength   int  `toml:"history_length" mapstructure:"history_length"`     // Max notifications in session memory
 }
 
 // AudioConfig contains audio settings.
 type AudioConfig struct {
-	Enabled bool        `toml:"enabled"`
-	Volume  int         `toml:"volume"` // 0-100
-	Sounds  SoundConfig `toml:"sounds"`
+	Enabled bool        `toml:"enabled" mapstructure:"enabled"`
+	Volume  int         `toml:"volume" mapstructure:"volume"` // 0-100
+	Sounds  SoundConfig `toml:"sounds" mapstructure:"sounds"`
 }
 
 // SoundConfig contains per-urgency sound file paths.
 type SoundConfig struct {
-	Low      string `toml:"low"`
-	Normal   string `toml:"normal"`
-	Critical string `toml:"critical"`
+	Low      string `toml:"low" mapstructure:"low"`
+	Normal   string `toml:"normal" mapstructure:"normal"`
+	Critical string `toml:"critical" mapstructure:"critical"`
 }
 
 // ThemeConfig contains theme settings.
 type ThemeConfig struct {
-	Name        string `toml:"name"`         // Theme name without .css extension
-	ColorScheme string `toml:"color_scheme"` // "system", "light", or "dark"
+	Name        string `toml:"name" mapstructure:"name"`                 // Theme name without .css extension
+	ColorScheme string `toml:"color_scheme" mapstructure:"color_scheme"` // "system", "light", or "dark"
+	FontFamily  string `toml:"font_family" mapstructure:"font_family"`   // Font family (empty = inherit from system)
+	FontSize    int    `toml:"font_size" mapstructure:"font_size"`       // Base font size in pixels (0 = use theme default)
 }
 
 // ColorScheme represents the color scheme preference.
@@ -134,15 +148,15 @@ func ValidColorSchemes() []ColorScheme {
 
 // DnDConfig contains Do Not Disturb settings.
 type DnDConfig struct {
-	Enabled        bool `toml:"enabled"`         // Initial state
-	CriticalBypass bool `toml:"critical_bypass"` // Show critical even in DnD mode
+	Enabled        bool `toml:"enabled" mapstructure:"enabled"`                 // Initial state
+	CriticalBypass bool `toml:"critical_bypass" mapstructure:"critical_bypass"` // Show critical even in DnD mode
 }
 
 // MouseConfig contains mouse button action mappings.
 type MouseConfig struct {
-	Left   string `toml:"left"`   // "dismiss", "do-action", "close-all", "context-menu", "none"
-	Middle string `toml:"middle"` // "dismiss", "do-action", "close-all", "context-menu", "none"
-	Right  string `toml:"right"`  // "dismiss", "do-action", "close-all", "context-menu", "none"
+	Left   string `toml:"left" mapstructure:"left"`     // "dismiss", "do-action", "close-all", "context-menu", "none"
+	Middle string `toml:"middle" mapstructure:"middle"` // "dismiss", "do-action", "close-all", "context-menu", "none"
+	Right  string `toml:"right" mapstructure:"right"`   // "dismiss", "do-action", "close-all", "context-menu", "none"
 }
 
 // MouseAction represents a mouse button action.
@@ -180,6 +194,94 @@ func ValidPositions() []Position {
 	}
 }
 
+// setDefaults configures Viper with default values.
+func setDefaults(v *viper.Viper) {
+	// Display defaults
+	v.SetDefault("display.position", string(PositionTopRight))
+	v.SetDefault("display.offset_x", 10)
+	v.SetDefault("display.offset_y", 10)
+	v.SetDefault("display.max_visible", 5)
+	v.SetDefault("display.monitor", 0)
+	v.SetDefault("display.new_on_top", false)
+
+	// Timeout defaults (as strings for Duration parsing)
+	// "0" = honor client, "-1" or "never" = never expire, positive = override
+	v.SetDefault("timeouts.low", "5s")
+	v.SetDefault("timeouts.normal", "10s")
+	v.SetDefault("timeouts.critical", "never")
+
+	// Behavior defaults
+	v.SetDefault("behavior.stack_duplicates", true)
+	v.SetDefault("behavior.show_count", true)
+	v.SetDefault("behavior.pause_on_hover", true)
+	v.SetDefault("behavior.history_length", 100)
+
+	// Audio defaults
+	v.SetDefault("audio.enabled", true)
+	v.SetDefault("audio.volume", 80)
+	v.SetDefault("audio.sounds.low", "")
+	v.SetDefault("audio.sounds.normal", "")
+	v.SetDefault("audio.sounds.critical", "")
+
+	// Theme defaults
+	// Note: Layout is loaded from theme directory (themes/{name}/layout.xml)
+	v.SetDefault("theme.name", "default")
+	v.SetDefault("theme.color_scheme", string(ColorSchemeSystem))
+	v.SetDefault("theme.font_family", "")
+	v.SetDefault("theme.font_size", 0)
+
+	// DnD defaults
+	v.SetDefault("dnd.enabled", false)
+	v.SetDefault("dnd.critical_bypass", true)
+
+	// Mouse defaults
+	v.SetDefault("mouse.left", string(MouseActionDismiss))
+	v.SetDefault("mouse.middle", string(MouseActionDoAction))
+	v.SetDefault("mouse.right", string(MouseActionCloseAll))
+}
+
+// stringToDurationHookFunc returns a mapstructure decode hook for Duration.
+func stringToDurationHookFunc() mapstructure.DecodeHookFunc {
+	return func(f reflect.Type, t reflect.Type, data interface{}) (interface{}, error) {
+		if t != reflect.TypeOf(Duration(0)) {
+			return data, nil
+		}
+
+		switch v := data.(type) {
+		case string:
+			// Handle "never" as alias for -1 (never expire)
+			if strings.EqualFold(v, "never") {
+				return Duration(-1 * time.Millisecond), nil
+			}
+			// Try parsing as duration string
+			if dur, err := time.ParseDuration(v); err == nil {
+				return Duration(dur), nil
+			}
+			// Try parsing as integer milliseconds
+			var ms int64
+			if _, err := fmt.Sscanf(v, "%d", &ms); err == nil {
+				return Duration(time.Duration(ms) * time.Millisecond), nil
+			}
+			return nil, fmt.Errorf("invalid duration %q", v)
+		case int, int64:
+			// Integer milliseconds
+			var ms int64
+			switch val := v.(type) {
+			case int:
+				ms = int64(val)
+			case int64:
+				ms = val
+			}
+			return Duration(time.Duration(ms) * time.Millisecond), nil
+		case float64:
+			// Float milliseconds (from JSON/TOML number)
+			return Duration(time.Duration(int64(v)) * time.Millisecond), nil
+		default:
+			return data, nil
+		}
+	}
+}
+
 // DefaultDaemonConfig returns a new DaemonConfig with default values.
 func DefaultDaemonConfig() *DaemonConfig {
 	return &DaemonConfig{
@@ -187,17 +289,13 @@ func DefaultDaemonConfig() *DaemonConfig {
 			Position:   string(PositionTopRight),
 			OffsetX:    10,
 			OffsetY:    10,
-			Width:      450,
-			MaxHeight:  200,
 			MaxVisible: 5,
-			Gap:        0, // 0 for unified stack appearance
 			Monitor:    0,
-			Opacity:    1.0, // Fully opaque by default
 		},
 		Timeouts: TimeoutConfig{
 			Low:      Duration(5 * time.Second),
 			Normal:   Duration(10 * time.Second),
-			Critical: Duration(0), // Never expires
+			Critical: Duration(-1 * time.Millisecond), // Never expires (-1)
 		},
 		Behavior: BehaviorConfig{
 			StackDuplicates: true,
@@ -213,9 +311,6 @@ func DefaultDaemonConfig() *DaemonConfig {
 		Theme: ThemeConfig{
 			Name:        "default",
 			ColorScheme: string(ColorSchemeSystem),
-		},
-		Layout: LayoutConfig{
-			Template: "default",
 		},
 		DnD: DnDConfig{
 			Enabled:        false,
@@ -238,34 +333,116 @@ func DaemonConfigPath() (string, error) {
 	return filepath.Join(configDir, "histui", "histuid.toml"), nil
 }
 
-// LoadDaemonConfig loads the daemon configuration from disk.
-// If the file doesn't exist, returns the default configuration.
-func LoadDaemonConfig() (*DaemonConfig, error) {
-	path, err := DaemonConfigPath()
+// DaemonConfigDir returns the directory containing the daemon config file.
+func DaemonConfigDir() (string, error) {
+	configDir, err := os.UserConfigDir()
 	if err != nil {
-		return nil, fmt.Errorf("failed to get config path: %w", err)
+		return "", err
+	}
+	return filepath.Join(configDir, "histui"), nil
+}
+
+// NewViper creates and configures a new Viper instance for histuid configuration.
+// This sets up:
+// - Default values
+// - Config file location (~/.config/histui/histuid.toml)
+// - Environment variable binding with HISTUID_ prefix
+//
+// Call BindPFlags() to bind command-line flags before loading.
+func NewViper() (*viper.Viper, error) {
+	v := viper.New()
+
+	// Set defaults
+	setDefaults(v)
+
+	// Configure config file
+	configDir, err := DaemonConfigDir()
+	if err != nil {
+		return nil, fmt.Errorf("failed to get config directory: %w", err)
 	}
 
-	data, err := os.ReadFile(path)
-	if err != nil {
-		if os.IsNotExist(err) {
-			return DefaultDaemonConfig(), nil
+	v.SetConfigName("histuid")
+	v.SetConfigType("toml")
+	v.AddConfigPath(configDir)
+
+	// Configure environment variables
+	// HISTUID_DISPLAY_POSITION -> display.position
+	v.SetEnvPrefix("HISTUID")
+	v.SetEnvKeyReplacer(strings.NewReplacer(".", "_"))
+	v.AutomaticEnv()
+
+	return v, nil
+}
+
+// BindPFlags binds command-line flags to Viper configuration keys.
+// Call this after defining pflags but before ReadInConfig.
+func BindPFlags(v *viper.Viper, flags *pflag.FlagSet) error {
+	// Bind specific flags to config keys
+	bindings := map[string]string{
+		"position":        "display.position",
+		"offset-x":        "display.offset_x",
+		"offset-y":        "display.offset_y",
+		"max-visible":     "display.max_visible",
+		"display-monitor": "display.monitor",
+		"new-on-top":      "display.new_on_top",
+		"theme":           "theme.name",
+		"font":            "theme.font_family",
+		"font-size":       "theme.font_size",
+	}
+
+	for flagName, configKey := range bindings {
+		if flag := flags.Lookup(flagName); flag != nil {
+			if err := v.BindPFlag(configKey, flag); err != nil {
+				return fmt.Errorf("failed to bind flag %s: %w", flagName, err)
+			}
 		}
-		return nil, fmt.Errorf("failed to read config file: %w", err)
 	}
 
-	// Start with defaults, then overlay with file contents
-	config := DefaultDaemonConfig()
-	if err := toml.Unmarshal(data, config); err != nil {
-		return nil, fmt.Errorf("failed to parse config file: %w", err)
+	return nil
+}
+
+// LoadDaemonConfigWithViper loads daemon configuration using the provided Viper instance.
+// This allows callers to set up pflags before loading.
+func LoadDaemonConfigWithViper(v *viper.Viper) (*DaemonConfig, error) {
+	// Read config file (ignore "not found" errors - defaults will be used)
+	if err := v.ReadInConfig(); err != nil {
+		if _, ok := err.(viper.ConfigFileNotFoundError); !ok {
+			return nil, fmt.Errorf("failed to read config file: %w", err)
+		}
+	}
+
+	// Unmarshal with custom decode hook for Duration
+	var cfg DaemonConfig
+	decoderConfig := func(dc *mapstructure.DecoderConfig) {
+		dc.DecodeHook = mapstructure.ComposeDecodeHookFunc(
+			stringToDurationHookFunc(),
+			mapstructure.StringToTimeDurationHookFunc(),
+		)
+		dc.TagName = "mapstructure"
+	}
+
+	if err := v.Unmarshal(&cfg, decoderConfig); err != nil {
+		return nil, fmt.Errorf("failed to unmarshal config: %w", err)
 	}
 
 	// Validate the configuration
-	if err := config.Validate(); err != nil {
+	if err := cfg.Validate(); err != nil {
 		return nil, fmt.Errorf("invalid configuration: %w", err)
 	}
 
-	return config, nil
+	return &cfg, nil
+}
+
+// LoadDaemonConfig loads the daemon configuration from disk.
+// If the file doesn't exist, returns the default configuration.
+// This is a convenience wrapper that doesn't support pflags.
+// For pflag support, use NewViper() + BindPFlags() + LoadDaemonConfigWithViper().
+func LoadDaemonConfig() (*DaemonConfig, error) {
+	v, err := NewViper()
+	if err != nil {
+		return nil, err
+	}
+	return LoadDaemonConfigWithViper(v)
 }
 
 // SaveDaemonConfig saves the daemon configuration to disk.
@@ -309,10 +486,7 @@ func (c *DaemonConfig) Validate() error {
 		return fmt.Errorf("invalid position %q, must be one of: %v", c.Display.Position, ValidPositions())
 	}
 
-	// Validate dimensions
-	if c.Display.Width < 100 || c.Display.Width > 1000 {
-		return fmt.Errorf("width must be between 100 and 1000, got %d", c.Display.Width)
-	}
+	// Validate max_visible
 	if c.Display.MaxVisible < 1 || c.Display.MaxVisible > 20 {
 		return fmt.Errorf("max_visible must be between 1 and 20, got %d", c.Display.MaxVisible)
 	}
@@ -340,15 +514,59 @@ func (c *DaemonConfig) Validate() error {
 }
 
 // GetTimeoutForUrgency returns the timeout in milliseconds for the given urgency level.
-func (c *DaemonConfig) GetTimeoutForUrgency(urgency int) int {
+// The clientTimeout parameter is the timeout requested by the notification client (in ms):
+//   - clientTimeout = -1: server should decide
+//   - clientTimeout = 0: never expire
+//   - clientTimeout > 0: client's requested timeout in ms
+//
+// Config values are interpreted as:
+//   - 0: honor client's request (if client = -1, use fallback defaults)
+//   - -1 (or "never"): never expire
+//   - positive: override with this value
+//
+// Returns timeout in milliseconds. 0 means never expire.
+func (c *DaemonConfig) GetTimeoutForUrgency(urgency int, clientTimeout int32) int {
+	var configDuration Duration
 	switch urgency {
 	case 0: // Low
-		return c.Timeouts.Low.Milliseconds()
+		configDuration = c.Timeouts.Low
 	case 2: // Critical
-		return c.Timeouts.Critical.Milliseconds()
+		configDuration = c.Timeouts.Critical
 	default: // Normal (1) or unknown
-		return c.Timeouts.Normal.Milliseconds()
+		configDuration = c.Timeouts.Normal
 	}
+
+	configMs := configDuration.Milliseconds()
+
+	// Config < 0 means never expire
+	if configMs < 0 {
+		return 0
+	}
+
+	// Config = 0 means honor client's request
+	if configMs == 0 {
+		// Client requested server to decide
+		if clientTimeout == -1 {
+			// Use hardcoded fallbacks when both sides defer
+			switch urgency {
+			case 0: // Low
+				return 5000
+			case 2: // Critical
+				return 0 // never expire
+			default: // Normal
+				return 10000
+			}
+		}
+		// Client requested never expire
+		if clientTimeout == 0 {
+			return 0
+		}
+		// Use client's requested timeout
+		return int(clientTimeout)
+	}
+
+	// Config > 0 means override with config value
+	return configMs
 }
 
 // GetSoundForUrgency returns the sound file path for the given urgency level.
@@ -375,4 +593,18 @@ func expandPath(path string) string {
 		}
 	}
 	return path
+}
+
+// GetViper returns the Viper instance for advanced usage (e.g., config watching).
+// Returns nil if NewViper() hasn't been called.
+var globalViper *viper.Viper
+
+// SetGlobalViper sets the global Viper instance for config watching.
+func SetGlobalViper(v *viper.Viper) {
+	globalViper = v
+}
+
+// GetGlobalViper returns the global Viper instance.
+func GetGlobalViper() *viper.Viper {
+	return globalViper
 }

@@ -1,7 +1,20 @@
 /* histui Minimal Theme
  * Compact, distraction-free notifications without icons.
  * Uses libadwaita CSS variables for automatic light/dark mode.
+ *
+ * Font Variables (can be overridden via config or CLI):
+ *   --histui-font-family    - Font family (default: monospace for minimal)
+ *   --histui-font-size      - Base font size (default: 13px for minimal)
  */
+
+/* =============================================================================
+ * FONT CONFIGURATION
+ * ============================================================================= */
+
+:root {
+    --histui-font-family: monospace;
+    --histui-font-size: 13px;
+}
 
 /* =============================================================================
  * WINDOW - Must be transparent for proper notification appearance
@@ -22,6 +35,8 @@ window {
     border: 1px solid alpha(@borders, 0.3);
     padding: 8px 10px;
     margin: 4px;
+    font-family: var(--histui-font-family);
+    font-size: var(--histui-font-size);
 }
 
 /* Translucent mode */
@@ -37,13 +52,21 @@ window {
     margin-bottom: 2px;
 }
 
-/* Hide icon completely */
+/* Compact icon - smaller than default but visible */
 .notification-icon {
-    min-width: 0;
-    min-height: 0;
-    -gtk-icon-size: 0;
-    margin: 0;
-    opacity: 0;
+    min-width: 32px;
+    min-height: 32px;
+    margin-right: 8px;
+}
+
+/* Nerd Font symbol icons - displayed as text labels */
+.notification-icon-nerd {
+    font-family: "Symbols Nerd Font", "Symbols Nerd Font Mono", monospace;
+    font-size: 24px;
+    color: @accent_color;
+    /* Center the symbol in the icon area */
+    min-width: 32px;
+    min-height: 32px;
 }
 
 .notification-summary {
@@ -184,7 +207,7 @@ window {
 }
 
 /* =============================================================================
- * URGENCY - Subtle indicators
+ * URGENCY - Subtle indicators with danger backgrounds
  * ============================================================================= */
 
 .notification-popup.urgency-low {
@@ -195,8 +218,19 @@ window {
     /* Default styling */
 }
 
+/* Critical urgency - muted danger background (solid colors, not transparent)
+ * Uses color-mix to blend error color with background for a solid tint.
+ */
+.notification-popup.urgency-critical {
+    /* Solid muted red background - blends error color with window background */
+    background-color: color-mix(in srgb, @error_color 8%, @window_bg_color);
+    border-color: color-mix(in srgb, @error_color 40%, @borders);
+    border-width: 1px;
+}
+
 .notification-popup.urgency-critical .notification-summary {
     color: @error_color;
+    font-weight: bold;
 }
 
 /* =============================================================================

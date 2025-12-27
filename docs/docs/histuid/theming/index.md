@@ -96,3 +96,4 @@ You can edit your theme in real-time without restarting the daemon.
 
 - [CSS Reference](/docs/histuid/theming/css-reference) - All CSS selectors and classes
 - [Theme Examples](/docs/histuid/theming/examples) - Ready-to-use themes
+- [Advanced Theming](/docs/histuid/theming/advanced) - Manifests, audio, fonts, and animations

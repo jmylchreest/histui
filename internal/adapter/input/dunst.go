@@ -167,7 +167,7 @@ func convertDunstEntry(entry dunstEntry) (*model.Notification, error) {
 
 	// Get urgency
 	urgency := entry.Urgency.Int()
-	if urgency < 0 || urgency > 2 {
+	if urgency < model.UrgencyLow || urgency > model.UrgencyCritical {
 		urgency = model.UrgencyNormal
 	}
 

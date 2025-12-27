@@ -1,0 +1,24 @@
+# Minimal Theme Manifest
+name = "minimal"
+description = "Compact, distraction-free notifications"
+author = "histui"
+version = "1.0.0"
+
+[icon]
+size = 32
+
+[audio.low]
+path = ""
+volume = 0.8
+repeat_count = -1
+
+[audio.normal]
+path = ""
+volume = 1.0
+repeat_count = -1
+
+[audio.critical]
+path = ""
+volume = 1.0
+repeat_count = 0
+repeat_delay = "10s"

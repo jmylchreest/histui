@@ -2,25 +2,109 @@
  * Uses libadwaita CSS variables for automatic light/dark mode support.
  * These variables adapt to the system color scheme automatically.
  *
- * Customization:
- * 1. Copy this file to ~/.config/histui/themes/
- * 2. Override specific styles as needed
+ * =============================================================================
+ * CUSTOMIZATION
+ * =============================================================================
  *
- * Compositor Integration:
- * -----------------------
+ * Option 1: Single CSS file
+ *   1. Copy this file to ~/.config/histui/themes/mytheme.css
+ *   2. Set theme.name = "mytheme" in histuid.toml
+ *
+ * Option 2: Theme directory (with audio)
+ *   1. Create ~/.config/histui/themes/mytheme/
+ *   2. Add theme.css (or mytheme.css) for styling
+ *   3. Add manifest.toml for audio and icon configuration:
+ *
+ *      # manifest.toml example:
+ *      [audio.critical]
+ *      path = "sounds/alert.wav"    # Relative to theme directory
+ *      volume = 1.0                 # 0.0-1.0 (optional, uses global volume)
+ *      repeat_count = 0             # 0 = until dismissed, -1 = once, N = repeat N times
+ *      repeat_delay = "10s"         # Delay between repeats (default: 10s)
+ *
+ *      [audio.normal]
+ *      path = "sounds/notify.wav"
+ *
+ *      [icon]
+ *      size = 48                    # Icon size in pixels (default: 48)
+ *
+ * =============================================================================
+ * CSS ANIMATIONS
+ * =============================================================================
+ *
+ * GTK4 supports CSS animations via @keyframes. Example pulsing glow effect:
+ *
+ *   @keyframes pulse-glow {
+ *       0%, 100% {
+ *           text-shadow: 0 0 4px alpha(@accent_color, 0.4);
+ *       }
+ *       50% {
+ *           text-shadow: 0 0 12px alpha(@accent_color, 0.8);
+ *       }
+ *   }
+ *
+ *   .my-animated-element {
+ *       animation: pulse-glow 2s ease-in-out infinite;
+ *   }
+ *
+ * Animation Properties:
+ *   animation-name         - Name of @keyframes rule
+ *   animation-duration     - Duration (e.g., "2s", "500ms")
+ *   animation-timing-function - Easing (ease, ease-in, ease-out, ease-in-out, linear)
+ *   animation-iteration-count - Number of times (1, 2, ..., infinite)
+ *   animation-direction    - normal, reverse, alternate, alternate-reverse
+ *   animation-delay        - Delay before starting
+ *   animation-fill-mode    - forwards, backwards, both, none
+ *
+ * Shorthand: animation: name duration timing-function iteration-count;
+ *
+ * =============================================================================
+ * COMPOSITOR INTEGRATION
+ * =============================================================================
+ *
  * Some compositors (e.g., Hyprland) apply global rounding to layer surfaces.
- * For connected stack styling, either disable global rounding or use
- * display.gap in histuid config to space notifications apart.
+ * Histui uses a single transparent window with CSS-controlled corners,
+ * so compositor rounding applies to the invisible outer window.
  *
- * Adwaita Variable Reference:
- * ---------------------------
+ * For translucent notifications with blur, add to your compositor config:
+ *   layerrule = blur, histui-notification
+ *   layerrule = ignorealpha 0.5, histui-notification
+ *
+ * =============================================================================
+ * ADWAITA VARIABLE REFERENCE
+ * =============================================================================
+ *
  *   @window_bg_color, @window_fg_color  - Window colors
  *   @view_bg_color, @view_fg_color      - Content area colors
  *   @accent_bg_color, @accent_fg_color  - Accent colors
  *   @accent_color                       - Primary accent
  *   @borders                            - Border color
  *   @error_color, @warning_color, @success_color - Status colors
+ *
+ * =============================================================================
+ * FONT VARIABLES (can be overridden via config or CLI)
+ * =============================================================================
+ *
+ *   --histui-font-family    - Font family (default: inherit = system/GTK font)
+ *   --histui-font-size      - Base font size (default: 14px)
+ *
+ * Override in your theme:
+ *   :root {
+ *       --histui-font-family: "Ubuntu";
+ *       --histui-font-size: 16px;
+ *   }
+ *
+ * Or via CLI: histuid --font "Ubuntu" --font-size 16
  */
+
+/* =============================================================================
+ * FONT CONFIGURATION - Override these via config or CLI
+ * ============================================================================= */
+
+:root {
+    --histui-font-family: inherit;
+    --histui-font-size: 14px;
+}
 
 /* =============================================================================
  * WINDOW - Must be transparent for proper notification appearance
@@ -42,12 +126,23 @@ window {
     box-shadow: 0 4px 12px alpha(black, 0.15);
     padding: 12px;
     margin: 8px;
+    font-family: var(--histui-font-family);
+    font-size: var(--histui-font-size);
 }
 
-/* Translucent mode for compositor blur */
-.notification-popup.translucent {
+/* Translucent mode for compositor blur
+ * To enable translucent notifications:
+ * 1. Copy this theme to ~/.config/histui/themes/
+ * 2. Uncomment the translucent background below (or use alpha() directly)
+ * 3. Configure your compositor (e.g., Hyprland) to blur the histui layer:
+ *    layerrule = blur, histui-notification
+ *    layerrule = ignorealpha 0.5, histui-notification
+ */
+/*
+.notification-popup {
     background-color: alpha(@window_bg_color, 0.85);
 }
+*/
 
 /* =============================================================================
  * HEADER
@@ -61,6 +156,16 @@ window {
     min-width: 48px;
     min-height: 48px;
     margin-right: 12px;
+}
+
+/* Nerd Font symbol icons - displayed as text labels */
+.notification-icon-nerd {
+    font-family: "Symbols Nerd Font", "Symbols Nerd Font Mono", monospace;
+    font-size: 32px;
+    color: @accent_color;
+    /* Center the symbol in the icon area */
+    min-width: 48px;
+    min-height: 48px;
 }
 
 .notification-summary {
@@ -179,16 +284,6 @@ window {
     border-bottom-right-radius: 6px;
 }
 
-/* Translucent mode gradient - matches translucent background */
-.notification-popup.translucent .notification-image-fade {
-    background: linear-gradient(
-        to bottom,
-        transparent 0%,
-        alpha(@window_bg_color, 0.6) 60%,
-        alpha(@window_bg_color, 0.85) 100%
-    );
-}
-
 /* =============================================================================
  * ACTIONS
  * ============================================================================= */
@@ -229,14 +324,27 @@ window {
     /* Uses default styling */
 }
 
-/* Critical urgency - emphasized */
+/* Critical urgency - emphasized with muted danger background */
 .notification-popup.urgency-critical {
+    background-color: color-mix(in srgb, @error_color 8%, @window_bg_color);
     border-color: @error_color;
     border-width: 2px;
+    box-shadow: 0 4px 16px alpha(@error_color, 0.2);
 }
 
 .notification-popup.urgency-critical .notification-summary {
     color: @error_color;
+    animation: critical-pulse 2s ease-in-out infinite;
+}
+
+/* Pulsing glow animation for critical notifications */
+@keyframes critical-pulse {
+    0%, 100% {
+        text-shadow: 0 0 4px alpha(@error_color, 0.4);
+    }
+    50% {
+        text-shadow: 0 0 12px alpha(@error_color, 0.8), 0 0 20px alpha(@error_color, 0.4);
+    }
 }
 
 /* =============================================================================
@@ -250,8 +358,8 @@ window {
 
 /* =============================================================================
  * STACK POSITION CLASSES
- * For unified stack appearance with 0 gap between notifications.
- * Use display.gap=0 in config for best results.
+ * For unified stack appearance. All notifications render in a single window
+ * with CSS-controlled borders and margins for seamless stacking.
  * ============================================================================= */
 
 /* Single notification - normal rounded corners with all margins */

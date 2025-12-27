@@ -9,6 +9,7 @@ import (
 	godbus "github.com/godbus/dbus/v5"
 
 	"github.com/jmylchreest/histui/internal/dbus"
+	"github.com/jmylchreest/histui/internal/model"
 )
 
 // NotificationLevel indicates the urgency/severity of an internal notification.
@@ -97,14 +98,14 @@ func (n *InternalNotifier) Notify(key, summary, body string, level NotificationL
 	n.lastNotifyTime[key] = time.Now()
 
 	// Map level to D-Bus urgency
-	urgency := byte(1) // Normal
+	urgency := byte(model.UrgencyNormal)
 	switch level {
 	case NotificationLevelInfo:
-		urgency = 0 // Low
+		urgency = byte(model.UrgencyLow)
 	case NotificationLevelWarning:
-		urgency = 1 // Normal
+		urgency = byte(model.UrgencyNormal)
 	case NotificationLevelError:
-		urgency = 2 // Critical
+		urgency = byte(model.UrgencyCritical)
 	}
 
 	// Create the notification

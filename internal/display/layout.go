@@ -33,14 +33,10 @@ func NewLayoutManager(cfg *config.DaemonConfig, logger *slog.Logger) *LayoutMana
 
 // CalculatePosition returns the offset for a popup at the given stack position.
 // The returned values are (offsetX, offsetY) from the configured anchor point.
+// Note: With single-window mode, this is typically not needed as GTK handles stacking.
 func (l *LayoutManager) CalculatePosition(position int) (int, int) {
 	offsetX := l.config.Display.OffsetX
 	offsetY := l.config.Display.OffsetY
-
-	// Add stacking offset
-	stackOffset := position * (l.config.Display.MaxHeight + l.config.Display.Gap)
-	offsetY += stackOffset
-
 	return offsetX, offsetY
 }
 

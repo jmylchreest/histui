@@ -1,5 +1,5 @@
 <!-- Minimal layout: summary and body only, very compact -->
-<popup min-width="0" max-width="250" min-height="0" max-height="300">
+<popup min-width="150" max-width="250" min-height="0" max-height="200">
   <summary />
   <body />
   <progress />

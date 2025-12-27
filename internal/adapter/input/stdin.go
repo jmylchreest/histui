@@ -121,7 +121,7 @@ func convertStdinEntry(entry stdinEntry) (*model.Notification, error) {
 	}
 
 	urgency := entry.Urgency
-	if urgency < 0 || urgency > 2 {
+	if urgency < model.UrgencyLow || urgency > model.UrgencyCritical {
 		urgency = model.UrgencyNormal
 	}
 

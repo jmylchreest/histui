@@ -252,7 +252,43 @@ Using these variables ensures your theme respects the user's system theme.
 }
 ```
 
+## CSS Animations
+
+GTK4 supports CSS animations via `@keyframes`. Example pulsing effect:
+
+```css
+@keyframes pulse {
+    0%, 100% { text-shadow: 0 0 4px @error_color; }
+    50% { text-shadow: 0 0 12px @error_color; }
+}
+
+.notification-popup.urgency-critical .notification-summary {
+    animation: pulse 2s ease-in-out infinite;
+}
+```
+
+See [Advanced Theming](/docs/histuid/theming/advanced) for more animation examples.
+
+## Font Variables
+
+Themes can use CSS custom properties for fonts:
+
+```css
+:root {
+    --histui-font-family: "Inter", sans-serif;
+    --histui-font-size: 14px;
+}
+
+.notification-popup {
+    font-family: var(--histui-font-family);
+    font-size: var(--histui-font-size);
+}
+```
+
+These can be overridden via CLI: `histuid --font "Ubuntu" --font-size 16`
+
 ## See Also
 
+- [Advanced Theming](/docs/histuid/theming/advanced) - Audio, fonts, animations
 - [GTK4 CSS Properties](https://docs.gtk.org/gtk4/css-properties.html) - Full GTK4 reference
 - [Theme Examples](/docs/histuid/theming/examples) - Complete themes

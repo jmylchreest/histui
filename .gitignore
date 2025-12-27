@@ -58,3 +58,9 @@ docs/node_modules/
 docs/build/
 docs/.docusaurus/
 docs/.cache-loader/
+
+# Contrib tools
+contrib/generate-icon-aliases/generate-icon-aliases
+contrib/generate-icon-aliases/glyphnames.json
+contrib/generate-icon-aliases/icon-aliases.toml
+contrib/generate-icon-aliases/SymbolsNerdFont-Regular.ttf

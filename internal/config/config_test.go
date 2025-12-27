@@ -224,6 +224,9 @@ func TestDuration_UnmarshalText(t *testing.T) {
 		{"zero", "0", 0, false},
 		{"milliseconds_int", "5000", 5000, false},
 		{"ms_suffix", "500ms", 500, false},
+		{"never", "never", -1, false},
+		{"never_upper", "NEVER", -1, false},
+		{"negative", "-1s", -1000, false},
 		{"invalid", "invalid", 0, true},
 	}
 
@@ -264,9 +267,38 @@ func TestDuration_MarshalText(t *testing.T) {
 func TestDaemonConfig_Timeouts(t *testing.T) {
 	cfg := DefaultDaemonConfig()
 
-	assert.Equal(t, 5000, cfg.GetTimeoutForUrgency(0))  // Low
-	assert.Equal(t, 10000, cfg.GetTimeoutForUrgency(1)) // Normal
-	assert.Equal(t, 0, cfg.GetTimeoutForUrgency(2))     // Critical (never expires)
+	// Default config: low=5s, normal=10s, critical=never
+	// These are overrides, so client timeout is ignored
+	assert.Equal(t, 5000, cfg.GetTimeoutForUrgency(0, -1))  // Low: override 5s
+	assert.Equal(t, 10000, cfg.GetTimeoutForUrgency(1, -1)) // Normal: override 10s
+	assert.Equal(t, 0, cfg.GetTimeoutForUrgency(2, -1))     // Critical: never expires
+
+	// Client timeout should be ignored when config has positive override
+	assert.Equal(t, 5000, cfg.GetTimeoutForUrgency(0, 3000))  // Low: override wins
+	assert.Equal(t, 10000, cfg.GetTimeoutForUrgency(1, 3000)) // Normal: override wins
+}
+
+func TestDaemonConfig_TimeoutsHonorClient(t *testing.T) {
+	cfg := DefaultDaemonConfig()
+	// Set config to "0" (honor client) for all urgencies
+	cfg.Timeouts.Low = Duration(0)
+	cfg.Timeouts.Normal = Duration(0)
+	cfg.Timeouts.Critical = Duration(0)
+
+	// Client timeout -1 means server decides -> use fallback defaults
+	assert.Equal(t, 5000, cfg.GetTimeoutForUrgency(0, -1))  // Low fallback
+	assert.Equal(t, 10000, cfg.GetTimeoutForUrgency(1, -1)) // Normal fallback
+	assert.Equal(t, 0, cfg.GetTimeoutForUrgency(2, -1))     // Critical fallback (never)
+
+	// Client timeout 0 means never expire
+	assert.Equal(t, 0, cfg.GetTimeoutForUrgency(0, 0)) // Honor client: never
+	assert.Equal(t, 0, cfg.GetTimeoutForUrgency(1, 0)) // Honor client: never
+	assert.Equal(t, 0, cfg.GetTimeoutForUrgency(2, 0)) // Honor client: never
+
+	// Client positive timeout should be honored
+	assert.Equal(t, 3000, cfg.GetTimeoutForUrgency(0, 3000))  // Honor client: 3s
+	assert.Equal(t, 7500, cfg.GetTimeoutForUrgency(1, 7500))  // Honor client: 7.5s
+	assert.Equal(t, 15000, cfg.GetTimeoutForUrgency(2, 15000)) // Honor client: 15s
 }
 
 func TestDaemonConfig_LoadWithDurations(t *testing.T) {
@@ -301,7 +333,8 @@ critical = "0"
 	cfg, err := LoadDaemonConfig()
 	require.NoError(t, err)
 
-	assert.Equal(t, 3000, cfg.GetTimeoutForUrgency(0))  // 3s
-	assert.Equal(t, 15000, cfg.GetTimeoutForUrgency(1)) // 15s
-	assert.Equal(t, 0, cfg.GetTimeoutForUrgency(2))     // 0 (never)
+	// Config has positive values, so they override client timeout (-1 = server decides)
+	assert.Equal(t, 3000, cfg.GetTimeoutForUrgency(0, -1))  // 3s override
+	assert.Equal(t, 15000, cfg.GetTimeoutForUrgency(1, -1)) // 15s override
+	assert.Equal(t, 0, cfg.GetTimeoutForUrgency(2, -1))     // 0 (never) from config
 }

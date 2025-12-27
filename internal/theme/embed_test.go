@@ -26,8 +26,8 @@ func TestGetEmbeddedTheme_Minimal(t *testing.T) {
 	assert.Contains(t, css, ".notification-popup")
 	// Should use Adwaita variables
 	assert.Contains(t, css, "@window_bg_color")
-	// Should hide icons
-	assert.Contains(t, css, "-gtk-icon-size: 0")
+	// Should have compact icons (32px)
+	assert.Contains(t, css, "min-width: 32px")
 }
 
 func TestGetEmbeddedTheme_Catppuccin(t *testing.T) {

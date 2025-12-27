@@ -3,10 +3,10 @@ package main
 
 import (
 	"context"
-	"flag"
 	"log/slog"
 	"os"
 	"os/signal"
+	"strings"
 	"sync/atomic"
 	"syscall"
 	"time"
@@ -14,12 +14,15 @@ import (
 	"github.com/diamondburned/gotk4-adwaita/pkg/adw"
 	"github.com/diamondburned/gotk4/pkg/glib/v2"
 	"github.com/diamondburned/gotk4/pkg/gtk/v4"
+	"github.com/spf13/pflag"
+	"github.com/spf13/viper"
 
 	"github.com/jmylchreest/histui/internal/audio"
 	"github.com/jmylchreest/histui/internal/config"
 	"github.com/jmylchreest/histui/internal/daemon"
 	"github.com/jmylchreest/histui/internal/dbus"
 	"github.com/jmylchreest/histui/internal/display"
+	"github.com/jmylchreest/histui/internal/icon"
 	"github.com/jmylchreest/histui/internal/model"
 	"github.com/jmylchreest/histui/internal/store"
 	"github.com/jmylchreest/histui/internal/theme"
@@ -40,10 +43,23 @@ var (
 )
 
 func main() {
-	// Parse command line flags
-	monitorMode := flag.Bool("monitor", false, "Run in monitor mode (passive, no popups/sounds, works alongside another notification daemon)")
-	showVersion := flag.Bool("version", false, "Show version and exit")
-	flag.Parse()
+	// Define command-line flags using pflag
+	monitorMode := pflag.Bool("monitor", false, "Run in monitor mode (passive, no popups/sounds, works alongside another notification daemon)")
+	showVersion := pflag.Bool("version", false, "Show version and exit")
+
+	// Config override flags (for testing different display positions)
+	// These are bound to Viper config keys
+	pflag.String("position", "", "Override display position (top-right, top-left, top-center, bottom-right, bottom-left, bottom-center)")
+	pflag.Int("offset-x", 0, "Override horizontal offset from screen edge")
+	pflag.Int("offset-y", 0, "Override vertical offset from screen edge")
+	pflag.Int("max-visible", 0, "Override maximum visible notifications")
+	pflag.Int("display-monitor", 0, "Override monitor number (0=all, 1+=specific)")
+	pflag.Bool("new-on-top", false, "Override new notifications appearing at top of stack")
+	pflag.String("theme", "", "Override theme name")
+	pflag.String("font", "", "Override font family (e.g., 'Sans', 'Monospace', 'Ubuntu')")
+	pflag.Int("font-size", 0, "Override base font size in pixels (e.g., 14, 16, 18)")
+
+	pflag.Parse()
 
 	if *showVersion {
 		println("histuid version", version)
@@ -163,11 +179,40 @@ func runMonitorMode(logger *slog.Logger) {
 func runDaemonMode(logger *slog.Logger) {
 	logger.Info("starting histuid", "version", version)
 
-	// Load configuration
-	cfg, err := config.LoadDaemonConfig()
+	// Initialize embedded fonts (Nerd Font symbols, etc.) for icon fallback
+	// Must be done before GTK initialization so fontconfig picks it up
+	if fontDir, err := icon.InitFonts(); err != nil {
+		logger.Warn("failed to initialize embedded fonts", "error", err)
+	} else {
+		logger.Debug("initialized embedded fonts", "dir", fontDir, "fonts", icon.ListEmbeddedFonts())
+	}
+
+	// Initialize Viper for configuration
+	v, err := config.NewViper()
+	if err != nil {
+		logger.Error("failed to initialize config", "error", err)
+		os.Exit(1)
+	}
+
+	// Bind pflags to Viper (only flags that were explicitly set will override)
+	if err := config.BindPFlags(v, pflag.CommandLine); err != nil {
+		logger.Error("failed to bind flags", "error", err)
+		os.Exit(1)
+	}
+
+	// Load configuration (precedence: flags > env > config file > defaults)
+	cfg, err := config.LoadDaemonConfigWithViper(v)
 	if err != nil {
 		logger.Error("failed to load config", "error", err)
 		os.Exit(1)
+	}
+
+	// Store Viper instance for config watching
+	config.SetGlobalViper(v)
+
+	// Log effective configuration (helpful for debugging overrides)
+	if v.IsSet("display.position") && v.GetString("display.position") != "" {
+		logger.Info("using display position", "position", cfg.Display.Position, "source", getConfigSource(v, "display.position"))
 	}
 
 	// Create the libadwaita application
@@ -297,6 +342,7 @@ func runDaemonMode(logger *slog.Logger) {
 			logger.Warn("failed to load theme, using default", "error", err)
 		}
 		themeLoader.Apply(nil)
+		themeLoader.ApplyFontOverrides(cfg.Theme.FontFamily, cfg.Theme.FontSize)
 		themeLoader.StartHotReload(ctx)
 
 		// Initialize audio manager
@@ -307,7 +353,7 @@ func runDaemonMode(logger *slog.Logger) {
 
 		// Initialize display manager
 		displayManager = display.NewManager(&app.Application, cfg, logger)
-		if err := displayManager.Start(); err != nil {
+		if err := displayManager.Start(ctx); err != nil {
 			logger.Error("failed to start display manager", "error", err)
 			app.Quit()
 			return
@@ -360,7 +406,7 @@ func runDaemonMode(logger *slog.Logger) {
 			}
 
 			// Track the mapping between D-Bus ID and histui ID
-			timeout := cfg.GetTimeoutForUrgency(notification.Urgency())
+			timeout := cfg.GetTimeoutForUrgency(notification.Urgency(), notification.ExpireTimeout)
 			var expiresAt time.Time
 			if timeout > 0 {
 				expiresAt = time.Now().Add(time.Duration(timeout) * time.Millisecond)
@@ -370,7 +416,7 @@ func runDaemonMode(logger *slog.Logger) {
 			// Check if DnD is enabled (suppress popups and sounds)
 			urgency := notification.Urgency()
 			isDnDEnabled := sharedState != nil && sharedState.DnDEnabled
-			isCriticalBypass := cfg.DnD.CriticalBypass && urgency == 2 // Critical urgency
+			isCriticalBypass := cfg.DnD.CriticalBypass && urgency == model.UrgencyCritical
 
 			// Suppress popup and sound if DnD is enabled (unless critical bypass)
 			if isDnDEnabled && !isCriticalBypass {
@@ -510,6 +556,12 @@ func runDaemonMode(logger *slog.Logger) {
 						}
 					}
 
+					// Update font overrides if changed
+					if newConfig.Theme.FontFamily != cfg.Theme.FontFamily ||
+						newConfig.Theme.FontSize != cfg.Theme.FontSize {
+						themeLoader.ApplyFontOverrides(newConfig.Theme.FontFamily, newConfig.Theme.FontSize)
+					}
+
 					// Update the config reference
 					cfg = newConfig
 
@@ -580,6 +632,46 @@ func runDaemonMode(logger *slog.Logger) {
 	}
 
 	logger.Info("histuid stopped")
+}
+
+// getConfigSource returns a string describing where a config value came from.
+func getConfigSource(v *viper.Viper, key string) string {
+	// Check if it was set via flag (pflag)
+	if pflag.CommandLine.Changed(keyToFlag(key)) {
+		return "flag"
+	}
+	// Check if it was set via environment variable
+	envKey := "HISTUID_" + strings.ToUpper(strings.ReplaceAll(key, ".", "_"))
+	if os.Getenv(envKey) != "" {
+		return "env"
+	}
+	// Check if config file was used
+	if v.ConfigFileUsed() != "" {
+		return "config"
+	}
+	return "default"
+}
+
+// keyToFlag converts a config key to its corresponding flag name.
+func keyToFlag(key string) string {
+	switch key {
+	case "display.position":
+		return "position"
+	case "display.offset_x":
+		return "offset-x"
+	case "display.offset_y":
+		return "offset-y"
+	case "display.max_visible":
+		return "max-visible"
+	case "display.monitor":
+		return "monitor"
+	case "display.new_on_top":
+		return "new-on-top"
+	case "theme.name":
+		return "theme"
+	default:
+		return ""
+	}
 }
 
 // checkForExternalDismissals checks if any active popups were dismissed externally.

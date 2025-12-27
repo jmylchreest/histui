@@ -1,0 +1,404 @@
+/* histui Default Theme
+ * Uses libadwaita CSS variables for automatic light/dark mode support.
+ * These variables adapt to the system color scheme automatically.
+ *
+ * =============================================================================
+ * CUSTOMIZATION
+ * =============================================================================
+ *
+ * Option 1: Single CSS file
+ *   1. Copy this file to ~/.config/histui/themes/mytheme.css
+ *   2. Set theme.name = "mytheme" in histuid.toml
+ *
+ * Option 2: Theme directory (with audio)
+ *   1. Create ~/.config/histui/themes/mytheme/
+ *   2. Add theme.css (or mytheme.css) for styling
+ *   3. Add manifest.toml for audio and icon configuration:
+ *
+ *      # manifest.toml example:
+ *      [audio.critical]
+ *      path = "sounds/alert.wav"    # Relative to theme directory
+ *      volume = 1.0                 # 0.0-1.0 (optional, uses global volume)
+ *      repeat_count = 0             # 0 = until dismissed, -1 = once, N = repeat N times
+ *      repeat_delay = "10s"         # Delay between repeats (default: 10s)
+ *
+ *      [audio.normal]
+ *      path = "sounds/notify.wav"
+ *
+ *      [icon]
+ *      size = 48                    # Icon size in pixels (default: 48)
+ *
+ * =============================================================================
+ * CSS ANIMATIONS
+ * =============================================================================
+ *
+ * GTK4 supports CSS animations via @keyframes. Example pulsing glow effect:
+ *
+ *   @keyframes pulse-glow {
+ *       0%, 100% {
+ *           text-shadow: 0 0 4px alpha(@accent_color, 0.4);
+ *       }
+ *       50% {
+ *           text-shadow: 0 0 12px alpha(@accent_color, 0.8);
+ *       }
+ *   }
+ *
+ *   .my-animated-element {
+ *       animation: pulse-glow 2s ease-in-out infinite;
+ *   }
+ *
+ * Animation Properties:
+ *   animation-name         - Name of @keyframes rule
+ *   animation-duration     - Duration (e.g., "2s", "500ms")
+ *   animation-timing-function - Easing (ease, ease-in, ease-out, ease-in-out, linear)
+ *   animation-iteration-count - Number of times (1, 2, ..., infinite)
+ *   animation-direction    - normal, reverse, alternate, alternate-reverse
+ *   animation-delay        - Delay before starting
+ *   animation-fill-mode    - forwards, backwards, both, none
+ *
+ * Shorthand: animation: name duration timing-function iteration-count;
+ *
+ * =============================================================================
+ * COMPOSITOR INTEGRATION
+ * =============================================================================
+ *
+ * Some compositors (e.g., Hyprland) apply global rounding to layer surfaces.
+ * Histui uses a single transparent window with CSS-controlled corners,
+ * so compositor rounding applies to the invisible outer window.
+ *
+ * For translucent notifications with blur, add to your compositor config:
+ *   layerrule = blur, histui-notification
+ *   layerrule = ignorealpha 0.5, histui-notification
+ *
+ * =============================================================================
+ * ADWAITA VARIABLE REFERENCE
+ * =============================================================================
+ *
+ *   @window_bg_color, @window_fg_color  - Window colors
+ *   @view_bg_color, @view_fg_color      - Content area colors
+ *   @accent_bg_color, @accent_fg_color  - Accent colors
+ *   @accent_color                       - Primary accent
+ *   @borders                            - Border color
+ *   @error_color, @warning_color, @success_color - Status colors
+ *
+ * =============================================================================
+ * FONT VARIABLES (can be overridden via config or CLI)
+ * =============================================================================
+ *
+ *   --histui-font-family    - Font family (default: inherit = system/GTK font)
+ *   --histui-font-size      - Base font size (default: 14px)
+ *
+ * Override in your theme:
+ *   :root {
+ *       --histui-font-family: "Ubuntu";
+ *       --histui-font-size: 16px;
+ *   }
+ *
+ * Or via CLI: histuid --font "Ubuntu" --font-size 16
+ */
+
+/* =============================================================================
+ * FONT CONFIGURATION - Override these via config or CLI
+ * ============================================================================= */
+
+:root {
+    --histui-font-family: inherit;
+    --histui-font-size: 14px;
+}
+
+/* =============================================================================
+ * WINDOW - Must be transparent for proper notification appearance
+ * ============================================================================= */
+
+window {
+    background-color: transparent;
+}
+
+/* =============================================================================
+ * BASE POPUP CONTAINER
+ * ============================================================================= */
+
+.notification-popup {
+    background-color: @window_bg_color;
+    color: @window_fg_color;
+    border-radius: 12px;
+    border: 1px solid alpha(@borders, 0.5);
+    box-shadow: 0 4px 12px alpha(black, 0.15);
+    padding: 12px;
+    margin: 8px;
+    font-family: var(--histui-font-family);
+    font-size: var(--histui-font-size);
+}
+
+/* Translucent mode for compositor blur
+ * To enable translucent notifications:
+ * 1. Copy this theme to ~/.config/histui/themes/
+ * 2. Uncomment the translucent background below (or use alpha() directly)
+ * 3. Configure your compositor (e.g., Hyprland) to blur the histui layer:
+ *    layerrule = blur, histui-notification
+ *    layerrule = ignorealpha 0.5, histui-notification
+ */
+/*
+.notification-popup {
+    background-color: alpha(@window_bg_color, 0.85);
+}
+*/
+
+/* =============================================================================
+ * HEADER
+ * ============================================================================= */
+
+.notification-header {
+    margin-bottom: 6px;
+}
+
+.notification-icon {
+    min-width: 48px;
+    min-height: 48px;
+    margin-right: 12px;
+}
+
+/* Nerd Font symbol icons - displayed as text labels */
+.notification-icon-nerd {
+    font-family: "Symbols Nerd Font", "Symbols Nerd Font Mono", monospace;
+    font-size: 32px;
+    color: @accent_color;
+    /* Center the symbol in the icon area */
+    min-width: 48px;
+    min-height: 48px;
+}
+
+.notification-summary {
+    font-weight: bold;
+    font-size: 1.1em;
+    color: @window_fg_color;
+}
+
+.notification-appname {
+    font-size: 0.85em;
+    color: alpha(@window_fg_color, 0.6);
+}
+
+.notification-timestamp {
+    font-size: 0.85em;
+    color: alpha(@window_fg_color, 0.5);
+}
+
+.notification-stack-count {
+    /* Subtle background - slightly lighter/darker than notification background */
+    background-color: alpha(@window_fg_color, 0.1);
+    color: alpha(@window_fg_color, 0.7);
+    border-radius: 8px;
+    padding: 2px 6px;
+    font-size: 0.75em;
+    font-weight: 600;
+    margin-left: 6px;
+}
+
+.notification-close {
+    min-width: 24px;
+    min-height: 24px;
+    padding: 4px;
+    border-radius: 50%;
+    color: alpha(@window_fg_color, 0.5);
+}
+
+.notification-close:hover {
+    color: @window_fg_color;
+    background-color: alpha(@window_fg_color, 0.1);
+}
+
+/* =============================================================================
+ * BODY
+ * ============================================================================= */
+
+.notification-body {
+    color: @window_fg_color;
+    opacity: 0.9;
+    margin-top: 4px;
+}
+
+.notification-body link {
+    color: @accent_color;
+}
+
+.notification-body link:hover {
+    text-decoration: underline;
+}
+
+/* =============================================================================
+ * PROGRESS
+ * ============================================================================= */
+
+.notification-progress {
+    margin-top: 8px;
+    min-height: 4px;
+    border-radius: 2px;
+    background-color: alpha(@window_fg_color, 0.1);
+}
+
+.notification-progress > trough > progress {
+    background-color: @accent_bg_color;
+    border-radius: 2px;
+}
+
+/* Progress complete state */
+.notification-popup.progress-complete .notification-progress > trough > progress {
+    background-color: @success_color;
+}
+
+/* =============================================================================
+ * IMAGE
+ * ============================================================================= */
+
+.notification-image {
+    border-radius: 6px;
+    margin-top: 8px;
+}
+
+/* Image container for cropped images */
+.notification-image-container {
+    margin-top: 8px;
+    border-radius: 6px;
+}
+
+/* Box holding the image - aligns to top so cropping happens at bottom */
+.notification-image-box {
+    /* Image aligns to top, overflow clips at container boundary */
+}
+
+.notification-image-box .notification-image {
+    margin-top: 0;
+    border-radius: 0;
+}
+
+/* Fade gradient overlay when image is cropped */
+.notification-image-fade {
+    background: linear-gradient(
+        to bottom,
+        transparent 0%,
+        alpha(@window_bg_color, 0.7) 60%,
+        @window_bg_color 100%
+    );
+    border-bottom-left-radius: 6px;
+    border-bottom-right-radius: 6px;
+}
+
+/* =============================================================================
+ * ACTIONS
+ * ============================================================================= */
+
+.notification-actions {
+    margin-top: 10px;
+    padding-top: 8px;
+    border-top: 1px solid alpha(@borders, 0.3);
+}
+
+.notification-action {
+    padding: 6px 12px;
+    border-radius: 6px;
+    margin-right: 6px;
+    color: @window_fg_color;
+}
+
+.notification-action:hover {
+    background-color: alpha(@window_fg_color, 0.1);
+}
+
+/* =============================================================================
+ * URGENCY MODIFIERS
+ * ============================================================================= */
+
+/* Low urgency - subtle */
+.notification-popup.urgency-low {
+    border-color: alpha(@borders, 0.3);
+    box-shadow: 0 2px 8px alpha(black, 0.1);
+}
+
+.notification-popup.urgency-low .notification-summary {
+    font-weight: normal;
+}
+
+/* Normal urgency - default styling */
+.notification-popup.urgency-normal {
+    /* Uses default styling */
+}
+
+/* Critical urgency - emphasized with muted danger background */
+.notification-popup.urgency-critical {
+    background-color: color-mix(in srgb, @error_color 8%, @window_bg_color);
+    border-color: @error_color;
+    border-width: 2px;
+    box-shadow: 0 4px 16px alpha(@error_color, 0.2);
+}
+
+.notification-popup.urgency-critical .notification-summary {
+    color: @error_color;
+    animation: critical-pulse 2s ease-in-out infinite;
+}
+
+/* Pulsing glow animation for critical notifications */
+@keyframes critical-pulse {
+    0%, 100% {
+        text-shadow: 0 0 4px alpha(@error_color, 0.4);
+    }
+    50% {
+        text-shadow: 0 0 12px alpha(@error_color, 0.8), 0 0 20px alpha(@error_color, 0.4);
+    }
+}
+
+/* =============================================================================
+ * STATE CLASSES
+ * ============================================================================= */
+
+/* Transient notifications - slightly transparent */
+.notification-popup.is-transient {
+    opacity: 0.95;
+}
+
+/* =============================================================================
+ * STACK POSITION CLASSES
+ * For unified stack appearance. All notifications render in a single window
+ * with CSS-controlled borders and margins for seamless stacking.
+ * ============================================================================= */
+
+/* Single notification - normal rounded corners with all margins */
+box.notification-popup.stack-single {
+    border-radius: 12px;
+    margin: 8px;
+}
+
+/* First notification in stack - squared bottom edge, no bottom margin */
+box.notification-popup.stack-first {
+    border-top-left-radius: 12px;
+    border-top-right-radius: 12px;
+    border-bottom-left-radius: 0px;
+    border-bottom-right-radius: 0px;
+    margin: 8px 8px 0 8px;
+    padding-bottom: 8px;
+    border-bottom-width: 0;
+}
+
+/* Middle notifications - flat edges with thin separator, no vertical margins */
+box.notification-popup.stack-middle {
+    border-top-left-radius: 0px;
+    border-top-right-radius: 0px;
+    border-bottom-left-radius: 0px;
+    border-bottom-right-radius: 0px;
+    margin: 0 8px 0 8px;
+    padding-top: 8px;
+    padding-bottom: 8px;
+    border-top: 1px solid alpha(@borders, 0.3);
+    border-bottom-width: 0;
+}
+
+/* Last notification in stack - squared top edge, no top margin */
+box.notification-popup.stack-last {
+    border-top-left-radius: 0px;
+    border-top-right-radius: 0px;
+    border-bottom-left-radius: 12px;
+    border-bottom-right-radius: 12px;
+    margin: 0 8px 8px 8px;
+    padding-top: 8px;
+    border-top: 1px solid alpha(@borders, 0.3);
+}

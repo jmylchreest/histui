@@ -142,3 +142,12 @@ tasks:
     dir: docs
     cmds:
       - npm install
+
+  # Contrib tools
+  generate:icons:
+    desc: Generate icon aliases and download Nerd Font symbols
+    dir: contrib/generate-icon-aliases
+    cmds:
+      - go build -o generate-icon-aliases .
+      - ./generate-icon-aliases --fetch --verbose --output ../../internal/icon/aliases_default.toml --font-output ../../internal/icon/fonts/SymbolsNerdFont-Regular.ttf
+      - echo "Updated internal/icon/aliases_default.toml and fonts/SymbolsNerdFont-Regular.ttf"

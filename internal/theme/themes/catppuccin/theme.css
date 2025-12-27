@@ -4,6 +4,10 @@
  *
  * Light mode: Catppuccin Latte
  * Dark mode: Catppuccin Mocha
+ *
+ * Font Variables (can be overridden via config or CLI):
+ *   --histui-font-family    - Font family (default: inherit = system/GTK font)
+ *   --histui-font-size      - Base font size (default: 14px)
  */
 
 /* =============================================================================
@@ -20,6 +24,11 @@ window {
 
 /* Latte (light mode) - applied to :root */
 :root {
+    /* Font configuration */
+    --histui-font-family: inherit;
+    --histui-font-size: 14px;
+
+    /* Catppuccin Latte colors */
     --ctp-text: #4c4f69;
     --ctp-subtext1: #5c5f77;
     --ctp-subtext0: #6c6f85;
@@ -92,6 +101,8 @@ window {
     box-shadow: 0 4px 16px rgba(0, 0, 0, 0.2);
     padding: 12px;
     margin: 8px;
+    font-family: var(--histui-font-family);
+    font-size: var(--histui-font-size);
 }
 
 /* Translucent mode for compositor blur */
@@ -111,6 +122,16 @@ window {
     min-width: 48px;
     min-height: 48px;
     margin-right: 12px;
+}
+
+/* Nerd Font symbol icons - displayed as text labels */
+.notification-icon-nerd {
+    font-family: "Symbols Nerd Font", "Symbols Nerd Font Mono", monospace;
+    font-size: 32px;
+    color: var(--ctp-mauve);
+    /* Center the symbol in the icon area */
+    min-width: 48px;
+    min-height: 48px;
 }
 
 .notification-summary {
@@ -275,14 +296,18 @@ window {
     /* Uses default styling */
 }
 
-/* Critical urgency - emphasized with red */
+/* Critical urgency - emphasized with muted catppuccin red background */
 .notification-popup.urgency-critical {
+    /* Muted red background - mix base with red for subtle danger tint */
+    background-color: color-mix(in srgb, var(--ctp-red) 10%, var(--ctp-base));
     border-color: var(--ctp-red);
     border-width: 2px;
+    box-shadow: 0 4px 16px color-mix(in srgb, var(--ctp-red) 20%, transparent);
 }
 
 .notification-popup.urgency-critical .notification-summary {
     color: var(--ctp-red);
+    font-weight: bold;
 }
 
 /* =============================================================================
