@@ -93,6 +93,8 @@ jobs:
     name: Build (${{ matrix.goos }}/${{ matrix.goarch }})
     runs-on: ${{ matrix.os }}
     needs: prepare
+    container:
+      image: fedora:rawhide
     strategy:
       fail-fast: false
       matrix:
@@ -104,22 +106,15 @@ jobs:
             goarch: arm64
             os: ubuntu-24.04-arm
     steps:
+      - name: Install build dependencies
+        run: |
+          dnf install -y git git-lfs golang gtk4-devel libadwaita-devel alsa-lib-devel gobject-introspection-devel gcc
+
       - name: Checkout code
         uses: actions/checkout@v5
         with:
           fetch-depth: 0
           lfs: true
-
-      - name: Set up Go
-        uses: actions/setup-go@v6
-        with:
-          go-version: ${{ env.GO_VERSION }}
-          cache: true
-
-      - name: Install CGO dependencies (GTK4, libadwaita, ALSA, GObject introspection)
-        run: |
-          sudo apt-get update
-          sudo apt-get install -y libgtk-4-dev libadwaita-1-dev libasound2-dev libgirepository1.0-dev
 
       - name: Run tests
         run: go test ./...
