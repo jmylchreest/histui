@@ -762,24 +762,31 @@ func (m Model) renderDetail(n model.Notification) string {
 
 // renderPreviewPanel renders the floating preview panel for the selected notification.
 func (m Model) renderPreviewPanel(n model.Notification) string {
-	// Image is 10 cols x 5 rows, text area fills the rest
+	// Panel dimensions
+	const imgCols = 10
 	const imgRows = 5
-	textWidth := 24
+	const spacing = 2
+	const headerTextWidth = 30                                  // Text width next to image
+	const panelContentWidth = imgCols + spacing + headerTextWidth // Total content width
+	const panelWidth = panelContentWidth + 4                    // +4 for border and padding
 
 	// Styles
 	borderStyle := lipgloss.NewStyle().
 		Border(lipgloss.RoundedBorder()).
 		BorderForeground(lipgloss.Color("10")).
-		Padding(0, 1)
+		Padding(0, 1).
+		Width(panelWidth)
 
 	headerStyle := lipgloss.NewStyle().
 		Bold(true).
 		Foreground(lipgloss.Color("12")).
-		Width(textWidth)
+		Width(headerTextWidth).
+		MaxWidth(headerTextWidth)
 
 	labelStyle := lipgloss.NewStyle().
 		Foreground(lipgloss.Color("8")).
-		Width(textWidth)
+		Width(headerTextWidth).
+		MaxWidth(headerTextWidth)
 
 	dimStyle := lipgloss.NewStyle().
 		Foreground(lipgloss.Color("8"))
@@ -793,30 +800,31 @@ func (m Model) renderPreviewPanel(n model.Notification) string {
 
 	// Title (truncated to fit)
 	title := n.Summary
-	if len(title) > textWidth {
-		title = title[:textWidth-3] + "..."
+	if len(title) > headerTextWidth {
+		title = title[:headerTextWidth-3] + "..."
 	}
 	textLines = append(textLines, headerStyle.Render(title))
 
 	// App and time
 	meta := n.AppName + " " + dimStyle.Render("|") + " " + n.RelativeTime()
-	if len(meta) > textWidth {
-		meta = meta[:textWidth-3] + "..."
+	if len(meta) > headerTextWidth {
+		meta = meta[:headerTextWidth-3] + "..."
 	}
 	textLines = append(textLines, labelStyle.Render(meta))
 
-	// Pad text to match image height if needed, then add body
+	// Pad text to match image height if needed
 	for len(textLines) < imgRows {
-		textLines = append(textLines, strings.Repeat(" ", textWidth))
+		textLines = append(textLines, strings.Repeat(" ", headerTextWidth))
 	}
 
 	// Extract URLs from pango markup before stripping
 	urls := extractURLsFromMarkup(n.Body)
 
 	// Body (wrapped) - strip pango markup for plain text display
+	// Body spans full panel width
 	body := stripPangoMarkup(n.Body)
 	body = strings.Join(strings.Fields(body), " ")
-	bodyLines := wrapText(body, textWidth)
+	bodyLines := wrapText(body, panelContentWidth)
 	maxBodyLines := 3
 	if len(bodyLines) > maxBodyLines {
 		bodyLines = bodyLines[:maxBodyLines]
@@ -836,15 +844,18 @@ func (m Model) renderPreviewPanel(n model.Notification) string {
 		content = content + "\n" + bodyContent
 	}
 
-	// Add URLs if found
+	// Add URLs if found (truncated to panel width)
 	if len(urls) > 0 {
-		urlStyle := lipgloss.NewStyle().Foreground(lipgloss.Color("4")).Underline(true)
+		urlStyle := lipgloss.NewStyle().
+			Foreground(lipgloss.Color("4")).
+			Underline(true).
+			MaxWidth(panelContentWidth)
 		content = content + "\n"
 		for _, url := range urls {
 			// Truncate long URLs
 			displayURL := url
-			if len(displayURL) > textWidth+10 {
-				displayURL = displayURL[:textWidth+7] + "..."
+			if len(displayURL) > panelContentWidth {
+				displayURL = displayURL[:panelContentWidth-3] + "..."
 			}
 			content = content + "\n" + urlStyle.Render(displayURL)
 		}
