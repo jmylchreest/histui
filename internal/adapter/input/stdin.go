@@ -7,6 +7,7 @@ import (
 	"encoding/json"
 	"io"
 	"os"
+	"strings"
 	"time"
 
 	"github.com/oklog/ulid/v2"
@@ -30,9 +31,7 @@ func (a *StdinAdapter) Name() string {
 }
 
 // Import reads notifications from standard input.
-// Supports two formats:
-// 1. JSON array of notifications
-// 2. dunstctl history format
+// Expects a JSON array of notification objects.
 func (a *StdinAdapter) Import(ctx context.Context) ([]model.Notification, error) {
 	// Read all input
 	scanner := bufio.NewScanner(a.reader)
@@ -57,13 +56,6 @@ func (a *StdinAdapter) Import(ctx context.Context) ([]model.Notification, error)
 		return nil, nil
 	}
 
-	// Try to parse as dunst history format first
-	notifications, err := ParseDunstHistory(data)
-	if err == nil && len(notifications) > 0 {
-		return notifications, nil
-	}
-
-	// Try to parse as JSON array
 	return parseJSONArray(data)
 }
 
@@ -133,4 +125,10 @@ func convertStdinEntry(entry stdinEntry) (*model.Notification, error) {
 		Category:         entry.Category,
 		IconPath:         entry.IconPath,
 	}, nil
+}
+
+// sanitizeString removes null bytes and trims whitespace from a string.
+func sanitizeString(s string) string {
+	s = strings.ReplaceAll(s, "\x00", "")
+	return strings.TrimSpace(s)
 }

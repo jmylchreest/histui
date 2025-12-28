@@ -26,9 +26,9 @@ import (
 	"github.com/jmylchreest/histui/internal/adapter/input"
 	"github.com/jmylchreest/histui/internal/config"
 	"github.com/jmylchreest/histui/internal/core"
+	"github.com/jmylchreest/histui/internal/db"
 	"github.com/jmylchreest/histui/internal/dbus"
 	"github.com/jmylchreest/histui/internal/model"
-	"github.com/jmylchreest/histui/internal/store"
 )
 
 // Mode represents the current UI mode.
@@ -44,8 +44,8 @@ const (
 // Model is the main TUI model.
 type Model struct {
 	// Configuration
-	cfg   *config.Config
-	store *store.Store
+	cfg *config.Config
+	db  *db.DB
 
 	// Current mode
 	mode Mode
@@ -73,9 +73,6 @@ type Model struct {
 	// Status message
 	statusMsg string
 	statusErr bool
-
-	// Refresh channel subscription
-	refreshCh <-chan store.ChangeEvent
 }
 
 // notificationItem wraps a notification for the list component.
@@ -184,7 +181,7 @@ func (d notificationDelegate) Render(w io.Writer, m list.Model, index int, item 
 }
 
 // New creates a new TUI model.
-func New(cfg *config.Config, s *store.Store) Model {
+func New(cfg *config.Config, database *db.DB) Model {
 	// Initialize components with custom delegate for styling
 	delegate := newNotificationDelegate()
 	l := list.New(nil, delegate, 0, 0)
@@ -209,7 +206,7 @@ func New(cfg *config.Config, s *store.Store) Model {
 
 	m := Model{
 		cfg:           cfg,
-		store:         s,
+		db:            database,
 		mode:          ModeList,
 		list:          l,
 		searchInput:   searchInput,
@@ -218,38 +215,20 @@ func New(cfg *config.Config, s *store.Store) Model {
 		previewActive: true, // Enable preview by default
 	}
 
-	// Subscribe to store changes if available
-	if s != nil {
-		m.refreshCh = s.Subscribe()
-	}
-
 	return m
 }
 
 // Init initializes the TUI.
 func (m Model) Init() tea.Cmd {
-	return tea.Batch(
-		m.loadNotifications,
-		m.watchForChanges,
-	)
+	return tea.Batch(m.loadNotifications, startFileWatcher())
 }
 
-// loadNotifications fetches notifications from the store.
+// loadNotifications fetches notifications from the database.
 func (m Model) loadNotifications() tea.Msg {
 	return loadNotificationsMsg{}
 }
 
 type loadNotificationsMsg struct{}
-
-// watchForChanges watches for store changes.
-func (m Model) watchForChanges() tea.Msg {
-	if m.refreshCh == nil {
-		return nil
-	}
-	// Wait for a change event
-	<-m.refreshCh
-	return refreshMsg{}
-}
 
 type refreshMsg struct{}
 
@@ -281,7 +260,41 @@ func (m Model) Update(msg tea.Msg) (tea.Model, tea.Cmd) {
 	case refreshMsg:
 		m.notifications = m.fetchNotifications()
 		m.list.SetItems(m.buildListItems())
-		return m, m.watchForChanges
+		return m, nil
+
+	case fileWatcherMsg:
+		// Preserve the currently selected item's ID
+		var selectedID string
+		if sel, ok := m.list.SelectedItem().(notificationItem); ok {
+			selectedID = sel.notification.HistuiID
+		}
+
+		// Refresh notifications
+		m.notifications = m.fetchNotifications()
+		m.list.SetItems(m.buildListItems())
+
+		// Restore selection by ID
+		if selectedID != "" {
+			for i, item := range m.list.Items() {
+				if ni, ok := item.(notificationItem); ok {
+					if ni.notification.HistuiID == selectedID {
+						m.list.Select(i)
+						break
+					}
+				}
+			}
+		}
+
+		// Update selected detail if preview is active
+		if m.previewActive {
+			if sel, ok := m.list.SelectedItem().(notificationItem); ok {
+				n := sel.notification
+				m.selected = &n
+			}
+		}
+
+		// Restart the watcher for the next change
+		return m, startFileWatcher()
 
 	case statusMsg:
 		m.statusMsg = msg.text
@@ -355,7 +368,12 @@ type replayResultMsg struct {
 
 // handleKey handles key presses.
 func (m Model) handleKey(msg tea.KeyMsg) (tea.Model, tea.Cmd) {
-	// Global keys
+	// In search mode, only handle Esc/Enter/navigation - let text input handle everything else
+	if m.mode == ModeSearch {
+		return m.handleSearchKey(msg)
+	}
+
+	// Global keys (not in search mode)
 	switch {
 	case key.Matches(msg, m.keys.Quit):
 		return m, tea.Quit
@@ -374,8 +392,6 @@ func (m Model) handleKey(msg tea.KeyMsg) (tea.Model, tea.Cmd) {
 		return m.handleListKey(msg)
 	case ModeDetail:
 		return m.handleDetailKey(msg)
-	case ModeSearch:
-		return m.handleSearchKey(msg)
 	case ModeHelp:
 		if key.Matches(msg, m.keys.Back) {
 			m.mode = ModeList
@@ -464,12 +480,12 @@ func (m Model) handleListKey(msg tea.KeyMsg) (tea.Model, tea.Cmd) {
 
 	case key.Matches(msg, m.keys.Dismiss):
 		if item, ok := m.list.SelectedItem().(notificationItem); ok {
-			if m.store != nil {
+			if m.db != nil {
 				n := item.notification
 				if n.IsDismissed() {
 					// Undismiss
 					n.Undismiss()
-					_ = m.store.Update(n)
+					_ = m.db.UpdateNotification(&n)
 					m.notifications = m.fetchNotifications()
 					m.list.SetItems(m.buildListItems())
 					return m, func() tea.Msg {
@@ -477,7 +493,7 @@ func (m Model) handleListKey(msg tea.KeyMsg) (tea.Model, tea.Cmd) {
 					}
 				}
 				// Dismiss
-				_ = m.store.Dismiss(item.notification.HistuiID)
+				_ = m.db.DismissNotification(item.notification.HistuiID)
 				m.notifications = m.fetchNotifications()
 				m.list.SetItems(m.buildListItems())
 				return m, func() tea.Msg {
@@ -488,14 +504,14 @@ func (m Model) handleListKey(msg tea.KeyMsg) (tea.Model, tea.Cmd) {
 		return m, nil
 
 	case key.Matches(msg, m.keys.DismissAll):
-		if m.store != nil {
+		if m.db != nil {
 			// Get all currently visible (filtered) items
 			items := m.list.Items()
 			dismissedCount := 0
 			for _, item := range items {
 				if ni, ok := item.(notificationItem); ok {
 					if !ni.notification.IsDismissed() {
-						_ = m.store.Dismiss(ni.notification.HistuiID)
+						_ = m.db.DismissNotification(ni.notification.HistuiID)
 						dismissedCount++
 					}
 				}
@@ -515,8 +531,8 @@ func (m Model) handleListKey(msg tea.KeyMsg) (tea.Model, tea.Cmd) {
 
 	case key.Matches(msg, m.keys.HardDelete):
 		if item, ok := m.list.SelectedItem().(notificationItem); ok {
-			if m.store != nil {
-				_ = m.store.DeleteWithTombstone(item.notification.HistuiID)
+			if m.db != nil {
+				_ = m.db.DeleteNotification(item.notification.HistuiID)
 				m.notifications = m.fetchNotifications()
 				m.list.SetItems(m.buildListItems())
 			}
@@ -644,10 +660,14 @@ func (m Model) handleSearchKey(msg tea.KeyMsg) (tea.Model, tea.Cmd) {
 	return m, cmd
 }
 
-// fetchNotifications gets notifications from the store or directly from dunst.
+// fetchNotifications gets notifications from the database.
 func (m Model) fetchNotifications() []model.Notification {
-	if m.store != nil {
-		return m.store.All()
+	if m.db != nil {
+		notifications, err := m.db.All()
+		if err != nil {
+			return nil
+		}
+		return notifications
 	}
 	return nil
 }
@@ -749,9 +769,9 @@ func (m Model) renderDetail(n model.Notification) string {
 		s += labelStyle.Render("Category: ") + n.Category + "\n"
 	}
 
-	// Body
+	// Body - strip pango/HTML markup for plain text display
 	s += "\n" + labelStyle.Render("Body:") + "\n"
-	s += n.Body + "\n"
+	s += stripPangoMarkup(n.Body) + "\n"
 
 	// Extensions - only show if there's something useful
 	if n.Extensions != nil {
@@ -809,7 +829,7 @@ func (m Model) renderPreviewPanel(n model.Notification) string {
 	borderStyle := lipgloss.NewStyle().
 		Border(lipgloss.RoundedBorder()).
 		BorderForeground(lipgloss.Color("10")).
-		Padding(0, 1).
+		Padding(1, 2). // Vertical and horizontal padding for breathing room
 		Width(panelWidth)
 
 	headerStyle := lipgloss.NewStyle().
@@ -873,10 +893,10 @@ func (m Model) renderPreviewPanel(n model.Notification) string {
 	// Join image and text side by side
 	content := lipgloss.JoinHorizontal(lipgloss.Top, imageStr, "  ", textContent)
 
-	// Add body below if present
+	// Add body below if present (with blank line separator)
 	if len(bodyLines) > 0 {
 		bodyContent := strings.Join(bodyLines, "\n")
-		content = content + "\n" + bodyContent
+		content = content + "\n\n" + bodyContent
 	}
 
 	// Add URLs if found (truncated to panel width)
@@ -904,8 +924,12 @@ func (m Model) renderPreviewPanel(n model.Notification) string {
 // BubbleTea can properly manage during redraws.
 func (m Model) renderPreviewImage(n model.Notification) string {
 	// Terminal image dimensions: 10 cols x 5 rows
+	// termimg Width/Height are in pixels, not character cells
+	// For halfblocks: each char is ~2 pixels wide and 2 pixels tall
 	const imgCols = 10
 	const imgRows = 5
+	const imgPixelWidth = imgCols * 2  // 20 pixels for 10 character columns
+	const imgPixelHeight = imgRows * 2 // 10 pixels for 5 character rows
 
 	var img *termimg.Image
 	var err error
@@ -924,12 +948,17 @@ func (m Model) renderPreviewImage(n model.Notification) string {
 		// Use ScaleFill to ensure image fills the target size (scales up small images)
 		rendered, renderErr := img.
 			Protocol(termimg.Halfblocks).
-			Width(imgCols).
-			Height(imgRows).
+			Width(imgPixelWidth).
+			Height(imgPixelHeight).
 			Scale(termimg.ScaleFill).
 			Render()
 		if renderErr == nil && rendered != "" {
-			return rendered
+			// Normalize output to exactly imgRows lines for consistent spacing
+			lines := strings.Split(strings.TrimSuffix(rendered, "\n"), "\n")
+			if len(lines) > imgRows {
+				lines = lines[:imgRows]
+			}
+			return strings.Join(lines, "\n")
 		}
 	}
 
@@ -937,19 +966,20 @@ func (m Model) renderPreviewImage(n model.Notification) string {
 	return renderImagePlaceholder()
 }
 
-// renderImagePlaceholder renders a square placeholder using halfblock-style characters.
+// renderImagePlaceholder renders a square placeholder using block characters.
 // Matches the 10 cols x 5 rows dimensions of rendered images.
+// Uses full blocks on top/bottom to align with how termimg halfblocks render.
 func renderImagePlaceholder() string {
 	// Use dim block characters to create a placeholder that matches halfblock rendering
-	// 10 cols x 5 rows with an X pattern
+	// 10 cols x 5 rows with a face pattern
 	dimStyle := lipgloss.NewStyle().Foreground(lipgloss.Color("8"))
 
 	lines := []string{
-		"▄▄▄▄▄▄▄▄▄▄",
+		"██████████",
 		"█▀      ▀█",
 		"█  ▀▄▄▀  █",
 		"█▄      ▄█",
-		"▀▀▀▀▀▀▀▀▀▀",
+		"██████████",
 	}
 
 	result := make([]string, len(lines))
@@ -1029,13 +1059,8 @@ func (m Model) copyToClipboard(text string) tea.Cmd {
 // replayNotification sends the notification to the D-Bus daemon.
 func (m Model) replayNotification(n model.Notification) tea.Cmd {
 	return func() tea.Msg {
-		// Create a replayer (try to get image store path)
-		var imageStore *store.ImageStore
-		if imagePath, err := store.DefaultImageStorePath(); err == nil {
-			imageStore, _ = store.NewImageStore(imagePath)
-		}
-
-		replayer, err := dbus.NewReplayer(imageStore)
+		// Create a replayer using the database for images
+		replayer, err := dbus.NewReplayer(m.db)
 		if err != nil {
 			return replayResultMsg{err: err}
 		}
@@ -1173,40 +1198,17 @@ func (m Model) viewSearch() string {
 	searchBar := "Search: " + m.searchInput.View() + " " +
 		lipgloss.NewStyle().Foreground(lipgloss.Color("8")).Render(countStr)
 
-	// Show quick filter suggestions when search is empty or typing "app="
-	suggestions := ""
-	query := m.searchInput.Value()
-	if query == "" || strings.HasPrefix(strings.ToLower(query), "app=") {
-		apps := core.UniqueApps(m.notifications)
-		if len(apps) > 0 {
-			dimStyle := lipgloss.NewStyle().Foreground(lipgloss.Color("8"))
-			appStyle := lipgloss.NewStyle().Foreground(lipgloss.Color("6"))
+	s := searchBar + "\n" + m.list.View() + "\n" + m.buildKeybindBar(m.width, "search")
 
-			// Show up to 8 apps
-			maxApps := 8
-			if len(apps) < maxApps {
-				maxApps = len(apps)
-			}
-
-			var appList []string
-			for i := 0; i < maxApps; i++ {
-				appList = append(appList, appStyle.Render(apps[i]))
-			}
-
-			hint := "Apps: "
-			if len(apps) > maxApps {
-				hint = fmt.Sprintf("Apps (%d): ", len(apps))
-			}
-			suggestions = dimStyle.Render(hint) + strings.Join(appList, dimStyle.Render(", "))
+	// Overlay preview panel if active
+	if m.previewActive {
+		if item, ok := m.list.SelectedItem().(notificationItem); ok {
+			panel := m.renderPreviewPanel(item.notification)
+			s = m.overlayPanel(s, panel)
 		}
 	}
 
-	result := searchBar
-	if suggestions != "" {
-		result += "\n" + suggestions
-	}
-
-	return result + "\n" + m.list.View() + "\n" + m.buildKeybindBar(m.width, "search")
+	return s
 }
 
 func (m Model) viewHelp() string {
@@ -1446,55 +1448,29 @@ func stripANSI(s string) string {
 
 // RunOptions configures the TUI.
 type RunOptions struct {
-	Config      *config.Config
-	Store       *store.Store
-	Adapter     input.InputAdapter
-	PersistPath string // Path to watch for changes (empty = no watching)
+	Config  *config.Config
+	DB      *db.DB
+	Adapter input.InputAdapter
 }
 
 // Run starts the TUI with the given options.
 func Run(opts RunOptions) error {
-	s := opts.Store
-
-	// If no store provided, create one
-	if s == nil {
-		s = store.NewStore(nil)
-	}
+	database := opts.DB
 
 	// Import from adapter on startup to ensure we have notifications
-	if opts.Adapter != nil {
+	if opts.Adapter != nil && database != nil {
 		ctx, cancel := context.WithTimeout(context.Background(), 10*time.Second)
-		err := importFromAdapter(ctx, opts.Adapter, s)
+		err := importFromAdapter(ctx, opts.Adapter, database)
 		cancel()
 		if err != nil {
-			// Log but continue - store might have persisted notifications
+			// Log but continue - database might have persisted notifications
 			fmt.Fprintf(os.Stderr, "Warning: failed to import notifications: %v\n", err)
 		}
 	}
 
-	// Start file watcher if persistence path provided
-	var watcher *store.FileWatcher
-	if opts.PersistPath != "" {
-		var err error
-		watcher, err = store.NewFileWatcher(s, opts.PersistPath)
-		if err != nil {
-			fmt.Fprintf(os.Stderr, "Warning: failed to create file watcher: %v\n", err)
-		} else {
-			if err := watcher.Start(); err != nil {
-				fmt.Fprintf(os.Stderr, "Warning: failed to start file watcher: %v\n", err)
-			}
-		}
-	}
-
-	m := New(opts.Config, s)
+	m := New(opts.Config, database)
 	p := tea.NewProgram(m, tea.WithAltScreen())
 
 	_, err := p.Run()
-
-	// Stop watcher on exit
-	if watcher != nil {
-		_ = watcher.Stop()
-	}
-
 	return err
 }

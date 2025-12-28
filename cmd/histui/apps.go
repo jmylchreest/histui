@@ -32,7 +32,7 @@ Examples:
 }
 
 func init() {
-	appsCmd.Flags().StringVar(&appsOpts.source, "source", "", "notification source (histuid, dunst, stdin)")
+	appsCmd.Flags().StringVar(&appsOpts.source, "source", "", "notification source (histuid, stdin)")
 
 	rootCmd.AddCommand(appsCmd)
 }

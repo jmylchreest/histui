@@ -197,7 +197,6 @@ func (s *NotificationServer) GetCapabilities() ([]string, *dbus.Error) {
 // GetServerInformation returns information about the notification server.
 // D-Bus method: GetServerInformation() -> (ssss)
 func (s *NotificationServer) GetServerInformation() (string, string, string, string, *dbus.Error) {
-	s.logger.Debug("GetServerInformation called")
 	return s.serverInfo.Name, s.serverInfo.Vendor, s.serverInfo.Version, s.serverInfo.SpecVersion, nil
 }
 

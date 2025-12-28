@@ -9,7 +9,7 @@ import (
 
 	"github.com/jmylchreest/histui/internal/adapter/input"
 	"github.com/jmylchreest/histui/internal/config"
-	"github.com/jmylchreest/histui/internal/store"
+	"github.com/jmylchreest/histui/internal/db"
 )
 
 // copyText copies text to the system clipboard.
@@ -61,8 +61,8 @@ func detectClipboardCommand(cfg *config.Config) string {
 	return ""
 }
 
-// importFromAdapter imports notifications from an input adapter into the store.
-func importFromAdapter(ctx context.Context, adapter input.InputAdapter, s *store.Store) error {
+// importFromAdapter imports notifications from an input adapter into the database.
+func importFromAdapter(ctx context.Context, adapter input.InputAdapter, database *db.DB) error {
 	if adapter == nil {
 		return fmt.Errorf("no input adapter provided")
 	}
@@ -73,7 +73,7 @@ func importFromAdapter(ctx context.Context, adapter input.InputAdapter, s *store
 	}
 
 	if len(notifications) > 0 {
-		_ = s.AddBatch(notifications)
+		_ = database.AddBatch(notifications)
 	}
 
 	return nil

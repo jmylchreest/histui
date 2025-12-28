@@ -49,20 +49,26 @@ func runPrune(cmd *cobra.Command, args []string) error {
 		return fmt.Errorf("specify --older-than or --keep")
 	}
 
-	// Get all notifications
-	notifications := historyStore.All()
+	db := getDB()
+
+	// Get all notifications for preview
+	notifications, err := db.All()
+	if err != nil {
+		return fmt.Errorf("failed to get notifications: %w", err)
+	}
+
 	if len(notifications) == 0 {
 		fmt.Println("No notifications in history")
 		return nil
 	}
 
-	// Sort by timestamp (newest first)
+	// Sort by timestamp (newest first) for consistent display
 	core.Sort(notifications, core.SortOptions{
 		Field: core.SortByTimestamp,
 		Order: core.SortDesc,
 	})
 
-	// Determine which to remove
+	// Determine which to remove (for dry-run preview)
 	var toRemove []model.Notification
 
 	if pruneOpts.olderThan != "" {
@@ -120,12 +126,25 @@ func runPrune(cmd *cobra.Command, args []string) error {
 		return nil
 	}
 
-	// Actually remove
-	removed := 0
-	for _, n := range toRemove {
-		if err := historyStore.Delete(n.HistuiID); err == nil {
-			removed++
+	// Actually remove using database functions
+	var removed int
+
+	if pruneOpts.olderThan != "" {
+		duration, _ := core.ParseDuration(pruneOpts.olderThan)
+		cutoff := time.Now().Add(-duration).Unix()
+		count, err := db.PruneOlderThan(cutoff)
+		if err != nil {
+			return fmt.Errorf("failed to prune: %w", err)
 		}
+		removed += count
+	}
+
+	if pruneOpts.keep > 0 {
+		count, err := db.Prune(pruneOpts.keep)
+		if err != nil {
+			return fmt.Errorf("failed to prune: %w", err)
+		}
+		removed += count
 	}
 
 	fmt.Printf("Removed %d notification(s)\n", removed)

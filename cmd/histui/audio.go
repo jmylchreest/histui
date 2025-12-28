@@ -6,7 +6,7 @@ import (
 
 	"github.com/spf13/cobra"
 
-	"github.com/jmylchreest/histui/internal/store"
+	"github.com/jmylchreest/histui/internal/ipc"
 )
 
 var audioOpts struct {
@@ -43,24 +43,27 @@ func init() {
 }
 
 func audioStopRun(cmd *cobra.Command, args []string) error {
-	state, err := store.LoadSharedState()
+	client, err := ipc.NewClient()
 	if err != nil {
 		if !audioOpts.quiet {
-			fmt.Fprintf(os.Stderr, "Failed to load state: %v\n", err)
+			fmt.Fprintf(os.Stderr, "Failed to create IPC client: %v\n", err)
 		}
 		return err
 	}
 
-	state.RequestStopAudio()
-	if err := store.SaveSharedState(state); err != nil {
+	if err := client.StopAudio(); err != nil {
 		if !audioOpts.quiet {
-			fmt.Fprintf(os.Stderr, "Failed to save state: %v\n", err)
+			fmt.Fprintf(os.Stderr, "Failed to stop audio: %v\n", err)
 		}
 		return err
 	}
 
 	if !audioOpts.quiet {
-		fmt.Println("Audio stop requested")
+		if client.IsRunning() {
+			fmt.Println("Audio stop requested")
+		} else {
+			fmt.Println("Audio stop requested (daemon not running)")
+		}
 	}
 
 	return nil

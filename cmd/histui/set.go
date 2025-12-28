@@ -250,23 +250,29 @@ func readJSONFromStdin(scanner *bufio.Scanner) ([]string, error) {
 
 // performAction performs the selected action on a notification.
 func performAction(id string) error {
-	n := historyStore.GetByID(id)
-	if n == nil {
-		return fmt.Errorf("notification not found: %s", id)
-	}
+	db := getDB()
 
 	switch {
 	case setOpts.dismiss:
-		n.MarkDismissed()
+		return db.DismissNotification(id)
 	case setOpts.undismiss:
+		// Get notification, clear dismissed_at, update
+		n, err := db.GetNotification(id)
+		if err != nil {
+			return err
+		}
+		if n == nil {
+			return fmt.Errorf("notification not found: %s", id)
+		}
 		n.Undismiss()
+		return db.UpdateNotification(n)
 	case setOpts.seen:
-		n.MarkSeen()
+		return db.MarkSeen(id)
 	case setOpts.delete:
-		return historyStore.Delete(id)
+		return db.DeleteNotification(id)
 	}
 
-	return historyStore.Update(*n)
+	return nil
 }
 
 // uniqueStrings removes duplicates from a string slice.

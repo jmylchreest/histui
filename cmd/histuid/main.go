@@ -26,17 +26,15 @@ import (
 	"github.com/jmylchreest/histui/internal/audio"
 	"github.com/jmylchreest/histui/internal/config"
 	"github.com/jmylchreest/histui/internal/daemon"
+	"github.com/jmylchreest/histui/internal/db"
 	"github.com/jmylchreest/histui/internal/dbus"
 	"github.com/jmylchreest/histui/internal/display"
 	"github.com/jmylchreest/histui/internal/icon"
+	"github.com/jmylchreest/histui/internal/ipc"
 	"github.com/jmylchreest/histui/internal/model"
-	"github.com/jmylchreest/histui/internal/store"
 	"github.com/jmylchreest/histui/internal/theme"
 )
 
-// dismissedIDsCache tracks which histui IDs we know are dismissed
-// to avoid re-processing on every store reload.
-var dismissedIDsCache = make(map[string]bool)
 
 const (
 	appID   = "io.github.jmylchreest.histuid"
@@ -121,24 +119,15 @@ func runMonitorMode(logger *slog.Logger) {
 	// Clean up any leftover temp files from previous runs
 	daemon.CleanupTemp(logger)
 
-	// Initialize history store with persistence
-	historyPath, err := store.HistoryPath()
+	// Initialize SQLite database
+	database, err := db.Open("")
 	if err != nil {
-		logger.Error("failed to get history path", "error", err)
+		logger.Error("failed to open database", "error", err)
 		os.Exit(1)
 	}
 
-	persistence, err := store.NewJSONLPersistence(historyPath)
-	if err != nil {
-		logger.Error("failed to create persistence", "error", err)
-		os.Exit(1)
-	}
-
-	historyStore := store.NewStore(persistence)
-	if err := historyStore.Hydrate(); err != nil {
-		logger.Warn("failed to hydrate store", "error", err)
-	}
-	logger.Info("history store initialized", "path", historyPath, "count", historyStore.Count())
+	count, _ := database.Count()
+	logger.Info("database initialized", "path", database.Path(), "count", count)
 
 	// Create and configure the monitor
 	monitor := dbus.NewMonitor(logger)
@@ -173,7 +162,7 @@ func runMonitorMode(logger *slog.Logger) {
 
 		// Don't persist transient notifications
 		if !notification.Transient() {
-			if err := historyStore.Add(*n); err != nil {
+			if err := database.AddNotification(n); err != nil {
 				logger.Error("failed to persist notification", "id", id, "error", err)
 			} else {
 				logger.Debug("persisted notification", n.LogAttrs()...)
@@ -203,8 +192,8 @@ func runMonitorMode(logger *slog.Logger) {
 	if err := monitor.Stop(); err != nil {
 		logger.Warn("error stopping monitor", "error", err)
 	}
-	if err := historyStore.Close(); err != nil {
-		logger.Warn("error closing store", "error", err)
+	if err := database.Close(); err != nil {
+		logger.Warn("error closing database", "error", err)
 	}
 	daemon.CleanupTemp(logger)
 
@@ -217,6 +206,14 @@ func runDaemonMode(logger *slog.Logger) {
 
 	// Clean up any leftover temp files from previous runs (in case of unclean shutdown)
 	daemon.CleanupTemp(logger)
+
+	// Check D-Bus name availability BEFORE initializing GTK
+	// This must happen early because GTK application uniqueness check
+	// would silently exit if another instance is running, without calling our activate callback
+	if err := dbus.CheckBusNameAvailable(); err != nil {
+		logger.Error("cannot start notification daemon", "error", err)
+		os.Exit(1)
+	}
 
 	// Initialize embedded fonts (Nerd Font symbols, etc.) for icon fallback
 	// Must be done before GTK initialization so fontconfig picks it up
@@ -289,15 +286,13 @@ func runDaemonMode(logger *slog.Logger) {
 		displayManager   *display.Manager
 		themeLoader      *theme.Loader
 		audioManager     *audio.Manager
-		historyStore     *store.Store
-		imageStore       *store.ImageStore
-		retentionMgr     *store.RetentionManager
+		database         *db.DB
+		dndManager       *db.DnDManager
+		ipcServer        *ipc.Server
 		displayState     *daemon.DisplayStateManager
-		storeWatcher     *daemon.StoreWatcher
-		stateWatcher     *daemon.StateWatcher
 		configWatcher    *daemon.ConfigWatcher
 		internalNotifier *daemon.InternalNotifier
-		sharedState      *store.SharedState
+		updateNotifier   *daemon.Debouncer
 		running          atomic.Bool
 	)
 
@@ -314,6 +309,9 @@ func runDaemonMode(logger *slog.Logger) {
 		// Stop components in GTK main loop context
 		glib.IdleAdd(func() {
 			if running.Load() {
+				if ipcServer != nil {
+					_ = ipcServer.Stop()
+				}
 				if audioManager != nil {
 					audioManager.Stop()
 				}
@@ -323,26 +321,14 @@ func runDaemonMode(logger *slog.Logger) {
 				if configWatcher != nil {
 					configWatcher.Stop()
 				}
-				if stateWatcher != nil {
-					stateWatcher.Stop()
-				}
-				if storeWatcher != nil {
-					storeWatcher.Stop()
-				}
 				if displayManager != nil {
 					displayManager.Stop()
 				}
 				if dbusServer != nil {
 					_ = dbusServer.Stop()
 				}
-				if retentionMgr != nil {
-					_ = retentionMgr.Close()
-				}
-				if historyStore != nil {
-					_ = historyStore.Close()
-				}
-				if imageStore != nil {
-					_ = imageStore.Close()
+				if database != nil {
+					_ = database.Close()
 				}
 				app.Quit()
 			}
@@ -357,67 +343,40 @@ func runDaemonMode(logger *slog.Logger) {
 		}
 		running.Store(true)
 
-		// Check D-Bus availability early before initializing other components
-		if err := dbus.CheckBusNameAvailable(); err != nil {
-			logger.Error("cannot start notification daemon", "error", err)
-			app.Quit()
-			return
-		}
+		// Note: D-Bus name availability is checked at the start of runDaemonMode(),
+		// before GTK initialization, to ensure proper error reporting.
 
-		// Initialize history store with persistence
-		historyPath, err := store.HistoryPath()
+		// Initialize SQLite database
+		database, err = db.Open("")
 		if err != nil {
-			logger.Error("failed to get history path", "error", err)
+			logger.Error("failed to open database", "error", err)
 			app.Quit()
 			return
 		}
 
-		persistence, err := store.NewJSONLPersistence(historyPath)
-		if err != nil {
-			logger.Error("failed to create persistence", "error", err)
-			app.Quit()
-			return
-		}
+		// Get initial count
+		count, _ := database.Count()
+		logger.Info("database initialized", "path", database.Path(), "count", count)
 
-		historyStore = store.NewStore(persistence)
-		if err := historyStore.Hydrate(); err != nil {
-			logger.Warn("failed to hydrate store", "error", err)
-		}
-		logger.Info("history store initialized", "path", historyPath, "count", historyStore.Count())
-
-		// Initialize image store if enabled
-		if cfg.History.StoreImages {
-			imagePath, err := store.DefaultImageStorePath()
-			if err != nil {
-				logger.Warn("failed to get image store path", "error", err)
-			} else {
-				imageStore, err = store.NewImageStore(imagePath)
-				if err != nil {
-					logger.Warn("failed to create image store", "error", err)
-				} else {
-					logger.Debug("image store initialized", "path", imagePath)
-				}
+		// Create update notifier - debounced file touch to signal histui
+		updateNotifier = daemon.NewDebouncer(500*time.Millisecond, func() {
+			if err := db.TouchLastUpdated(); err != nil {
+				logger.Debug("failed to touch last updated file", "error", err)
 			}
-		}
+		})
 
-		// Initialize retention manager for auto-pruning
+		// Run initial prune on startup if configured
 		if cfg.History.MaxNotifications > 0 {
-			retentionMgr = store.NewRetentionManager(persistence, imageStore, store.RetentionConfig{
-				MaxNotifications: cfg.History.MaxNotifications,
-			}, logger)
-			// Run initial prune on startup
-			if err := retentionMgr.PruneOnStartup(); err != nil {
+			pruned, err := database.Prune(cfg.History.MaxNotifications)
+			if err != nil {
 				logger.Warn("failed to prune on startup", "error", err)
+			} else if pruned > 0 {
+				logger.Info("pruned old notifications on startup", "count", pruned)
 			}
 		}
 
-		// Load shared state (DnD, etc.)
-		sharedState, err = store.LoadSharedState()
-		if err != nil {
-			logger.Warn("failed to load shared state", "error", err)
-			sharedState = store.DefaultSharedState()
-		}
-		logger.Info("shared state loaded", "dnd_enabled", sharedState.DnDEnabled)
+		// Initialize DnD manager (in-memory, controlled via IPC)
+		dndManager = db.NewDnDManager()
 
 		// Initialize display state manager (maps D-Bus IDs to histui IDs)
 		displayState = daemon.NewDisplayStateManager()
@@ -464,14 +423,10 @@ func runDaemonMode(logger *slog.Logger) {
 				originalID := dbus.GetOriginalID(notification.Hints)
 				if originalID != "" {
 					// Update existing notification's replayed status
-					existing := historyStore.GetByID(originalID)
-					if existing != nil {
-						existing.MarkReplayed()
-						if err := historyStore.Update(*existing); err != nil {
-							logger.Warn("failed to update replayed notification", "id", originalID, "error", err)
-						} else {
-							logger.Debug("marked notification as replayed", "id", originalID)
-						}
+					if err := database.MarkReplayed(originalID); err != nil {
+						logger.Warn("failed to update replayed notification", "id", originalID, "error", err)
+					} else {
+						logger.Debug("marked notification as replayed", "id", originalID)
 					}
 					// Continue to display the notification (don't return)
 					// but use the existing histui ID for tracking
@@ -509,33 +464,28 @@ func runDaemonMode(logger *slog.Logger) {
 			// Store original hints for faithful replay
 			n.OriginalHints = convertHintsToJSON(notification.Hints)
 
-			// Capture and store image data if image store is enabled
-			if imageStore != nil && !notification.Transient() {
-				// Check for image-data hint
-				if imgData := notification.ImageData(); imgData != nil {
-					// Convert to PNG and store
-					pngData := convertImageDataToPNG(imgData)
-					if len(pngData) > 0 {
-						ref, err := imageStore.Save(n.HistuiID, store.ImageRefImage, pngData)
-						if err != nil {
-							logger.Warn("failed to save notification image", "error", err)
-						} else if ref != "" {
-							n.AddImageRef(ref)
-						}
-					}
-				}
-			}
-
 			// Don't persist transient notifications or replays
 			isReplay := dbus.IsReplayHint(notification.Hints)
 			if !notification.Transient() && !isReplay {
-				if err := historyStore.Add(*n); err != nil {
+				if err := database.AddNotification(n); err != nil {
 					logger.Error("failed to persist notification", "id", id, "error", err)
+				} else {
+					// Signal histui that notifications changed
+					updateNotifier.Trigger()
 				}
 
-				// Trigger retention manager (debounced)
-				if retentionMgr != nil {
-					retentionMgr.TriggerPrune()
+				// Capture and store image data if enabled
+				if cfg.History.StoreImages {
+					// Check for image-data hint
+					if imgData := notification.ImageData(); imgData != nil {
+						// Convert to PNG and store
+						pngData := convertImageDataToPNG(imgData)
+						if len(pngData) > 0 {
+							if err := database.SaveImage(n.HistuiID, db.ImageRefImage, pngData); err != nil {
+								logger.Warn("failed to save notification image", "error", err)
+							}
+						}
+					}
 				}
 			}
 
@@ -549,13 +499,14 @@ func runDaemonMode(logger *slog.Logger) {
 
 			// Check if DnD is enabled (suppress popups and sounds)
 			urgency := notification.Urgency()
-			isDnDEnabled := sharedState != nil && sharedState.DnDEnabled
-			isCriticalBypass := cfg.DnD.CriticalBypass && urgency == model.UrgencyCritical
+			isDnDEnabled := dndManager != nil && dndManager.Enabled()
+			// By default (suppress_critical=false), critical notifications bypass DnD
+			allowCriticalBypass := !cfg.DnD.SuppressCritical && urgency == model.UrgencyCritical
 
-			// Suppress popup and sound if DnD is enabled (unless critical bypass)
-			if isDnDEnabled && !isCriticalBypass {
+			// Suppress popup and sound if DnD is enabled (unless critical bypass is allowed)
+			if isDnDEnabled && !allowCriticalBypass {
 				logger.Debug("notification suppressed by DnD", "id", id, "urgency", urgency)
-				// Note: Notification is still persisted to store (done above)
+				// Note: Notification is still persisted to database (done above)
 				return
 			}
 
@@ -588,19 +539,22 @@ func runDaemonMode(logger *slog.Logger) {
 			})
 		})
 
-		// Connect display manager callbacks to D-Bus and store
+		// Connect display manager callbacks to D-Bus and database
 		displayManager.SetCloseCallback(func(dbusID uint32, reason dbus.CloseReason) {
 			// Emit D-Bus signal
 			if err := dbusServer.CloseWithReason(dbusID, reason); err != nil {
 				logger.Warn("failed to emit close signal", "id", dbusID, "error", err)
 			}
 
-			// Update store if user dismissed (not expired)
+			// Update database if user dismissed (not expired)
 			if reason == dbus.CloseReasonDismissed {
 				histuiID := displayState.GetHistuiIDByDBusID(dbusID)
 				if histuiID != "" {
-					if err := historyStore.Dismiss(histuiID); err != nil {
+					if err := database.DismissNotification(histuiID); err != nil {
 						logger.Warn("failed to mark notification as dismissed", "histui_id", histuiID, "error", err)
+					} else {
+						// Signal histui that notifications changed
+						updateNotifier.Trigger()
 					}
 				}
 			}
@@ -623,54 +577,14 @@ func runDaemonMode(logger *slog.Logger) {
 			return
 		}
 
-		// Initialize store watcher for external changes (e.g., histui CLI prune/dismiss)
-		storeWatcher = daemon.NewStoreWatcher(historyPath, logger)
-		storeWatcher.SetChangeCallback(func() {
-			// Store file changed - check if we need to reload (external prune/delete)
-			glib.IdleAdd(func() {
-				// Only reload if disk has fewer entries than memory (external prune)
-				reloaded, err := historyStore.ReloadIfNeeded()
-				if err != nil {
-					logger.Warn("failed to check/reload store", "error", err)
-				}
-				if reloaded {
-					logger.Debug("store reloaded due to external changes")
-				}
-				checkForExternalDismissals(historyStore, displayManager, displayState, logger)
-			})
-		})
-		if err := storeWatcher.Start(ctx); err != nil {
-			logger.Warn("failed to start store watcher", "error", err)
-		}
-
-		// Initialize state watcher for DnD changes (e.g., histui dnd toggle)
-		statePath, err := store.StateFilePath()
+		// Start IPC server for histui CLI communication
+		ipcHandler := daemon.NewIPCHandler(dndManager, audioManager, displayManager)
+		ipcServer, err = ipc.NewServer(ipcHandler, logger)
 		if err != nil {
-			logger.Warn("failed to get state file path", "error", err)
+			logger.Warn("failed to create IPC server", "error", err)
 		} else {
-			stateWatcher = daemon.NewStateWatcher(statePath, logger)
-			stateWatcher.SetChangeCallback(func() {
-				// State file changed - reload shared state
-				newState, err := store.LoadSharedState()
-				if err != nil {
-					logger.Warn("failed to reload shared state", "error", err)
-					return
-				}
-				if newState.DnDEnabled != sharedState.DnDEnabled {
-					logger.Info("DnD state changed", "enabled", newState.DnDEnabled)
-				}
-				// Check for audio stop request
-				if newState.StopAudioRequestedAt != sharedState.StopAudioRequestedAt &&
-					newState.StopAudioRequestedAt > 0 {
-					logger.Debug("audio stop requested via state file")
-					if audioManager != nil {
-						audioManager.StopPlayback()
-					}
-				}
-				sharedState = newState
-			})
-			if err := stateWatcher.Start(ctx); err != nil {
-				logger.Warn("failed to start state watcher", "error", err)
+			if err := ipcServer.Start(ctx); err != nil {
+				logger.Warn("failed to start IPC server", "error", err)
 			}
 		}
 
@@ -749,6 +663,9 @@ func runDaemonMode(logger *slog.Logger) {
 	// Handle shutdown
 	app.ConnectShutdown(func() {
 		logger.Info("application shutting down")
+		if ipcServer != nil {
+			_ = ipcServer.Stop()
+		}
 		if audioManager != nil {
 			audioManager.Stop()
 		}
@@ -758,27 +675,17 @@ func runDaemonMode(logger *slog.Logger) {
 		if configWatcher != nil {
 			configWatcher.Stop()
 		}
-		if stateWatcher != nil {
-			stateWatcher.Stop()
-		}
-		if storeWatcher != nil {
-			storeWatcher.Stop()
-		}
 		if displayManager != nil {
 			displayManager.Stop()
 		}
 		if dbusServer != nil {
 			_ = dbusServer.Stop()
 		}
-		// Run any pending prune before closing
-		if retentionMgr != nil {
-			_ = retentionMgr.Close()
+		if updateNotifier != nil {
+			updateNotifier.Stop()
 		}
-		if historyStore != nil {
-			_ = historyStore.Close()
-		}
-		if imageStore != nil {
-			_ = imageStore.Close()
+		if database != nil {
+			_ = database.Close()
 		}
 		// Clean up temporary files
 		daemon.CleanupTemp(logger)
@@ -838,83 +745,6 @@ func keyToFlag(key string) string {
 		return "theme"
 	default:
 		return ""
-	}
-}
-
-// checkForExternalDismissals checks if any active popups were dismissed externally.
-// This is called when the store file changes (e.g., histui CLI dismissed a notification).
-// It reads the current state directly from the persistence file.
-func checkForExternalDismissals(
-	historyStore *store.Store,
-	displayManager *display.Manager,
-	displayState *daemon.DisplayStateManager,
-	logger *slog.Logger,
-) {
-	if historyStore == nil || displayManager == nil || displayState == nil {
-		return
-	}
-
-	// Get all active histui IDs from the display manager
-	activeIDs := displayManager.GetActiveHistuiIDs()
-	if len(activeIDs) == 0 {
-		return
-	}
-
-	// Build a set of active IDs for quick lookup
-	activeIDSet := make(map[string]bool)
-	for _, id := range activeIDs {
-		activeIDSet[id] = true
-	}
-
-	// Re-read the store from disk to get the latest state
-	// This creates a temporary persistence to read the file
-	historyPath, err := store.HistoryPath()
-	if err != nil {
-		logger.Warn("failed to get history path for external check", "error", err)
-		return
-	}
-
-	persistence, err := store.NewJSONLPersistence(historyPath)
-	if err != nil {
-		logger.Warn("failed to open persistence for external check", "error", err)
-		return
-	}
-	defer func() { _ = persistence.Close() }()
-
-	notifications, err := persistence.Load()
-	if err != nil {
-		logger.Warn("failed to load notifications for external check", "error", err)
-		return
-	}
-
-	// Build index of current notifications by histui ID
-	currentState := make(map[string]*model.Notification)
-	for i := range notifications {
-		currentState[notifications[i].HistuiID] = &notifications[i]
-	}
-
-	// Check each active notification against the current file state
-	for _, histuiID := range activeIDs {
-		// Skip if we've already processed this dismissal
-		if dismissedIDsCache[histuiID] {
-			continue
-		}
-
-		n, exists := currentState[histuiID]
-		if !exists {
-			// Notification was deleted from store - close the popup
-			logger.Debug("notification deleted externally, closing popup", "histui_id", histuiID)
-			dismissedIDsCache[histuiID] = true
-			displayManager.CloseByHistuiID(histuiID, dbus.CloseReasonDismissed)
-			continue
-		}
-
-		// Check if it was dismissed
-		if n.IsDismissed() {
-			logger.Debug("notification dismissed externally, closing popup", "histui_id", histuiID)
-			dismissedIDsCache[histuiID] = true
-			displayManager.CloseByHistuiID(histuiID, dbus.CloseReasonDismissed)
-		}
 	}
 }
 

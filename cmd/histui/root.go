@@ -9,7 +9,7 @@ import (
 	"github.com/spf13/cobra"
 
 	"github.com/jmylchreest/histui/internal/config"
-	"github.com/jmylchreest/histui/internal/store"
+	"github.com/jmylchreest/histui/internal/db"
 )
 
 // Build-time variables (set via ldflags)
@@ -23,15 +23,14 @@ var (
 var (
 	cfg        *config.Config
 	globalOpts struct {
-		verbose     bool
-		historyFile string
-		configPath  string
+		verbose    bool
+		dbPath     string
+		configPath string
 	}
 	logger *slog.Logger
 
-	// historyStore is the global store instance
-	historyStore  *store.Store
-	tombstoneFile *store.TombstoneFile
+	// database is the global SQLite database instance
+	database *db.DB
 )
 
 // rootCmd represents the base command when called without any subcommands.
@@ -61,48 +60,18 @@ Running histui without a subcommand launches the interactive TUI.`,
 			return fmt.Errorf("failed to create data directory: %w", err)
 		}
 
-		// Use custom history file path if specified, otherwise use default
-		historyPath := globalOpts.historyFile
-		if historyPath == "" {
-			historyPath = config.HistoryPath()
-		}
-
-		persistence, err := store.NewJSONLPersistence(historyPath)
+		// Open SQLite database (use custom path if specified, otherwise default)
+		database, err = db.Open(globalOpts.dbPath)
 		if err != nil {
-			return fmt.Errorf("failed to initialize persistence: %w", err)
-		}
-
-		historyStore = store.NewStore(persistence)
-
-		// Load tombstones
-		tombstoneFile = store.NewTombstoneFile(config.TombstonePath())
-		tombstones, err := tombstoneFile.Load()
-		if err != nil {
-			logger.Warn("failed to load tombstones", "error", err)
-		} else if len(tombstones) > 0 {
-			historyStore.LoadTombstones(tombstones)
-		}
-
-		if err := historyStore.Hydrate(); err != nil {
-			logger.Warn("failed to hydrate store from disk", "error", err)
+			return fmt.Errorf("failed to open database: %w", err)
 		}
 
 		return nil
 	},
 	PersistentPostRunE: func(cmd *cobra.Command, args []string) error {
-		// Save tombstones
-		if tombstoneFile != nil && historyStore != nil {
-			tombstones := historyStore.GetTombstones()
-			if len(tombstones) > 0 {
-				if err := tombstoneFile.Save(tombstones); err != nil {
-					logger.Warn("failed to save tombstones", "error", err)
-				}
-			}
-		}
-
-		// Cleanup store
-		if historyStore != nil {
-			return historyStore.Close()
+		// Close database
+		if database != nil {
+			return database.Close()
 		}
 		return nil
 	},
@@ -123,8 +92,8 @@ func init() {
 	// Global flags
 	rootCmd.PersistentFlags().BoolVarP(&globalOpts.verbose, "verbose", "v", false,
 		"Enable verbose logging")
-	rootCmd.PersistentFlags().StringVar(&globalOpts.historyFile, "history-file", "",
-		"Path to history file (default: ~/.local/share/histui/history.jsonl)")
+	rootCmd.PersistentFlags().StringVar(&globalOpts.dbPath, "db", "",
+		"Path to database file (default: ~/.local/share/histui/histui.db)")
 	rootCmd.PersistentFlags().StringVar(&globalOpts.configPath, "config", "",
 		"Path to config file (default: ~/.config/histui/config.toml)")
 }
@@ -146,9 +115,9 @@ func setupLogger() {
 	slog.SetDefault(logger)
 }
 
-// getStore returns the global store instance.
-func getStore() *store.Store {
-	return historyStore
+// getDB returns the global database instance.
+func getDB() *db.DB {
+	return database
 }
 
 // getConfig returns the global config instance.

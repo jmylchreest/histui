@@ -82,7 +82,7 @@ func init() {
 
 	// Input flags
 	getCmd.Flags().StringVar(&getOpts.source, "source", "",
-		"Notification source (dunst, stdin; auto-detects if empty)")
+		"Notification source (histuid, stdin; auto-detects if empty)")
 
 	// Filter flags
 	getCmd.Flags().StringVar(&getOpts.since, "since", "",
@@ -186,9 +186,9 @@ func fetchNotifications(ctx context.Context) ([]model.Notification, error) {
 
 	logger.Debug("fetched notifications", "count", len(notifications))
 
-	// Add to store (persistence is always enabled)
+	// Add to database (persistence is always enabled)
 	if len(notifications) > 0 {
-		_ = historyStore.AddBatch(notifications)
+		_ = getDB().AddBatch(notifications)
 	}
 
 	return notifications, nil

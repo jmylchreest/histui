@@ -12,7 +12,7 @@ import (
 	"github.com/spf13/cobra"
 
 	"github.com/jmylchreest/histui/internal/adapter/input"
-	"github.com/jmylchreest/histui/internal/store"
+	"github.com/jmylchreest/histui/internal/ipc"
 )
 
 var statusOpts struct {
@@ -69,7 +69,7 @@ func init() {
 	rootCmd.AddCommand(statusCmd)
 
 	statusCmd.Flags().StringVar(&statusOpts.source, "source", "",
-		"Notification source (dunst; auto-detects if empty)")
+		"Notification source (histuid; auto-detects if empty)")
 	statusCmd.Flags().BoolVar(&statusOpts.all, "all", false,
 		"Include history (acknowledged) notifications in count")
 	statusCmd.Flags().StringVar(&statusOpts.since, "since", "",
@@ -84,11 +84,10 @@ func runStatus(cmd *cobra.Command, args []string) error {
 	ctx, cancel := context.WithTimeout(context.Background(), 10*time.Second)
 	defer cancel()
 
-	// Load DnD state
+	// Load DnD state via IPC
 	dndEnabled := false
-	sharedState, err := store.LoadSharedState()
-	if err == nil {
-		dndEnabled = sharedState.DnDEnabled
+	if client, err := ipc.NewClient(); err == nil {
+		dndEnabled, _ = client.GetDnD()
 	}
 
 	// Detect which daemon to use
@@ -125,18 +124,6 @@ func runStatus(cmd *cobra.Command, args []string) error {
 			History:        histuidCounts.History,
 			Waiting:        histuidCounts.Waiting,
 			HighestUrgency: urgency,
-		}
-	case "dunst":
-		adapter := input.NewDunstAdapter()
-		dunstCounts, err := adapter.GetCounts(ctx)
-		if err != nil {
-			return outputStatus(WaybarStatus{Text: "", Alt: "error", Class: "error"})
-		}
-		counts = &NotificationCounts{
-			Displayed:      dunstCounts.Displayed,
-			History:        dunstCounts.History,
-			Waiting:        dunstCounts.Waiting,
-			HighestUrgency: "normal", // dunst doesn't provide urgency info via counts
 		}
 	default:
 		return outputStatus(WaybarStatus{Text: "", Alt: "error", Tooltip: "No notification daemon detected", Class: "error"})

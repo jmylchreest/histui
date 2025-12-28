@@ -3,12 +3,10 @@ package main
 import (
 	"fmt"
 	"os"
-	"time"
 
-	"github.com/dustin/go-humanize"
 	"github.com/spf13/cobra"
 
-	"github.com/jmylchreest/histui/internal/store"
+	"github.com/jmylchreest/histui/internal/ipc"
 )
 
 var dndOpts struct {
@@ -22,12 +20,15 @@ var dndCmd = &cobra.Command{
 	Long: `Manage Do Not Disturb (DnD) mode for histuid.
 
 When DnD is enabled, histuid suppresses notification popups and sounds
-while still persisting notifications to the history store.
+while still persisting notifications to the database.
 
 Use 'histui dnd status' to check the current state.
 Use 'histui dnd on' to enable DnD mode.
 Use 'histui dnd off' to disable DnD mode.
-Use 'histui dnd toggle' to toggle DnD mode.`,
+Use 'histui dnd toggle' to toggle DnD mode.
+
+Note: DnD commands communicate with the running histuid daemon via IPC.
+If the daemon is not running, these commands have no effect.`,
 	RunE: func(cmd *cobra.Command, args []string) error {
 		// Default to showing status
 		return dndStatusRun(cmd, args)
@@ -84,24 +85,27 @@ func init() {
 }
 
 func dndOnRun(cmd *cobra.Command, args []string) error {
-	state, err := store.LoadSharedState()
+	client, err := ipc.NewClient()
 	if err != nil {
 		if !dndOpts.quiet {
-			fmt.Fprintf(os.Stderr, "Failed to load state: %v\n", err)
+			fmt.Fprintf(os.Stderr, "Failed to create IPC client: %v\n", err)
 		}
 		return err
 	}
 
-	state.SetDnD(true, store.DnDTriggerUser, "dnd on", "cli", "")
-	if err := store.SaveSharedState(state); err != nil {
+	if err := client.SetDnD(true); err != nil {
 		if !dndOpts.quiet {
-			fmt.Fprintf(os.Stderr, "Failed to save state: %v\n", err)
+			fmt.Fprintf(os.Stderr, "Failed to set DnD: %v\n", err)
 		}
 		return err
 	}
 
 	if !dndOpts.quiet {
-		fmt.Println("Do Not Disturb: enabled")
+		if client.IsRunning() {
+			fmt.Println("Do Not Disturb: enabled")
+		} else {
+			fmt.Println("Do Not Disturb: enabled (daemon not running)")
+		}
 	}
 
 	// Exit code 1 means DnD is now on
@@ -110,24 +114,27 @@ func dndOnRun(cmd *cobra.Command, args []string) error {
 }
 
 func dndOffRun(cmd *cobra.Command, args []string) error {
-	state, err := store.LoadSharedState()
+	client, err := ipc.NewClient()
 	if err != nil {
 		if !dndOpts.quiet {
-			fmt.Fprintf(os.Stderr, "Failed to load state: %v\n", err)
+			fmt.Fprintf(os.Stderr, "Failed to create IPC client: %v\n", err)
 		}
 		return err
 	}
 
-	state.SetDnD(false, store.DnDTriggerUser, "dnd off", "cli", "")
-	if err := store.SaveSharedState(state); err != nil {
+	if err := client.SetDnD(false); err != nil {
 		if !dndOpts.quiet {
-			fmt.Fprintf(os.Stderr, "Failed to save state: %v\n", err)
+			fmt.Fprintf(os.Stderr, "Failed to set DnD: %v\n", err)
 		}
 		return err
 	}
 
 	if !dndOpts.quiet {
-		fmt.Println("Do Not Disturb: disabled")
+		if client.IsRunning() {
+			fmt.Println("Do Not Disturb: disabled")
+		} else {
+			fmt.Println("Do Not Disturb: disabled (daemon not running)")
+		}
 	}
 
 	// Exit code 0 means DnD is now off
@@ -135,18 +142,18 @@ func dndOffRun(cmd *cobra.Command, args []string) error {
 }
 
 func dndToggleRun(cmd *cobra.Command, args []string) error {
-	state, err := store.LoadSharedState()
+	client, err := ipc.NewClient()
 	if err != nil {
 		if !dndOpts.quiet {
-			fmt.Fprintf(os.Stderr, "Failed to load state: %v\n", err)
+			fmt.Fprintf(os.Stderr, "Failed to create IPC client: %v\n", err)
 		}
 		return err
 	}
 
-	newEnabled := state.ToggleDnD(store.DnDTriggerUser, "dnd toggle", "cli", "")
-	if err := store.SaveSharedState(state); err != nil {
+	newEnabled, err := client.ToggleDnD()
+	if err != nil {
 		if !dndOpts.quiet {
-			fmt.Fprintf(os.Stderr, "Failed to save state: %v\n", err)
+			fmt.Fprintf(os.Stderr, "Failed to toggle DnD: %v\n", err)
 		}
 		return err
 	}
@@ -156,6 +163,9 @@ func dndToggleRun(cmd *cobra.Command, args []string) error {
 			fmt.Println("Do Not Disturb: enabled")
 		} else {
 			fmt.Println("Do Not Disturb: disabled")
+		}
+		if !client.IsRunning() {
+			fmt.Println("  (daemon not running)")
 		}
 	}
 
@@ -167,49 +177,36 @@ func dndToggleRun(cmd *cobra.Command, args []string) error {
 }
 
 func dndStatusRun(cmd *cobra.Command, args []string) error {
-	state, err := store.LoadSharedState()
+	client, err := ipc.NewClient()
 	if err != nil {
 		if !dndOpts.quiet {
-			fmt.Fprintf(os.Stderr, "Failed to load state: %v\n", err)
+			fmt.Fprintf(os.Stderr, "Failed to create IPC client: %v\n", err)
+		}
+		return err
+	}
+
+	enabled, err := client.GetDnD()
+	if err != nil {
+		if !dndOpts.quiet {
+			fmt.Fprintf(os.Stderr, "Failed to get DnD status: %v\n", err)
 		}
 		return err
 	}
 
 	if !dndOpts.quiet {
-		if state.DnDEnabled {
+		if enabled {
 			fmt.Println("Do Not Disturb: enabled")
 		} else {
 			fmt.Println("Do Not Disturb: disabled")
 		}
-
-		// Show enhanced transition info if available
-		if state.DnDLastTransition != nil {
-			t := state.DnDLastTransition
-			fmt.Printf("  Last change: %s\n", formatTransitionTime(t.Timestamp))
-			fmt.Printf("  Trigger: %s\n", t.Trigger)
-			if t.Reason != "" {
-				fmt.Printf("  Reason: %s\n", t.Reason)
-			}
-			if t.Source != "" {
-				fmt.Printf("  Source: %s\n", t.Source)
-			}
-			if t.RuleName != "" {
-				fmt.Printf("  Rule: %s\n", t.RuleName)
-			}
-		} else if state.DnDEnabledBy != "" {
-			// Fallback to legacy field
-			fmt.Printf("  Enabled by: %s\n", state.DnDEnabledBy)
+		if !client.IsRunning() {
+			fmt.Println("  (daemon not running)")
 		}
 	}
 
 	// Exit code: 0=off, 1=on
-	if state.DnDEnabled {
+	if enabled {
 		os.Exit(1)
 	}
 	return nil
-}
-
-// formatTransitionTime formats a unix timestamp as a human-readable relative time.
-func formatTransitionTime(timestamp int64) string {
-	return humanize.Time(time.Unix(timestamp, 0))
 }

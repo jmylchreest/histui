@@ -3,7 +3,6 @@ package input
 
 import (
 	"context"
-	"os/exec"
 	"strings"
 
 	"github.com/godbus/dbus/v5"
@@ -13,7 +12,7 @@ import (
 
 // InputAdapter fetches notifications from a source.
 type InputAdapter interface {
-	// Name returns the adapter identifier (e.g., "dunst", "stdin").
+	// Name returns the adapter identifier (e.g., "histuid", "stdin").
 	Name() string
 
 	// Import fetches notifications from the source.
@@ -33,8 +32,6 @@ func DetectDaemon() string {
 		switch {
 		case strings.Contains(serverLower, "histuid"):
 			return "histuid"
-		case strings.Contains(serverLower, "dunst"):
-			return "dunst"
 		case strings.Contains(serverLower, "mako"):
 			return "mako"
 		case strings.Contains(serverLower, "swaync"):
@@ -42,11 +39,6 @@ func DetectDaemon() string {
 		}
 		// Return as-is for unknown servers
 		return serverLower
-	}
-
-	// Fallback: check for dunstctl in PATH
-	if _, err := exec.LookPath("dunstctl"); err == nil {
-		return "dunst"
 	}
 
 	return ""
@@ -83,10 +75,8 @@ func NewAdapter(source string) (InputAdapter, error) {
 	}
 
 	switch source {
-	case "histuid":
+	case "histuid", "":
 		return NewHistuidAdapter(""), nil
-	case "dunst":
-		return NewDunstAdapter(), nil
 	case "stdin":
 		return NewStdinAdapter(), nil
 	default:

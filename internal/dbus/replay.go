@@ -6,7 +6,6 @@ import (
 	"github.com/godbus/dbus/v5"
 
 	"github.com/jmylchreest/histui/internal/model"
-	"github.com/jmylchreest/histui/internal/store"
 )
 
 // ReplayHints are custom hints added to replayed notifications.
@@ -19,24 +18,31 @@ const (
 	HintOriginalTimestamp = "x-histui-original-timestamp"
 )
 
+// ImageLoader loads images for notifications.
+// This interface abstracts the image storage to allow different backends.
+type ImageLoader interface {
+	// LoadAllImages returns all images for a notification as a map of ref_type -> data.
+	LoadAllImages(histuiID string) (map[string][]byte, error)
+}
+
 // Replayer sends notifications via D-Bus to the active notification daemon.
 // This works standalone - it doesn't require histuid to be running.
 type Replayer struct {
-	conn       *dbus.Conn
-	imageStore *store.ImageStore
+	conn        *dbus.Conn
+	imageLoader ImageLoader
 }
 
 // NewReplayer creates a new Replayer.
-// If imageStore is provided, images will be included in replayed notifications.
-func NewReplayer(imageStore *store.ImageStore) (*Replayer, error) {
+// If imageLoader is provided, images will be included in replayed notifications.
+func NewReplayer(imageLoader ImageLoader) (*Replayer, error) {
 	conn, err := dbus.SessionBus()
 	if err != nil {
 		return nil, fmt.Errorf("failed to connect to session bus: %w", err)
 	}
 
 	return &Replayer{
-		conn:       conn,
-		imageStore: imageStore,
+		conn:        conn,
+		imageLoader: imageLoader,
 	}, nil
 }
 
@@ -52,9 +58,9 @@ func (r *Replayer) Replay(n *model.Notification) (uint32, error) {
 	hints[HintOriginalID] = dbus.MakeVariant(n.HistuiID)
 	hints[HintOriginalTimestamp] = dbus.MakeVariant(n.Timestamp)
 
-	// Try to load images from image store
-	if r.imageStore != nil && len(n.HistuiImageRefs) > 0 {
-		images, err := r.imageStore.LoadAll(n.HistuiID, n.HistuiImageRefs)
+	// Try to load images from image loader
+	if r.imageLoader != nil {
+		images, err := r.imageLoader.LoadAllImages(n.HistuiID)
 		if err == nil {
 			// Include as custom hints (PNG format)
 			for ref, data := range images {

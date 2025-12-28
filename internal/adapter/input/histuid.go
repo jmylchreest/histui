@@ -1,29 +1,22 @@
 package input
 
 import (
-	"bufio"
 	"context"
-	"encoding/json"
-	"os"
-	"path/filepath"
 	"sort"
 
+	"github.com/jmylchreest/histui/internal/db"
 	"github.com/jmylchreest/histui/internal/model"
 )
 
-// HistuidAdapter fetches notifications from histuid's native history file.
+// HistuidAdapter fetches notifications from histuid's SQLite database.
 type HistuidAdapter struct {
-	historyPath string
+	dbPath string
 }
 
 // NewHistuidAdapter creates a new HistuidAdapter.
-// If historyPath is empty, uses the default location.
-func NewHistuidAdapter(historyPath string) *HistuidAdapter {
-	if historyPath == "" {
-		homeDir, _ := os.UserHomeDir()
-		historyPath = filepath.Join(homeDir, ".local", "share", "histui", "history.jsonl")
-	}
-	return &HistuidAdapter{historyPath: historyPath}
+// If dbPath is empty, uses the default database location.
+func NewHistuidAdapter(dbPath string) *HistuidAdapter {
+	return &HistuidAdapter{dbPath: dbPath}
 }
 
 // Name returns the adapter identifier.
@@ -31,65 +24,23 @@ func (a *HistuidAdapter) Name() string {
 	return "histuid"
 }
 
-// Import fetches all notifications from the history file.
+// Import fetches all notifications from the database.
 func (a *HistuidAdapter) Import(ctx context.Context) ([]model.Notification, error) {
-	file, err := os.Open(a.historyPath)
+	database, err := db.Open(a.dbPath)
 	if err != nil {
-		if os.IsNotExist(err) {
-			return nil, nil // No history yet
-		}
 		return nil, &AdapterError{
 			Source:  "histuid",
-			Message: "failed to open history file",
+			Message: "failed to open database",
 			Err:     err,
 		}
 	}
-	defer func() { _ = file.Close() }()
+	defer database.Close()
 
-	var notifications []model.Notification
-	scanner := bufio.NewScanner(file)
-	// Increase buffer size for long lines
-	scanner.Buffer(make([]byte, 64*1024), 1024*1024)
-
-	for scanner.Scan() {
-		select {
-		case <-ctx.Done():
-			return notifications, ctx.Err()
-		default:
-		}
-
-		line := scanner.Bytes()
-		if len(line) == 0 {
-			continue
-		}
-
-		// Check if this is a schema header line (not a notification)
-		var header struct {
-			SchemaVersion int `json:"histui_schema_version"`
-		}
-		if json.Unmarshal(line, &header) == nil && header.SchemaVersion > 0 {
-			// Skip schema header lines
-			continue
-		}
-
-		var n model.Notification
-		if err := json.Unmarshal(line, &n); err != nil {
-			// Skip malformed lines
-			continue
-		}
-
-		// Skip entries without a valid histui_id (not real notifications)
-		if n.HistuiID == "" {
-			continue
-		}
-
-		notifications = append(notifications, n)
-	}
-
-	if err := scanner.Err(); err != nil {
-		return notifications, &AdapterError{
+	notifications, err := database.All()
+	if err != nil {
+		return nil, &AdapterError{
 			Source:  "histuid",
-			Message: "error reading history file",
+			Message: "failed to query database",
 			Err:     err,
 		}
 	}

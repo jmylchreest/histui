@@ -4,7 +4,6 @@ import (
 	"github.com/spf13/cobra"
 
 	"github.com/jmylchreest/histui/internal/adapter/input"
-	"github.com/jmylchreest/histui/internal/config"
 	"github.com/jmylchreest/histui/internal/tui"
 )
 
@@ -22,7 +21,6 @@ The TUI provides:
   - Search/filter functionality
   - Detail view with full notification content
   - Copy to clipboard support
-  - Real-time updates (when persistence is enabled)
 
 Key bindings:
   j/k, ↑/↓    Navigate list
@@ -31,7 +29,7 @@ Key bindings:
   s           Copy summary to clipboard
   /           Search notifications
   d           Delete notification
-  r           Refresh from source
+  r           Refresh from database
   ?           Show help
   q           Quit`,
 	RunE: runTUI,
@@ -41,7 +39,7 @@ func init() {
 	rootCmd.AddCommand(tuiCmd)
 
 	tuiCmd.Flags().StringVar(&tuiOpts.source, "source", "",
-		"Notification source (dunst, stdin; auto-detects if empty)")
+		"Notification source (histuid, stdin; auto-detects if empty)")
 }
 
 func runTUI(cmd *cobra.Command, args []string) error {
@@ -60,16 +58,9 @@ func runTUI(cmd *cobra.Command, args []string) error {
 		}
 	}
 
-	// Get persistence path for file watching (use custom or default)
-	persistPath := globalOpts.historyFile
-	if persistPath == "" {
-		persistPath = config.HistoryPath()
-	}
-
 	return tui.Run(tui.RunOptions{
-		Config:      getConfig(),
-		Store:       getStore(),
-		Adapter:     adapter,
-		PersistPath: persistPath,
+		Config:  getConfig(),
+		DB:      getDB(),
+		Adapter: adapter,
 	})
 }

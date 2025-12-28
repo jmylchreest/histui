@@ -185,7 +185,7 @@ func (m *Manager) Start(ctx context.Context) error {
 func (m *Manager) Stop() {
 	m.stopOnce.Do(func() {
 		close(m.stopCh)
-		m.CloseAll()
+		m.CloseAll(dbus.CloseReasonUndefined)
 
 		// Stop icon aliases watcher
 		if m.aliasesWatcher != nil {
@@ -390,7 +390,7 @@ func (m *Manager) showPopupLocked(notification *dbus.DBusNotification, dbusID ui
 
 	popup.OnCloseAll(func() {
 		// Run outside lock to avoid deadlock
-		go m.CloseAll()
+		go m.CloseAll(dbus.CloseReasonDismissed)
 	})
 
 	// Calculate expiration time
@@ -648,7 +648,8 @@ func (m *Manager) Close(dbusID uint32, reason dbus.CloseReason) {
 }
 
 // CloseAll closes all popups and clears the queue.
-func (m *Manager) CloseAll() {
+// Returns the number of popups closed.
+func (m *Manager) CloseAll(reason dbus.CloseReason) int {
 	m.mu.Lock()
 	popups := make([]*PopupState, 0, len(m.popups))
 	for _, state := range m.popups {
@@ -668,9 +669,11 @@ func (m *Manager) CloseAll() {
 		state.Popup.Close()
 		state.Popup = nil // Help GC
 		if m.onClose != nil {
-			m.onClose(state.DBusID, dbus.CloseReasonDismissed)
+			m.onClose(state.DBusID, reason)
 		}
 	}
+
+	return len(popups)
 }
 
 // showNextQueued displays the next notification from the queue if space is available.

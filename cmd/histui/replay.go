@@ -16,7 +16,6 @@ import (
 	"github.com/jmylchreest/histui/internal/core"
 	"github.com/jmylchreest/histui/internal/dbus"
 	"github.com/jmylchreest/histui/internal/model"
-	"github.com/jmylchreest/histui/internal/store"
 )
 
 var replayOpts struct {
@@ -168,13 +167,8 @@ func runReplay(cmd *cobra.Command, args []string) error {
 		return fmt.Errorf("no notifications found")
 	}
 
-	// Create replayer
-	var imageStore *store.ImageStore
-	if imagePath, err := store.DefaultImageStorePath(); err == nil {
-		imageStore, _ = store.NewImageStore(imagePath)
-	}
-
-	replayer, err := dbus.NewReplayer(imageStore)
+	// Create replayer using database for images
+	replayer, err := dbus.NewReplayer(getDB())
 	if err != nil {
 		return fmt.Errorf("failed to create replayer: %w", err)
 	}
