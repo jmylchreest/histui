@@ -766,9 +766,9 @@ func (m Model) renderPreviewPanel(n model.Notification) string {
 	const imgCols = 10
 	const imgRows = 5
 	const spacing = 2
-	const headerTextWidth = 30                                  // Text width next to image
+	const headerTextWidth = 30                                    // Text width next to image
 	const panelContentWidth = imgCols + spacing + headerTextWidth // Total content width
-	const panelWidth = panelContentWidth + 4                    // +4 for border and padding
+	const panelWidth = panelContentWidth + 4                      // +4 for border and padding
 
 	// Styles
 	borderStyle := lipgloss.NewStyle().
@@ -917,9 +917,9 @@ func renderImagePlaceholder() string {
 		"▀▀▀▀▀▀▀▀▀▀",
 	}
 
-	var result []string
-	for _, line := range lines {
-		result = append(result, dimStyle.Render(line))
+	result := make([]string, len(lines))
+	for i, line := range lines {
+		result[i] = dimStyle.Render(line)
 	}
 	return strings.Join(result, "\n")
 }
