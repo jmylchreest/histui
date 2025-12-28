@@ -62,11 +62,26 @@ func (a *HistuidAdapter) Import(ctx context.Context) ([]model.Notification, erro
 			continue
 		}
 
+		// Check if this is a schema header line (not a notification)
+		var header struct {
+			SchemaVersion int `json:"histui_schema_version"`
+		}
+		if json.Unmarshal(line, &header) == nil && header.SchemaVersion > 0 {
+			// Skip schema header lines
+			continue
+		}
+
 		var n model.Notification
 		if err := json.Unmarshal(line, &n); err != nil {
 			// Skip malformed lines
 			continue
 		}
+
+		// Skip entries without a valid histui_id (not real notifications)
+		if n.HistuiID == "" {
+			continue
+		}
+
 		notifications = append(notifications, n)
 	}
 
