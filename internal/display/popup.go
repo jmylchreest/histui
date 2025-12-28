@@ -414,7 +414,10 @@ func (p *Popup) buildIcon(elem layout.LayoutElement) gtk.Widgetter {
 			return createNerdLabel(getNerdSymbol())
 		}
 		p.logger.Debug("loaded icon from file", "path", iconName, "width", pixbuf.Width(), "height", pixbuf.Height())
-		p.iconImage.SetFromPixbuf(pixbuf) //nolint:staticcheck // TODO: migrate to SetFromPaintable when API stabilizes
+		texture := gdk.NewTextureForPixbuf(pixbuf)
+		if texture != nil {
+			p.iconImage.SetFromPaintable(texture)
+		}
 		return p.iconImage
 	}
 
@@ -430,7 +433,10 @@ func (p *Popup) buildIcon(elem layout.LayoutElement) gtk.Widgetter {
 			return createNerdLabel(getNerdSymbol())
 		}
 		p.logger.Debug("loaded icon from file URI", "path", path, "width", pixbuf.Width(), "height", pixbuf.Height())
-		p.iconImage.SetFromPixbuf(pixbuf) //nolint:staticcheck // TODO: migrate to SetFromPaintable when API stabilizes
+		texture := gdk.NewTextureForPixbuf(pixbuf)
+		if texture != nil {
+			p.iconImage.SetFromPaintable(texture)
+		}
 		return p.iconImage
 	}
 

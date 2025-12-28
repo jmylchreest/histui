@@ -4,7 +4,6 @@ import (
 	"encoding/json"
 	"os"
 	"path/filepath"
-	"slices"
 )
 
 // TombstoneFile manages persistence of tombstone hashes.
@@ -55,20 +54,4 @@ func (t *TombstoneFile) Save(hashes []string) error {
 	}
 
 	return os.WriteFile(t.path, data, 0600)
-}
-
-// Append adds a hash to the file.
-func (t *TombstoneFile) Append(hash string) error {
-	hashes, err := t.Load()
-	if err != nil {
-		return err
-	}
-
-	// Check if already exists
-	if slices.Contains(hashes, hash) {
-		return nil
-	}
-
-	hashes = append(hashes, hash)
-	return t.Save(hashes)
 }

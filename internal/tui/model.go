@@ -2,6 +2,7 @@
 package tui
 
 import (
+	"bytes"
 	"context"
 	"encoding/json"
 	"fmt"
@@ -10,6 +11,7 @@ import (
 	"strings"
 	"time"
 
+	"github.com/blacktop/go-termimg"
 	"github.com/charmbracelet/bubbles/help"
 	"github.com/charmbracelet/bubbles/key"
 	"github.com/charmbracelet/bubbles/list"
@@ -59,7 +61,8 @@ type Model struct {
 	width         int
 	height        int
 	ready         bool
-	helpPage      int // 0 = keybindings, 1 = filter reference
+	helpPage      int  // 0 = keybindings, 1 = filter reference
+	previewActive bool // Show preview panel overlay
 
 	// Key bindings
 	keys KeyMap
@@ -368,6 +371,12 @@ func (m Model) handleKey(msg tea.KeyMsg) (tea.Model, tea.Cmd) {
 
 // handleListKey handles keys in list mode.
 func (m Model) handleListKey(msg tea.KeyMsg) (tea.Model, tea.Cmd) {
+	// Close preview panel with esc
+	if m.previewActive && key.Matches(msg, m.keys.Back) {
+		m.previewActive = false
+		return m, nil
+	}
+
 	switch {
 	case key.Matches(msg, m.keys.Enter):
 		if item, ok := m.list.SelectedItem().(notificationItem); ok {
@@ -498,6 +507,10 @@ func (m Model) handleListKey(msg tea.KeyMsg) (tea.Model, tea.Cmd) {
 		return m, func() tea.Msg {
 			return statusMsg{text: "Hiding dismissed notifications", isErr: false}
 		}
+
+	case key.Matches(msg, m.keys.Preview):
+		m.previewActive = !m.previewActive
+		return m, nil
 
 	case key.Matches(msg, m.keys.Search):
 		// Reset search when entering search mode
@@ -739,6 +752,157 @@ func (m Model) renderDetail(n model.Notification) string {
 	return s
 }
 
+// renderPreviewPanel renders the floating preview panel for the selected notification.
+func (m Model) renderPreviewPanel(n model.Notification) string {
+	// Panel dimensions - roughly 40 cols wide to fit in top-right
+	panelWidth := 38
+
+	// Styles
+	borderStyle := lipgloss.NewStyle().
+		Border(lipgloss.RoundedBorder()).
+		BorderForeground(lipgloss.Color("10")).
+		Padding(0, 1).
+		Width(panelWidth)
+
+	headerStyle := lipgloss.NewStyle().
+		Bold(true).
+		Foreground(lipgloss.Color("12"))
+
+	labelStyle := lipgloss.NewStyle().
+		Foreground(lipgloss.Color("8"))
+
+	dimStyle := lipgloss.NewStyle().
+		Foreground(lipgloss.Color("8"))
+
+	// Build content
+	var lines []string
+
+	// Image or placeholder (8 cols wide, 4 rows tall for square appearance)
+	imageStr := m.renderPreviewImage(n)
+	lines = append(lines, imageStr)
+	lines = append(lines, "") // spacing after image
+
+	// Title (truncated to fit)
+	maxTitleLen := panelWidth - 4
+	title := n.Summary
+	if len(title) > maxTitleLen {
+		title = title[:maxTitleLen-3] + "..."
+	}
+	lines = append(lines, headerStyle.Render(title))
+
+	// App and time on same line
+	meta := n.AppName + " " + dimStyle.Render("|") + " " + n.RelativeTime()
+	if n.Category != "" {
+		meta += " " + dimStyle.Render("|") + " " + n.Category
+	}
+	if len(meta) > panelWidth-4 {
+		meta = meta[:panelWidth-7] + "..."
+	}
+	lines = append(lines, labelStyle.Render(meta))
+
+	lines = append(lines, "") // spacing
+
+	// Body (wrapped and truncated)
+	body := strings.Join(strings.Fields(n.Body), " ")
+	maxBodyLen := (panelWidth - 4) * 4 // ~4 lines of body
+	if len(body) > maxBodyLen {
+		body = body[:maxBodyLen-3] + "..."
+	}
+	// Wrap body to panel width
+	bodyLines := wrapText(body, panelWidth-4)
+	if len(bodyLines) > 4 {
+		bodyLines = bodyLines[:4]
+		if len(bodyLines[3]) > 3 {
+			bodyLines[3] = bodyLines[3][:len(bodyLines[3])-3] + "..."
+		}
+	}
+	for _, bl := range bodyLines {
+		lines = append(lines, bl)
+	}
+
+	lines = append(lines, "") // spacing before keybinds
+
+	// Keybinds hint
+	keyStyle := lipgloss.NewStyle().Foreground(lipgloss.Color("10"))
+	keybindHint := keyStyle.Render("p") + " close  " +
+		keyStyle.Render("esc") + " close  " +
+		keyStyle.Render("enter") + " details"
+	lines = append(lines, dimStyle.Render(keybindHint))
+
+	content := strings.Join(lines, "\n")
+	return borderStyle.Render(content)
+}
+
+// renderPreviewImage renders the notification image or a placeholder.
+func (m Model) renderPreviewImage(n model.Notification) string {
+	// Try to render image from IconPath or ImageData
+	// Terminal image dimensions: 8 cols x 4 rows ≈ 32x32 pixels (visually square)
+	const imgCols = 8
+	const imgRows = 4
+
+	var img *termimg.Image
+	var err error
+
+	// Try IconPath first
+	if n.IconPath != "" {
+		img, err = termimg.Open(n.IconPath)
+	}
+
+	// Fall back to ImageData if available
+	if (err != nil || img == nil) && n.Extensions != nil && len(n.Extensions.ImageData) > 0 {
+		img, err = termimg.From(bytes.NewReader(n.Extensions.ImageData))
+	}
+
+	// If we have an image, render it
+	if err == nil && img != nil {
+		rendered, renderErr := img.Width(imgCols).Height(imgRows).Render()
+		if renderErr == nil && rendered != "" {
+			return rendered
+		}
+	}
+
+	// Fallback: render placeholder
+	return renderImagePlaceholder()
+}
+
+// renderImagePlaceholder renders a square placeholder box with an X.
+func renderImagePlaceholder() string {
+	// 8 cols x 4 rows = visually square placeholder
+	// ┌──────┐
+	// │  ╲╱  │
+	// │  ╱╲  │
+	// └──────┘
+	return "┌──────┐\n│  ╲╱  │\n│  ╱╲  │\n└──────┘"
+}
+
+// wrapText wraps text to the specified width.
+func wrapText(text string, width int) []string {
+	if width <= 0 {
+		return []string{text}
+	}
+
+	var lines []string
+	words := strings.Fields(text)
+	if len(words) == 0 {
+		return lines
+	}
+
+	currentLine := words[0]
+	for _, word := range words[1:] {
+		if len(currentLine)+1+len(word) <= width {
+			currentLine += " " + word
+		} else {
+			lines = append(lines, currentLine)
+			currentLine = word
+		}
+	}
+	if currentLine != "" {
+		lines = append(lines, currentLine)
+	}
+
+	return lines
+}
+
 // copyToClipboard copies text to the system clipboard.
 func (m Model) copyToClipboard(text string) tea.Cmd {
 	return func() tea.Msg {
@@ -783,7 +947,77 @@ func (m Model) viewList() string {
 		s += "\n" + m.buildKeybindBar(m.width, "list")
 	}
 
+	// Overlay preview panel if active
+	if m.previewActive {
+		if item, ok := m.list.SelectedItem().(notificationItem); ok {
+			panel := m.renderPreviewPanel(item.notification)
+			// Place panel in top-right corner
+			s = m.overlayPanel(s, panel)
+		}
+	}
+
 	return s
+}
+
+// overlayPanel overlays the panel on top of the base content, positioned at top-right.
+func (m Model) overlayPanel(base, panel string) string {
+	baseLines := strings.Split(base, "\n")
+	panelLines := strings.Split(panel, "\n")
+
+	// Calculate panel width (max line length in panel)
+	panelWidth := 0
+	for _, line := range panelLines {
+		lineLen := lipgloss.Width(line)
+		if lineLen > panelWidth {
+			panelWidth = lineLen
+		}
+	}
+
+	// Position: top-right with 1 char padding from right edge
+	startCol := m.width - panelWidth - 1
+	if startCol < 0 {
+		startCol = 0
+	}
+	startRow := 1 // Start 1 row from top
+
+	// Overlay panel onto base
+	for i, panelLine := range panelLines {
+		row := startRow + i
+		if row >= len(baseLines) {
+			break
+		}
+
+		baseLine := baseLines[row]
+		baseLineWidth := lipgloss.Width(baseLine)
+
+		// Build new line: base content up to panel start, then panel, then rest of base
+		var newLine string
+
+		if startCol <= baseLineWidth {
+			// Truncate base line at panel start position
+			newLine = truncateToWidth(baseLine, startCol)
+		} else {
+			// Pad base line to reach panel start position
+			newLine = baseLine + strings.Repeat(" ", startCol-baseLineWidth)
+		}
+
+		newLine += panelLine
+
+		baseLines[row] = newLine
+	}
+
+	return strings.Join(baseLines, "\n")
+}
+
+// truncateToWidth truncates a string (with ANSI codes) to the specified display width.
+func truncateToWidth(s string, width int) string {
+	if width <= 0 {
+		return ""
+	}
+
+	// Use lipgloss to handle ANSI-aware truncation
+	style := lipgloss.NewStyle().MaxWidth(width)
+	return style.Render(s)
 }
 
 func (m Model) viewDetail() string {
@@ -871,12 +1105,13 @@ func (m Model) viewHelpKeybindings() string {
 
 	s += sectionStyle.Render("Actions") + "\n"
 	s += keyStyle.Render("  enter") + "        View details\n"
+	s += keyStyle.Render("  p") + "            Preview panel\n"
 	s += keyStyle.Render("  c") + "            Copy body\n"
 	s += keyStyle.Render("  s") + "            Copy summary\n"
 	s += keyStyle.Render("  C") + "            Copy all as JSON\n"
 	s += keyStyle.Render("  alt+c") + "        Copy all as YAML\n"
 	s += keyStyle.Render("  d") + "            Dismiss/undismiss\n"
-	s += keyStyle.Render("  ctrl+d") + "       Dismiss all visible\n"
+	s += keyStyle.Render("  alt+d") + "        Dismiss all visible\n"
 	s += keyStyle.Render("  D") + "            Delete permanently\n"
 	s += keyStyle.Render("  a") + "            Toggle dismissed\n"
 	s += keyStyle.Render("  /") + "            Search/filter\n"
@@ -1001,14 +1236,16 @@ func (m Model) buildKeybindBar(width int, mode string) string {
 		binds = []keybind{
 			{"q", "quit", 1},
 			{"enter", "view", 2},
-			{"?", "help", 3},
-			{"/", "search", 4},
-			{"d", "dismiss", 5},
-			{"a", "all", 6},
-			{"c", "copy", 7},
-			{"s", "summary", 8},
-			{"D", "delete", 9},
-			{"r", "refresh", 10},
+			{"p", "preview", 3},
+			{"?", "help", 4},
+			{"/", "search", 5},
+			{"d", "dismiss", 6},
+			{"alt+d", "dismiss all", 7},
+			{"a", "all", 8},
+			{"c", "copy", 9},
+			{"s", "summary", 10},
+			{"D", "delete", 11},
+			{"r", "refresh", 12},
 		}
 	case "detail":
 		binds = []keybind{

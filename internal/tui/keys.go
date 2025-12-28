@@ -27,6 +27,7 @@ type KeyMap struct {
 	Search          key.Binding
 	Refresh         key.Binding
 	ToggleDismissed key.Binding
+	Preview         key.Binding
 
 	// Global
 	Quit key.Binding
@@ -44,7 +45,7 @@ func (k KeyMap) FullHelp() [][]key.Binding {
 		{k.Up, k.Down, k.PageUp, k.PageDown},
 		{k.Enter, k.Back, k.Copy, k.CopySummary},
 		{k.Search, k.Refresh, k.Dismiss, k.DismissAll, k.HardDelete},
-		{k.ToggleDismissed, k.Help, k.Quit},
+		{k.ToggleDismissed, k.Preview, k.Help, k.Quit},
 	}
 }
 
@@ -104,8 +105,8 @@ func DefaultKeyMap() KeyMap {
 			key.WithHelp("d", "dismiss"),
 		),
 		DismissAll: key.NewBinding(
-			key.WithKeys("ctrl+d"),
-			key.WithHelp("ctrl+d", "dismiss all visible"),
+			key.WithKeys("alt+d"),
+			key.WithHelp("alt+d", "dismiss all visible"),
 		),
 		HardDelete: key.NewBinding(
 			key.WithKeys("D"),
@@ -122,6 +123,10 @@ func DefaultKeyMap() KeyMap {
 		ToggleDismissed: key.NewBinding(
 			key.WithKeys("a"),
 			key.WithHelp("a", "toggle dismissed"),
+		),
+		Preview: key.NewBinding(
+			key.WithKeys("p"),
+			key.WithHelp("p", "preview"),
 		),
 		Quit: key.NewBinding(
 			key.WithKeys("q", "ctrl+c"),

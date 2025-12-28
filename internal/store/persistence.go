@@ -6,6 +6,7 @@ import (
 	"errors"
 	"fmt"
 	"io"
+	"log/slog"
 	"os"
 	"path/filepath"
 	"sync"
@@ -46,10 +47,13 @@ type schemaHeader struct {
 
 // JSONLPersistence implements Persistence using JSONL files.
 type JSONLPersistence struct {
-	mu     sync.RWMutex
-	path   string
-	file   *os.File
-	closed bool
+	mu             sync.RWMutex
+	path           string
+	file           *os.File
+	closed         bool
+	needsRepair    bool  // true if corruption was detected during Load
+	malformedCount int   // number of malformed lines found
+	lastValid      []model.Notification // cached valid notifications from last Load
 }
 
 // NewJSONLPersistence creates a new JSONLPersistence.
@@ -129,6 +133,9 @@ func (p *JSONLPersistence) Load() ([]model.Notification, error) {
 	const maxLineSize = 1024 * 1024 // 1MB
 	scanner.Buffer(make([]byte, 64*1024), maxLineSize)
 
+	// Reset corruption tracking
+	malformedCount := 0
+
 	lineNum := 0
 	for scanner.Scan() {
 		lineNum++
@@ -147,6 +154,8 @@ func (p *JSONLPersistence) Load() ([]model.Notification, error) {
 				var n model.Notification
 				if err := json.Unmarshal(line, &n); err == nil && n.HistuiID != "" {
 					notifications = append(notifications, n)
+				} else {
+					malformedCount++
 				}
 				continue
 			}
@@ -161,7 +170,8 @@ func (p *JSONLPersistence) Load() ([]model.Notification, error) {
 		// Parse notification
 		var n model.Notification
 		if err := json.Unmarshal(line, &n); err != nil {
-			// Log and skip malformed lines
+			// Track malformed lines for lazy repair
+			malformedCount++
 			continue
 		}
 
@@ -173,6 +183,11 @@ func (p *JSONLPersistence) Load() ([]model.Notification, error) {
 	if err := scanner.Err(); err != nil {
 		return notifications, fmt.Errorf("error reading file: %w", err)
 	}
+
+	// Track corruption state for lazy repair
+	p.malformedCount = malformedCount
+	p.needsRepair = malformedCount > 0
+	p.lastValid = notifications
 
 	// Seek back to end for appending
 	if _, err := p.file.Seek(0, io.SeekEnd); err != nil {
@@ -189,6 +204,29 @@ func (p *JSONLPersistence) Append(n model.Notification) error {
 
 	if p.closed || p.file == nil {
 		return ErrPersistenceClosed
+	}
+
+	// Lazy repair: if corruption was detected, rewrite the entire file
+	if p.needsRepair {
+		slog.Warn("repairing corrupted history file",
+			"path", p.path,
+			"malformed_lines", p.malformedCount,
+			"valid_notifications", len(p.lastValid),
+		)
+
+		// Combine existing valid notifications with the new one
+		allNotifications := append(p.lastValid, n)
+
+		if err := p.rewriteUnlocked(allNotifications); err != nil {
+			return fmt.Errorf("lazy repair failed: %w", err)
+		}
+
+		// Clear repair state
+		p.needsRepair = false
+		p.malformedCount = 0
+		p.lastValid = allNotifications
+
+		return nil
 	}
 
 	data, err := json.Marshal(n)
@@ -234,6 +272,12 @@ func (p *JSONLPersistence) Rewrite(ns []model.Notification) error {
 		return ErrPersistenceClosed
 	}
 
+	return p.rewriteUnlocked(ns)
+}
+
+// rewriteUnlocked performs the actual rewrite without acquiring the lock.
+// Caller must hold p.mu.
+func (p *JSONLPersistence) rewriteUnlocked(ns []model.Notification) error {
 	// Close current file
 	if p.file != nil {
 		if err := p.file.Close(); err != nil {
