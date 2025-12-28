@@ -7,6 +7,7 @@ import (
 	"io"
 	"net/http"
 	"os"
+	"sort"
 	"strings"
 	"time"
 )
@@ -407,11 +408,12 @@ func (c *OpenRouterClient) GenerateKnowledgeBase(glyphs map[string]GlyphInfo) (*
 	// Filter to app-related glyphs
 	appGlyphs := filterAppGlyphs(glyphs, c.Config.Filter)
 
-	// Get all glyph names
+	// Get all glyph names (sorted for deterministic batching and cache hits)
 	var glyphNames []string
 	for name := range appGlyphs {
 		glyphNames = append(glyphNames, name)
 	}
+	sort.Strings(glyphNames)
 
 	classifyBatch := c.Config.OpenRouter.ClassifyBatchSize
 	appGenBatch := c.Config.OpenRouter.AppGenBatchSize
