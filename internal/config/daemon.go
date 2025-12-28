@@ -2,6 +2,7 @@ package config
 
 import (
 	"fmt"
+	"log/slog"
 	"os"
 	"path/filepath"
 	"reflect"
@@ -12,6 +13,24 @@ import (
 	"github.com/spf13/pflag"
 	"github.com/spf13/viper"
 )
+
+// ParseLogLevel converts a log level string to slog.Level.
+// Supported values: debug, info, warn, error (case-insensitive).
+// Returns slog.LevelInfo for unrecognized values.
+func ParseLogLevel(level string) slog.Level {
+	switch strings.ToLower(strings.TrimSpace(level)) {
+	case "debug":
+		return slog.LevelDebug
+	case "info":
+		return slog.LevelInfo
+	case "warn", "warning":
+		return slog.LevelWarn
+	case "error":
+		return slog.LevelError
+	default:
+		return slog.LevelInfo
+	}
+}
 
 // Duration is a time.Duration that can be unmarshaled from human-readable strings.
 // Supports formats like "5s", "10s", "1m", "1h30m", or integer milliseconds for backwards compatibility.
@@ -67,6 +86,7 @@ func (d Duration) Duration() time.Duration {
 // Loaded from ~/.config/histui/histuid.toml
 // Can be overridden via environment variables (HISTUID_*) or command-line flags.
 type DaemonConfig struct {
+	LogLevel string         `toml:"log_level" mapstructure:"log_level"` // debug, info, warn, error
 	Display  DisplayConfig  `toml:"display" mapstructure:"display"`
 	Timeouts TimeoutConfig  `toml:"timeouts" mapstructure:"timeouts"`
 	Behavior BehaviorConfig `toml:"behavior" mapstructure:"behavior"`
@@ -243,8 +263,11 @@ func setDefaults(v *viper.Viper) {
 	v.SetDefault("mouse.right", string(MouseActionCloseAll))
 
 	// History defaults
-	v.SetDefault("history.max_notifications", 1000) // 0 = unlimited
+	v.SetDefault("history.max_notifications", 500) // 0 = unlimited
 	v.SetDefault("history.store_images", true)
+
+	// Logging defaults
+	v.SetDefault("log_level", "info") // debug, info, warn, error
 }
 
 // stringToDurationHookFunc returns a mapstructure decode hook for Duration.
@@ -330,7 +353,7 @@ func DefaultDaemonConfig() *DaemonConfig {
 			Right:  string(MouseActionCloseAll),
 		},
 		History: HistoryConfig{
-			MaxNotifications: 1000,
+			MaxNotifications: 500,
 			StoreImages:      true,
 		},
 	}

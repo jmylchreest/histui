@@ -623,6 +623,50 @@ func (s *Store) Clear() error {
 	return nil
 }
 
+// Reload clears the in-memory state and reloads from persistence.
+// Use this when the persistence file has been modified externally.
+func (s *Store) Reload() error {
+	s.mu.Lock()
+	// Clear in-memory state only (don't touch persistence)
+	s.notifications = make([]model.Notification, 0)
+	s.index = make(map[string]int)
+	s.hashIndex = make(map[string]int)
+	s.tombstones = make(map[string]bool)
+	s.mu.Unlock()
+
+	// Reload from persistence
+	return s.Hydrate()
+}
+
+// ReloadIfNeeded checks if the persistence file has fewer entries than
+// our in-memory store and reloads if so. This detects external prune/delete
+// operations without reloading after our own writes.
+func (s *Store) ReloadIfNeeded() (bool, error) {
+	if s.persistence == nil {
+		return false, nil
+	}
+
+	// Load from persistence to check count
+	diskNotifications, err := s.persistence.Load()
+	if err != nil {
+		return false, err
+	}
+
+	s.mu.RLock()
+	memoryCount := len(s.notifications)
+	s.mu.RUnlock()
+
+	diskCount := len(diskNotifications)
+
+	// Only reload if disk has fewer entries (external prune/delete)
+	// or if disk has entries we don't have (shouldn't happen, but be safe)
+	if diskCount < memoryCount {
+		return true, s.Reload()
+	}
+
+	return false, nil
+}
+
 // notifyChange sends a change event to all subscribers (non-blocking).
 func (s *Store) notifyChange(event ChangeEvent) {
 	for _, ch := range s.subscribers {

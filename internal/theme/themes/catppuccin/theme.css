@@ -24,8 +24,8 @@ window {
 
 /* Latte (light mode) - applied to :root */
 :root {
-    /* Font configuration */
-    --histui-font-family: inherit;
+    /* Font configuration - serif for a classic look */
+    --histui-font-family: "Noto Serif", "DejaVu Serif", "Liberation Serif", Georgia, serif;
     --histui-font-size: 14px;
 
     /* Catppuccin Latte colors */

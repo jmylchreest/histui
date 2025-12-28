@@ -10,6 +10,7 @@ import (
 	"log/slog"
 	"os"
 	"os/signal"
+	"path/filepath"
 	"strings"
 	"sync/atomic"
 	"syscall"
@@ -55,6 +56,7 @@ func main() {
 	// Define command-line flags using pflag
 	monitorMode := pflag.Bool("monitor", false, "Run in monitor mode (passive, no popups/sounds, works alongside another notification daemon)")
 	showVersion := pflag.Bool("version", false, "Show version and exit")
+	logLevel := pflag.String("log-level", "", "Log level: debug, info, warn, error (default: info)")
 
 	// Config override flags (for testing different display positions)
 	// These are bound to Viper config keys
@@ -77,9 +79,28 @@ func main() {
 		os.Exit(0)
 	}
 
+	// Determine log level: flag > config > default (info)
+	level := slog.LevelInfo
+	if *logLevel != "" {
+		level = config.ParseLogLevel(*logLevel)
+	} else {
+		// Try to read log level from config file
+		v := viper.New()
+		v.SetConfigName("histuid")
+		v.SetConfigType("toml")
+		if configDir, err := os.UserConfigDir(); err == nil {
+			v.AddConfigPath(filepath.Join(configDir, "histui"))
+		}
+		if err := v.ReadInConfig(); err == nil {
+			if cfgLevel := v.GetString("log_level"); cfgLevel != "" {
+				level = config.ParseLogLevel(cfgLevel)
+			}
+		}
+	}
+
 	// Set up structured logging
 	logger := slog.New(slog.NewTextHandler(os.Stderr, &slog.HandlerOptions{
-		Level: slog.LevelDebug,
+		Level: level,
 	}))
 	slog.SetDefault(logger)
 
@@ -602,11 +623,19 @@ func runDaemonMode(logger *slog.Logger) {
 			return
 		}
 
-		// Initialize store watcher for external changes (e.g., histui CLI dismiss)
+		// Initialize store watcher for external changes (e.g., histui CLI prune/dismiss)
 		storeWatcher = daemon.NewStoreWatcher(historyPath, logger)
 		storeWatcher.SetChangeCallback(func() {
-			// Store file changed - check for dismissed notifications
+			// Store file changed - check if we need to reload (external prune/delete)
 			glib.IdleAdd(func() {
+				// Only reload if disk has fewer entries than memory (external prune)
+				reloaded, err := historyStore.ReloadIfNeeded()
+				if err != nil {
+					logger.Warn("failed to check/reload store", "error", err)
+				}
+				if reloaded {
+					logger.Debug("store reloaded due to external changes")
+				}
 				checkForExternalDismissals(historyStore, displayManager, displayState, logger)
 			})
 		})

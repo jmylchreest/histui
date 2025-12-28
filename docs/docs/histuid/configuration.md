@@ -27,6 +27,27 @@ histuid --config /path/to/config.toml
 
 ## Full Reference
 
+### log_level
+
+Controls logging verbosity.
+
+| Value | Description |
+|-------|-------------|
+| `debug` | Verbose debugging output |
+| `info` | Normal operational messages (default) |
+| `warn` | Warnings only |
+| `error` | Errors only |
+
+```toml
+log_level = "info"
+```
+
+**Command-line override:**
+
+```bash
+histuid --log-level debug
+```
+
 ### [display]
 
 Controls notification popup appearance and behavior.
@@ -79,14 +100,14 @@ Controls notification history and retention.
 
 | Key | Type | Default | Description |
 |-----|------|---------|-------------|
-| `max_notifications` | int | 1000 | Maximum notifications to keep (0 = unlimited) |
+| `max_notifications` | int | 500 | Maximum notifications to keep (0 = unlimited) |
 | `store_images` | bool | true | Store notification images for replay |
 
 **Auto-Pruning Behavior:**
 
 The daemon automatically prunes old notifications to stay within limits:
 
-- **Buffer threshold**: Pruning triggers when count exceeds max by 10% (e.g., at 1100 for max 1000)
+- **Buffer threshold**: Pruning triggers when count exceeds max by 10% (e.g., at 550 for max 500)
 - **Debounce**: At most one prune operation every 5 minutes
 - **Cascade cleanup**: Images for pruned notifications are automatically deleted
 - **Startup prune**: A prune runs on daemon startup to clean up any excess
@@ -177,6 +198,9 @@ histuid --volume 0.5
 ## Example Configuration
 
 ```toml
+# Logging: debug, info, warn, error
+log_level = "info"
+
 [display]
 position = "top-right"
 max_visible = 5
@@ -212,7 +236,7 @@ enabled = true
 volume = 80
 
 [history]
-max_notifications = 1000  # 0 = unlimited
+max_notifications = 500   # 0 = unlimited
 store_images = true       # Required for replay with images
 ```
 
