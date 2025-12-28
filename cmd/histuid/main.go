@@ -786,7 +786,8 @@ func runDaemonMode(logger *slog.Logger) {
 	})
 
 	// Run the application
-	status := app.Run(os.Args)
+	// Pass only program name to GTK - we've already parsed our flags with pflag
+	status := app.Run([]string{os.Args[0]})
 
 	// Ensure context is cancelled
 	cancel()
