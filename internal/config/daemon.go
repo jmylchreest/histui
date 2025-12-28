@@ -9,7 +9,6 @@ import (
 	"time"
 
 	"github.com/go-viper/mapstructure/v2"
-	"github.com/pelletier/go-toml/v2"
 	"github.com/spf13/pflag"
 	"github.com/spf13/viper"
 )
@@ -141,11 +140,6 @@ const (
 	ColorSchemeLight  ColorScheme = "light"
 	ColorSchemeDark   ColorScheme = "dark"
 )
-
-// ValidColorSchemes returns all valid color scheme values.
-func ValidColorSchemes() []ColorScheme {
-	return []ColorScheme{ColorSchemeSystem, ColorSchemeLight, ColorSchemeDark}
-}
 
 // DnDConfig contains Do Not Disturb settings.
 type DnDConfig struct {
@@ -448,33 +442,6 @@ func LoadDaemonConfig() (*DaemonConfig, error) {
 	return LoadDaemonConfigWithViper(v)
 }
 
-// SaveDaemonConfig saves the daemon configuration to disk.
-func SaveDaemonConfig(config *DaemonConfig) error {
-	path, err := DaemonConfigPath()
-	if err != nil {
-		return fmt.Errorf("failed to get config path: %w", err)
-	}
-
-	// Ensure directory exists
-	dir := filepath.Dir(path)
-	if err := os.MkdirAll(dir, 0700); err != nil {
-		return fmt.Errorf("failed to create config directory: %w", err)
-	}
-
-	data, err := toml.Marshal(config)
-	if err != nil {
-		return fmt.Errorf("failed to marshal config: %w", err)
-	}
-
-	// Write atomically via temp file
-	tmpPath := path + ".tmp"
-	if err := os.WriteFile(tmpPath, data, 0600); err != nil {
-		return fmt.Errorf("failed to write config file: %w", err)
-	}
-
-	return os.Rename(tmpPath, path)
-}
-
 // Validate checks if the configuration is valid.
 func (c *DaemonConfig) Validate() error {
 	// Validate position
@@ -605,9 +572,4 @@ var globalViper *viper.Viper
 // SetGlobalViper sets the global Viper instance for config watching.
 func SetGlobalViper(v *viper.Viper) {
 	globalViper = v
-}
-
-// GetGlobalViper returns the global Viper instance.
-func GetGlobalViper() *viper.Viper {
-	return globalViper
 }

@@ -105,38 +105,6 @@ func (w *Watcher) Watch(path string) {
 	}
 }
 
-// Unwatch removes a path from the watch list.
-func (w *Watcher) Unwatch(path string) {
-	if path == "" || w.watcher == nil {
-		return
-	}
-
-	absPath, err := filepath.Abs(path)
-	if err != nil {
-		return
-	}
-
-	w.mu.Lock()
-	defer w.mu.Unlock()
-
-	if !w.watchedPaths[absPath] {
-		return
-	}
-	delete(w.watchedPaths, absPath)
-
-	// Decrement directory refcount
-	dir := filepath.Dir(absPath)
-	w.watchedDirs[dir]--
-
-	// If no more files in this directory, stop watching it
-	if w.watchedDirs[dir] <= 0 {
-		delete(w.watchedDirs, dir)
-		if err := w.watcher.Remove(dir); err != nil {
-			w.logger.Debug("failed to remove directory watch", "dir", dir, "error", err)
-		}
-	}
-}
-
 // Start begins watching audio files for changes.
 func (w *Watcher) Start(ctx context.Context) error {
 	if w.watcher == nil {
@@ -236,9 +204,3 @@ func (w *Watcher) handleEvent(event fsnotify.Event) {
 	}
 }
 
-// IsRunning returns whether the watcher is currently running.
-func (w *Watcher) IsRunning() bool {
-	w.mu.RLock()
-	defer w.mu.RUnlock()
-	return w.running
-}

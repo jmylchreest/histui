@@ -146,28 +146,3 @@ func TestGetEmbeddedTemplate(t *testing.T) {
 	}
 }
 
-func TestListEmbeddedTemplates(t *testing.T) {
-	templates := ListEmbeddedTemplates()
-	assert.Contains(t, templates, "default")
-	assert.Contains(t, templates, "compact")
-	assert.Contains(t, templates, "minimal")
-	assert.Contains(t, templates, "detailed")
-}
-
-func TestLoader(t *testing.T) {
-	loader := NewLoader("")
-
-	// Should load embedded default
-	config, err := loader.Load("default")
-	require.NoError(t, err)
-	assert.NotNil(t, config)
-
-	// Should error for unknown
-	_, err = loader.Load("unknown")
-	assert.Error(t, err)
-
-	// Empty name should load default
-	config, err = loader.Load("")
-	require.NoError(t, err)
-	assert.NotNil(t, config)
-}

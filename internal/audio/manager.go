@@ -177,14 +177,9 @@ func (m *Manager) PlayFileWithUrgency(path string, urgency int) error {
 	return m.player.PlayWithUrgency(path, UrgencyLevel(urgency), 0) // 0 = use global volume
 }
 
-// SetVolume sets the playback volume (0.0 to 1.0).
-func (m *Manager) SetVolume(volume float64) {
-	m.player.SetVolume(volume)
-}
-
-// GetVolume returns the current volume.
-func (m *Manager) GetVolume() float64 {
-	return m.player.GetVolume()
+// StopPlayback stops any currently playing sound.
+func (m *Manager) StopPlayback() {
+	m.player.Stop()
 }
 
 // Reload reloads the sound configuration.

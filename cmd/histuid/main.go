@@ -542,6 +542,14 @@ func runDaemonMode(logger *slog.Logger) {
 				if newState.DnDEnabled != sharedState.DnDEnabled {
 					logger.Info("DnD state changed", "enabled", newState.DnDEnabled)
 				}
+				// Check for audio stop request
+				if newState.StopAudioRequestedAt != sharedState.StopAudioRequestedAt &&
+					newState.StopAudioRequestedAt > 0 {
+					logger.Debug("audio stop requested via state file")
+					if audioManager != nil {
+						audioManager.StopPlayback()
+					}
+				}
 				sharedState = newState
 			})
 			if err := stateWatcher.Start(ctx); err != nil {

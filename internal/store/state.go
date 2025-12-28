@@ -68,6 +68,9 @@ type SharedState struct {
 	// Statistics (optional, for waybar)
 	LastNotificationAt int64 `json:"last_notification_at,omitempty"`
 
+	// Audio control
+	StopAudioRequestedAt int64 `json:"stop_audio_requested_at,omitempty"` // Unix timestamp of last stop request
+
 	// Version for compatibility
 	SchemaVersion int `json:"schema_version"` // Currently 2
 }
@@ -211,4 +214,9 @@ func (s *SharedState) ToggleDnD(trigger DnDTrigger, reason, source, ruleName str
 // UpdateLastNotification updates the last notification timestamp.
 func (s *SharedState) UpdateLastNotification() {
 	s.LastNotificationAt = time.Now().Unix()
+}
+
+// RequestStopAudio sets a timestamp to signal histuid to stop audio playback.
+func (s *SharedState) RequestStopAudio() {
+	s.StopAudioRequestedAt = time.Now().UnixNano() // Use nanoseconds for uniqueness
 }

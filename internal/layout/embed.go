@@ -20,8 +20,3 @@ func GetEmbeddedTemplate(name string) (*LayoutConfig, bool) {
 
 	return config, true
 }
-
-// ListEmbeddedTemplates returns the names of all embedded templates.
-func ListEmbeddedTemplates() []string {
-	return theme.ListEmbeddedLayouts()
-}

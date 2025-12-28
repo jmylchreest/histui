@@ -88,13 +88,6 @@ func (p *Player) SetVolume(volume float64) {
 	p.logger.Debug("volume set", "volume", volume)
 }
 
-// GetVolume returns the current volume.
-func (p *Player) GetVolume() float64 {
-	p.mu.Lock()
-	defer p.mu.Unlock()
-	return p.volume
-}
-
 // PlayWithUrgency plays a sound file with the specified urgency level and volume.
 // Critical urgency can interrupt any playing sound.
 // Other urgencies won't play if a sound is already playing.

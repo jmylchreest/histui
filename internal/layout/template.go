@@ -4,8 +4,6 @@ import (
 	"encoding/xml"
 	"fmt"
 	"io"
-	"os"
-	"path/filepath"
 	"strings"
 )
 
@@ -196,45 +194,6 @@ func ParseTemplateString(s string) (*LayoutConfig, error) {
 	return ParseTemplate(strings.NewReader(s))
 }
 
-// LoadTemplate loads a template from file.
-func LoadTemplate(path string) (*LayoutConfig, error) {
-	f, err := os.Open(path)
-	if err != nil {
-		return nil, fmt.Errorf("failed to open template: %w", err)
-	}
-	defer func() { _ = f.Close() }()
-	return ParseTemplate(f)
-}
-
-// Loader handles loading layout templates from various sources.
-type Loader struct {
-	templatesDir string
-}
-
-// NewLoader creates a new template loader.
-func NewLoader(templatesDir string) *Loader {
-	return &Loader{templatesDir: templatesDir}
-}
-
-// Load loads a layout template by name.
-// Checks user directory first, then falls back to embedded default.
-func (l *Loader) Load(name string) (*LayoutConfig, error) {
-	// Check user directory first
-	if l.templatesDir != "" {
-		templatePath := filepath.Join(l.templatesDir, name+".xml")
-		if _, err := os.Stat(templatePath); err == nil {
-			return LoadTemplate(templatePath)
-		}
-	}
-
-	// Fall back to embedded default
-	if name == "default" || name == "" {
-		return DefaultLayout(), nil
-	}
-
-	return nil, fmt.Errorf("layout template not found: %s", name)
-}
-
 // DefaultLayout returns the default notification layout.
 func DefaultLayout() *LayoutConfig {
 	return &LayoutConfig{
@@ -268,43 +227,3 @@ func DefaultLayout() *LayoutConfig {
 	}
 }
 
-// CompactLayout returns a minimal layout without app name or image.
-func CompactLayout() *LayoutConfig {
-	return &LayoutConfig{
-		MinWidth:  250,
-		MaxWidth:  400, // Dynamic width up to 400px
-		MinHeight: 0,   // Dynamic height
-		MaxHeight: 900,
-		Elements: []LayoutElement{
-			{
-				Type: ElementTypeHeader,
-				Children: []LayoutElement{
-					{Type: ElementTypeIcon},
-					{Type: ElementTypeSummary},
-					{Type: ElementTypeStackCount},
-				},
-			},
-			{Type: ElementTypeBody},
-			{Type: ElementTypeProgress},
-			{Type: ElementTypeActions},
-		},
-	}
-}
-
-// DefaultTemplateXML returns the default template as XML string.
-func DefaultTemplateXML() string {
-	return `<popup>
-  <header>
-    <icon />
-    <box orientation="vertical">
-      <summary />
-      <appname />
-    </box>
-    <stack-count />
-  </header>
-  <body />
-  <progress />
-  <image />
-  <actions />
-</popup>`
-}
