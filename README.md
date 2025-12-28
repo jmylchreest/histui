@@ -11,6 +11,8 @@ histui displays desktop notifications with full CSS theming support, stores them
 
 **[Documentation](https://jmylchreest.github.io/histui)** | **[Releases](https://github.com/jmylchreest/histui/releases)**
 
+![histui showcase](assets/showcase/histui.mp4)
+
 ## Features
 
 ### Notification Daemon (histuid)
