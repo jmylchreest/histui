@@ -1,0 +1,8519 @@
+{
+  "version": 1,
+  "generated_at": "2025-12-28T12:04:47Z",
+  "model": "openai/gpt-5.2:online",
+  "icons": {
+    "account": {
+      "type": "category",
+      "glyph": "fa-user_gear",
+      "apps": [
+        {
+          "id": "accountsservice",
+          "confidence": 0.4,
+          "source": "package"
+        },
+        {
+          "id": "gnome-control-center",
+          "confidence": 0.4,
+          "source": "package"
+        }
+      ]
+    },
+    "airplane": {
+      "type": "category",
+      "glyph": "md-airplane_cog",
+      "apps": [
+        {
+          "id": "network-manager",
+          "confidence": 0.55,
+          "source": "package"
+        },
+        {
+          "id": "gnome-control-center",
+          "confidence": 0.5,
+          "source": "package"
+        }
+      ]
+    },
+    "alarm": {
+      "type": "category",
+      "glyph": "md-alarm_off",
+      "apps": [
+        {
+          "id": "gnome-clocks",
+          "confidence": 0.85,
+          "source": "package"
+        },
+        {
+          "id": "org.gnome.Clocks",
+          "confidence": 0.85,
+          "source": "desktop"
+        },
+        {
+          "id": "kclock",
+          "confidence": 0.75,
+          "source": "package"
+        }
+      ]
+    },
+    "alert": {
+      "type": "category",
+      "glyph": "md-alert_box",
+      "apps": [
+        {
+          "id": "notify-send",
+          "confidence": 0.55,
+          "source": "package"
+        },
+        {
+          "id": "zenity",
+          "confidence": 0.5,
+          "source": "package"
+        }
+      ]
+    },
+    "all-inclusive": {
+      "type": "category",
+      "glyph": "md-all_inclusive_box_outline",
+      "apps": [
+        {
+          "id": "gnome-calculator",
+          "confidence": 0.65,
+          "source": "package"
+        },
+        {
+          "id": "org.gnome.Calculator",
+          "confidence": 0.65,
+          "source": "flatpak"
+        },
+        {
+          "id": "kcalc",
+          "confidence": 0.6,
+          "source": "package"
+        }
+      ]
+    },
+    "almalinux": {
+      "type": "app",
+      "glyph": "linux-almalinux",
+      "apps": null
+    },
+    "alpine": {
+      "type": "app",
+      "glyph": "linux-alpine",
+      "apps": null
+    },
+    "android": {
+      "type": "app",
+      "glyph": "md-android",
+      "apps": [
+        {
+          "id": "android-studio",
+          "confidence": 0.7,
+          "source": "package"
+        },
+        {
+          "id": "android-studio",
+          "confidence": 0.7,
+          "source": "desktop"
+        },
+        {
+          "id": "scrcpy",
+          "confidence": 0.75,
+          "source": "package"
+        },
+        {
+          "id": "waydroid",
+          "confidence": 0.65,
+          "source": "package"
+        }
+      ]
+    },
+    "android-messages": {
+      "type": "app",
+      "glyph": "md-android_messages",
+      "apps": null
+    },
+    "android-studio": {
+      "type": "app",
+      "glyph": "md-android_studio",
+      "apps": [
+        {
+          "id": "android-studio",
+          "confidence": 1,
+          "source": "package"
+        },
+        {
+          "id": "android-studio",
+          "confidence": 1,
+          "source": "desktop"
+        },
+        {
+          "id": "com.google.AndroidStudio",
+          "confidence": 0.85,
+          "source": "inferred"
+        }
+      ]
+    },
+    "aosc": {
+      "type": "app",
+      "glyph": "linux-aosc",
+      "apps": null
+    },
+    "apple": {
+      "type": "app",
+      "glyph": "md-apple",
+      "apps": null
+    },
+    "apple-pay": {
+      "type": "app",
+      "glyph": "fa-apple_pay",
+      "apps": null
+    },
+    "apps": {
+      "type": "category",
+      "glyph": "md-apps_box",
+      "apps": [
+        {
+          "id": "org.gnome.Software",
+          "confidence": 0.7,
+          "source": "desktop"
+        },
+        {
+          "id": "org.kde.discover",
+          "confidence": 0.7,
+          "source": "desktop"
+        },
+        {
+          "id": "alacarte",
+          "confidence": 0.6,
+          "source": "package"
+        }
+      ]
+    },
+    "archive": {
+      "type": "category",
+      "glyph": "md-archive_outline",
+      "apps": [
+        {
+          "id": "file-roller",
+          "confidence": 0.85,
+          "source": "package"
+        },
+        {
+          "id": "org.gnome.FileRoller",
+          "confidence": 0.85,
+          "source": "desktop"
+        },
+        {
+          "id": "ark",
+          "confidence": 0.85,
+          "source": "package"
+        },
+        {
+          "id": "org.kde.ark",
+          "confidence": 0.8,
+          "source": "desktop"
+        },
+        {
+          "id": "p7zip",
+          "confidence": 0.7,
+          "source": "package"
+        },
+        {
+          "id": "unzip",
+          "confidence": 0.65,
+          "source": "package"
+        },
+        {
+          "id": "tar",
+          "confidence": 0.65,
+          "source": "package"
+        }
+      ]
+    },
+    "archlabs": {
+      "type": "app",
+      "glyph": "linux-archlabs",
+      "apps": null
+    },
+    "archlinux": {
+      "type": "app",
+      "glyph": "dev-archlinux",
+      "apps": null
+    },
+    "arduino": {
+      "type": "app",
+      "glyph": "linux-arduino",
+      "apps": [
+        {
+          "id": "arduino",
+          "confidence": 0.9,
+          "source": "package"
+        },
+        {
+          "id": "arduino-ide",
+          "confidence": 0.9,
+          "source": "package"
+        },
+        {
+          "id": "cc.arduino.arduinoide",
+          "confidence": 0.85,
+          "source": "flatpak"
+        }
+      ]
+    },
+    "artix": {
+      "type": "app",
+      "glyph": "linux-artix",
+      "apps": [
+        {
+          "id": "artixlinux",
+          "confidence": 0.45,
+          "source": "inferred"
+        }
+      ]
+    },
+    "atom": {
+      "type": "app",
+      "glyph": "fa-atom",
+      "apps": [
+        {
+          "id": "atom",
+          "confidence": 0.7,
+          "source": "package"
+        },
+        {
+          "id": "io.atom.Atom",
+          "confidence": 0.6,
+          "source": "inferred"
+        }
+      ]
+    },
+    "attachment": {
+      "type": "category",
+      "glyph": "md-paperclip_lock",
+      "apps": [
+        {
+          "id": "thunderbird",
+          "confidence": 0.75,
+          "source": "package"
+        },
+        {
+          "id": "org.gnome.Evolution",
+          "confidence": 0.7,
+          "source": "flatpak"
+        },
+        {
+          "id": "org.gnome.Geary",
+          "confidence": 0.65,
+          "source": "flatpak"
+        },
+        {
+          "id": "mailspring",
+          "confidence": 0.6,
+          "source": "package"
+        }
+      ]
+    },
+    "audio": {
+      "type": "category",
+      "glyph": "md-headphones_box",
+      "apps": [
+        {
+          "id": "pavucontrol",
+          "confidence": 0.75,
+          "source": "package"
+        },
+        {
+          "id": "easyeffects",
+          "confidence": 0.7,
+          "source": "package"
+        },
+        {
+          "id": "pulseaudio",
+          "confidence": 0.65,
+          "source": "package"
+        },
+        {
+          "id": "pipewire",
+          "confidence": 0.65,
+          "source": "package"
+        }
+      ]
+    },
+    "awesomewm": {
+      "type": "app",
+      "glyph": "linux-awesome",
+      "apps": [
+        {
+          "id": "awesome",
+          "confidence": 0.95,
+          "source": "package"
+        },
+        {
+          "id": "awesome",
+          "confidence": 0.95,
+          "source": "desktop"
+        }
+      ]
+    },
+    "aws": {
+      "type": "app",
+      "glyph": "dev-amazonwebservices",
+      "apps": [
+        {
+          "id": "awscli",
+          "confidence": 0.75,
+          "source": "package"
+        },
+        {
+          "id": "aws",
+          "confidence": 0.75,
+          "source": "package"
+        },
+        {
+          "id": "aws",
+          "confidence": 0.4,
+          "source": "inferred"
+        }
+      ]
+    },
+    "azure-sql-database": {
+      "type": "app",
+      "glyph": "dev-azuresqldatabase",
+      "apps": null
+    },
+    "barcode": {
+      "type": "category",
+      "glyph": "md-barcode",
+      "apps": [
+        {
+          "id": "zbar",
+          "confidence": 0.6,
+          "source": "package"
+        },
+        {
+          "id": "qtqr",
+          "confidence": 0.55,
+          "source": "package"
+        }
+      ]
+    },
+    "battery": {
+      "type": "category",
+      "glyph": "md-battery_90_bluetooth",
+      "apps": [
+        {
+          "id": "upower",
+          "confidence": 0.7,
+          "source": "package"
+        },
+        {
+          "id": "xfce4-power-manager",
+          "confidence": 0.65,
+          "source": "package"
+        },
+        {
+          "id": "org.gnome.PowerStats",
+          "confidence": 0.6,
+          "source": "inferred"
+        }
+      ]
+    },
+    "biglinux": {
+      "type": "app",
+      "glyph": "linux-biglinux",
+      "apps": null
+    },
+    "bitbucket": {
+      "type": "app",
+      "glyph": "fa-bitbucket",
+      "apps": [
+        {
+          "id": "bitbucket",
+          "confidence": 0.6,
+          "source": "inferred"
+        }
+      ]
+    },
+    "bluetooth": {
+      "type": "category",
+      "glyph": "md-bluetooth_settings",
+      "apps": [
+        {
+          "id": "blueman",
+          "confidence": 0.8,
+          "source": "package"
+        },
+        {
+          "id": "blueberry",
+          "confidence": 0.7,
+          "source": "package"
+        },
+        {
+          "id": "gnome-bluetooth",
+          "confidence": 0.65,
+          "source": "package"
+        }
+      ]
+    },
+    "book": {
+      "type": "category",
+      "glyph": "md-book_lock_open",
+      "apps": [
+        {
+          "id": "calibre",
+          "confidence": 0.9,
+          "source": "package"
+        },
+        {
+          "id": "com.calibre_ebook.calibre",
+          "confidence": 0.85,
+          "source": "flatpak"
+        },
+        {
+          "id": "foliate",
+          "confidence": 0.8,
+          "source": "package"
+        },
+        {
+          "id": "com.github.johnfactotum.Foliate",
+          "confidence": 0.8,
+          "source": "flatpak"
+        },
+        {
+          "id": "org.gnome.Books",
+          "confidence": 0.75,
+          "source": "desktop"
+        },
+        {
+          "id": "librera-reader",
+          "confidence": 0.6,
+          "source": "package"
+        }
+      ]
+    },
+    "bookmark": {
+      "type": "category",
+      "glyph": "md-bookmark_box_multiple_outline",
+      "apps": [
+        {
+          "id": "firefox",
+          "confidence": 0.9,
+          "source": "package"
+        },
+        {
+          "id": "chromium",
+          "confidence": 0.9,
+          "source": "package"
+        },
+        {
+          "id": "org.gnome.Epiphany",
+          "confidence": 0.85,
+          "source": "desktop"
+        }
+      ]
+    },
+    "box": {
+      "type": "category",
+      "glyph": "md-box",
+      "apps": [
+        {
+          "id": "gnome-boxes",
+          "confidence": 0.7,
+          "source": "package"
+        },
+        {
+          "id": "org.gnome.Boxes",
+          "confidence": 0.7,
+          "source": "desktop"
+        },
+        {
+          "id": "org.gnome.Boxes",
+          "confidence": 0.7,
+          "source": "flatpak"
+        }
+      ]
+    },
+    "boxing": {
+      "type": "category",
+      "glyph": "md-boxing_glove",
+      "apps": null
+    },
+    "briefcase": {
+      "type": "category",
+      "glyph": "md-briefcase_download",
+      "apps": [
+        {
+          "id": "org.gnome.Contacts",
+          "confidence": 0.6,
+          "source": "desktop"
+        },
+        {
+          "id": "org.gnome.Contacts",
+          "confidence": 0.6,
+          "source": "flatpak"
+        },
+        {
+          "id": "gnome-contacts",
+          "confidence": 0.55,
+          "source": "package"
+        }
+      ]
+    },
+    "browser": {
+      "type": "category",
+      "glyph": "cod-browser",
+      "apps": [
+        {
+          "id": "firefox",
+          "confidence": 0.95,
+          "source": "package"
+        },
+        {
+          "id": "chromium",
+          "confidence": 0.9,
+          "source": "package"
+        },
+        {
+          "id": "org.chromium.Chromium",
+          "confidence": 0.9,
+          "source": "flatpak"
+        },
+        {
+          "id": "google-chrome",
+          "confidence": 0.9,
+          "source": "package"
+        },
+        {
+          "id": "brave-browser",
+          "confidence": 0.85,
+          "source": "package"
+        },
+        {
+          "id": "vivaldi",
+          "confidence": 0.8,
+          "source": "package"
+        },
+        {
+          "id": "org.gnome.Epiphany",
+          "confidence": 0.75,
+          "source": "desktop"
+        },
+        {
+          "id": "librewolf",
+          "confidence": 0.7,
+          "source": "package"
+        },
+        {
+          "id": "floorp",
+          "confidence": 0.55,
+          "source": "package"
+        },
+        {
+          "id": "zen-browser",
+          "confidence": 0.4,
+          "source": "inferred"
+        }
+      ]
+    },
+    "browserstack": {
+      "type": "app",
+      "glyph": "dev-browserstack",
+      "apps": null
+    },
+    "bspwm": {
+      "type": "app",
+      "glyph": "linux-bspwm",
+      "apps": [
+        {
+          "id": "bspwm",
+          "confidence": 1,
+          "source": "package"
+        },
+        {
+          "id": "bspwm",
+          "confidence": 0.9,
+          "source": "desktop"
+        },
+        {
+          "id": "sxhkd",
+          "confidence": 0.7,
+          "source": "package"
+        }
+      ]
+    },
+    "budgie": {
+      "type": "app",
+      "glyph": "linux-budgie",
+      "apps": [
+        {
+          "id": "budgie-desktop",
+          "confidence": 0.95,
+          "source": "package"
+        },
+        {
+          "id": "budgie-desktop",
+          "confidence": 0.95,
+          "source": "desktop"
+        }
+      ]
+    },
+    "cad": {
+      "type": "category",
+      "glyph": "md-file_cad",
+      "apps": [
+        {
+          "id": "freecad",
+          "confidence": 0.9,
+          "source": "package"
+        },
+        {
+          "id": "org.freecadweb.FreeCAD",
+          "confidence": 0.9,
+          "source": "flatpak"
+        },
+        {
+          "id": "kicad",
+          "confidence": 0.85,
+          "source": "package"
+        },
+        {
+          "id": "openscad",
+          "confidence": 0.8,
+          "source": "package"
+        },
+        {
+          "id": "blender",
+          "confidence": 0.75,
+          "source": "package"
+        }
+      ]
+    },
+    "calendar": {
+      "type": "category",
+      "glyph": "fa-calendar_minus_o",
+      "apps": [
+        {
+          "id": "org.gnome.Calendar",
+          "confidence": 0.85,
+          "source": "desktop"
+        },
+        {
+          "id": "gnome-calendar",
+          "confidence": 0.85,
+          "source": "package"
+        },
+        {
+          "id": "org.kde.korganizer",
+          "confidence": 0.8,
+          "source": "desktop"
+        },
+        {
+          "id": "korganizer",
+          "confidence": 0.8,
+          "source": "package"
+        },
+        {
+          "id": "evolution",
+          "confidence": 0.75,
+          "source": "package"
+        },
+        {
+          "id": "thunderbird",
+          "confidence": 0.7,
+          "source": "package"
+        },
+        {
+          "id": "calcurse",
+          "confidence": 0.5,
+          "source": "package"
+        }
+      ]
+    },
+    "camera": {
+      "type": "category",
+      "glyph": "md-camera_wireless",
+      "apps": [
+        {
+          "id": "cheese",
+          "confidence": 0.8,
+          "source": "package"
+        },
+        {
+          "id": "org.gnome.Cheese",
+          "confidence": 0.8,
+          "source": "desktop"
+        },
+        {
+          "id": "guvcview",
+          "confidence": 0.75,
+          "source": "package"
+        },
+        {
+          "id": "kamoso",
+          "confidence": 0.7,
+          "source": "package"
+        },
+        {
+          "id": "webcamoid",
+          "confidence": 0.65,
+          "source": "package"
+        },
+        {
+          "id": "shotwell",
+          "confidence": 0.6,
+          "source": "package"
+        }
+      ]
+    },
+    "car": {
+      "type": "category",
+      "glyph": "md-car_windshield_outline",
+      "apps": [
+        {
+          "id": "gnome-maps",
+          "confidence": 0.4,
+          "source": "package"
+        }
+      ]
+    },
+    "cellular": {
+      "type": "category",
+      "glyph": "md-signal_3g",
+      "apps": [
+        {
+          "id": "modemmanager",
+          "confidence": 0.8,
+          "source": "package"
+        },
+        {
+          "id": "modemmanager-gui",
+          "confidence": 0.65,
+          "source": "package"
+        },
+        {
+          "id": "mmcli",
+          "confidence": 0.6,
+          "source": "package"
+        }
+      ]
+    },
+    "centercode": {
+      "type": "app",
+      "glyph": "fa-centercode",
+      "apps": null
+    },
+    "centos": {
+      "type": "app",
+      "glyph": "linux-centos",
+      "apps": [
+        {
+          "id": "centos-release",
+          "confidence": 0.45,
+          "source": "package"
+        }
+      ]
+    },
+    "certificate": {
+      "type": "category",
+      "glyph": "md-file_certificate",
+      "apps": [
+        {
+          "id": "org.kde.kleopatra",
+          "confidence": 0.75,
+          "source": "desktop"
+        },
+        {
+          "id": "kleopatra",
+          "confidence": 0.7,
+          "source": "package"
+        },
+        {
+          "id": "org.gnome.seahorse.Application",
+          "confidence": 0.7,
+          "source": "desktop"
+        },
+        {
+          "id": "gpa",
+          "confidence": 0.6,
+          "source": "package"
+        }
+      ]
+    },
+    "chart": {
+      "type": "category",
+      "glyph": "md-file_chart_check_outline",
+      "apps": [
+        {
+          "id": "gnome-calculator",
+          "confidence": 0.75,
+          "source": "package"
+        },
+        {
+          "id": "org.gnome.Calculator",
+          "confidence": 0.75,
+          "source": "desktop"
+        },
+        {
+          "id": "org.gnome.Calculator",
+          "confidence": 0.65,
+          "source": "flatpak"
+        },
+        {
+          "id": "kcalc",
+          "confidence": 0.7,
+          "source": "package"
+        }
+      ]
+    },
+    "chat": {
+      "type": "category",
+      "glyph": "md-comment_question",
+      "apps": [
+        {
+          "id": "discord",
+          "confidence": 0.95,
+          "source": "package"
+        },
+        {
+          "id": "com.discordapp.Discord",
+          "confidence": 0.95,
+          "source": "flatpak"
+        },
+        {
+          "id": "com.discordapp.Discord",
+          "confidence": 0.95,
+          "source": "desktop"
+        },
+        {
+          "id": "slack",
+          "confidence": 0.85,
+          "source": "package"
+        },
+        {
+          "id": "com.slack.Slack",
+          "confidence": 0.85,
+          "source": "flatpak"
+        },
+        {
+          "id": "telegram-desktop",
+          "confidence": 0.85,
+          "source": "package"
+        },
+        {
+          "id": "org.telegram.desktop",
+          "confidence": 0.85,
+          "source": "desktop"
+        },
+        {
+          "id": "org.telegram.desktop",
+          "confidence": 0.85,
+          "source": "flatpak"
+        },
+        {
+          "id": "signal-desktop",
+          "confidence": 0.8,
+          "source": "package"
+        },
+        {
+          "id": "org.signal.Signal",
+          "confidence": 0.8,
+          "source": "flatpak"
+        },
+        {
+          "id": "element-desktop",
+          "confidence": 0.75,
+          "source": "package"
+        },
+        {
+          "id": "im.riot.Riot",
+          "confidence": 0.75,
+          "source": "flatpak"
+        },
+        {
+          "id": "vesktop",
+          "confidence": 0.65,
+          "source": "package"
+        },
+        {
+          "id": "dev.vencord.Vesktop",
+          "confidence": 0.6,
+          "source": "flatpak"
+        },
+        {
+          "id": "ferdium",
+          "confidence": 0.55,
+          "source": "package"
+        },
+        {
+          "id": "org.ferdium.Ferdium",
+          "confidence": 0.55,
+          "source": "flatpak"
+        },
+        {
+          "id": "pidgin",
+          "confidence": 0.5,
+          "source": "package"
+        }
+      ]
+    },
+    "checkbox": {
+      "type": "category",
+      "glyph": "md-checkbox_multiple_marked",
+      "apps": [
+        {
+          "id": "org.gnome.Todo",
+          "confidence": 0.6,
+          "source": "desktop"
+        },
+        {
+          "id": "org.gnome.Todo",
+          "confidence": 0.6,
+          "source": "flatpak"
+        },
+        {
+          "id": "kalendar",
+          "confidence": 0.55,
+          "source": "package"
+        }
+      ]
+    },
+    "chrome": {
+      "type": "app",
+      "glyph": "fa-chrome",
+      "apps": [
+        {
+          "id": "google-chrome-stable",
+          "confidence": 1,
+          "source": "package"
+        },
+        {
+          "id": "google-chrome",
+          "confidence": 0.95,
+          "source": "desktop"
+        },
+        {
+          "id": "com.google.Chrome",
+          "confidence": 0.8,
+          "source": "flatpak"
+        }
+      ]
+    },
+    "chromecast": {
+      "type": "app",
+      "glyph": "fa-chromecast",
+      "apps": [
+        {
+          "id": "mkchromecast",
+          "confidence": 0.75,
+          "source": "package"
+        },
+        {
+          "id": "gnome-network-displays",
+          "confidence": 0.65,
+          "source": "package"
+        },
+        {
+          "id": "org.gnome.NetworkDisplays",
+          "confidence": 0.65,
+          "source": "desktop"
+        },
+        {
+          "id": "org.gnome.NetworkDisplays",
+          "confidence": 0.6,
+          "source": "flatpak"
+        }
+      ]
+    },
+    "cinnamon": {
+      "type": "app",
+      "glyph": "linux-cinnamon",
+      "apps": [
+        {
+          "id": "cinnamon",
+          "confidence": 0.9,
+          "source": "package"
+        },
+        {
+          "id": "cinnamon-session",
+          "confidence": 0.85,
+          "source": "package"
+        },
+        {
+          "id": "nemo",
+          "confidence": 0.75,
+          "source": "package"
+        }
+      ]
+    },
+    "clipboard": {
+      "type": "category",
+      "glyph": "md-clipboard_file_outline",
+      "apps": [
+        {
+          "id": "copyq",
+          "confidence": 0.75,
+          "source": "package"
+        },
+        {
+          "id": "gpaste",
+          "confidence": 0.7,
+          "source": "package"
+        },
+        {
+          "id": "parcellite",
+          "confidence": 0.65,
+          "source": "package"
+        },
+        {
+          "id": "xfce4-clipman",
+          "confidence": 0.6,
+          "source": "package"
+        }
+      ]
+    },
+    "clock": {
+      "type": "category",
+      "glyph": "md-clock_time_five",
+      "apps": [
+        {
+          "id": "gnome-clocks",
+          "confidence": 0.85,
+          "source": "package"
+        },
+        {
+          "id": "org.gnome.Clocks",
+          "confidence": 0.85,
+          "source": "desktop"
+        },
+        {
+          "id": "kclock",
+          "confidence": 0.7,
+          "source": "package"
+        },
+        {
+          "id": "org.kde.kclock",
+          "confidence": 0.65,
+          "source": "desktop"
+        }
+      ]
+    },
+    "cloud": {
+      "type": "category",
+      "glyph": "cod-cloud",
+      "apps": [
+        {
+          "id": "nextcloud-desktop",
+          "confidence": 0.85,
+          "source": "package"
+        },
+        {
+          "id": "dropbox",
+          "confidence": 0.8,
+          "source": "package"
+        },
+        {
+          "id": "syncthing",
+          "confidence": 0.75,
+          "source": "package"
+        },
+        {
+          "id": "seafile-client",
+          "confidence": 0.7,
+          "source": "package"
+        },
+        {
+          "id": "rclone",
+          "confidence": 0.65,
+          "source": "package"
+        },
+        {
+          "id": "megasync",
+          "confidence": 0.55,
+          "source": "package"
+        }
+      ]
+    },
+    "cloudflare": {
+      "type": "app",
+      "glyph": "dev-cloudflare",
+      "apps": [
+        {
+          "id": "cloudflared",
+          "confidence": 0.9,
+          "source": "package"
+        },
+        {
+          "id": "cloudflare-warp",
+          "confidence": 0.85,
+          "source": "package"
+        },
+        {
+          "id": "com.cloudflare.warp",
+          "confidence": 0.8,
+          "source": "inferred"
+        }
+      ]
+    },
+    "cloudflare-workers": {
+      "type": "app",
+      "glyph": "dev-cloudflareworkers",
+      "apps": [
+        {
+          "id": "wrangler",
+          "confidence": 0.35,
+          "source": "inferred"
+        }
+      ]
+    },
+    "code": {
+      "type": "category",
+      "glyph": "seti-makefile",
+      "apps": [
+        {
+          "id": "code",
+          "confidence": 0.9,
+          "source": "package"
+        },
+        {
+          "id": "com.visualstudio.code",
+          "confidence": 0.85,
+          "source": "flatpak"
+        },
+        {
+          "id": "vscodium",
+          "confidence": 0.85,
+          "source": "package"
+        },
+        {
+          "id": "com.vscodium.codium",
+          "confidence": 0.8,
+          "source": "flatpak"
+        },
+        {
+          "id": "zed",
+          "confidence": 0.8,
+          "source": "package"
+        },
+        {
+          "id": "dev.zed.Zed",
+          "confidence": 0.8,
+          "source": "flatpak"
+        },
+        {
+          "id": "kate",
+          "confidence": 0.75,
+          "source": "package"
+        },
+        {
+          "id": "org.kde.kate",
+          "confidence": 0.75,
+          "source": "desktop"
+        },
+        {
+          "id": "neovim",
+          "confidence": 0.75,
+          "source": "package"
+        },
+        {
+          "id": "vim",
+          "confidence": 0.7,
+          "source": "package"
+        },
+        {
+          "id": "emacs",
+          "confidence": 0.7,
+          "source": "package"
+        },
+        {
+          "id": "helix",
+          "confidence": 0.65,
+          "source": "package"
+        },
+        {
+          "id": "cursor",
+          "confidence": 0.4,
+          "source": "inferred"
+        },
+        {
+          "id": "windsurf",
+          "confidence": 0.4,
+          "source": "inferred"
+        }
+      ]
+    },
+    "codeac": {
+      "type": "app",
+      "glyph": "dev-codeac",
+      "apps": null
+    },
+    "codeberg": {
+      "type": "app",
+      "glyph": "linux-codeberg",
+      "apps": null
+    },
+    "codeclimate": {
+      "type": "app",
+      "glyph": "seti-code_climate",
+      "apps": null
+    },
+    "codecov": {
+      "type": "app",
+      "glyph": "dev-codecov",
+      "apps": null
+    },
+    "codeigniter": {
+      "type": "app",
+      "glyph": "dev-codeigniter",
+      "apps": null
+    },
+    "codepen": {
+      "type": "app",
+      "glyph": "fa-codepen",
+      "apps": null
+    },
+    "comment": {
+      "type": "category",
+      "glyph": "md-comment_flash_outline",
+      "apps": [
+        {
+          "id": "discord",
+          "confidence": 0.7,
+          "source": "package"
+        },
+        {
+          "id": "slack-desktop",
+          "confidence": 0.7,
+          "source": "package"
+        },
+        {
+          "id": "telegram-desktop",
+          "confidence": 0.65,
+          "source": "package"
+        },
+        {
+          "id": "element-desktop",
+          "confidence": 0.6,
+          "source": "package"
+        },
+        {
+          "id": "thunderbird",
+          "confidence": 0.6,
+          "source": "package"
+        },
+        {
+          "id": "evolution",
+          "confidence": 0.55,
+          "source": "package"
+        }
+      ]
+    },
+    "console": {
+      "type": "category",
+      "glyph": "md-console_network",
+      "apps": [
+        {
+          "id": "org.gnome.Terminal",
+          "confidence": 0.9,
+          "source": "desktop"
+        },
+        {
+          "id": "gnome-terminal",
+          "confidence": 0.9,
+          "source": "package"
+        },
+        {
+          "id": "org.kde.konsole",
+          "confidence": 0.9,
+          "source": "desktop"
+        },
+        {
+          "id": "konsole",
+          "confidence": 0.9,
+          "source": "package"
+        },
+        {
+          "id": "kitty",
+          "confidence": 0.85,
+          "source": "package"
+        },
+        {
+          "id": "kitty",
+          "confidence": 0.85,
+          "source": "desktop"
+        },
+        {
+          "id": "alacritty",
+          "confidence": 0.85,
+          "source": "package"
+        },
+        {
+          "id": "Alacritty",
+          "confidence": 0.85,
+          "source": "desktop"
+        },
+        {
+          "id": "wezterm",
+          "confidence": 0.8,
+          "source": "package"
+        },
+        {
+          "id": "org.wezfurlong.wezterm",
+          "confidence": 0.8,
+          "source": "flatpak"
+        },
+        {
+          "id": "foot",
+          "confidence": 0.8,
+          "source": "package"
+        },
+        {
+          "id": "ghostty",
+          "confidence": 0.7,
+          "source": "package"
+        },
+        {
+          "id": "com.mitchellh.ghostty",
+          "confidence": 0.7,
+          "source": "flatpak"
+        }
+      ]
+    },
+    "cookie": {
+      "type": "category",
+      "glyph": "md-cookie_clock",
+      "apps": [
+        {
+          "id": "org.gnome.Epiphany",
+          "confidence": 0.6,
+          "source": "desktop"
+        },
+        {
+          "id": "firefox",
+          "confidence": 0.55,
+          "source": "package"
+        },
+        {
+          "id": "chromium",
+          "confidence": 0.5,
+          "source": "package"
+        },
+        {
+          "id": "org.chromium.Chromium",
+          "confidence": 0.45,
+          "source": "flatpak"
+        }
+      ]
+    },
+    "coreos": {
+      "type": "app",
+      "glyph": "linux-coreos",
+      "apps": [
+        {
+          "id": "coreos-installer",
+          "confidence": 0.55,
+          "source": "package"
+        },
+        {
+          "id": "coreos-installer",
+          "confidence": 0.45,
+          "source": "inferred"
+        }
+      ]
+    },
+    "crystal": {
+      "type": "app",
+      "glyph": "linux-crystal",
+      "apps": [
+        {
+          "id": "crystal",
+          "confidence": 0.45,
+          "source": "package"
+        }
+      ]
+    },
+    "csv": {
+      "type": "category",
+      "glyph": "fa-file_csv",
+      "apps": [
+        {
+          "id": "libreoffice",
+          "confidence": 0.65,
+          "source": "package"
+        },
+        {
+          "id": "gnumeric",
+          "confidence": 0.65,
+          "source": "package"
+        },
+        {
+          "id": "csvkit",
+          "confidence": 0.6,
+          "source": "package"
+        }
+      ]
+    },
+    "database": {
+      "type": "category",
+      "glyph": "md-database_import",
+      "apps": [
+        {
+          "id": "dbeaver",
+          "confidence": 0.85,
+          "source": "package"
+        },
+        {
+          "id": "io.dbeaver.DBeaverCommunity",
+          "confidence": 0.85,
+          "source": "flatpak"
+        },
+        {
+          "id": "sqlitebrowser",
+          "confidence": 0.8,
+          "source": "package"
+        },
+        {
+          "id": "org.sqlitebrowser.sqlitebrowser",
+          "confidence": 0.8,
+          "source": "flatpak"
+        },
+        {
+          "id": "pgadmin4",
+          "confidence": 0.75,
+          "source": "package"
+        },
+        {
+          "id": "mysql-workbench",
+          "confidence": 0.7,
+          "source": "package"
+        },
+        {
+          "id": "beekeeper-studio",
+          "confidence": 0.7,
+          "source": "package"
+        }
+      ]
+    },
+    "debian": {
+      "type": "app",
+      "glyph": "linux-debian",
+      "apps": null
+    },
+    "deepin": {
+      "type": "app",
+      "glyph": "linux-deepin",
+      "apps": [
+        {
+          "id": "dde-file-manager",
+          "confidence": 0.6,
+          "source": "package"
+        },
+        {
+          "id": "deepin-terminal",
+          "confidence": 0.6,
+          "source": "package"
+        },
+        {
+          "id": "deepin-launcher",
+          "confidence": 0.55,
+          "source": "package"
+        }
+      ]
+    },
+    "delete": {
+      "type": "category",
+      "glyph": "md-delete_clock",
+      "apps": [
+        {
+          "id": "nautilus",
+          "confidence": 0.7,
+          "source": "package"
+        },
+        {
+          "id": "org.gnome.Nautilus",
+          "confidence": 0.7,
+          "source": "desktop"
+        },
+        {
+          "id": "dolphin",
+          "confidence": 0.65,
+          "source": "package"
+        }
+      ]
+    },
+    "delivery": {
+      "type": "category",
+      "glyph": "fa-truck_ramp_box",
+      "apps": [
+        {
+          "id": "zenity",
+          "confidence": 0.75,
+          "source": "package"
+        },
+        {
+          "id": "kdialog",
+          "confidence": 0.6,
+          "source": "package"
+        }
+      ]
+    },
+    "desktop": {
+      "type": "category",
+      "glyph": "md-desktop_tower",
+      "apps": [
+        {
+          "id": "gnome-shell",
+          "confidence": 0.85,
+          "source": "package"
+        },
+        {
+          "id": "org.gnome.Shell",
+          "confidence": 0.85,
+          "source": "desktop"
+        },
+        {
+          "id": "plasma-desktop",
+          "confidence": 0.85,
+          "source": "package"
+        },
+        {
+          "id": "xfce4-session",
+          "confidence": 0.75,
+          "source": "package"
+        },
+        {
+          "id": "cinnamon-session",
+          "confidence": 0.7,
+          "source": "package"
+        }
+      ]
+    },
+    "device": {
+      "type": "category",
+      "glyph": "md-monitor_cellphone_star",
+      "apps": [
+        {
+          "id": "microsoft-edge-stable",
+          "confidence": 0.85,
+          "source": "package"
+        },
+        {
+          "id": "microsoft-edge",
+          "confidence": 0.85,
+          "source": "desktop"
+        },
+        {
+          "id": "code",
+          "confidence": 0.8,
+          "source": "package"
+        },
+        {
+          "id": "xdg-desktop-portal",
+          "confidence": 0.7,
+          "source": "package"
+        }
+      ]
+    },
+    "devices": {
+      "type": "category",
+      "glyph": "md-monitor_cellphone",
+      "apps": [
+        {
+          "id": "gnome-control-center",
+          "confidence": 0.85,
+          "source": "package"
+        },
+        {
+          "id": "blueman",
+          "confidence": 0.75,
+          "source": "package"
+        },
+        {
+          "id": "upower",
+          "confidence": 0.7,
+          "source": "package"
+        }
+      ]
+    },
+    "devuan": {
+      "type": "app",
+      "glyph": "linux-devuan",
+      "apps": null
+    },
+    "digitalocean": {
+      "type": "app",
+      "glyph": "md-digital_ocean",
+      "apps": [
+        {
+          "id": "doctl",
+          "confidence": 0.6,
+          "source": "package"
+        }
+      ]
+    },
+    "discord": {
+      "type": "app",
+      "glyph": "fa-discord",
+      "apps": [
+        {
+          "id": "discord",
+          "confidence": 0.95,
+          "source": "package"
+        },
+        {
+          "id": "com.discordapp.Discord",
+          "confidence": 0.95,
+          "source": "flatpak"
+        },
+        {
+          "id": "com.discordapp.Discord",
+          "confidence": 0.95,
+          "source": "desktop"
+        },
+        {
+          "id": "discord-canary",
+          "confidence": 0.85,
+          "source": "package"
+        },
+        {
+          "id": "discord-ptb",
+          "confidence": 0.85,
+          "source": "package"
+        },
+        {
+          "id": "vesktop",
+          "confidence": 0.6,
+          "source": "package"
+        },
+        {
+          "id": "dev.vencord.Vesktop",
+          "confidence": 0.6,
+          "source": "flatpak"
+        },
+        {
+          "id": "armcord",
+          "confidence": 0.55,
+          "source": "package"
+        },
+        {
+          "id": "webcord",
+          "confidence": 0.5,
+          "source": "package"
+        },
+        {
+          "id": "legcord",
+          "confidence": 0.45,
+          "source": "package"
+        }
+      ]
+    },
+    "discordjs": {
+      "type": "app",
+      "glyph": "dev-discordjs",
+      "apps": [
+        {
+          "id": "discord.js",
+          "confidence": 0.35,
+          "source": "inferred"
+        },
+        {
+          "id": "node",
+          "confidence": 0.35,
+          "source": "package"
+        }
+      ]
+    },
+    "display": {
+      "type": "category",
+      "glyph": "md-screen_rotation",
+      "apps": [
+        {
+          "id": "gnome-control-center",
+          "confidence": 0.8,
+          "source": "package"
+        },
+        {
+          "id": "arandr",
+          "confidence": 0.75,
+          "source": "package"
+        },
+        {
+          "id": "wdisplays",
+          "confidence": 0.7,
+          "source": "package"
+        }
+      ]
+    },
+    "docker": {
+      "type": "app",
+      "glyph": "linux-docker",
+      "apps": [
+        {
+          "id": "docker",
+          "confidence": 0.95,
+          "source": "package"
+        },
+        {
+          "id": "docker-desktop",
+          "confidence": 0.9,
+          "source": "package"
+        },
+        {
+          "id": "com.docker.desktop",
+          "confidence": 0.85,
+          "source": "desktop"
+        },
+        {
+          "id": "podman",
+          "confidence": 0.7,
+          "source": "package"
+        },
+        {
+          "id": "podman-desktop",
+          "confidence": 0.6,
+          "source": "package"
+        },
+        {
+          "id": "io.podman_desktop.PodmanDesktop",
+          "confidence": 0.6,
+          "source": "flatpak"
+        }
+      ]
+    },
+    "document": {
+      "type": "category",
+      "glyph": "fa-file_word",
+      "apps": [
+        {
+          "id": "libreoffice-writer",
+          "confidence": 0.85,
+          "source": "package"
+        },
+        {
+          "id": "libreoffice",
+          "confidence": 0.85,
+          "source": "package"
+        },
+        {
+          "id": "onlyoffice-desktopeditors",
+          "confidence": 0.8,
+          "source": "package"
+        },
+        {
+          "id": "abiword",
+          "confidence": 0.75,
+          "source": "package"
+        },
+        {
+          "id": "okular",
+          "confidence": 0.75,
+          "source": "package"
+        },
+        {
+          "id": "evince",
+          "confidence": 0.7,
+          "source": "package"
+        },
+        {
+          "id": "org.gnome.Evince",
+          "confidence": 0.65,
+          "source": "desktop"
+        }
+      ]
+    },
+    "download": {
+      "type": "category",
+      "glyph": "fa-file_arrow_down",
+      "apps": [
+        {
+          "id": "transmission",
+          "confidence": 0.85,
+          "source": "package"
+        },
+        {
+          "id": "org.qbittorrent.qBittorrent",
+          "confidence": 0.8,
+          "source": "desktop"
+        },
+        {
+          "id": "qbittorrent",
+          "confidence": 0.8,
+          "source": "package"
+        },
+        {
+          "id": "aria2",
+          "confidence": 0.75,
+          "source": "package"
+        },
+        {
+          "id": "wget",
+          "confidence": 0.7,
+          "source": "package"
+        },
+        {
+          "id": "curl",
+          "confidence": 0.7,
+          "source": "package"
+        },
+        {
+          "id": "persepolis",
+          "confidence": 0.65,
+          "source": "package"
+        },
+        {
+          "id": "uget",
+          "confidence": 0.65,
+          "source": "package"
+        },
+        {
+          "id": "yt-dlp",
+          "confidence": 0.6,
+          "source": "package"
+        }
+      ]
+    },
+    "draft2digital": {
+      "type": "app",
+      "glyph": "fa-draft2digital",
+      "apps": null
+    },
+    "draw": {
+      "type": "category",
+      "glyph": "md-drawing_box",
+      "apps": [
+        {
+          "id": "org.libreoffice.LibreOffice",
+          "confidence": 0.85,
+          "source": "flatpak"
+        },
+        {
+          "id": "libreoffice-draw",
+          "confidence": 0.75,
+          "source": "package"
+        },
+        {
+          "id": "libreoffice-draw",
+          "confidence": 0.75,
+          "source": "desktop"
+        },
+        {
+          "id": "org.inkscape.Inkscape",
+          "confidence": 0.75,
+          "source": "flatpak"
+        },
+        {
+          "id": "inkscape",
+          "confidence": 0.7,
+          "source": "package"
+        },
+        {
+          "id": "krita",
+          "confidence": 0.65,
+          "source": "package"
+        }
+      ]
+    },
+    "drive": {
+      "type": "category",
+      "glyph": "fa-hard_drive",
+      "apps": [
+        {
+          "id": "gnome-disk-utility",
+          "confidence": 0.85,
+          "source": "package"
+        },
+        {
+          "id": "org.gnome.DiskUtility",
+          "confidence": 0.85,
+          "source": "desktop"
+        },
+        {
+          "id": "org.gnome.DiskUtility",
+          "confidence": 0.85,
+          "source": "flatpak"
+        },
+        {
+          "id": "gparted",
+          "confidence": 0.8,
+          "source": "package"
+        },
+        {
+          "id": "gparted.desktop",
+          "confidence": 0.8,
+          "source": "desktop"
+        },
+        {
+          "id": "org.kde.partitionmanager",
+          "confidence": 0.75,
+          "source": "desktop"
+        },
+        {
+          "id": "org.kde.partitionmanager",
+          "confidence": 0.75,
+          "source": "flatpak"
+        },
+        {
+          "id": "partitionmanager",
+          "confidence": 0.75,
+          "source": "package"
+        },
+        {
+          "id": "baobab",
+          "confidence": 0.65,
+          "source": "package"
+        },
+        {
+          "id": "org.gnome.baobab",
+          "confidence": 0.65,
+          "source": "desktop"
+        },
+        {
+          "id": "org.gnome.baobab",
+          "confidence": 0.65,
+          "source": "flatpak"
+        }
+      ]
+    },
+    "dropbox": {
+      "type": "app",
+      "glyph": "md-dropbox",
+      "apps": [
+        {
+          "id": "dropbox",
+          "confidence": 1,
+          "source": "package"
+        },
+        {
+          "id": "dropbox",
+          "confidence": 0.95,
+          "source": "desktop"
+        }
+      ]
+    },
+    "dwm": {
+      "type": "app",
+      "glyph": "linux-dwm",
+      "apps": [
+        {
+          "id": "dwm",
+          "confidence": 0.75,
+          "source": "package"
+        }
+      ]
+    },
+    "earth": {
+      "type": "category",
+      "glyph": "md-earth_box_minus",
+      "apps": [
+        {
+          "id": "gnome-maps",
+          "confidence": 0.7,
+          "source": "package"
+        },
+        {
+          "id": "org.gnome.Maps",
+          "confidence": 0.7,
+          "source": "desktop"
+        },
+        {
+          "id": "marble",
+          "confidence": 0.65,
+          "source": "package"
+        },
+        {
+          "id": "qgis",
+          "confidence": 0.6,
+          "source": "package"
+        },
+        {
+          "id": "google-earth-pro-stable",
+          "confidence": 0.55,
+          "source": "package"
+        }
+      ]
+    },
+    "edge": {
+      "type": "app",
+      "glyph": "fa-edge",
+      "apps": [
+        {
+          "id": "microsoft-edge-stable",
+          "confidence": 0.9,
+          "source": "package"
+        },
+        {
+          "id": "microsoft-edge",
+          "confidence": 0.85,
+          "source": "desktop"
+        },
+        {
+          "id": "com.microsoft.Edge",
+          "confidence": 0.5,
+          "source": "flatpak"
+        }
+      ]
+    },
+    "edit": {
+      "type": "category",
+      "glyph": "md-pencil_box",
+      "apps": [
+        {
+          "id": "gimp",
+          "confidence": 0.85,
+          "source": "package"
+        },
+        {
+          "id": "org.gimp.GIMP",
+          "confidence": 0.85,
+          "source": "flatpak"
+        },
+        {
+          "id": "inkscape",
+          "confidence": 0.8,
+          "source": "package"
+        },
+        {
+          "id": "org.inkscape.Inkscape",
+          "confidence": 0.8,
+          "source": "flatpak"
+        },
+        {
+          "id": "krita",
+          "confidence": 0.8,
+          "source": "package"
+        },
+        {
+          "id": "org.kde.krita",
+          "confidence": 0.75,
+          "source": "desktop"
+        },
+        {
+          "id": "pinta",
+          "confidence": 0.7,
+          "source": "package"
+        }
+      ]
+    },
+    "elementary": {
+      "type": "app",
+      "glyph": "linux-elementary",
+      "apps": [
+        {
+          "id": "io.elementary.welcome",
+          "confidence": 0.75,
+          "source": "desktop"
+        },
+        {
+          "id": "io.elementary.welcome",
+          "confidence": 0.75,
+          "source": "flatpak"
+        },
+        {
+          "id": "io.elementary.appcenter",
+          "confidence": 0.75,
+          "source": "flatpak"
+        }
+      ]
+    },
+    "emacs": {
+      "type": "app",
+      "glyph": "dev-emacs",
+      "apps": [
+        {
+          "id": "emacs",
+          "confidence": 0.95,
+          "source": "package"
+        },
+        {
+          "id": "org.gnu.Emacs",
+          "confidence": 0.9,
+          "source": "desktop"
+        }
+      ]
+    },
+    "email": {
+      "type": "category",
+      "glyph": "md-email_edit_outline",
+      "apps": [
+        {
+          "id": "thunderbird",
+          "confidence": 0.95,
+          "source": "package"
+        },
+        {
+          "id": "org.mozilla.Thunderbird",
+          "confidence": 0.9,
+          "source": "desktop"
+        },
+        {
+          "id": "org.mozilla.Thunderbird",
+          "confidence": 0.9,
+          "source": "flatpak"
+        },
+        {
+          "id": "evolution",
+          "confidence": 0.85,
+          "source": "package"
+        },
+        {
+          "id": "org.gnome.Evolution",
+          "confidence": 0.85,
+          "source": "desktop"
+        },
+        {
+          "id": "geary",
+          "confidence": 0.8,
+          "source": "package"
+        },
+        {
+          "id": "org.gnome.Geary",
+          "confidence": 0.8,
+          "source": "desktop"
+        },
+        {
+          "id": "kmail",
+          "confidence": 0.75,
+          "source": "package"
+        },
+        {
+          "id": "mailspring",
+          "confidence": 0.7,
+          "source": "package"
+        },
+        {
+          "id": "claws-mail",
+          "confidence": 0.65,
+          "source": "package"
+        },
+        {
+          "id": "neomutt",
+          "confidence": 0.6,
+          "source": "package"
+        },
+        {
+          "id": "aerc",
+          "confidence": 0.55,
+          "source": "package"
+        }
+      ]
+    },
+    "endeavouros": {
+      "type": "app",
+      "glyph": "linux-endeavour",
+      "apps": null
+    },
+    "enlightenment": {
+      "type": "app",
+      "glyph": "linux-enlightenment",
+      "apps": [
+        {
+          "id": "enlightenment",
+          "confidence": 0.95,
+          "source": "package"
+        },
+        {
+          "id": "enlightenment",
+          "confidence": 0.95,
+          "source": "desktop"
+        }
+      ]
+    },
+    "evernote": {
+      "type": "app",
+      "glyph": "fa-evernote",
+      "apps": [
+        {
+          "id": "tusk",
+          "confidence": 0.6,
+          "source": "package"
+        },
+        {
+          "id": "com.klaussinani.tusk",
+          "confidence": 0.6,
+          "source": "flatpak"
+        },
+        {
+          "id": "nixnote2",
+          "confidence": 0.5,
+          "source": "package"
+        }
+      ]
+    },
+    "excel": {
+      "type": "category",
+      "glyph": "fa-file_excel_o",
+      "apps": [
+        {
+          "id": "libreoffice-calc",
+          "confidence": 0.8,
+          "source": "package"
+        },
+        {
+          "id": "onlyoffice-desktopeditors",
+          "confidence": 0.7,
+          "source": "package"
+        },
+        {
+          "id": "gnumeric",
+          "confidence": 0.6,
+          "source": "package"
+        }
+      ]
+    },
+    "export": {
+      "type": "category",
+      "glyph": "fa-file_export",
+      "apps": [
+        {
+          "id": "org.libreoffice.LibreOffice",
+          "confidence": 0.7,
+          "source": "inferred"
+        },
+        {
+          "id": "org.inkscape.Inkscape",
+          "confidence": 0.65,
+          "source": "inferred"
+        }
+      ]
+    },
+    "facebook": {
+      "type": "app",
+      "glyph": "dev-facebook",
+      "apps": [
+        {
+          "id": "caprine",
+          "confidence": 0.6,
+          "source": "package"
+        },
+        {
+          "id": "caprine",
+          "confidence": 0.6,
+          "source": "desktop"
+        },
+        {
+          "id": "messengerfordesktop",
+          "confidence": 0.55,
+          "source": "package"
+        },
+        {
+          "id": "messengerfordesktop",
+          "confidence": 0.55,
+          "source": "desktop"
+        },
+        {
+          "id": "facebook",
+          "confidence": 0.35,
+          "source": "inferred"
+        },
+        {
+          "id": "facebook-messenger",
+          "confidence": 0.35,
+          "source": "inferred"
+        }
+      ]
+    },
+    "facebook-gaming": {
+      "type": "app",
+      "glyph": "md-facebook_gaming",
+      "apps": null
+    },
+    "fan": {
+      "type": "category",
+      "glyph": "md-fan_clock",
+      "apps": [
+        {
+          "id": "psensor",
+          "confidence": 0.65,
+          "source": "package"
+        },
+        {
+          "id": "coolercontrol",
+          "confidence": 0.55,
+          "source": "package"
+        }
+      ]
+    },
+    "favorite": {
+      "type": "category",
+      "glyph": "md-heart_box_outline",
+      "apps": [
+        {
+          "id": "org.gnome.Calendar",
+          "confidence": 0.85,
+          "source": "flatpak"
+        },
+        {
+          "id": "org.gnome.Notes",
+          "confidence": 0.75,
+          "source": "flatpak"
+        },
+        {
+          "id": "org.gnome.Nautilus",
+          "confidence": 0.7,
+          "source": "flatpak"
+        },
+        {
+          "id": "firefox",
+          "confidence": 0.6,
+          "source": "package"
+        }
+      ]
+    },
+    "favorites": {
+      "type": "category",
+      "glyph": "md-heart_cog",
+      "apps": [
+        {
+          "id": "ulauncher",
+          "confidence": 0.6,
+          "source": "package"
+        },
+        {
+          "id": "com.ulauncher.Ulauncher",
+          "confidence": 0.6,
+          "source": "flatpak"
+        },
+        {
+          "id": "plank",
+          "confidence": 0.55,
+          "source": "package"
+        },
+        {
+          "id": "albert",
+          "confidence": 0.5,
+          "source": "package"
+        },
+        {
+          "id": "org.gnome.Shell",
+          "confidence": 0.45,
+          "source": "desktop"
+        },
+        {
+          "id": "gnome-shell",
+          "confidence": 0.45,
+          "source": "package"
+        }
+      ]
+    },
+    "fdroid": {
+      "type": "app",
+      "glyph": "linux-fdroid",
+      "apps": [
+        {
+          "id": "fdroidserver",
+          "confidence": 0.75,
+          "source": "package"
+        },
+        {
+          "id": "fdroidcl",
+          "confidence": 0.7,
+          "source": "package"
+        }
+      ]
+    },
+    "fedora": {
+      "type": "app",
+      "glyph": "linux-fedora",
+      "apps": [
+        {
+          "id": "fedora-release",
+          "confidence": 0.75,
+          "source": "package"
+        },
+        {
+          "id": "gnome-software",
+          "confidence": 0.55,
+          "source": "package"
+        }
+      ]
+    },
+    "ferris": {
+      "type": "app",
+      "glyph": "linux-ferris",
+      "apps": [
+        {
+          "id": "rustup",
+          "confidence": 0.55,
+          "source": "package"
+        },
+        {
+          "id": "cargo",
+          "confidence": 0.55,
+          "source": "package"
+        },
+        {
+          "id": "rust-analyzer",
+          "confidence": 0.45,
+          "source": "package"
+        }
+      ]
+    },
+    "file": {
+      "type": "category",
+      "glyph": "md-file_marker_outline",
+      "apps": [
+        {
+          "id": "org.gnome.Nautilus",
+          "confidence": 0.9,
+          "source": "desktop"
+        },
+        {
+          "id": "nautilus",
+          "confidence": 0.9,
+          "source": "package"
+        },
+        {
+          "id": "org.kde.dolphin",
+          "confidence": 0.85,
+          "source": "desktop"
+        },
+        {
+          "id": "dolphin",
+          "confidence": 0.85,
+          "source": "package"
+        },
+        {
+          "id": "file-roller",
+          "confidence": 0.75,
+          "source": "package"
+        },
+        {
+          "id": "org.gnome.FileRoller",
+          "confidence": 0.75,
+          "source": "desktop"
+        },
+        {
+          "id": "ark",
+          "confidence": 0.7,
+          "source": "package"
+        }
+      ]
+    },
+    "file-cabinet": {
+      "type": "category",
+      "glyph": "md-file_cabinet",
+      "apps": [
+        {
+          "id": "paperwork",
+          "confidence": 0.6,
+          "source": "package"
+        },
+        {
+          "id": "org.gnome.Paperwork",
+          "confidence": 0.55,
+          "source": "inferred"
+        }
+      ]
+    },
+    "files": {
+      "type": "category",
+      "glyph": "fa-files_o",
+      "apps": [
+        {
+          "id": "org.gnome.Nautilus",
+          "confidence": 0.9,
+          "source": "desktop"
+        },
+        {
+          "id": "org.gnome.Nautilus",
+          "confidence": 0.9,
+          "source": "flatpak"
+        },
+        {
+          "id": "nautilus",
+          "confidence": 0.85,
+          "source": "package"
+        }
+      ]
+    },
+    "filezilla": {
+      "type": "app",
+      "glyph": "dev-filezilla",
+      "apps": [
+        {
+          "id": "filezilla",
+          "confidence": 0.95,
+          "source": "package"
+        },
+        {
+          "id": "filezilla",
+          "confidence": 0.9,
+          "source": "desktop"
+        }
+      ]
+    },
+    "filter": {
+      "type": "category",
+      "glyph": "md-filter_cog_outline",
+      "apps": [
+        {
+          "id": "gimp",
+          "confidence": 0.65,
+          "source": "inferred"
+        },
+        {
+          "id": "org.kde.krita",
+          "confidence": 0.6,
+          "source": "inferred"
+        },
+        {
+          "id": "darktable",
+          "confidence": 0.55,
+          "source": "inferred"
+        }
+      ]
+    },
+    "finance": {
+      "type": "category",
+      "glyph": "fa-comments_dollar",
+      "apps": [
+        {
+          "id": "gnucash",
+          "confidence": 0.8,
+          "source": "package"
+        },
+        {
+          "id": "kmymoney",
+          "confidence": 0.8,
+          "source": "package"
+        },
+        {
+          "id": "homebank",
+          "confidence": 0.75,
+          "source": "package"
+        }
+      ]
+    },
+    "finder": {
+      "type": "app",
+      "glyph": "md-apple_finder",
+      "apps": null
+    },
+    "firefox": {
+      "type": "app",
+      "glyph": "seti-firefox",
+      "apps": [
+        {
+          "id": "firefox",
+          "confidence": 1,
+          "source": "package"
+        },
+        {
+          "id": "org.mozilla.firefox",
+          "confidence": 0.95,
+          "source": "desktop"
+        },
+        {
+          "id": "org.mozilla.firefox",
+          "confidence": 0.95,
+          "source": "flatpak"
+        },
+        {
+          "id": "firefox-esr",
+          "confidence": 0.85,
+          "source": "package"
+        },
+        {
+          "id": "firefox-nightly",
+          "confidence": 0.8,
+          "source": "package"
+        },
+        {
+          "id": "librewolf",
+          "confidence": 0.7,
+          "source": "package"
+        },
+        {
+          "id": "io.gitlab.librewolf-community",
+          "confidence": 0.7,
+          "source": "flatpak"
+        },
+        {
+          "id": "floorp",
+          "confidence": 0.55,
+          "source": "package"
+        },
+        {
+          "id": "zen-browser",
+          "confidence": 0.4,
+          "source": "inferred"
+        }
+      ]
+    },
+    "flathub": {
+      "type": "app",
+      "glyph": "linux-flathub",
+      "apps": [
+        {
+          "id": "flathub",
+          "confidence": 0.75,
+          "source": "inferred"
+        },
+        {
+          "id": "org.gnome.Software",
+          "confidence": 0.7,
+          "source": "desktop"
+        },
+        {
+          "id": "gnome-software",
+          "confidence": 0.65,
+          "source": "package"
+        }
+      ]
+    },
+    "fluxbox": {
+      "type": "app",
+      "glyph": "linux-fluxbox",
+      "apps": [
+        {
+          "id": "fluxbox",
+          "confidence": 1,
+          "source": "package"
+        },
+        {
+          "id": "fluxbox",
+          "confidence": 0.9,
+          "source": "desktop"
+        }
+      ]
+    },
+    "folder": {
+      "type": "category",
+      "glyph": "cod-folder_library",
+      "apps": [
+        {
+          "id": "org.gnome.Nautilus",
+          "confidence": 0.9,
+          "source": "desktop"
+        },
+        {
+          "id": "nautilus",
+          "confidence": 0.9,
+          "source": "package"
+        },
+        {
+          "id": "org.kde.dolphin",
+          "confidence": 0.9,
+          "source": "desktop"
+        },
+        {
+          "id": "dolphin",
+          "confidence": 0.9,
+          "source": "package"
+        },
+        {
+          "id": "nemo",
+          "confidence": 0.8,
+          "source": "package"
+        },
+        {
+          "id": "org.cinnamon.Nemo",
+          "confidence": 0.8,
+          "source": "desktop"
+        },
+        {
+          "id": "thunar",
+          "confidence": 0.8,
+          "source": "package"
+        },
+        {
+          "id": "pcmanfm",
+          "confidence": 0.75,
+          "source": "package"
+        },
+        {
+          "id": "caja",
+          "confidence": 0.7,
+          "source": "package"
+        },
+        {
+          "id": "krusader",
+          "confidence": 0.7,
+          "source": "package"
+        },
+        {
+          "id": "ranger",
+          "confidence": 0.65,
+          "source": "package"
+        },
+        {
+          "id": "nnn",
+          "confidence": 0.6,
+          "source": "package"
+        }
+      ]
+    },
+    "food": {
+      "type": "category",
+      "glyph": "md-food_turkey",
+      "apps": [
+        {
+          "id": "gnome-recipes",
+          "confidence": 0.55,
+          "source": "package"
+        },
+        {
+          "id": "org.gnome.Recipes",
+          "confidence": 0.55,
+          "source": "desktop"
+        }
+      ]
+    },
+    "forgejo": {
+      "type": "app",
+      "glyph": "linux-forgejo",
+      "apps": [
+        {
+          "id": "forgejo",
+          "confidence": 0.8,
+          "source": "package"
+        }
+      ]
+    },
+    "form": {
+      "type": "category",
+      "glyph": "md-form_textbox",
+      "apps": [
+        {
+          "id": "libreoffice-writer",
+          "confidence": 0.85,
+          "source": "package"
+        },
+        {
+          "id": "libreoffice-writer",
+          "confidence": 0.8,
+          "source": "desktop"
+        },
+        {
+          "id": "org.libreoffice.LibreOffice",
+          "confidence": 0.8,
+          "source": "flatpak"
+        },
+        {
+          "id": "onlyoffice-desktopeditors",
+          "confidence": 0.7,
+          "source": "package"
+        },
+        {
+          "id": "abiword",
+          "confidence": 0.65,
+          "source": "package"
+        },
+        {
+          "id": "wps-office",
+          "confidence": 0.6,
+          "source": "package"
+        }
+      ]
+    },
+    "freebsd": {
+      "type": "app",
+      "glyph": "linux-freebsd",
+      "apps": null
+    },
+    "freecad": {
+      "type": "app",
+      "glyph": "linux-freecad",
+      "apps": [
+        {
+          "id": "freecad",
+          "confidence": 1,
+          "source": "package"
+        },
+        {
+          "id": "org.freecadweb.FreeCAD",
+          "confidence": 0.9,
+          "source": "flatpak"
+        },
+        {
+          "id": "freecad",
+          "confidence": 0.85,
+          "source": "desktop"
+        }
+      ]
+    },
+    "freecodecamp": {
+      "type": "app",
+      "glyph": "fa-free_code_camp",
+      "apps": [
+        {
+          "id": "freecodecamp",
+          "confidence": 0.7,
+          "source": "inferred"
+        }
+      ]
+    },
+    "freedesktop": {
+      "type": "category",
+      "glyph": "linux-freedesktop",
+      "apps": [
+        {
+          "id": "org.freedesktop.Portal.Desktop",
+          "confidence": 0.75,
+          "source": "inferred"
+        },
+        {
+          "id": "xdg-desktop-portal",
+          "confidence": 0.65,
+          "source": "package"
+        }
+      ]
+    },
+    "game": {
+      "type": "category",
+      "glyph": "md-gamepad_circle_left",
+      "apps": [
+        {
+          "id": "steam",
+          "confidence": 0.9,
+          "source": "package"
+        },
+        {
+          "id": "steam",
+          "confidence": 0.9,
+          "source": "desktop"
+        },
+        {
+          "id": "lutris",
+          "confidence": 0.85,
+          "source": "package"
+        },
+        {
+          "id": "net.lutris.Lutris",
+          "confidence": 0.85,
+          "source": "flatpak"
+        },
+        {
+          "id": "heroic-games-launcher",
+          "confidence": 0.85,
+          "source": "package"
+        },
+        {
+          "id": "com.heroicgameslauncher.hgl",
+          "confidence": 0.85,
+          "source": "flatpak"
+        },
+        {
+          "id": "bottles",
+          "confidence": 0.75,
+          "source": "package"
+        },
+        {
+          "id": "com.usebottles.bottles",
+          "confidence": 0.75,
+          "source": "flatpak"
+        },
+        {
+          "id": "retroarch",
+          "confidence": 0.7,
+          "source": "package"
+        },
+        {
+          "id": "org.libretro.RetroArch",
+          "confidence": 0.7,
+          "source": "flatpak"
+        }
+      ]
+    },
+    "gamepad": {
+      "type": "category",
+      "glyph": "md-microsoft_xbox_controller",
+      "apps": [
+        {
+          "id": "steam",
+          "confidence": 0.9,
+          "source": "package"
+        },
+        {
+          "id": "retroarch",
+          "confidence": 0.85,
+          "source": "package"
+        },
+        {
+          "id": "org.libretro.RetroArch",
+          "confidence": 0.85,
+          "source": "flatpak"
+        },
+        {
+          "id": "lutris",
+          "confidence": 0.8,
+          "source": "package"
+        },
+        {
+          "id": "net.lutris.Lutris",
+          "confidence": 0.8,
+          "source": "flatpak"
+        },
+        {
+          "id": "antimicrox",
+          "confidence": 0.75,
+          "source": "package"
+        },
+        {
+          "id": "prismlauncher",
+          "confidence": 0.7,
+          "source": "package"
+        },
+        {
+          "id": "org.prismlauncher.PrismLauncher",
+          "confidence": 0.7,
+          "source": "flatpak"
+        }
+      ]
+    },
+    "garuda": {
+      "type": "app",
+      "glyph": "linux-garuda",
+      "apps": [
+        {
+          "id": "garuda-welcome",
+          "confidence": 0.45,
+          "source": "inferred"
+        },
+        {
+          "id": "garuda-assistant",
+          "confidence": 0.45,
+          "source": "inferred"
+        }
+      ]
+    },
+    "gentoo": {
+      "type": "app",
+      "glyph": "linux-gentoo",
+      "apps": null
+    },
+    "gesture": {
+      "type": "category",
+      "glyph": "md-gesture_tap_box",
+      "apps": [
+        {
+          "id": "touchegg",
+          "confidence": 0.85,
+          "source": "package"
+        },
+        {
+          "id": "fusuma",
+          "confidence": 0.7,
+          "source": "package"
+        },
+        {
+          "id": "libinput-gestures",
+          "confidence": 0.7,
+          "source": "package"
+        }
+      ]
+    },
+    "gif": {
+      "type": "category",
+      "glyph": "md-file_gif_box",
+      "apps": [
+        {
+          "id": "peek",
+          "confidence": 0.75,
+          "source": "package"
+        },
+        {
+          "id": "peek",
+          "confidence": 0.75,
+          "source": "desktop"
+        },
+        {
+          "id": "byzanz",
+          "confidence": 0.6,
+          "source": "package"
+        }
+      ]
+    },
+    "gimp": {
+      "type": "app",
+      "glyph": "linux-gimp",
+      "apps": [
+        {
+          "id": "gimp",
+          "confidence": 1,
+          "source": "package"
+        },
+        {
+          "id": "gimp",
+          "confidence": 0.95,
+          "source": "desktop"
+        },
+        {
+          "id": "org.gimp.GIMP",
+          "confidence": 0.95,
+          "source": "flatpak"
+        }
+      ]
+    },
+    "git": {
+      "type": "category",
+      "glyph": "cod-git_pull_request",
+      "apps": [
+        {
+          "id": "git",
+          "confidence": 0.95,
+          "source": "package"
+        },
+        {
+          "id": "gitk",
+          "confidence": 0.8,
+          "source": "package"
+        },
+        {
+          "id": "tig",
+          "confidence": 0.75,
+          "source": "package"
+        },
+        {
+          "id": "lazygit",
+          "confidence": 0.75,
+          "source": "package"
+        },
+        {
+          "id": "gitg",
+          "confidence": 0.7,
+          "source": "package"
+        },
+        {
+          "id": "meld",
+          "confidence": 0.65,
+          "source": "package"
+        },
+        {
+          "id": "kdiff3",
+          "confidence": 0.6,
+          "source": "package"
+        }
+      ]
+    },
+    "git-fetch": {
+      "type": "category",
+      "glyph": "cod-git_fetch",
+      "apps": [
+        {
+          "id": "git",
+          "confidence": 0.75,
+          "source": "package"
+        },
+        {
+          "id": "gh",
+          "confidence": 0.65,
+          "source": "package"
+        },
+        {
+          "id": "glab",
+          "confidence": 0.6,
+          "source": "package"
+        },
+        {
+          "id": "gitkraken",
+          "confidence": 0.55,
+          "source": "package"
+        }
+      ]
+    },
+    "gitea": {
+      "type": "app",
+      "glyph": "linux-gitea",
+      "apps": [
+        {
+          "id": "gitea",
+          "confidence": 0.7,
+          "source": "inferred"
+        },
+        {
+          "id": "gitea",
+          "confidence": 0.65,
+          "source": "package"
+        }
+      ]
+    },
+    "github": {
+      "type": "app",
+      "glyph": "seti-github",
+      "apps": [
+        {
+          "id": "github-desktop",
+          "confidence": 0.85,
+          "source": "package"
+        },
+        {
+          "id": "github-desktop",
+          "confidence": 0.85,
+          "source": "desktop"
+        },
+        {
+          "id": "io.github.shiftey.Desktop",
+          "confidence": 0.85,
+          "source": "flatpak"
+        },
+        {
+          "id": "gh",
+          "confidence": 0.75,
+          "source": "package"
+        },
+        {
+          "id": "gitg",
+          "confidence": 0.65,
+          "source": "package"
+        },
+        {
+          "id": "org.gnome.gitg",
+          "confidence": 0.6,
+          "source": "desktop"
+        }
+      ]
+    },
+    "github-actions": {
+      "type": "app",
+      "glyph": "cod-github_action",
+      "apps": [
+        {
+          "id": "gh",
+          "confidence": 0.9,
+          "source": "package"
+        },
+        {
+          "id": "act",
+          "confidence": 0.85,
+          "source": "package"
+        },
+        {
+          "id": "actions-runner",
+          "confidence": 0.5,
+          "source": "inferred"
+        }
+      ]
+    },
+    "github-codespaces": {
+      "type": "app",
+      "glyph": "dev-githubcodespaces",
+      "apps": null
+    },
+    "gitkraken": {
+      "type": "app",
+      "glyph": "fa-gitkraken",
+      "apps": [
+        {
+          "id": "gitkraken",
+          "confidence": 0.75,
+          "source": "package"
+        },
+        {
+          "id": "com.axosoft.GitKraken",
+          "confidence": 0.75,
+          "source": "flatpak"
+        }
+      ]
+    },
+    "gitlab": {
+      "type": "app",
+      "glyph": "md-gitlab",
+      "apps": [
+        {
+          "id": "gitlab",
+          "confidence": 0.85,
+          "source": "inferred"
+        },
+        {
+          "id": "gitlab-runner",
+          "confidence": 0.75,
+          "source": "package"
+        }
+      ]
+    },
+    "gitpod": {
+      "type": "app",
+      "glyph": "dev-gitpod",
+      "apps": null
+    },
+    "gitter": {
+      "type": "app",
+      "glyph": "dev-gitter",
+      "apps": [
+        {
+          "id": "gitter",
+          "confidence": 0.6,
+          "source": "inferred"
+        }
+      ]
+    },
+    "gittip": {
+      "type": "app",
+      "glyph": "fa-gittip",
+      "apps": null
+    },
+    "gmail": {
+      "type": "app",
+      "glyph": "md-gmail",
+      "apps": [
+        {
+          "id": "thunderbird",
+          "confidence": 0.65,
+          "source": "package"
+        },
+        {
+          "id": "gmail",
+          "confidence": 0.5,
+          "source": "inferred"
+        }
+      ]
+    },
+    "gnome": {
+      "type": "app",
+      "glyph": "linux-gnome",
+      "apps": [
+        {
+          "id": "gnome-shell",
+          "confidence": 0.85,
+          "source": "package"
+        },
+        {
+          "id": "org.gnome.Shell",
+          "confidence": 0.85,
+          "source": "desktop"
+        },
+        {
+          "id": "gnome-session",
+          "confidence": 0.7,
+          "source": "package"
+        }
+      ]
+    },
+    "google-cloud": {
+      "type": "app",
+      "glyph": "dev-googlecloud",
+      "apps": null
+    },
+    "google-drive": {
+      "type": "app",
+      "glyph": "md-folder_google_drive",
+      "apps": [
+        {
+          "id": "rclone",
+          "confidence": 0.55,
+          "source": "package"
+        },
+        {
+          "id": "insync",
+          "confidence": 0.5,
+          "source": "package"
+        },
+        {
+          "id": "google-drive-ocamlfuse",
+          "confidence": 0.45,
+          "source": "package"
+        },
+        {
+          "id": "kio-gdrive",
+          "confidence": 0.4,
+          "source": "package"
+        }
+      ]
+    },
+    "gtk": {
+      "type": "app",
+      "glyph": "linux-gtk",
+      "apps": [
+        {
+          "id": "gtk3",
+          "confidence": 0.7,
+          "source": "package"
+        },
+        {
+          "id": "gtk4",
+          "confidence": 0.65,
+          "source": "package"
+        }
+      ]
+    },
+    "guix": {
+      "type": "app",
+      "glyph": "linux-gnu_guix",
+      "apps": [
+        {
+          "id": "guix",
+          "confidence": 0.55,
+          "source": "package"
+        }
+      ]
+    },
+    "health": {
+      "type": "category",
+      "glyph": "md-radiology_box_outline",
+      "apps": [
+        {
+          "id": "org.gnome.Health",
+          "confidence": 0.55,
+          "source": "desktop"
+        },
+        {
+          "id": "org.gnome.Health",
+          "confidence": 0.55,
+          "source": "flatpak"
+        }
+      ]
+    },
+    "help": {
+      "type": "category",
+      "glyph": "md-help_box",
+      "apps": [
+        {
+          "id": "org.gnome.Yelp",
+          "confidence": 0.85,
+          "source": "desktop"
+        },
+        {
+          "id": "yelp",
+          "confidence": 0.85,
+          "source": "package"
+        },
+        {
+          "id": "org.kde.Help",
+          "confidence": 0.8,
+          "source": "desktop"
+        }
+      ]
+    },
+    "history": {
+      "type": "category",
+      "glyph": "fa-clock_rotate_left",
+      "apps": [
+        {
+          "id": "org.gnome.Usage",
+          "confidence": 0.75,
+          "source": "desktop"
+        },
+        {
+          "id": "gnome-usage",
+          "confidence": 0.7,
+          "source": "package"
+        },
+        {
+          "id": "gnome-system-monitor",
+          "confidence": 0.7,
+          "source": "package"
+        },
+        {
+          "id": "baobab",
+          "confidence": 0.65,
+          "source": "package"
+        }
+      ]
+    },
+    "home": {
+      "type": "category",
+      "glyph": "md-home_clock_outline",
+      "apps": [
+        {
+          "id": "nautilus",
+          "confidence": 0.65,
+          "source": "package"
+        },
+        {
+          "id": "org.gnome.Nautilus",
+          "confidence": 0.65,
+          "source": "desktop"
+        },
+        {
+          "id": "dolphin",
+          "confidence": 0.6,
+          "source": "package"
+        }
+      ]
+    },
+    "hyperbola": {
+      "type": "app",
+      "glyph": "linux-hyperbola",
+      "apps": [
+        {
+          "id": "hyperbola",
+          "confidence": 0.45,
+          "source": "inferred"
+        }
+      ]
+    },
+    "hyprland": {
+      "type": "app",
+      "glyph": "linux-hyprland",
+      "apps": [
+        {
+          "id": "hyprland",
+          "confidence": 0.95,
+          "source": "package"
+        },
+        {
+          "id": "Hyprland",
+          "confidence": 0.95,
+          "source": "desktop"
+        }
+      ]
+    },
+    "i3": {
+      "type": "app",
+      "glyph": "linux-i3",
+      "apps": [
+        {
+          "id": "i3",
+          "confidence": 0.95,
+          "source": "package"
+        },
+        {
+          "id": "i3",
+          "confidence": 0.95,
+          "source": "desktop"
+        }
+      ]
+    },
+    "icloud": {
+      "type": "app",
+      "glyph": "md-apple_icloud",
+      "apps": [
+        {
+          "id": "icloudpd",
+          "confidence": 0.35,
+          "source": "package"
+        },
+        {
+          "id": "rclone",
+          "confidence": 0.35,
+          "source": "package"
+        }
+      ]
+    },
+    "id": {
+      "type": "category",
+      "glyph": "fa-drivers_license",
+      "apps": [
+        {
+          "id": "seahorse",
+          "confidence": 0.75,
+          "source": "inferred"
+        },
+        {
+          "id": "keepassxc",
+          "confidence": 0.75,
+          "source": "inferred"
+        },
+        {
+          "id": "org.gnome.ControlCenter",
+          "confidence": 0.6,
+          "source": "inferred"
+        }
+      ]
+    },
+    "illumos": {
+      "type": "app",
+      "glyph": "linux-illumos",
+      "apps": null
+    },
+    "image": {
+      "type": "category",
+      "glyph": "md-file_image_marker",
+      "apps": [
+        {
+          "id": "org.gnome.Loupe",
+          "confidence": 0.85,
+          "source": "desktop"
+        },
+        {
+          "id": "eog",
+          "confidence": 0.8,
+          "source": "package"
+        },
+        {
+          "id": "shotwell",
+          "confidence": 0.8,
+          "source": "package"
+        },
+        {
+          "id": "gwenview",
+          "confidence": 0.75,
+          "source": "package"
+        },
+        {
+          "id": "gimp",
+          "confidence": 0.7,
+          "source": "package"
+        },
+        {
+          "id": "inkscape",
+          "confidence": 0.65,
+          "source": "package"
+        }
+      ]
+    },
+    "import": {
+      "type": "category",
+      "glyph": "fa-file_import",
+      "apps": [
+        {
+          "id": "libreoffice",
+          "confidence": 0.7,
+          "source": "package"
+        },
+        {
+          "id": "org.libreoffice.LibreOffice",
+          "confidence": 0.7,
+          "source": "flatpak"
+        },
+        {
+          "id": "gnumeric",
+          "confidence": 0.6,
+          "source": "package"
+        }
+      ]
+    },
+    "inbox": {
+      "type": "category",
+      "glyph": "md-inbox_multiple",
+      "apps": [
+        {
+          "id": "thunderbird",
+          "confidence": 0.75,
+          "source": "package"
+        },
+        {
+          "id": "evolution",
+          "confidence": 0.7,
+          "source": "package"
+        },
+        {
+          "id": "geary",
+          "confidence": 0.65,
+          "source": "package"
+        }
+      ]
+    },
+    "incognito": {
+      "type": "category",
+      "glyph": "md-incognito_circle_off",
+      "apps": [
+        {
+          "id": "firefox",
+          "confidence": 0.65,
+          "source": "package"
+        },
+        {
+          "id": "chromium",
+          "confidence": 0.65,
+          "source": "package"
+        },
+        {
+          "id": "google-chrome-stable",
+          "confidence": 0.6,
+          "source": "package"
+        },
+        {
+          "id": "brave-browser",
+          "confidence": 0.55,
+          "source": "package"
+        },
+        {
+          "id": "torbrowser-launcher",
+          "confidence": 0.55,
+          "source": "package"
+        }
+      ]
+    },
+    "inkscape": {
+      "type": "app",
+      "glyph": "linux-inkscape",
+      "apps": [
+        {
+          "id": "inkscape",
+          "confidence": 1,
+          "source": "package"
+        },
+        {
+          "id": "org.inkscape.Inkscape",
+          "confidence": 0.95,
+          "source": "desktop"
+        },
+        {
+          "id": "org.inkscape.Inkscape",
+          "confidence": 0.95,
+          "source": "flatpak"
+        }
+      ]
+    },
+    "invoice": {
+      "type": "category",
+      "glyph": "fa-file_invoice_dollar",
+      "apps": [
+        {
+          "id": "gnucash",
+          "confidence": 0.75,
+          "source": "package"
+        },
+        {
+          "id": "kmymoney",
+          "confidence": 0.7,
+          "source": "package"
+        }
+      ]
+    },
+    "ios": {
+      "type": "category",
+      "glyph": "md-apple_ios",
+      "apps": [
+        {
+          "id": "ifuse",
+          "confidence": 0.45,
+          "source": "package"
+        },
+        {
+          "id": "libimobiledevice-utils",
+          "confidence": 0.45,
+          "source": "package"
+        }
+      ]
+    },
+    "itunes": {
+      "type": "app",
+      "glyph": "fa-itunes_note",
+      "apps": [
+        {
+          "id": "io.github.ciderapp.Cider",
+          "confidence": 0.35,
+          "source": "flatpak"
+        },
+        {
+          "id": "cider",
+          "confidence": 0.35,
+          "source": "package"
+        }
+      ]
+    },
+    "jpg": {
+      "type": "category",
+      "glyph": "md-file_jpg_box",
+      "apps": [
+        {
+          "id": "gimp",
+          "confidence": 0.75,
+          "source": "package"
+        },
+        {
+          "id": "org.gimp.GIMP",
+          "confidence": 0.75,
+          "source": "flatpak"
+        },
+        {
+          "id": "org.kde.krita",
+          "confidence": 0.7,
+          "source": "flatpak"
+        },
+        {
+          "id": "org.gnome.eog",
+          "confidence": 0.6,
+          "source": "flatpak"
+        }
+      ]
+    },
+    "jwm": {
+      "type": "app",
+      "glyph": "linux-jwm",
+      "apps": [
+        {
+          "id": "jwm",
+          "confidence": 0.85,
+          "source": "package"
+        },
+        {
+          "id": "jwm",
+          "confidence": 0.65,
+          "source": "desktop"
+        }
+      ]
+    },
+    "kde": {
+      "type": "app",
+      "glyph": "linux-kde",
+      "apps": [
+        {
+          "id": "kdeconnect",
+          "confidence": 0.8,
+          "source": "package"
+        },
+        {
+          "id": "org.kde.kdeconnect.app",
+          "confidence": 0.8,
+          "source": "desktop"
+        },
+        {
+          "id": "org.kde.kdeconnect.app",
+          "confidence": 0.75,
+          "source": "flatpak"
+        },
+        {
+          "id": "plasma-desktop",
+          "confidence": 0.7,
+          "source": "package"
+        },
+        {
+          "id": "org.kde.plasmashell",
+          "confidence": 0.45,
+          "source": "desktop"
+        }
+      ]
+    },
+    "kde-neon": {
+      "type": "app",
+      "glyph": "linux-kde_neon",
+      "apps": [
+        {
+          "id": "neon-welcome",
+          "confidence": 0.45,
+          "source": "inferred"
+        }
+      ]
+    },
+    "kde-plasma": {
+      "type": "app",
+      "glyph": "linux-kde_plasma",
+      "apps": [
+        {
+          "id": "plasma-desktop",
+          "confidence": 0.95,
+          "source": "package"
+        },
+        {
+          "id": "org.kde.plasmashell",
+          "confidence": 0.9,
+          "source": "desktop"
+        },
+        {
+          "id": "org.kde.plasma.desktop",
+          "confidence": 0.8,
+          "source": "inferred"
+        }
+      ]
+    },
+    "kdenlive": {
+      "type": "app",
+      "glyph": "linux-kdenlive",
+      "apps": [
+        {
+          "id": "kdenlive",
+          "confidence": 1,
+          "source": "package"
+        },
+        {
+          "id": "org.kde.kdenlive",
+          "confidence": 0.95,
+          "source": "desktop"
+        },
+        {
+          "id": "org.kde.kdenlive",
+          "confidence": 0.95,
+          "source": "flatpak"
+        }
+      ]
+    },
+    "kettle": {
+      "type": "category",
+      "glyph": "md-kettle_steam_outline",
+      "apps": [
+        {
+          "id": "teatime",
+          "confidence": 0.55,
+          "source": "package"
+        },
+        {
+          "id": "org.gnome.TeaTime",
+          "confidence": 0.55,
+          "source": "flatpak"
+        }
+      ]
+    },
+    "key": {
+      "type": "category",
+      "glyph": "md-key_outline",
+      "apps": [
+        {
+          "id": "keepassxc",
+          "confidence": 0.9,
+          "source": "package"
+        },
+        {
+          "id": "org.keepassxc.KeePassXC",
+          "confidence": 0.9,
+          "source": "flatpak"
+        },
+        {
+          "id": "seahorse",
+          "confidence": 0.8,
+          "source": "package"
+        },
+        {
+          "id": "org.gnome.seahorse.Application",
+          "confidence": 0.8,
+          "source": "desktop"
+        },
+        {
+          "id": "kleopatra",
+          "confidence": 0.75,
+          "source": "package"
+        },
+        {
+          "id": "org.kde.kleopatra",
+          "confidence": 0.75,
+          "source": "desktop"
+        },
+        {
+          "id": "bitwarden",
+          "confidence": 0.7,
+          "source": "package"
+        },
+        {
+          "id": "com.bitwarden.desktop",
+          "confidence": 0.7,
+          "source": "flatpak"
+        },
+        {
+          "id": "1password",
+          "confidence": 0.65,
+          "source": "package"
+        },
+        {
+          "id": "pass",
+          "confidence": 0.55,
+          "source": "package"
+        }
+      ]
+    },
+    "keybase": {
+      "type": "app",
+      "glyph": "fa-keybase",
+      "apps": [
+        {
+          "id": "keybase",
+          "confidence": 0.8,
+          "source": "package"
+        },
+        {
+          "id": "keybase",
+          "confidence": 0.8,
+          "source": "desktop"
+        },
+        {
+          "id": "keybase",
+          "confidence": 0.8,
+          "source": "inferred"
+        }
+      ]
+    },
+    "keyboard": {
+      "type": "category",
+      "glyph": "md-keyboard_tab",
+      "apps": [
+        {
+          "id": "ibus",
+          "confidence": 0.8,
+          "source": "package"
+        },
+        {
+          "id": "ibus-setup",
+          "confidence": 0.75,
+          "source": "package"
+        },
+        {
+          "id": "fcitx5",
+          "confidence": 0.75,
+          "source": "package"
+        },
+        {
+          "id": "fcitx5-configtool",
+          "confidence": 0.7,
+          "source": "package"
+        }
+      ]
+    },
+    "keycdn": {
+      "type": "app",
+      "glyph": "fa-keycdn",
+      "apps": null
+    },
+    "kicad": {
+      "type": "app",
+      "glyph": "linux-kicad",
+      "apps": [
+        {
+          "id": "org.kicad.KiCad",
+          "confidence": 0.9,
+          "source": "flatpak"
+        },
+        {
+          "id": "kicad",
+          "confidence": 0.9,
+          "source": "package"
+        },
+        {
+          "id": "kicad",
+          "confidence": 0.85,
+          "source": "desktop"
+        }
+      ]
+    },
+    "krita": {
+      "type": "app",
+      "glyph": "linux-krita",
+      "apps": [
+        {
+          "id": "krita",
+          "confidence": 1,
+          "source": "package"
+        },
+        {
+          "id": "org.kde.krita",
+          "confidence": 0.95,
+          "source": "desktop"
+        },
+        {
+          "id": "org.kde.krita",
+          "confidence": 0.95,
+          "source": "flatpak"
+        }
+      ]
+    },
+    "kubernetes": {
+      "type": "app",
+      "glyph": "dev-kubernetes",
+      "apps": [
+        {
+          "id": "kubernetes",
+          "confidence": 0.85,
+          "source": "inferred"
+        },
+        {
+          "id": "kubectl",
+          "confidence": 0.85,
+          "source": "package"
+        },
+        {
+          "id": "k9s",
+          "confidence": 0.7,
+          "source": "package"
+        },
+        {
+          "id": "lens",
+          "confidence": 0.65,
+          "source": "inferred"
+        }
+      ]
+    },
+    "kubuntu": {
+      "type": "app",
+      "glyph": "linux-kubuntu_inverse",
+      "apps": null
+    },
+    "laptop": {
+      "type": "category",
+      "glyph": "fa-laptop_code",
+      "apps": [
+        {
+          "id": "upower",
+          "confidence": 0.75,
+          "source": "package"
+        },
+        {
+          "id": "gnome-control-center",
+          "confidence": 0.65,
+          "source": "package"
+        }
+      ]
+    },
+    "leap": {
+      "type": "app",
+      "glyph": "linux-leap",
+      "apps": null
+    },
+    "libreoffice": {
+      "type": "app",
+      "glyph": "linux-libreoffice",
+      "apps": [
+        {
+          "id": "libreoffice",
+          "confidence": 1,
+          "source": "package"
+        },
+        {
+          "id": "org.libreoffice.LibreOffice",
+          "confidence": 0.95,
+          "source": "flatpak"
+        },
+        {
+          "id": "libreoffice-startcenter",
+          "confidence": 0.9,
+          "source": "desktop"
+        },
+        {
+          "id": "libreoffice7.6-startcenter",
+          "confidence": 0.85,
+          "source": "desktop"
+        }
+      ]
+    },
+    "libreoffice-base": {
+      "type": "app",
+      "glyph": "linux-libreofficebase",
+      "apps": [
+        {
+          "id": "libreoffice-base",
+          "confidence": 0.95,
+          "source": "package"
+        },
+        {
+          "id": "libreoffice-base.desktop",
+          "confidence": 0.95,
+          "source": "desktop"
+        },
+        {
+          "id": "org.libreoffice.LibreOffice",
+          "confidence": 0.8,
+          "source": "flatpak"
+        }
+      ]
+    },
+    "libreoffice-calc": {
+      "type": "app",
+      "glyph": "linux-libreofficecalc",
+      "apps": [
+        {
+          "id": "libreoffice-calc",
+          "confidence": 0.95,
+          "source": "package"
+        },
+        {
+          "id": "libreoffice-calc",
+          "confidence": 0.9,
+          "source": "desktop"
+        },
+        {
+          "id": "org.libreoffice.LibreOffice",
+          "confidence": 0.9,
+          "source": "flatpak"
+        }
+      ]
+    },
+    "libreoffice-draw": {
+      "type": "app",
+      "glyph": "linux-libreofficedraw",
+      "apps": [
+        {
+          "id": "libreoffice-draw",
+          "confidence": 0.9,
+          "source": "package"
+        },
+        {
+          "id": "libreoffice-draw",
+          "confidence": 0.85,
+          "source": "desktop"
+        },
+        {
+          "id": "org.libreoffice.LibreOffice",
+          "confidence": 0.8,
+          "source": "flatpak"
+        }
+      ]
+    },
+    "libreoffice-impress": {
+      "type": "app",
+      "glyph": "linux-libreofficeimpress",
+      "apps": [
+        {
+          "id": "libreoffice-impress",
+          "confidence": 1,
+          "source": "package"
+        },
+        {
+          "id": "libreoffice-impress.desktop",
+          "confidence": 1,
+          "source": "desktop"
+        },
+        {
+          "id": "org.libreoffice.LibreOffice",
+          "confidence": 0.95,
+          "source": "flatpak"
+        }
+      ]
+    },
+    "libreoffice-math": {
+      "type": "app",
+      "glyph": "linux-libreofficemath",
+      "apps": [
+        {
+          "id": "libreoffice-math",
+          "confidence": 0.9,
+          "source": "package"
+        },
+        {
+          "id": "libreoffice-math",
+          "confidence": 0.85,
+          "source": "desktop"
+        },
+        {
+          "id": "org.libreoffice.LibreOffice",
+          "confidence": 0.8,
+          "source": "flatpak"
+        }
+      ]
+    },
+    "libreoffice-writer": {
+      "type": "app",
+      "glyph": "linux-libreofficewriter",
+      "apps": [
+        {
+          "id": "libreoffice-writer",
+          "confidence": 0.95,
+          "source": "package"
+        },
+        {
+          "id": "libreoffice-writer",
+          "confidence": 0.9,
+          "source": "desktop"
+        },
+        {
+          "id": "org.libreoffice.LibreOffice",
+          "confidence": 0.8,
+          "source": "flatpak"
+        }
+      ]
+    },
+    "link": {
+      "type": "category",
+      "glyph": "md-link_box_outline",
+      "apps": [
+        {
+          "id": "copyq",
+          "confidence": 0.6,
+          "source": "package"
+        },
+        {
+          "id": "remmina",
+          "confidence": 0.6,
+          "source": "package"
+        }
+      ]
+    },
+    "linkedin": {
+      "type": "app",
+      "glyph": "fa-linkedin_square",
+      "apps": null
+    },
+    "linux": {
+      "type": "category",
+      "glyph": "md-linux",
+      "apps": [
+        {
+          "id": "neofetch",
+          "confidence": 0.65,
+          "source": "package"
+        },
+        {
+          "id": "fastfetch",
+          "confidence": 0.6,
+          "source": "package"
+        }
+      ]
+    },
+    "linuxmint": {
+      "type": "app",
+      "glyph": "md-linux_mint",
+      "apps": [
+        {
+          "id": "mintwelcome",
+          "confidence": 0.6,
+          "source": "package"
+        },
+        {
+          "id": "mintinstall",
+          "confidence": 0.6,
+          "source": "package"
+        },
+        {
+          "id": "mintupdate",
+          "confidence": 0.6,
+          "source": "package"
+        }
+      ]
+    },
+    "lock": {
+      "type": "category",
+      "glyph": "md-lock_open_minus_outline",
+      "apps": [
+        {
+          "id": "gnome-keyring",
+          "confidence": 0.8,
+          "source": "package"
+        },
+        {
+          "id": "org.gnome.seahorse.Application",
+          "confidence": 0.75,
+          "source": "desktop"
+        },
+        {
+          "id": "seahorse",
+          "confidence": 0.75,
+          "source": "package"
+        },
+        {
+          "id": "keepassxc",
+          "confidence": 0.7,
+          "source": "package"
+        },
+        {
+          "id": "org.gnome.ControlCenter",
+          "confidence": 0.65,
+          "source": "desktop"
+        }
+      ]
+    },
+    "locker": {
+      "type": "category",
+      "glyph": "md-locker",
+      "apps": [
+        {
+          "id": "gnome-screensaver",
+          "confidence": 0.75,
+          "source": "package"
+        },
+        {
+          "id": "xsecurelock",
+          "confidence": 0.65,
+          "source": "package"
+        },
+        {
+          "id": "swaylock",
+          "confidence": 0.6,
+          "source": "package"
+        },
+        {
+          "id": "i3lock",
+          "confidence": 0.6,
+          "source": "package"
+        }
+      ]
+    },
+    "locos": {
+      "type": "app",
+      "glyph": "linux-locos",
+      "apps": null
+    },
+    "lxde": {
+      "type": "app",
+      "glyph": "linux-lxde",
+      "apps": [
+        {
+          "id": "lxpanel",
+          "confidence": 0.9,
+          "source": "package"
+        },
+        {
+          "id": "lxterminal",
+          "confidence": 0.9,
+          "source": "package"
+        },
+        {
+          "id": "pcmanfm",
+          "confidence": 0.85,
+          "source": "package"
+        },
+        {
+          "id": "lxsession",
+          "confidence": 0.75,
+          "source": "package"
+        }
+      ]
+    },
+    "lxle": {
+      "type": "app",
+      "glyph": "linux-lxle",
+      "apps": null
+    },
+    "lxqt": {
+      "type": "app",
+      "glyph": "linux-lxqt",
+      "apps": [
+        {
+          "id": "lxqt-about",
+          "confidence": 0.8,
+          "source": "package"
+        },
+        {
+          "id": "lxqt-config",
+          "confidence": 0.75,
+          "source": "package"
+        },
+        {
+          "id": "pcmanfm-qt",
+          "confidence": 0.75,
+          "source": "package"
+        }
+      ]
+    },
+    "mailbox": {
+      "type": "category",
+      "glyph": "md-mailbox_open_up",
+      "apps": [
+        {
+          "id": "thunderbird",
+          "confidence": 0.85,
+          "source": "package"
+        },
+        {
+          "id": "evolution",
+          "confidence": 0.8,
+          "source": "package"
+        },
+        {
+          "id": "geary",
+          "confidence": 0.75,
+          "source": "package"
+        },
+        {
+          "id": "mailspring",
+          "confidence": 0.7,
+          "source": "package"
+        }
+      ]
+    },
+    "mandriva": {
+      "type": "app",
+      "glyph": "linux-mandriva",
+      "apps": [
+        {
+          "id": "mandriva",
+          "confidence": 0.45,
+          "source": "inferred"
+        }
+      ]
+    },
+    "map": {
+      "type": "category",
+      "glyph": "md-map_clock_outline",
+      "apps": [
+        {
+          "id": "gnome-maps",
+          "confidence": 0.75,
+          "source": "package"
+        },
+        {
+          "id": "org.gnome.Maps",
+          "confidence": 0.75,
+          "source": "desktop"
+        },
+        {
+          "id": "marble",
+          "confidence": 0.7,
+          "source": "package"
+        }
+      ]
+    },
+    "mapbox": {
+      "type": "app",
+      "glyph": "md-mapbox",
+      "apps": null
+    },
+    "mastodon": {
+      "type": "app",
+      "glyph": "md-mastodon",
+      "apps": [
+        {
+          "id": "org.kde.tokodon",
+          "confidence": 0.85,
+          "source": "desktop"
+        },
+        {
+          "id": "tokodon",
+          "confidence": 0.85,
+          "source": "package"
+        },
+        {
+          "id": "whalebird",
+          "confidence": 0.55,
+          "source": "package"
+        },
+        {
+          "id": "mastodon",
+          "confidence": 0.45,
+          "source": "inferred"
+        }
+      ]
+    },
+    "mate": {
+      "type": "app",
+      "glyph": "linux-mate",
+      "apps": [
+        {
+          "id": "mate-control-center",
+          "confidence": 0.75,
+          "source": "package"
+        },
+        {
+          "id": "caja",
+          "confidence": 0.7,
+          "source": "package"
+        },
+        {
+          "id": "pluma",
+          "confidence": 0.65,
+          "source": "package"
+        }
+      ]
+    },
+    "math": {
+      "type": "category",
+      "glyph": "md-math_integral_box",
+      "apps": [
+        {
+          "id": "libreoffice-math",
+          "confidence": 0.75,
+          "source": "package"
+        },
+        {
+          "id": "libreoffice-math",
+          "confidence": 0.75,
+          "source": "desktop"
+        },
+        {
+          "id": "org.libreoffice.LibreOffice",
+          "confidence": 0.65,
+          "source": "flatpak"
+        }
+      ]
+    },
+    "media": {
+      "type": "category",
+      "glyph": "cod-file_media",
+      "apps": [
+        {
+          "id": "vlc",
+          "confidence": 0.75,
+          "source": "package"
+        },
+        {
+          "id": "mpv",
+          "confidence": 0.7,
+          "source": "package"
+        },
+        {
+          "id": "obs-studio",
+          "confidence": 0.7,
+          "source": "package"
+        },
+        {
+          "id": "org.kde.kdenlive",
+          "confidence": 0.65,
+          "source": "desktop"
+        },
+        {
+          "id": "kdenlive",
+          "confidence": 0.65,
+          "source": "package"
+        }
+      ]
+    },
+    "medical": {
+      "type": "category",
+      "glyph": "fa-notes_medical",
+      "apps": [
+        {
+          "id": "gnome-clocks",
+          "confidence": 0.75,
+          "source": "package"
+        },
+        {
+          "id": "org.gnome.Clocks",
+          "confidence": 0.75,
+          "source": "desktop"
+        },
+        {
+          "id": "kclock",
+          "confidence": 0.65,
+          "source": "package"
+        },
+        {
+          "id": "org.gnome.Health",
+          "confidence": 0.55,
+          "source": "desktop"
+        },
+        {
+          "id": "gnome-maps",
+          "confidence": 0.45,
+          "source": "package"
+        }
+      ]
+    },
+    "message": {
+      "type": "category",
+      "glyph": "md-message_minus",
+      "apps": [
+        {
+          "id": "signal-desktop",
+          "confidence": 0.85,
+          "source": "package"
+        },
+        {
+          "id": "org.signal.Signal",
+          "confidence": 0.85,
+          "source": "flatpak"
+        },
+        {
+          "id": "telegram-desktop",
+          "confidence": 0.85,
+          "source": "package"
+        },
+        {
+          "id": "thunderbird",
+          "confidence": 0.8,
+          "source": "package"
+        },
+        {
+          "id": "evolution",
+          "confidence": 0.75,
+          "source": "package"
+        },
+        {
+          "id": "element-desktop",
+          "confidence": 0.7,
+          "source": "package"
+        }
+      ]
+    },
+    "messenger": {
+      "type": "app",
+      "glyph": "fa-facebook_messenger",
+      "apps": [
+        {
+          "id": "caprine",
+          "confidence": 0.65,
+          "source": "package"
+        },
+        {
+          "id": "com.sindresorhus.Caprine",
+          "confidence": 0.65,
+          "source": "flatpak"
+        }
+      ]
+    },
+    "microphone": {
+      "type": "category",
+      "glyph": "md-microphone_question",
+      "apps": [
+        {
+          "id": "pavucontrol",
+          "confidence": 0.8,
+          "source": "package"
+        },
+        {
+          "id": "easyeffects",
+          "confidence": 0.75,
+          "source": "package"
+        },
+        {
+          "id": "com.github.wwmm.easyeffects",
+          "confidence": 0.75,
+          "source": "flatpak"
+        },
+        {
+          "id": "helvum",
+          "confidence": 0.7,
+          "source": "package"
+        }
+      ]
+    },
+    "mixcloud": {
+      "type": "app",
+      "glyph": "fa-mixcloud",
+      "apps": null
+    },
+    "mobile": {
+      "type": "category",
+      "glyph": "md-cellphone_screenshot",
+      "apps": [
+        {
+          "id": "scrcpy",
+          "confidence": 0.65,
+          "source": "package"
+        },
+        {
+          "id": "org.gnome.Settings",
+          "confidence": 0.6,
+          "source": "desktop"
+        },
+        {
+          "id": "kdeconnect",
+          "confidence": 0.55,
+          "source": "package"
+        }
+      ]
+    },
+    "monitor": {
+      "type": "category",
+      "glyph": "md-monitor_eye",
+      "apps": [
+        {
+          "id": "gnome-system-monitor",
+          "confidence": 0.85,
+          "source": "package"
+        },
+        {
+          "id": "org.gnome.SystemMonitor",
+          "confidence": 0.85,
+          "source": "desktop"
+        },
+        {
+          "id": "ksysguard",
+          "confidence": 0.75,
+          "source": "package"
+        },
+        {
+          "id": "mission-center",
+          "confidence": 0.7,
+          "source": "package"
+        }
+      ]
+    },
+    "mpv": {
+      "type": "app",
+      "glyph": "linux-mpv",
+      "apps": [
+        {
+          "id": "mpv",
+          "confidence": 1,
+          "source": "package"
+        },
+        {
+          "id": "mpv",
+          "confidence": 0.9,
+          "source": "desktop"
+        },
+        {
+          "id": "io.mpv.Mpv",
+          "confidence": 0.9,
+          "source": "flatpak"
+        }
+      ]
+    },
+    "music": {
+      "type": "category",
+      "glyph": "md-music_note_half_dotted",
+      "apps": [
+        {
+          "id": "spotify",
+          "confidence": 0.85,
+          "source": "package"
+        },
+        {
+          "id": "com.spotify.Client",
+          "confidence": 0.85,
+          "source": "flatpak"
+        },
+        {
+          "id": "rhythmbox",
+          "confidence": 0.8,
+          "source": "package"
+        },
+        {
+          "id": "org.gnome.Rhythmbox3",
+          "confidence": 0.8,
+          "source": "desktop"
+        },
+        {
+          "id": "org.kde.elisa",
+          "confidence": 0.75,
+          "source": "desktop"
+        },
+        {
+          "id": "elisa",
+          "confidence": 0.75,
+          "source": "package"
+        },
+        {
+          "id": "lollypop",
+          "confidence": 0.7,
+          "source": "package"
+        },
+        {
+          "id": "org.gnome.Lollypop",
+          "confidence": 0.7,
+          "source": "flatpak"
+        },
+        {
+          "id": "strawberry",
+          "confidence": 0.7,
+          "source": "package"
+        },
+        {
+          "id": "clementine",
+          "confidence": 0.65,
+          "source": "package"
+        },
+        {
+          "id": "quodlibet",
+          "confidence": 0.6,
+          "source": "package"
+        }
+      ]
+    },
+    "mxlinux": {
+      "type": "app",
+      "glyph": "linux-mxlinux",
+      "apps": [
+        {
+          "id": "mx-welcome",
+          "confidence": 0.4,
+          "source": "inferred"
+        },
+        {
+          "id": "mx-tools",
+          "confidence": 0.4,
+          "source": "inferred"
+        }
+      ]
+    },
+    "nature": {
+      "type": "category",
+      "glyph": "md-pine_tree_box",
+      "apps": [
+        {
+          "id": "gnome-weather",
+          "confidence": 0.65,
+          "source": "package"
+        },
+        {
+          "id": "org.gnome.Weather",
+          "confidence": 0.65,
+          "source": "desktop"
+        },
+        {
+          "id": "org.gnome.Weather",
+          "confidence": 0.6,
+          "source": "flatpak"
+        },
+        {
+          "id": "meteogram",
+          "confidence": 0.55,
+          "source": "package"
+        }
+      ]
+    },
+    "neovim": {
+      "type": "app",
+      "glyph": "custom-neovim",
+      "apps": [
+        {
+          "id": "neovim",
+          "confidence": 1,
+          "source": "package"
+        },
+        {
+          "id": "nvim",
+          "confidence": 0.85,
+          "source": "inferred"
+        }
+      ]
+    },
+    "network": {
+      "type": "category",
+      "glyph": "md-help_network_outline",
+      "apps": [
+        {
+          "id": "network-manager",
+          "confidence": 0.9,
+          "source": "package"
+        },
+        {
+          "id": "nm-connection-editor",
+          "confidence": 0.85,
+          "source": "package"
+        },
+        {
+          "id": "nm-connection-editor",
+          "confidence": 0.85,
+          "source": "desktop"
+        },
+        {
+          "id": "wireshark",
+          "confidence": 0.8,
+          "source": "package"
+        },
+        {
+          "id": "nmap",
+          "confidence": 0.75,
+          "source": "package"
+        },
+        {
+          "id": "openssh-client",
+          "confidence": 0.7,
+          "source": "package"
+        },
+        {
+          "id": "remmina",
+          "confidence": 0.7,
+          "source": "package"
+        }
+      ]
+    },
+    "networkx": {
+      "type": "app",
+      "glyph": "dev-networkx",
+      "apps": [
+        {
+          "id": "python3-networkx",
+          "confidence": 0.35,
+          "source": "package"
+        },
+        {
+          "id": "python-networkx",
+          "confidence": 0.35,
+          "source": "package"
+        },
+        {
+          "id": "networkx",
+          "confidence": 0.3,
+          "source": "inferred"
+        }
+      ]
+    },
+    "new": {
+      "type": "category",
+      "glyph": "md-new_box",
+      "apps": [
+        {
+          "id": "org.gnome.Software",
+          "confidence": 0.6,
+          "source": "inferred"
+        },
+        {
+          "id": "org.kde.discover",
+          "confidence": 0.55,
+          "source": "inferred"
+        }
+      ]
+    },
+    "nobara": {
+      "type": "app",
+      "glyph": "linux-nobara",
+      "apps": [
+        {
+          "id": "nobara-welcome",
+          "confidence": 0.3,
+          "source": "inferred"
+        },
+        {
+          "id": "nobara-updater",
+          "confidence": 0.3,
+          "source": "inferred"
+        }
+      ]
+    },
+    "note": {
+      "type": "category",
+      "glyph": "md-note_remove",
+      "apps": [
+        {
+          "id": "joplin",
+          "confidence": 0.85,
+          "source": "package"
+        },
+        {
+          "id": "net.cozic.joplin_desktop",
+          "confidence": 0.85,
+          "source": "flatpak"
+        },
+        {
+          "id": "obsidian",
+          "confidence": 0.8,
+          "source": "package"
+        },
+        {
+          "id": "standardnotes",
+          "confidence": 0.75,
+          "source": "package"
+        },
+        {
+          "id": "org.gnome.Notes",
+          "confidence": 0.7,
+          "source": "desktop"
+        },
+        {
+          "id": "xournalpp",
+          "confidence": 0.65,
+          "source": "package"
+        }
+      ]
+    },
+    "notebook": {
+      "type": "category",
+      "glyph": "seti-notebook",
+      "apps": [
+        {
+          "id": "joplin",
+          "confidence": 0.8,
+          "source": "package"
+        },
+        {
+          "id": "net.cozic.joplin_desktop",
+          "confidence": 0.8,
+          "source": "flatpak"
+        },
+        {
+          "id": "md.obsidian.Obsidian",
+          "confidence": 0.75,
+          "source": "flatpak"
+        },
+        {
+          "id": "obsidian",
+          "confidence": 0.7,
+          "source": "package"
+        },
+        {
+          "id": "logseq",
+          "confidence": 0.7,
+          "source": "package"
+        },
+        {
+          "id": "com.logseq.Logseq",
+          "confidence": 0.7,
+          "source": "flatpak"
+        },
+        {
+          "id": "standardnotes",
+          "confidence": 0.7,
+          "source": "package"
+        },
+        {
+          "id": "org.standardnotes.standardnotes",
+          "confidence": 0.7,
+          "source": "flatpak"
+        },
+        {
+          "id": "xournalpp",
+          "confidence": 0.65,
+          "source": "package"
+        },
+        {
+          "id": "com.github.xournalpp.xournalpp",
+          "confidence": 0.65,
+          "source": "flatpak"
+        },
+        {
+          "id": "org.gnome.Notes",
+          "confidence": 0.6,
+          "source": "desktop"
+        }
+      ]
+    },
+    "notes": {
+      "type": "category",
+      "glyph": "md-notebook_edit_outline",
+      "apps": [
+        {
+          "id": "org.gnome.Notes",
+          "confidence": 0.85,
+          "source": "desktop"
+        },
+        {
+          "id": "gnome-notes",
+          "confidence": 0.85,
+          "source": "package"
+        },
+        {
+          "id": "net.cozic.joplin_desktop",
+          "confidence": 0.8,
+          "source": "flatpak"
+        },
+        {
+          "id": "md.obsidian.Obsidian",
+          "confidence": 0.75,
+          "source": "flatpak"
+        },
+        {
+          "id": "com.logseq.Logseq",
+          "confidence": 0.75,
+          "source": "flatpak"
+        },
+        {
+          "id": "io.appflowy.AppFlowy",
+          "confidence": 0.7,
+          "source": "flatpak"
+        },
+        {
+          "id": "org.standardnotes.standardnotes",
+          "confidence": 0.7,
+          "source": "flatpak"
+        },
+        {
+          "id": "xournalpp",
+          "confidence": 0.7,
+          "source": "package"
+        }
+      ]
+    },
+    "notification": {
+      "type": "category",
+      "glyph": "md-bell_cog_outline",
+      "apps": [
+        {
+          "id": "dunst",
+          "confidence": 0.85,
+          "source": "package"
+        },
+        {
+          "id": "mako",
+          "confidence": 0.8,
+          "source": "package"
+        },
+        {
+          "id": "xfce4-notifyd",
+          "confidence": 0.75,
+          "source": "package"
+        },
+        {
+          "id": "org.gnome.Shell",
+          "confidence": 0.6,
+          "source": "desktop"
+        }
+      ]
+    },
+    "notifications": {
+      "type": "category",
+      "glyph": "md-bell_cog",
+      "apps": [
+        {
+          "id": "dunst",
+          "confidence": 0.7,
+          "source": "package"
+        },
+        {
+          "id": "mako",
+          "confidence": 0.65,
+          "source": "package"
+        },
+        {
+          "id": "xfce4-notifyd",
+          "confidence": 0.6,
+          "source": "package"
+        }
+      ]
+    },
+    "npm": {
+      "type": "app",
+      "glyph": "custom-folder_npm",
+      "apps": [
+        {
+          "id": "npm",
+          "confidence": 0.7,
+          "source": "package"
+        }
+      ]
+    },
+    "nwjs": {
+      "type": "app",
+      "glyph": "dev-nodewebkit",
+      "apps": [
+        {
+          "id": "nwjs",
+          "confidence": 0.7,
+          "source": "package"
+        }
+      ]
+    },
+    "ocr": {
+      "type": "category",
+      "glyph": "md-text_recognition",
+      "apps": [
+        {
+          "id": "tesseract-ocr",
+          "confidence": 0.9,
+          "source": "package"
+        },
+        {
+          "id": "gimagereader",
+          "confidence": 0.75,
+          "source": "package"
+        },
+        {
+          "id": "gimagereader",
+          "confidence": 0.75,
+          "source": "desktop"
+        },
+        {
+          "id": "ocrfeeder",
+          "confidence": 0.7,
+          "source": "package"
+        },
+        {
+          "id": "org.gnome.OCRFeeder",
+          "confidence": 0.7,
+          "source": "desktop"
+        },
+        {
+          "id": "gscan2pdf",
+          "confidence": 0.7,
+          "source": "package"
+        }
+      ]
+    },
+    "octoprint": {
+      "type": "app",
+      "glyph": "linux-octoprint",
+      "apps": [
+        {
+          "id": "octoprint",
+          "confidence": 0.95,
+          "source": "package"
+        },
+        {
+          "id": "octoprint",
+          "confidence": 0.6,
+          "source": "inferred"
+        }
+      ]
+    },
+    "office": {
+      "type": "category",
+      "glyph": "md-office_building_cog",
+      "apps": [
+        {
+          "id": "libreoffice",
+          "confidence": 0.9,
+          "source": "package"
+        },
+        {
+          "id": "org.libreoffice.LibreOffice",
+          "confidence": 0.85,
+          "source": "flatpak"
+        },
+        {
+          "id": "onlyoffice-desktopeditors",
+          "confidence": 0.8,
+          "source": "package"
+        },
+        {
+          "id": "org.onlyoffice.desktopeditors",
+          "confidence": 0.75,
+          "source": "flatpak"
+        },
+        {
+          "id": "calligra",
+          "confidence": 0.7,
+          "source": "package"
+        },
+        {
+          "id": "abiword",
+          "confidence": 0.6,
+          "source": "package"
+        }
+      ]
+    },
+    "onedrive": {
+      "type": "app",
+      "glyph": "md-microsoft_onedrive",
+      "apps": [
+        {
+          "id": "onedrive",
+          "confidence": 0.6,
+          "source": "package"
+        },
+        {
+          "id": "onedrivegui",
+          "confidence": 0.4,
+          "source": "package"
+        }
+      ]
+    },
+    "onenote": {
+      "type": "app",
+      "glyph": "md-microsoft_onenote",
+      "apps": [
+        {
+          "id": "p3x-onenote",
+          "confidence": 0.55,
+          "source": "package"
+        },
+        {
+          "id": "com.p3x.onenote",
+          "confidence": 0.45,
+          "source": "inferred"
+        }
+      ]
+    },
+    "open-source": {
+      "type": "category",
+      "glyph": "linux-osh",
+      "apps": [
+        {
+          "id": "org.gnome.Software",
+          "confidence": 0.55,
+          "source": "desktop"
+        },
+        {
+          "id": "org.kde.discover",
+          "confidence": 0.55,
+          "source": "desktop"
+        },
+        {
+          "id": "flathub",
+          "confidence": 0.5,
+          "source": "inferred"
+        }
+      ]
+    },
+    "openbsd": {
+      "type": "app",
+      "glyph": "linux-openbsd",
+      "apps": [
+        {
+          "id": "openbsd",
+          "confidence": 0.5,
+          "source": "inferred"
+        }
+      ]
+    },
+    "openscad": {
+      "type": "app",
+      "glyph": "linux-openscad",
+      "apps": [
+        {
+          "id": "openscad",
+          "confidence": 0.95,
+          "source": "package"
+        },
+        {
+          "id": "org.openscad.OpenSCAD",
+          "confidence": 0.95,
+          "source": "desktop"
+        },
+        {
+          "id": "org.openscad.OpenSCAD",
+          "confidence": 0.95,
+          "source": "flatpak"
+        }
+      ]
+    },
+    "opera": {
+      "type": "app",
+      "glyph": "fa-opera",
+      "apps": [
+        {
+          "id": "opera-stable",
+          "confidence": 0.95,
+          "source": "package"
+        },
+        {
+          "id": "opera",
+          "confidence": 0.85,
+          "source": "desktop"
+        },
+        {
+          "id": "opera-beta",
+          "confidence": 0.75,
+          "source": "package"
+        }
+      ]
+    },
+    "oshwa": {
+      "type": "app",
+      "glyph": "linux-oshwa",
+      "apps": null
+    },
+    "osi": {
+      "type": "app",
+      "glyph": "linux-osi",
+      "apps": null
+    },
+    "outlook": {
+      "type": "app",
+      "glyph": "md-microsoft_outlook",
+      "apps": null
+    },
+    "package": {
+      "type": "category",
+      "glyph": "md-package_variant_remove",
+      "apps": [
+        {
+          "id": "flatpak",
+          "confidence": 0.9,
+          "source": "package"
+        },
+        {
+          "id": "snapd",
+          "confidence": 0.85,
+          "source": "package"
+        },
+        {
+          "id": "gnome-software",
+          "confidence": 0.8,
+          "source": "package"
+        },
+        {
+          "id": "plasma-discover",
+          "confidence": 0.8,
+          "source": "package"
+        },
+        {
+          "id": "synaptic",
+          "confidence": 0.75,
+          "source": "package"
+        },
+        {
+          "id": "pamac-manager",
+          "confidence": 0.7,
+          "source": "package"
+        }
+      ]
+    },
+    "parabola": {
+      "type": "app",
+      "glyph": "linux-parabola",
+      "apps": null
+    },
+    "parachute": {
+      "type": "category",
+      "glyph": "fa-parachute_box",
+      "apps": [
+        {
+          "id": "org.gnome.DejaDup",
+          "confidence": 0.85,
+          "source": "desktop"
+        },
+        {
+          "id": "deja-dup",
+          "confidence": 0.85,
+          "source": "package"
+        },
+        {
+          "id": "timeshift",
+          "confidence": 0.8,
+          "source": "package"
+        },
+        {
+          "id": "com.borgbase.Vorta",
+          "confidence": 0.75,
+          "source": "flatpak"
+        }
+      ]
+    },
+    "parrot": {
+      "type": "app",
+      "glyph": "linux-parrot",
+      "apps": [
+        {
+          "id": "parrot-security",
+          "confidence": 0.95,
+          "source": "package"
+        },
+        {
+          "id": "parrot",
+          "confidence": 0.4,
+          "source": "inferred"
+        }
+      ]
+    },
+    "password": {
+      "type": "category",
+      "glyph": "md-form_textbox_password",
+      "apps": [
+        {
+          "id": "keepassxc",
+          "confidence": 0.9,
+          "source": "package"
+        },
+        {
+          "id": "org.keepassxc.KeePassXC",
+          "confidence": 0.9,
+          "source": "flatpak"
+        },
+        {
+          "id": "bitwarden",
+          "confidence": 0.85,
+          "source": "package"
+        },
+        {
+          "id": "com.bitwarden.desktop",
+          "confidence": 0.85,
+          "source": "flatpak"
+        },
+        {
+          "id": "seahorse",
+          "confidence": 0.75,
+          "source": "package"
+        }
+      ]
+    },
+    "payment": {
+      "type": "category",
+      "glyph": "md-credit_card_lock_outline",
+      "apps": [
+        {
+          "id": "gnucash",
+          "confidence": 0.7,
+          "source": "package"
+        },
+        {
+          "id": "org.gnucash.GnuCash",
+          "confidence": 0.7,
+          "source": "flatpak"
+        },
+        {
+          "id": "kmymoney",
+          "confidence": 0.65,
+          "source": "package"
+        },
+        {
+          "id": "homebank",
+          "confidence": 0.6,
+          "source": "package"
+        }
+      ]
+    },
+    "pdf": {
+      "type": "category",
+      "glyph": "fa-file_pdf_o",
+      "apps": [
+        {
+          "id": "okular",
+          "confidence": 0.85,
+          "source": "package"
+        },
+        {
+          "id": "org.kde.okular",
+          "confidence": 0.85,
+          "source": "desktop"
+        },
+        {
+          "id": "org.gnome.Evince",
+          "confidence": 0.85,
+          "source": "desktop"
+        },
+        {
+          "id": "evince",
+          "confidence": 0.85,
+          "source": "package"
+        },
+        {
+          "id": "zathura",
+          "confidence": 0.75,
+          "source": "package"
+        },
+        {
+          "id": "xreader",
+          "confidence": 0.7,
+          "source": "package"
+        }
+      ]
+    },
+    "people": {
+      "type": "category",
+      "glyph": "fa-people_carry_box",
+      "apps": [
+        {
+          "id": "org.gnome.Contacts",
+          "confidence": 0.75,
+          "source": "desktop"
+        },
+        {
+          "id": "org.kde.kaddressbook",
+          "confidence": 0.7,
+          "source": "desktop"
+        }
+      ]
+    },
+    "phone": {
+      "type": "category",
+      "glyph": "md-phone_sync_outline",
+      "apps": [
+        {
+          "id": "kdeconnect",
+          "confidence": 0.85,
+          "source": "package"
+        },
+        {
+          "id": "org.kde.kdeconnect.app",
+          "confidence": 0.85,
+          "source": "desktop"
+        },
+        {
+          "id": "scrcpy",
+          "confidence": 0.75,
+          "source": "package"
+        },
+        {
+          "id": "localsend",
+          "confidence": 0.7,
+          "source": "package"
+        },
+        {
+          "id": "org.localsend.localsend_app",
+          "confidence": 0.7,
+          "source": "flatpak"
+        }
+      ]
+    },
+    "pineapple": {
+      "type": "category",
+      "glyph": "md-fruit_pineapple",
+      "apps": null
+    },
+    "play": {
+      "type": "category",
+      "glyph": "md-play_box",
+      "apps": [
+        {
+          "id": "vlc",
+          "confidence": 0.9,
+          "source": "package"
+        },
+        {
+          "id": "org.videolan.VLC",
+          "confidence": 0.85,
+          "source": "flatpak"
+        },
+        {
+          "id": "celluloid",
+          "confidence": 0.8,
+          "source": "package"
+        },
+        {
+          "id": "kodi",
+          "confidence": 0.75,
+          "source": "package"
+        }
+      ]
+    },
+    "playlist": {
+      "type": "category",
+      "glyph": "md-playlist_music_outline",
+      "apps": [
+        {
+          "id": "spotify",
+          "confidence": 0.75,
+          "source": "package"
+        },
+        {
+          "id": "rhythmbox",
+          "confidence": 0.7,
+          "source": "package"
+        },
+        {
+          "id": "strawberry",
+          "confidence": 0.65,
+          "source": "package"
+        }
+      ]
+    },
+    "png": {
+      "type": "category",
+      "glyph": "md-file_png_box",
+      "apps": [
+        {
+          "id": "gimp",
+          "confidence": 0.75,
+          "source": "package"
+        },
+        {
+          "id": "org.gimp.GIMP",
+          "confidence": 0.75,
+          "source": "flatpak"
+        },
+        {
+          "id": "org.gnome.eog",
+          "confidence": 0.7,
+          "source": "flatpak"
+        }
+      ]
+    },
+    "popos": {
+      "type": "app",
+      "glyph": "linux-pop_os",
+      "apps": null
+    },
+    "postmarketos": {
+      "type": "app",
+      "glyph": "linux-postmarketos",
+      "apps": null
+    },
+    "power": {
+      "type": "category",
+      "glyph": "md-power_settings",
+      "apps": [
+        {
+          "id": "xfce4-power-manager",
+          "confidence": 0.75,
+          "source": "package"
+        },
+        {
+          "id": "upower",
+          "confidence": 0.7,
+          "source": "package"
+        },
+        {
+          "id": "gnome-control-center",
+          "confidence": 0.65,
+          "source": "package"
+        }
+      ]
+    },
+    "powerpoint": {
+      "type": "category",
+      "glyph": "md-file_powerpoint_box",
+      "apps": [
+        {
+          "id": "libreoffice-impress",
+          "confidence": 0.85,
+          "source": "package"
+        },
+        {
+          "id": "libreoffice-impress",
+          "confidence": 0.8,
+          "source": "desktop"
+        },
+        {
+          "id": "org.libreoffice.LibreOffice",
+          "confidence": 0.75,
+          "source": "flatpak"
+        },
+        {
+          "id": "onlyoffice-desktopeditors",
+          "confidence": 0.7,
+          "source": "package"
+        },
+        {
+          "id": "calligra-stage",
+          "confidence": 0.6,
+          "source": "package"
+        }
+      ]
+    },
+    "powershell": {
+      "type": "app",
+      "glyph": "seti-powershell",
+      "apps": [
+        {
+          "id": "powershell",
+          "confidence": 0.75,
+          "source": "package"
+        },
+        {
+          "id": "pwsh",
+          "confidence": 0.7,
+          "source": "package"
+        }
+      ]
+    },
+    "presentation": {
+      "type": "category",
+      "glyph": "md-file_presentation_box",
+      "apps": [
+        {
+          "id": "libreoffice-impress",
+          "confidence": 0.8,
+          "source": "package"
+        },
+        {
+          "id": "onlyoffice-desktopeditors",
+          "confidence": 0.7,
+          "source": "package"
+        },
+        {
+          "id": "pdfpc",
+          "confidence": 0.65,
+          "source": "package"
+        }
+      ]
+    },
+    "printer": {
+      "type": "category",
+      "glyph": "md-printer_settings",
+      "apps": [
+        {
+          "id": "system-config-printer",
+          "confidence": 0.9,
+          "source": "package"
+        },
+        {
+          "id": "system-config-printer",
+          "confidence": 0.85,
+          "source": "desktop"
+        }
+      ]
+    },
+    "privacy": {
+      "type": "category",
+      "glyph": "md-incognito_off",
+      "apps": [
+        {
+          "id": "org.gnome.Connections",
+          "confidence": 0.75,
+          "source": "flatpak"
+        },
+        {
+          "id": "kdeconnect",
+          "confidence": 0.7,
+          "source": "package"
+        },
+        {
+          "id": "firefox",
+          "confidence": 0.65,
+          "source": "package"
+        }
+      ]
+    },
+    "profile": {
+      "type": "category",
+      "glyph": "md-face_woman_profile",
+      "apps": [
+        {
+          "id": "org.gnome.Contacts",
+          "confidence": 0.65,
+          "source": "desktop"
+        },
+        {
+          "id": "org.gnome.ControlCenter",
+          "confidence": 0.7,
+          "source": "desktop"
+        },
+        {
+          "id": "org.kde.systemsettings",
+          "confidence": 0.7,
+          "source": "desktop"
+        }
+      ]
+    },
+    "projector": {
+      "type": "category",
+      "glyph": "md-projector_screen_variant_off_outline",
+      "apps": [
+        {
+          "id": "arandr",
+          "confidence": 0.8,
+          "source": "package"
+        },
+        {
+          "id": "wdisplays",
+          "confidence": 0.75,
+          "source": "package"
+        },
+        {
+          "id": "gnome-control-center",
+          "confidence": 0.7,
+          "source": "package"
+        },
+        {
+          "id": "systemsettings",
+          "confidence": 0.65,
+          "source": "package"
+        }
+      ]
+    },
+    "prusaslicer": {
+      "type": "app",
+      "glyph": "linux-prusaslicer",
+      "apps": [
+        {
+          "id": "prusaslicer",
+          "confidence": 0.95,
+          "source": "package"
+        },
+        {
+          "id": "com.prusa3d.PrusaSlicer",
+          "confidence": 0.95,
+          "source": "desktop"
+        },
+        {
+          "id": "com.prusa3d.PrusaSlicer",
+          "confidence": 0.95,
+          "source": "flatpak"
+        }
+      ]
+    },
+    "pull-request": {
+      "type": "category",
+      "glyph": "cod-git_pull_request_create",
+      "apps": [
+        {
+          "id": "io.github.shiftey.Desktop",
+          "confidence": 0.8,
+          "source": "flatpak"
+        },
+        {
+          "id": "gitkraken",
+          "confidence": 0.65,
+          "source": "package"
+        },
+        {
+          "id": "smartgit",
+          "confidence": 0.6,
+          "source": "package"
+        }
+      ]
+    },
+    "puppy": {
+      "type": "app",
+      "glyph": "linux-puppy",
+      "apps": null
+    },
+    "qq": {
+      "type": "app",
+      "glyph": "md-qqchat",
+      "apps": [
+        {
+          "id": "linuxqq",
+          "confidence": 0.8,
+          "source": "package"
+        },
+        {
+          "id": "qq",
+          "confidence": 0.8,
+          "source": "desktop"
+        },
+        {
+          "id": "com.tencent.qq",
+          "confidence": 0.75,
+          "source": "inferred"
+        }
+      ]
+    },
+    "qrcode": {
+      "type": "category",
+      "glyph": "md-qrcode_remove",
+      "apps": [
+        {
+          "id": "org.gnome.SimpleScan",
+          "confidence": 0.8,
+          "source": "desktop"
+        },
+        {
+          "id": "org.gnome.SimpleScan",
+          "confidence": 0.8,
+          "source": "flatpak"
+        },
+        {
+          "id": "simple-scan",
+          "confidence": 0.75,
+          "source": "package"
+        },
+        {
+          "id": "qtqr",
+          "confidence": 0.75,
+          "source": "package"
+        },
+        {
+          "id": "com.github.barcodescanner.BarcodeScanner",
+          "confidence": 0.6,
+          "source": "flatpak"
+        },
+        {
+          "id": "zbar",
+          "confidence": 0.55,
+          "source": "package"
+        },
+        {
+          "id": "zbar-qt",
+          "confidence": 0.5,
+          "source": "package"
+        }
+      ]
+    },
+    "qtile": {
+      "type": "app",
+      "glyph": "linux-qtile",
+      "apps": [
+        {
+          "id": "qtile",
+          "confidence": 0.95,
+          "source": "package"
+        },
+        {
+          "id": "qtile",
+          "confidence": 0.95,
+          "source": "desktop"
+        }
+      ]
+    },
+    "qubesos": {
+      "type": "app",
+      "glyph": "linux-qubesos",
+      "apps": [
+        {
+          "id": "qubes-release",
+          "confidence": 0.7,
+          "source": "inferred"
+        }
+      ]
+    },
+    "radio": {
+      "type": "category",
+      "glyph": "md-radiobox_marked",
+      "apps": [
+        {
+          "id": "shortwave",
+          "confidence": 0.65,
+          "source": "package"
+        },
+        {
+          "id": "de.haeckerfelix.Shortwave",
+          "confidence": 0.65,
+          "source": "desktop"
+        },
+        {
+          "id": "de.haeckerfelix.Shortwave",
+          "confidence": 0.6,
+          "source": "flatpak"
+        }
+      ]
+    },
+    "raspberry-pi": {
+      "type": "app",
+      "glyph": "linux-raspberry_pi",
+      "apps": null
+    },
+    "razor": {
+      "type": "category",
+      "glyph": "md-razor_double_edge",
+      "apps": null
+    },
+    "reddit": {
+      "type": "app",
+      "glyph": "fa-reddit",
+      "apps": [
+        {
+          "id": "giara",
+          "confidence": 0.7,
+          "source": "package"
+        },
+        {
+          "id": "io.github.giara.Giara",
+          "confidence": 0.6,
+          "source": "flatpak"
+        }
+      ]
+    },
+    "redhat": {
+      "type": "app",
+      "glyph": "linux-redhat",
+      "apps": null
+    },
+    "remote-desktop": {
+      "type": "category",
+      "glyph": "md-remote_desktop",
+      "apps": [
+        {
+          "id": "remmina",
+          "confidence": 0.85,
+          "source": "package"
+        },
+        {
+          "id": "org.remmina.Remmina",
+          "confidence": 0.85,
+          "source": "flatpak"
+        },
+        {
+          "id": "rustdesk",
+          "confidence": 0.8,
+          "source": "package"
+        },
+        {
+          "id": "krdc",
+          "confidence": 0.75,
+          "source": "package"
+        },
+        {
+          "id": "org.gnome.Connections",
+          "confidence": 0.7,
+          "source": "flatpak"
+        },
+        {
+          "id": "teamviewer",
+          "confidence": 0.65,
+          "source": "package"
+        },
+        {
+          "id": "anydesk",
+          "confidence": 0.65,
+          "source": "package"
+        }
+      ]
+    },
+    "rename": {
+      "type": "category",
+      "glyph": "md-rename_box",
+      "apps": [
+        {
+          "id": "org.gnome.Nautilus",
+          "confidence": 0.7,
+          "source": "flatpak"
+        },
+        {
+          "id": "thunar",
+          "confidence": 0.65,
+          "source": "package"
+        },
+        {
+          "id": "dolphin",
+          "confidence": 0.6,
+          "source": "package"
+        }
+      ]
+    },
+    "reprap": {
+      "type": "app",
+      "glyph": "linux-reprap",
+      "apps": [
+        {
+          "id": "pronterface",
+          "confidence": 0.5,
+          "source": "package"
+        },
+        {
+          "id": "repetier-host",
+          "confidence": 0.45,
+          "source": "package"
+        }
+      ]
+    },
+    "riscv": {
+      "type": "category",
+      "glyph": "linux-riscv",
+      "apps": null
+    },
+    "river": {
+      "type": "app",
+      "glyph": "linux-river",
+      "apps": [
+        {
+          "id": "river",
+          "confidence": 0.8,
+          "source": "package"
+        },
+        {
+          "id": "river",
+          "confidence": 0.6,
+          "source": "desktop"
+        }
+      ]
+    },
+    "rocketchat": {
+      "type": "app",
+      "glyph": "fa-rocketchat",
+      "apps": [
+        {
+          "id": "rocketchat-desktop",
+          "confidence": 0.75,
+          "source": "package"
+        },
+        {
+          "id": "chat.rocket.RocketChat",
+          "confidence": 0.75,
+          "source": "desktop"
+        },
+        {
+          "id": "chat.rocket.RocketChat",
+          "confidence": 0.7,
+          "source": "flatpak"
+        }
+      ]
+    },
+    "rockylinux": {
+      "type": "app",
+      "glyph": "dev-rockylinux",
+      "apps": null
+    },
+    "router": {
+      "type": "category",
+      "glyph": "md-router_network",
+      "apps": [
+        {
+          "id": "nm-connection-editor",
+          "confidence": 0.7,
+          "source": "inferred"
+        },
+        {
+          "id": "openwrt",
+          "confidence": 0.65,
+          "source": "inferred"
+        }
+      ]
+    },
+    "routes": {
+      "type": "category",
+      "glyph": "md-routes_clock",
+      "apps": [
+        {
+          "id": "org.gnome.Maps",
+          "confidence": 0.85,
+          "source": "desktop"
+        },
+        {
+          "id": "gnome-maps",
+          "confidence": 0.85,
+          "source": "package"
+        },
+        {
+          "id": "org.kde.marble",
+          "confidence": 0.75,
+          "source": "desktop"
+        },
+        {
+          "id": "qmapshack",
+          "confidence": 0.7,
+          "source": "package"
+        }
+      ]
+    },
+    "rss": {
+      "type": "category",
+      "glyph": "md-rss_box",
+      "apps": [
+        {
+          "id": "net.sourceforge.liferea",
+          "confidence": 0.85,
+          "source": "desktop"
+        },
+        {
+          "id": "liferea",
+          "confidence": 0.8,
+          "source": "package"
+        },
+        {
+          "id": "org.gnome.NewsFlash",
+          "confidence": 0.8,
+          "source": "desktop"
+        },
+        {
+          "id": "org.gnome.NewsFlash",
+          "confidence": 0.8,
+          "source": "flatpak"
+        },
+        {
+          "id": "newsflash",
+          "confidence": 0.7,
+          "source": "package"
+        },
+        {
+          "id": "org.kde.akregator",
+          "confidence": 0.75,
+          "source": "desktop"
+        },
+        {
+          "id": "akregator",
+          "confidence": 0.65,
+          "source": "package"
+        },
+        {
+          "id": "com.gitlab.newsflash",
+          "confidence": 0.65,
+          "source": "flatpak"
+        },
+        {
+          "id": "com.fluidapp.Fluid",
+          "confidence": 0.65,
+          "source": "inferred"
+        },
+        {
+          "id": "fluent-reader",
+          "confidence": 0.6,
+          "source": "package"
+        }
+      ]
+    },
+    "sabayon": {
+      "type": "app",
+      "glyph": "linux-sabayon",
+      "apps": [
+        {
+          "id": "sabayon",
+          "confidence": 0.7,
+          "source": "inferred"
+        }
+      ]
+    },
+    "safari": {
+      "type": "app",
+      "glyph": "md-apple_safari",
+      "apps": null
+    },
+    "save": {
+      "type": "category",
+      "glyph": "md-content_save_cog_outline",
+      "apps": [
+        {
+          "id": "libreoffice",
+          "confidence": 0.7,
+          "source": "package"
+        },
+        {
+          "id": "org.libreoffice.LibreOffice",
+          "confidence": 0.65,
+          "source": "flatpak"
+        },
+        {
+          "id": "gedit",
+          "confidence": 0.65,
+          "source": "package"
+        }
+      ]
+    },
+    "screen": {
+      "type": "category",
+      "glyph": "md-fit_to_screen_outline",
+      "apps": [
+        {
+          "id": "org.flameshot.Flameshot",
+          "confidence": 0.9,
+          "source": "flatpak"
+        },
+        {
+          "id": "flameshot",
+          "confidence": 0.9,
+          "source": "package"
+        },
+        {
+          "id": "org.kde.spectacle",
+          "confidence": 0.85,
+          "source": "desktop"
+        },
+        {
+          "id": "spectacle",
+          "confidence": 0.85,
+          "source": "package"
+        },
+        {
+          "id": "gnome-screenshot",
+          "confidence": 0.8,
+          "source": "package"
+        },
+        {
+          "id": "shutter",
+          "confidence": 0.75,
+          "source": "package"
+        }
+      ]
+    },
+    "script": {
+      "type": "category",
+      "glyph": "md-script_text_key_outline",
+      "apps": [
+        {
+          "id": "python3",
+          "confidence": 0.7,
+          "source": "package"
+        },
+        {
+          "id": "bash",
+          "confidence": 0.7,
+          "source": "package"
+        },
+        {
+          "id": "zsh",
+          "confidence": 0.65,
+          "source": "package"
+        }
+      ]
+    },
+    "search": {
+      "type": "category",
+      "glyph": "md-search_web",
+      "apps": [
+        {
+          "id": "gnome-search-tool",
+          "confidence": 0.75,
+          "source": "package"
+        },
+        {
+          "id": "catfish",
+          "confidence": 0.7,
+          "source": "package"
+        },
+        {
+          "id": "org.gnome.Nautilus",
+          "confidence": 0.7,
+          "source": "desktop"
+        }
+      ]
+    },
+    "security": {
+      "type": "category",
+      "glyph": "fa-shield",
+      "apps": [
+        {
+          "id": "gufw",
+          "confidence": 0.85,
+          "source": "package"
+        },
+        {
+          "id": "org.gnome.gufw",
+          "confidence": 0.85,
+          "source": "desktop"
+        },
+        {
+          "id": "clamav",
+          "confidence": 0.8,
+          "source": "package"
+        },
+        {
+          "id": "veracrypt",
+          "confidence": 0.75,
+          "source": "package"
+        },
+        {
+          "id": "org.cryptomator.Cryptomator",
+          "confidence": 0.7,
+          "source": "flatpak"
+        },
+        {
+          "id": "firewalld",
+          "confidence": 0.65,
+          "source": "package"
+        },
+        {
+          "id": "wireshark",
+          "confidence": 0.6,
+          "source": "package"
+        }
+      ]
+    },
+    "send": {
+      "type": "category",
+      "glyph": "md-send_lock_outline",
+      "apps": [
+        {
+          "id": "org.telegram.desktop",
+          "confidence": 0.75,
+          "source": "desktop"
+        },
+        {
+          "id": "signal-desktop",
+          "confidence": 0.7,
+          "source": "package"
+        },
+        {
+          "id": "org.gnome.Evolution",
+          "confidence": 0.65,
+          "source": "desktop"
+        },
+        {
+          "id": "thunderbird",
+          "confidence": 0.55,
+          "source": "package"
+        }
+      ]
+    },
+    "server": {
+      "type": "category",
+      "glyph": "cod-server_environment",
+      "apps": [
+        {
+          "id": "cockpit",
+          "confidence": 0.8,
+          "source": "package"
+        },
+        {
+          "id": "virt-manager",
+          "confidence": 0.75,
+          "source": "package"
+        },
+        {
+          "id": "org.virt-manager.virt-manager",
+          "confidence": 0.75,
+          "source": "desktop"
+        },
+        {
+          "id": "docker",
+          "confidence": 0.7,
+          "source": "package"
+        },
+        {
+          "id": "podman",
+          "confidence": 0.7,
+          "source": "package"
+        },
+        {
+          "id": "nginx",
+          "confidence": 0.65,
+          "source": "package"
+        },
+        {
+          "id": "apache2",
+          "confidence": 0.65,
+          "source": "package"
+        }
+      ]
+    },
+    "settings": {
+      "type": "category",
+      "glyph": "md-cog_outline",
+      "apps": [
+        {
+          "id": "org.gnome.ControlCenter",
+          "confidence": 0.9,
+          "source": "desktop"
+        },
+        {
+          "id": "gnome-control-center",
+          "confidence": 0.9,
+          "source": "package"
+        },
+        {
+          "id": "systemsettings",
+          "confidence": 0.85,
+          "source": "package"
+        },
+        {
+          "id": "org.kde.systemsettings",
+          "confidence": 0.85,
+          "source": "desktop"
+        },
+        {
+          "id": "xfce4-settings",
+          "confidence": 0.75,
+          "source": "package"
+        },
+        {
+          "id": "lxqt-config",
+          "confidence": 0.75,
+          "source": "package"
+        },
+        {
+          "id": "cinnamon-settings",
+          "confidence": 0.7,
+          "source": "package"
+        },
+        {
+          "id": "mate-control-center",
+          "confidence": 0.7,
+          "source": "package"
+        }
+      ]
+    },
+    "signal": {
+      "type": "category",
+      "glyph": "md-signal_variant",
+      "apps": [
+        {
+          "id": "signal-desktop",
+          "confidence": 0.9,
+          "source": "package"
+        },
+        {
+          "id": "org.signal.Signal",
+          "confidence": 0.9,
+          "source": "desktop"
+        },
+        {
+          "id": "org.signal.Signal",
+          "confidence": 0.85,
+          "source": "flatpak"
+        }
+      ]
+    },
+    "signature": {
+      "type": "category",
+      "glyph": "md-file_sign",
+      "apps": [
+        {
+          "id": "org.gnome.TextEditor",
+          "confidence": 0.65,
+          "source": "flatpak"
+        },
+        {
+          "id": "gnome-control-center",
+          "confidence": 0.6,
+          "source": "package"
+        }
+      ]
+    },
+    "skype": {
+      "type": "app",
+      "glyph": "md-skype",
+      "apps": [
+        {
+          "id": "skypeforlinux",
+          "confidence": 0.75,
+          "source": "package"
+        },
+        {
+          "id": "skypeforlinux",
+          "confidence": 0.75,
+          "source": "desktop"
+        }
+      ]
+    },
+    "slack": {
+      "type": "app",
+      "glyph": "md-slack",
+      "apps": [
+        {
+          "id": "slack",
+          "confidence": 1,
+          "source": "package"
+        },
+        {
+          "id": "com.slack.Slack",
+          "confidence": 0.95,
+          "source": "desktop"
+        },
+        {
+          "id": "com.slack.Slack",
+          "confidence": 0.95,
+          "source": "flatpak"
+        }
+      ]
+    },
+    "slackware": {
+      "type": "app",
+      "glyph": "linux-slackware",
+      "apps": null
+    },
+    "sms": {
+      "type": "category",
+      "glyph": "md-phone_message_outline",
+      "apps": [
+        {
+          "id": "signal-desktop",
+          "confidence": 0.5,
+          "source": "package"
+        },
+        {
+          "id": "org.telegram.desktop",
+          "confidence": 0.45,
+          "source": "desktop"
+        },
+        {
+          "id": "kdeconnect",
+          "confidence": 0.35,
+          "source": "package"
+        }
+      ]
+    },
+    "snap": {
+      "type": "category",
+      "glyph": "linux-snappy",
+      "apps": [
+        {
+          "id": "snap-store",
+          "confidence": 0.85,
+          "source": "package"
+        },
+        {
+          "id": "snapd",
+          "confidence": 0.75,
+          "source": "package"
+        }
+      ]
+    },
+    "snapchat": {
+      "type": "app",
+      "glyph": "fa-square_snapchat",
+      "apps": null
+    },
+    "solus": {
+      "type": "app",
+      "glyph": "linux-solus",
+      "apps": [
+        {
+          "id": "solus-sc",
+          "confidence": 0.55,
+          "source": "inferred"
+        }
+      ]
+    },
+    "sort": {
+      "type": "category",
+      "glyph": "md-sort_clock_descending_outline",
+      "apps": [
+        {
+          "id": "nautilus",
+          "confidence": 0.55,
+          "source": "package"
+        },
+        {
+          "id": "dolphin",
+          "confidence": 0.55,
+          "source": "package"
+        },
+        {
+          "id": "gnome-control-center",
+          "confidence": 0.45,
+          "source": "package"
+        }
+      ]
+    },
+    "soundcloud": {
+      "type": "app",
+      "glyph": "fa-soundcloud",
+      "apps": [
+        {
+          "id": "soundcloud",
+          "confidence": 0.45,
+          "source": "package"
+        },
+        {
+          "id": "io.github.SoundCloudDesktop",
+          "confidence": 0.4,
+          "source": "flatpak"
+        }
+      ]
+    },
+    "speaker-deck": {
+      "type": "app",
+      "glyph": "fa-speaker_deck",
+      "apps": null
+    },
+    "spotify": {
+      "type": "app",
+      "glyph": "md-spotify",
+      "apps": [
+        {
+          "id": "spotify",
+          "confidence": 1,
+          "source": "package"
+        },
+        {
+          "id": "spotify",
+          "confidence": 0.95,
+          "source": "desktop"
+        },
+        {
+          "id": "com.spotify.Client",
+          "confidence": 0.95,
+          "source": "flatpak"
+        },
+        {
+          "id": "spotify",
+          "confidence": 0.9,
+          "source": "snap"
+        }
+      ]
+    },
+    "spreadsheet": {
+      "type": "category",
+      "glyph": "md-file_excel_box_outline",
+      "apps": [
+        {
+          "id": "libreoffice-calc",
+          "confidence": 0.9,
+          "source": "package"
+        },
+        {
+          "id": "libreoffice",
+          "confidence": 0.9,
+          "source": "package"
+        },
+        {
+          "id": "org.libreoffice.LibreOffice",
+          "confidence": 0.85,
+          "source": "flatpak"
+        },
+        {
+          "id": "onlyoffice-desktopeditors",
+          "confidence": 0.8,
+          "source": "package"
+        },
+        {
+          "id": "org.onlyoffice.desktopeditors",
+          "confidence": 0.75,
+          "source": "flatpak"
+        },
+        {
+          "id": "gnumeric",
+          "confidence": 0.7,
+          "source": "package"
+        },
+        {
+          "id": "calligra-sheets",
+          "confidence": 0.65,
+          "source": "package"
+        }
+      ]
+    },
+    "sqlserver": {
+      "type": "app",
+      "glyph": "dev-microsoftsqlserver",
+      "apps": [
+        {
+          "id": "mssql-server",
+          "confidence": 0.85,
+          "source": "package"
+        },
+        {
+          "id": "azure-data-studio",
+          "confidence": 0.7,
+          "source": "package"
+        },
+        {
+          "id": "azuredatastudio",
+          "confidence": 0.7,
+          "source": "desktop"
+        }
+      ]
+    },
+    "star": {
+      "type": "category",
+      "glyph": "md-star_cog",
+      "apps": [
+        {
+          "id": "org.gnome.Calendar",
+          "confidence": 0.65,
+          "source": "desktop"
+        },
+        {
+          "id": "org.gnome.Calendar",
+          "confidence": 0.65,
+          "source": "flatpak"
+        },
+        {
+          "id": "gnome-calendar",
+          "confidence": 0.65,
+          "source": "package"
+        },
+        {
+          "id": "org.kde.kalendar",
+          "confidence": 0.6,
+          "source": "desktop"
+        },
+        {
+          "id": "org.kde.kalendar",
+          "confidence": 0.6,
+          "source": "flatpak"
+        },
+        {
+          "id": "korganizer",
+          "confidence": 0.55,
+          "source": "package"
+        }
+      ]
+    },
+    "steam": {
+      "type": "app",
+      "glyph": "fa-square_steam",
+      "apps": [
+        {
+          "id": "steam",
+          "confidence": 1,
+          "source": "package"
+        },
+        {
+          "id": "steam",
+          "confidence": 0.95,
+          "source": "desktop"
+        },
+        {
+          "id": "com.valvesoftware.Steam",
+          "confidence": 0.95,
+          "source": "flatpak"
+        }
+      ]
+    },
+    "storage": {
+      "type": "category",
+      "glyph": "md-tape_drive",
+      "apps": [
+        {
+          "id": "gnome-software",
+          "confidence": 0.9,
+          "source": "package"
+        },
+        {
+          "id": "plasma-discover",
+          "confidence": 0.85,
+          "source": "package"
+        }
+      ]
+    },
+    "store": {
+      "type": "category",
+      "glyph": "md-store_settings_outline",
+      "apps": [
+        {
+          "id": "gnome-software",
+          "confidence": 0.9,
+          "source": "package"
+        },
+        {
+          "id": "org.gnome.Software",
+          "confidence": 0.9,
+          "source": "desktop"
+        },
+        {
+          "id": "plasma-discover",
+          "confidence": 0.85,
+          "source": "package"
+        },
+        {
+          "id": "org.kde.discover",
+          "confidence": 0.85,
+          "source": "desktop"
+        },
+        {
+          "id": "pamac-manager",
+          "confidence": 0.75,
+          "source": "package"
+        },
+        {
+          "id": "io.elementary.appcenter",
+          "confidence": 0.7,
+          "source": "inferred"
+        }
+      ]
+    },
+    "sublime-text": {
+      "type": "app",
+      "glyph": "dev-sublime",
+      "apps": [
+        {
+          "id": "sublime-text",
+          "confidence": 1,
+          "source": "package"
+        },
+        {
+          "id": "sublime_text",
+          "confidence": 0.95,
+          "source": "desktop"
+        }
+      ]
+    },
+    "sway": {
+      "type": "app",
+      "glyph": "linux-sway",
+      "apps": [
+        {
+          "id": "sway",
+          "confidence": 1,
+          "source": "package"
+        },
+        {
+          "id": "sway",
+          "confidence": 0.95,
+          "source": "desktop"
+        },
+        {
+          "id": "swaylock",
+          "confidence": 0.7,
+          "source": "package"
+        },
+        {
+          "id": "swayidle",
+          "confidence": 0.65,
+          "source": "package"
+        }
+      ]
+    },
+    "sync": {
+      "type": "category",
+      "glyph": "md-timer_sync",
+      "apps": [
+        {
+          "id": "syncthing",
+          "confidence": 0.85,
+          "source": "package"
+        },
+        {
+          "id": "syncthingtray",
+          "confidence": 0.75,
+          "source": "package"
+        },
+        {
+          "id": "nextcloud-desktop",
+          "confidence": 0.75,
+          "source": "package"
+        },
+        {
+          "id": "com.nextcloud.desktopclient.nextcloud",
+          "confidence": 0.7,
+          "source": "flatpak"
+        },
+        {
+          "id": "dropbox",
+          "confidence": 0.7,
+          "source": "package"
+        },
+        {
+          "id": "seafile-client",
+          "confidence": 0.65,
+          "source": "package"
+        },
+        {
+          "id": "insync",
+          "confidence": 0.6,
+          "source": "package"
+        },
+        {
+          "id": "resilio-sync",
+          "confidence": 0.55,
+          "source": "package"
+        },
+        {
+          "id": "rclone",
+          "confidence": 0.55,
+          "source": "package"
+        }
+      ]
+    },
+    "table": {
+      "type": "category",
+      "glyph": "md-file_table_outline",
+      "apps": [
+        {
+          "id": "libreoffice-calc",
+          "confidence": 0.85,
+          "source": "package"
+        },
+        {
+          "id": "gnumeric",
+          "confidence": 0.8,
+          "source": "package"
+        },
+        {
+          "id": "calligra-sheets",
+          "confidence": 0.75,
+          "source": "package"
+        }
+      ]
+    },
+    "tablet": {
+      "type": "category",
+      "glyph": "fa-tablet_screen_button",
+      "apps": [
+        {
+          "id": "gnome-control-center",
+          "confidence": 0.7,
+          "source": "package"
+        },
+        {
+          "id": "systemsettings",
+          "confidence": 0.65,
+          "source": "package"
+        },
+        {
+          "id": "org.gnome.Settings",
+          "confidence": 0.55,
+          "source": "flatpak"
+        }
+      ]
+    },
+    "tachograph": {
+      "type": "category",
+      "glyph": "fa-tachograph_digital",
+      "apps": null
+    },
+    "tails": {
+      "type": "app",
+      "glyph": "linux-tails",
+      "apps": null
+    },
+    "telegram": {
+      "type": "app",
+      "glyph": "fa-telegram",
+      "apps": [
+        {
+          "id": "telegram-desktop",
+          "confidence": 1,
+          "source": "package"
+        },
+        {
+          "id": "org.telegram.desktop",
+          "confidence": 0.95,
+          "source": "desktop"
+        },
+        {
+          "id": "org.telegram.desktop",
+          "confidence": 0.95,
+          "source": "flatpak"
+        }
+      ]
+    },
+    "terminal": {
+      "type": "category",
+      "glyph": "cod-terminal",
+      "apps": [
+        {
+          "id": "gnome-terminal",
+          "confidence": 0.9,
+          "source": "package"
+        },
+        {
+          "id": "org.gnome.Terminal",
+          "confidence": 0.9,
+          "source": "desktop"
+        },
+        {
+          "id": "konsole",
+          "confidence": 0.85,
+          "source": "package"
+        },
+        {
+          "id": "org.kde.konsole",
+          "confidence": 0.85,
+          "source": "desktop"
+        },
+        {
+          "id": "kitty",
+          "confidence": 0.8,
+          "source": "package"
+        },
+        {
+          "id": "alacritty",
+          "confidence": 0.8,
+          "source": "package"
+        },
+        {
+          "id": "wezterm",
+          "confidence": 0.75,
+          "source": "package"
+        },
+        {
+          "id": "tilix",
+          "confidence": 0.7,
+          "source": "package"
+        },
+        {
+          "id": "foot",
+          "confidence": 0.7,
+          "source": "package"
+        },
+        {
+          "id": "ghostty",
+          "confidence": 0.65,
+          "source": "inferred"
+        }
+      ]
+    },
+    "text": {
+      "type": "category",
+      "glyph": "md-text_box",
+      "apps": [
+        {
+          "id": "gedit",
+          "confidence": 0.9,
+          "source": "package"
+        },
+        {
+          "id": "org.gnome.gedit",
+          "confidence": 0.85,
+          "source": "flatpak"
+        },
+        {
+          "id": "kate",
+          "confidence": 0.85,
+          "source": "package"
+        },
+        {
+          "id": "mousepad",
+          "confidence": 0.8,
+          "source": "package"
+        },
+        {
+          "id": "xed",
+          "confidence": 0.75,
+          "source": "package"
+        },
+        {
+          "id": "kwrite",
+          "confidence": 0.7,
+          "source": "package"
+        },
+        {
+          "id": "nano",
+          "confidence": 0.65,
+          "source": "package"
+        }
+      ]
+    },
+    "texture": {
+      "type": "category",
+      "glyph": "md-texture_box",
+      "apps": [
+        {
+          "id": "org.kde.krita",
+          "confidence": 0.75,
+          "source": "desktop"
+        },
+        {
+          "id": "krita",
+          "confidence": 0.75,
+          "source": "package"
+        },
+        {
+          "id": "blender",
+          "confidence": 0.7,
+          "source": "package"
+        },
+        {
+          "id": "org.blender.Blender",
+          "confidence": 0.7,
+          "source": "flatpak"
+        },
+        {
+          "id": "gimp",
+          "confidence": 0.65,
+          "source": "package"
+        }
+      ]
+    },
+    "thermometer": {
+      "type": "category",
+      "glyph": "md-thermometer_bluetooth",
+      "apps": [
+        {
+          "id": "gnome-weather",
+          "confidence": 0.7,
+          "source": "package"
+        },
+        {
+          "id": "lm-sensors",
+          "confidence": 0.6,
+          "source": "package"
+        },
+        {
+          "id": "psensor",
+          "confidence": 0.6,
+          "source": "package"
+        }
+      ]
+    },
+    "thermostat": {
+      "type": "category",
+      "glyph": "md-thermostat_box",
+      "apps": [
+        {
+          "id": "psensor",
+          "confidence": 0.8,
+          "source": "package"
+        },
+        {
+          "id": "lm_sensors",
+          "confidence": 0.7,
+          "source": "package"
+        },
+        {
+          "id": "s-tui",
+          "confidence": 0.65,
+          "source": "package"
+        }
+      ]
+    },
+    "thunderbird": {
+      "type": "app",
+      "glyph": "linux-thunderbird",
+      "apps": [
+        {
+          "id": "thunderbird",
+          "confidence": 1,
+          "source": "package"
+        },
+        {
+          "id": "thunderbird",
+          "confidence": 1,
+          "source": "desktop"
+        },
+        {
+          "id": "org.mozilla.Thunderbird",
+          "confidence": 1,
+          "source": "flatpak"
+        },
+        {
+          "id": "thunderbird-beta",
+          "confidence": 0.85,
+          "source": "package"
+        }
+      ]
+    },
+    "time": {
+      "type": "category",
+      "glyph": "md-clock_minus",
+      "apps": [
+        {
+          "id": "gnome-clocks",
+          "confidence": 0.85,
+          "source": "package"
+        },
+        {
+          "id": "org.gnome.Clocks",
+          "confidence": 0.85,
+          "source": "desktop"
+        },
+        {
+          "id": "kclock",
+          "confidence": 0.75,
+          "source": "package"
+        },
+        {
+          "id": "org.gnome.Calendar",
+          "confidence": 0.7,
+          "source": "desktop"
+        }
+      ]
+    },
+    "timeline": {
+      "type": "category",
+      "glyph": "md-timeline_clock",
+      "apps": [
+        {
+          "id": "org.gnome.Calendar",
+          "confidence": 0.4,
+          "source": "desktop"
+        },
+        {
+          "id": "org.gnome.Clocks",
+          "confidence": 0.4,
+          "source": "desktop"
+        }
+      ]
+    },
+    "timer": {
+      "type": "category",
+      "glyph": "md-timer_lock_open",
+      "apps": [
+        {
+          "id": "gnome-clocks",
+          "confidence": 0.85,
+          "source": "package"
+        },
+        {
+          "id": "kronometer",
+          "confidence": 0.7,
+          "source": "package"
+        },
+        {
+          "id": "org.kde.kronometer",
+          "confidence": 0.65,
+          "source": "desktop"
+        },
+        {
+          "id": "org.gnome.Pomodoro",
+          "confidence": 0.6,
+          "source": "desktop"
+        },
+        {
+          "id": "org.gnome.Pomodoro",
+          "confidence": 0.55,
+          "source": "flatpak"
+        }
+      ]
+    },
+    "tmux": {
+      "type": "app",
+      "glyph": "cod-terminal_tmux",
+      "apps": [
+        {
+          "id": "tmux",
+          "confidence": 0.95,
+          "source": "package"
+        },
+        {
+          "id": "tmux",
+          "confidence": 0.65,
+          "source": "inferred"
+        }
+      ]
+    },
+    "tools": {
+      "type": "category",
+      "glyph": "fa-screwdriver",
+      "apps": [
+        {
+          "id": "gparted",
+          "confidence": 0.85,
+          "source": "package"
+        },
+        {
+          "id": "bleachbit",
+          "confidence": 0.8,
+          "source": "package"
+        },
+        {
+          "id": "timeshift",
+          "confidence": 0.75,
+          "source": "package"
+        },
+        {
+          "id": "htop",
+          "confidence": 0.7,
+          "source": "package"
+        },
+        {
+          "id": "btop",
+          "confidence": 0.7,
+          "source": "package"
+        },
+        {
+          "id": "gnome-tweaks",
+          "confidence": 0.65,
+          "source": "package"
+        },
+        {
+          "id": "org.gnome.Tweaks",
+          "confidence": 0.65,
+          "source": "flatpak"
+        }
+      ]
+    },
+    "tor": {
+      "type": "app",
+      "glyph": "linux-tor",
+      "apps": [
+        {
+          "id": "tor",
+          "confidence": 0.85,
+          "source": "package"
+        },
+        {
+          "id": "torbrowser-launcher",
+          "confidence": 0.85,
+          "source": "package"
+        },
+        {
+          "id": "org.torproject.torbrowser-launcher",
+          "confidence": 0.85,
+          "source": "flatpak"
+        }
+      ]
+    },
+    "tortoisegit": {
+      "type": "app",
+      "glyph": "dev-tortoisegit",
+      "apps": null
+    },
+    "tower": {
+      "type": "app",
+      "glyph": "dev-towergit",
+      "apps": null
+    },
+    "trackpad": {
+      "type": "category",
+      "glyph": "md-trackpad_lock",
+      "apps": [
+        {
+          "id": "libinput",
+          "confidence": 0.75,
+          "source": "package"
+        },
+        {
+          "id": "gnome-control-center",
+          "confidence": 0.65,
+          "source": "package"
+        },
+        {
+          "id": "systemsettings",
+          "confidence": 0.6,
+          "source": "package"
+        }
+      ]
+    },
+    "transfer": {
+      "type": "category",
+      "glyph": "md-cog_transfer_outline",
+      "apps": [
+        {
+          "id": "localsend",
+          "confidence": 0.85,
+          "source": "package"
+        },
+        {
+          "id": "org.localsend.localsend_app",
+          "confidence": 0.85,
+          "source": "flatpak"
+        },
+        {
+          "id": "kdeconnect",
+          "confidence": 0.85,
+          "source": "package"
+        },
+        {
+          "id": "warpinator",
+          "confidence": 0.75,
+          "source": "package"
+        },
+        {
+          "id": "rsync",
+          "confidence": 0.7,
+          "source": "package"
+        },
+        {
+          "id": "syncthing",
+          "confidence": 0.65,
+          "source": "package"
+        },
+        {
+          "id": "filezilla",
+          "confidence": 0.6,
+          "source": "package"
+        }
+      ]
+    },
+    "transit": {
+      "type": "category",
+      "glyph": "md-bus_clock",
+      "apps": [
+        {
+          "id": "org.gnome.Maps",
+          "confidence": 0.55,
+          "source": "desktop"
+        }
+      ]
+    },
+    "travel": {
+      "type": "category",
+      "glyph": "md-airplane_clock",
+      "apps": [
+        {
+          "id": "org.gnome.Maps",
+          "confidence": 0.55,
+          "source": "desktop"
+        },
+        {
+          "id": "marble",
+          "confidence": 0.45,
+          "source": "package"
+        }
+      ]
+    },
+    "trisquel": {
+      "type": "app",
+      "glyph": "linux-trisquel",
+      "apps": [
+        {
+          "id": "trisquel-welcome",
+          "confidence": 0.4,
+          "source": "inferred"
+        }
+      ]
+    },
+    "tumbleweed": {
+      "type": "app",
+      "glyph": "linux-tumbleweed",
+      "apps": null
+    },
+    "tv": {
+      "type": "category",
+      "glyph": "md-television_box",
+      "apps": [
+        {
+          "id": "kodi",
+          "confidence": 0.65,
+          "source": "package"
+        },
+        {
+          "id": "vlc",
+          "confidence": 0.6,
+          "source": "package"
+        }
+      ]
+    },
+    "twitter": {
+      "type": "app",
+      "glyph": "md-twitter",
+      "apps": [
+        {
+          "id": "cawbird",
+          "confidence": 0.6,
+          "source": "package"
+        },
+        {
+          "id": "corebird",
+          "confidence": 0.4,
+          "source": "package"
+        }
+      ]
+    },
+    "typst": {
+      "type": "app",
+      "glyph": "linux-typst",
+      "apps": [
+        {
+          "id": "typst",
+          "confidence": 0.9,
+          "source": "package"
+        },
+        {
+          "id": "typst-lsp",
+          "confidence": 0.8,
+          "source": "package"
+        },
+        {
+          "id": "typstwriter",
+          "confidence": 0.55,
+          "source": "inferred"
+        }
+      ]
+    },
+    "ubuntu": {
+      "type": "app",
+      "glyph": "linux-ubuntu_inverse",
+      "apps": [
+        {
+          "id": "ubuntu-desktop-installer",
+          "confidence": 0.75,
+          "source": "package"
+        },
+        {
+          "id": "ubiquity",
+          "confidence": 0.7,
+          "source": "package"
+        },
+        {
+          "id": "software-properties-gtk",
+          "confidence": 0.65,
+          "source": "package"
+        },
+        {
+          "id": "update-manager",
+          "confidence": 0.6,
+          "source": "package"
+        }
+      ]
+    },
+    "unlock": {
+      "type": "category",
+      "glyph": "fa-unlock",
+      "apps": [
+        {
+          "id": "i3lock",
+          "confidence": 0.75,
+          "source": "package"
+        },
+        {
+          "id": "swaylock",
+          "confidence": 0.7,
+          "source": "package"
+        },
+        {
+          "id": "xsecurelock",
+          "confidence": 0.65,
+          "source": "package"
+        }
+      ]
+    },
+    "upload": {
+      "type": "category",
+      "glyph": "cod-cloud_upload",
+      "apps": [
+        {
+          "id": "filezilla",
+          "confidence": 0.85,
+          "source": "package"
+        },
+        {
+          "id": "nextcloud-desktop",
+          "confidence": 0.75,
+          "source": "package"
+        },
+        {
+          "id": "rclone",
+          "confidence": 0.7,
+          "source": "package"
+        },
+        {
+          "id": "transmission-remote-gtk",
+          "confidence": 0.6,
+          "source": "package"
+        }
+      ]
+    },
+    "usb": {
+      "type": "category",
+      "glyph": "md-usb_flash_drive",
+      "apps": [
+        {
+          "id": "gnome-disk-utility",
+          "confidence": 0.8,
+          "source": "package"
+        },
+        {
+          "id": "org.gnome.DiskUtility",
+          "confidence": 0.8,
+          "source": "desktop"
+        },
+        {
+          "id": "balena-etcher",
+          "confidence": 0.75,
+          "source": "package"
+        },
+        {
+          "id": "usbimager",
+          "confidence": 0.7,
+          "source": "package"
+        },
+        {
+          "id": "ventoy",
+          "confidence": 0.65,
+          "source": "package"
+        },
+        {
+          "id": "popsicle",
+          "confidence": 0.55,
+          "source": "package"
+        }
+      ]
+    },
+    "user": {
+      "type": "category",
+      "glyph": "fa-user_lock",
+      "apps": [
+        {
+          "id": "org.gnome.ControlCenter",
+          "confidence": 0.7,
+          "source": "desktop"
+        },
+        {
+          "id": "gnome-control-center",
+          "confidence": 0.7,
+          "source": "package"
+        },
+        {
+          "id": "org.kde.systemsettings",
+          "confidence": 0.7,
+          "source": "desktop"
+        },
+        {
+          "id": "systemsettings",
+          "confidence": 0.7,
+          "source": "package"
+        },
+        {
+          "id": "org.gnome.Contacts",
+          "confidence": 0.6,
+          "source": "desktop"
+        }
+      ]
+    },
+    "users": {
+      "type": "category",
+      "glyph": "fa-users_gear",
+      "apps": [
+        {
+          "id": "gnome-control-center",
+          "confidence": 0.85,
+          "source": "package"
+        },
+        {
+          "id": "accountsservice",
+          "confidence": 0.8,
+          "source": "package"
+        },
+        {
+          "id": "gnome-user-share",
+          "confidence": 0.75,
+          "source": "package"
+        },
+        {
+          "id": "org.gnome.Contacts",
+          "confidence": 0.7,
+          "source": "desktop"
+        }
+      ]
+    },
+    "video": {
+      "type": "category",
+      "glyph": "md-movie_open_settings_outline",
+      "apps": [
+        {
+          "id": "vlc",
+          "confidence": 0.85,
+          "source": "package"
+        },
+        {
+          "id": "org.videolan.VLC",
+          "confidence": 0.85,
+          "source": "flatpak"
+        },
+        {
+          "id": "mpv",
+          "confidence": 0.8,
+          "source": "package"
+        },
+        {
+          "id": "org.gnome.Totem",
+          "confidence": 0.75,
+          "source": "desktop"
+        },
+        {
+          "id": "totem",
+          "confidence": 0.75,
+          "source": "package"
+        },
+        {
+          "id": "celluloid",
+          "confidence": 0.7,
+          "source": "package"
+        },
+        {
+          "id": "io.github.celluloid_player.Celluloid",
+          "confidence": 0.7,
+          "source": "flatpak"
+        },
+        {
+          "id": "kdenlive",
+          "confidence": 0.65,
+          "source": "package"
+        },
+        {
+          "id": "obs-studio",
+          "confidence": 0.6,
+          "source": "package"
+        }
+      ]
+    },
+    "vim": {
+      "type": "app",
+      "glyph": "custom-vim",
+      "apps": [
+        {
+          "id": "vim",
+          "confidence": 1,
+          "source": "package"
+        },
+        {
+          "id": "gvim",
+          "confidence": 0.85,
+          "source": "package"
+        },
+        {
+          "id": "gvim",
+          "confidence": 0.85,
+          "source": "desktop"
+        }
+      ]
+    },
+    "vimeo": {
+      "type": "app",
+      "glyph": "fa-vimeo_square",
+      "apps": null
+    },
+    "vlc": {
+      "type": "app",
+      "glyph": "md-vlc",
+      "apps": [
+        {
+          "id": "vlc",
+          "confidence": 1,
+          "source": "package"
+        },
+        {
+          "id": "org.videolan.VLC",
+          "confidence": 0.95,
+          "source": "flatpak"
+        }
+      ]
+    },
+    "voicemail": {
+      "type": "category",
+      "glyph": "md-voicemail",
+      "apps": [
+        {
+          "id": "org.gnome.Evolution",
+          "confidence": 0.5,
+          "source": "desktop"
+        },
+        {
+          "id": "org.mozilla.Thunderbird",
+          "confidence": 0.5,
+          "source": "desktop"
+        }
+      ]
+    },
+    "void": {
+      "type": "app",
+      "glyph": "linux-void",
+      "apps": [
+        {
+          "id": "void-installer",
+          "confidence": 0.4,
+          "source": "inferred"
+        }
+      ]
+    },
+    "volume": {
+      "type": "category",
+      "glyph": "md-volume_plus",
+      "apps": [
+        {
+          "id": "pavucontrol",
+          "confidence": 0.9,
+          "source": "package"
+        },
+        {
+          "id": "pavucontrol",
+          "confidence": 0.85,
+          "source": "desktop"
+        },
+        {
+          "id": "easyeffects",
+          "confidence": 0.75,
+          "source": "package"
+        },
+        {
+          "id": "com.github.wwmm.easyeffects",
+          "confidence": 0.75,
+          "source": "desktop"
+        },
+        {
+          "id": "com.github.wwmm.easyeffects",
+          "confidence": 0.7,
+          "source": "flatpak"
+        },
+        {
+          "id": "helvum",
+          "confidence": 0.7,
+          "source": "package"
+        },
+        {
+          "id": "org.pipewire.Helvum",
+          "confidence": 0.65,
+          "source": "desktop"
+        },
+        {
+          "id": "org.pipewire.Helvum",
+          "confidence": 0.6,
+          "source": "flatpak"
+        }
+      ]
+    },
+    "vscode": {
+      "type": "app",
+      "glyph": "md-microsoft_visual_studio_code",
+      "apps": [
+        {
+          "id": "code",
+          "confidence": 1,
+          "source": "package"
+        },
+        {
+          "id": "code",
+          "confidence": 1,
+          "source": "desktop"
+        },
+        {
+          "id": "com.visualstudio.code",
+          "confidence": 1,
+          "source": "flatpak"
+        },
+        {
+          "id": "code-insiders",
+          "confidence": 0.8,
+          "source": "package"
+        },
+        {
+          "id": "code-oss",
+          "confidence": 0.75,
+          "source": "package"
+        },
+        {
+          "id": "vscodium",
+          "confidence": 0.75,
+          "source": "package"
+        },
+        {
+          "id": "com.vscodium.codium",
+          "confidence": 0.75,
+          "source": "flatpak"
+        },
+        {
+          "id": "cursor",
+          "confidence": 0.6,
+          "source": "package"
+        }
+      ]
+    },
+    "vscodium": {
+      "type": "app",
+      "glyph": "linux-vscodium",
+      "apps": [
+        {
+          "id": "vscodium",
+          "confidence": 1,
+          "source": "package"
+        },
+        {
+          "id": "com.vscodium.codium",
+          "confidence": 0.95,
+          "source": "flatpak"
+        },
+        {
+          "id": "vscodium",
+          "confidence": 0.9,
+          "source": "desktop"
+        }
+      ]
+    },
+    "wayland": {
+      "type": "app",
+      "glyph": "linux-wayland",
+      "apps": [
+        {
+          "id": "weston",
+          "confidence": 0.75,
+          "source": "package"
+        },
+        {
+          "id": "wayland-info",
+          "confidence": 0.65,
+          "source": "package"
+        },
+        {
+          "id": "org.freedesktop.Wayland",
+          "confidence": 0.6,
+          "source": "inferred"
+        }
+      ]
+    },
+    "weather": {
+      "type": "category",
+      "glyph": "fa-cloud_sun_rain",
+      "apps": [
+        {
+          "id": "weather",
+          "confidence": 0.55,
+          "source": "package"
+        },
+        {
+          "id": "org.gnome.Weather",
+          "confidence": 0.55,
+          "source": "desktop"
+        },
+        {
+          "id": "org.gnome.Weather",
+          "confidence": 0.5,
+          "source": "flatpak"
+        }
+      ]
+    },
+    "web": {
+      "type": "category",
+      "glyph": "md-semantic_web",
+      "apps": [
+        {
+          "id": "firefox",
+          "confidence": 1,
+          "source": "package"
+        },
+        {
+          "id": "org.mozilla.firefox",
+          "confidence": 0.95,
+          "source": "desktop"
+        },
+        {
+          "id": "org.mozilla.firefox",
+          "confidence": 0.95,
+          "source": "flatpak"
+        },
+        {
+          "id": "firefox-esr",
+          "confidence": 0.85,
+          "source": "package"
+        },
+        {
+          "id": "firefox-nightly",
+          "confidence": 0.8,
+          "source": "package"
+        },
+        {
+          "id": "org.mozilla.FirefoxNightly",
+          "confidence": 0.8,
+          "source": "flatpak"
+        },
+        {
+          "id": "librewolf",
+          "confidence": 0.6,
+          "source": "package"
+        },
+        {
+          "id": "io.gitlab.librewolf-community",
+          "confidence": 0.6,
+          "source": "flatpak"
+        },
+        {
+          "id": "zen-browser",
+          "confidence": 0.6,
+          "source": "inferred"
+        },
+        {
+          "id": "chromium",
+          "confidence": 0.9,
+          "source": "package"
+        },
+        {
+          "id": "org.chromium.Chromium",
+          "confidence": 0.85,
+          "source": "flatpak"
+        },
+        {
+          "id": "google-chrome-stable",
+          "confidence": 0.9,
+          "source": "package"
+        },
+        {
+          "id": "google-chrome",
+          "confidence": 0.85,
+          "source": "desktop"
+        },
+        {
+          "id": "com.google.Chrome",
+          "confidence": 0.8,
+          "source": "flatpak"
+        },
+        {
+          "id": "brave-browser",
+          "confidence": 0.8,
+          "source": "package"
+        },
+        {
+          "id": "com.brave.Browser",
+          "confidence": 0.8,
+          "source": "flatpak"
+        },
+        {
+          "id": "vivaldi-stable",
+          "confidence": 0.75,
+          "source": "package"
+        },
+        {
+          "id": "torbrowser-launcher",
+          "confidence": 0.7,
+          "source": "package"
+        },
+        {
+          "id": "org.torproject.torbrowser-launcher",
+          "confidence": 0.7,
+          "source": "flatpak"
+        }
+      ]
+    },
+    "webcam": {
+      "type": "category",
+      "glyph": "md-webcam",
+      "apps": [
+        {
+          "id": "org.gnome.Cheese",
+          "confidence": 0.85,
+          "source": "desktop"
+        },
+        {
+          "id": "cheese",
+          "confidence": 0.85,
+          "source": "package"
+        },
+        {
+          "id": "guvcview",
+          "confidence": 0.8,
+          "source": "package"
+        },
+        {
+          "id": "webcamoid",
+          "confidence": 0.75,
+          "source": "package"
+        }
+      ]
+    },
+    "webflow": {
+      "type": "app",
+      "glyph": "dev-webflow",
+      "apps": null
+    },
+    "webhook": {
+      "type": "category",
+      "glyph": "md-webhook",
+      "apps": [
+        {
+          "id": "webhook",
+          "confidence": 0.6,
+          "source": "package"
+        }
+      ]
+    },
+    "weblate": {
+      "type": "app",
+      "glyph": "dev-weblate",
+      "apps": [
+        {
+          "id": "weblate",
+          "confidence": 0.8,
+          "source": "package"
+        },
+        {
+          "id": "org.weblate.Weblate",
+          "confidence": 0.6,
+          "source": "inferred"
+        }
+      ]
+    },
+    "webpack": {
+      "type": "app",
+      "glyph": "seti-webpack",
+      "apps": [
+        {
+          "id": "webpack",
+          "confidence": 0.7,
+          "source": "package"
+        }
+      ]
+    },
+    "webrtc": {
+      "type": "category",
+      "glyph": "md-webrtc",
+      "apps": [
+        {
+          "id": "org.mozilla.firefox",
+          "confidence": 0.65,
+          "source": "desktop"
+        },
+        {
+          "id": "chromium",
+          "confidence": 0.6,
+          "source": "package"
+        }
+      ]
+    },
+    "webstorm": {
+      "type": "app",
+      "glyph": "dev-webstorm",
+      "apps": [
+        {
+          "id": "webstorm",
+          "confidence": 0.85,
+          "source": "package"
+        },
+        {
+          "id": "webstorm",
+          "confidence": 0.85,
+          "source": "desktop"
+        }
+      ]
+    },
+    "wechat": {
+      "type": "app",
+      "glyph": "md-wechat",
+      "apps": [
+        {
+          "id": "wechat-uos",
+          "confidence": 0.6,
+          "source": "package"
+        },
+        {
+          "id": "electronic-wechat",
+          "confidence": 0.55,
+          "source": "package"
+        }
+      ]
+    },
+    "whatsapp": {
+      "type": "app",
+      "glyph": "md-whatsapp",
+      "apps": [
+        {
+          "id": "whatsapp-for-linux",
+          "confidence": 0.9,
+          "source": "inferred"
+        }
+      ]
+    },
+    "whiskey": {
+      "type": "category",
+      "glyph": "fa-whiskey_glass",
+      "apps": null
+    },
+    "wifi": {
+      "type": "category",
+      "glyph": "md-wifi_sync",
+      "apps": [
+        {
+          "id": "wpa_supplicant",
+          "confidence": 0.85,
+          "source": "package"
+        },
+        {
+          "id": "network-manager",
+          "confidence": 0.8,
+          "source": "package"
+        },
+        {
+          "id": "nm-connection-editor",
+          "confidence": 0.75,
+          "source": "package"
+        },
+        {
+          "id": "iw",
+          "confidence": 0.65,
+          "source": "package"
+        },
+        {
+          "id": "iwd",
+          "confidence": 0.6,
+          "source": "package"
+        }
+      ]
+    },
+    "wikimedia": {
+      "type": "app",
+      "glyph": "linux-wikimedia",
+      "apps": [
+        {
+          "id": "org.wikipedia.Wikipedia",
+          "confidence": 0.6,
+          "source": "inferred"
+        }
+      ]
+    },
+    "window": {
+      "type": "category",
+      "glyph": "cod-multiple_windows",
+      "apps": [
+        {
+          "id": "org.gnome.Terminal",
+          "confidence": 0.8,
+          "source": "desktop"
+        },
+        {
+          "id": "org.gnome.Nautilus",
+          "confidence": 0.75,
+          "source": "desktop"
+        },
+        {
+          "id": "org.gnome.Settings",
+          "confidence": 0.75,
+          "source": "desktop"
+        },
+        {
+          "id": "org.kde.plasmashell",
+          "confidence": 0.7,
+          "source": "desktop"
+        }
+      ]
+    },
+    "windows": {
+      "type": "app",
+      "glyph": "dev-windows",
+      "apps": [
+        {
+          "id": "wine",
+          "confidence": 0.7,
+          "source": "package"
+        },
+        {
+          "id": "bottles",
+          "confidence": 0.65,
+          "source": "package"
+        },
+        {
+          "id": "com.usebottles.bottles",
+          "confidence": 0.65,
+          "source": "flatpak"
+        },
+        {
+          "id": "lutris",
+          "confidence": 0.6,
+          "source": "package"
+        }
+      ]
+    },
+    "windows11": {
+      "type": "app",
+      "glyph": "dev-windows11",
+      "apps": null
+    },
+    "word": {
+      "type": "category",
+      "glyph": "md-file_word_box_outline",
+      "apps": [
+        {
+          "id": "libreoffice-writer",
+          "confidence": 0.95,
+          "source": "package"
+        },
+        {
+          "id": "libreoffice-writer",
+          "confidence": 0.9,
+          "source": "desktop"
+        },
+        {
+          "id": "org.libreoffice.LibreOffice",
+          "confidence": 0.8,
+          "source": "flatpak"
+        },
+        {
+          "id": "onlyoffice-desktopeditors",
+          "confidence": 0.75,
+          "source": "package"
+        },
+        {
+          "id": "abiword",
+          "confidence": 0.65,
+          "source": "package"
+        }
+      ]
+    },
+    "workplace": {
+      "type": "app",
+      "glyph": "md-facebook_workplace",
+      "apps": null
+    },
+    "xbox": {
+      "type": "app",
+      "glyph": "md-microsoft_xbox_controller_view",
+      "apps": [
+        {
+          "id": "xbox",
+          "confidence": 0.4,
+          "source": "inferred"
+        }
+      ]
+    },
+    "xcode": {
+      "type": "app",
+      "glyph": "dev-xcode",
+      "apps": null
+    },
+    "xerolinux": {
+      "type": "app",
+      "glyph": "linux-xerolinux",
+      "apps": [
+        {
+          "id": "xerolinux",
+          "confidence": 0.45,
+          "source": "inferred"
+        }
+      ]
+    },
+    "xmonad": {
+      "type": "app",
+      "glyph": "linux-xmonad",
+      "apps": [
+        {
+          "id": "xmonad",
+          "confidence": 1,
+          "source": "package"
+        },
+        {
+          "id": "xmonad",
+          "confidence": 0.9,
+          "source": "desktop"
+        },
+        {
+          "id": "xmobar",
+          "confidence": 0.7,
+          "source": "package"
+        }
+      ]
+    },
+    "xorg": {
+      "type": "app",
+      "glyph": "linux-xorg",
+      "apps": [
+        {
+          "id": "xorg-server",
+          "confidence": 0.85,
+          "source": "package"
+        },
+        {
+          "id": "Xorg",
+          "confidence": 0.65,
+          "source": "inferred"
+        }
+      ]
+    },
+    "youtube": {
+      "type": "app",
+      "glyph": "md-youtube_subscription",
+      "apps": [
+        {
+          "id": "freetube",
+          "confidence": 0.65,
+          "source": "package"
+        },
+        {
+          "id": "io.freetubeapp.FreeTube",
+          "confidence": 0.65,
+          "source": "flatpak"
+        },
+        {
+          "id": "youtube-viewer",
+          "confidence": 0.55,
+          "source": "package"
+        },
+        {
+          "id": "yt-dlp",
+          "confidence": 0.5,
+          "source": "package"
+        }
+      ]
+    },
+    "youtube-gaming": {
+      "type": "app",
+      "glyph": "md-youtube_gaming",
+      "apps": null
+    },
+    "youtube-studio": {
+      "type": "app",
+      "glyph": "md-youtube_studio",
+      "apps": null
+    },
+    "zip": {
+      "type": "category",
+      "glyph": "fa-file_zipper",
+      "apps": [
+        {
+          "id": "file-roller",
+          "confidence": 0.85,
+          "source": "package"
+        },
+        {
+          "id": "org.gnome.FileRoller",
+          "confidence": 0.85,
+          "source": "desktop"
+        },
+        {
+          "id": "org.gnome.FileRoller",
+          "confidence": 0.85,
+          "source": "flatpak"
+        },
+        {
+          "id": "ark",
+          "confidence": 0.85,
+          "source": "package"
+        },
+        {
+          "id": "org.kde.ark",
+          "confidence": 0.85,
+          "source": "desktop"
+        },
+        {
+          "id": "org.kde.ark",
+          "confidence": 0.85,
+          "source": "flatpak"
+        },
+        {
+          "id": "xarchiver",
+          "confidence": 0.75,
+          "source": "package"
+        },
+        {
+          "id": "p7zip",
+          "confidence": 0.65,
+          "source": "package"
+        },
+        {
+          "id": "zip",
+          "confidence": 0.6,
+          "source": "package"
+        },
+        {
+          "id": "unzip",
+          "confidence": 0.6,
+          "source": "package"
+        }
+      ]
+    },
+    "zorin": {
+      "type": "app",
+      "glyph": "linux-zorin",
+      "apps": null
+    }
+  }
+}
