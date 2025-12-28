@@ -62,120 +62,144 @@ type AppMapping struct {
 	Confidence string   // "exact", "likely", "possible"
 }
 
-// knownAppIcons maps Nerd Font icon names to common Linux app identifiers.
-// This is the core knowledge base - extend this to add more mappings.
-var knownAppIcons = map[string][]string{
+// iconEntry defines a single icon to app names mapping.
+// Using a slice allows duplicate icon keys that get merged at init time.
+type iconEntry struct {
+	Icon string
+	Apps []string
+}
+
+// knownAppIconEntries defines icon mappings. Duplicate icon keys are merged
+// automatically at init time with a warning logged.
+var knownAppIconEntries = []iconEntry{
 	// Messaging & Social
-	"discord":       {"discord", "discord-canary", "discord-ptb", "vesktop", "webcord", "armcord", "betterdiscord"},
-	"slack":         {"slack", "slack-desktop", "slack-wayland"},
-	"telegram":      {"telegram", "telegram-desktop", "telegramdesktop", "org.telegram.desktop", "64gram", "kotatogram"},
-	"whatsapp":      {"whatsapp", "whatsapp-desktop", "zapzap", "whatsapp-for-linux", "whatsie", "elecwhat"},
-	"message":       {"signal", "signal-desktop", "signal-desktop-beta"}, // Signal messenger uses message bubble icon (not signal-strength)
-	"skype":         {"skype", "skypeforlinux", "skype-electron"},
-	"facebook":      {"facebook", "caprine", "messenger", "facebookmessenger"},
-	"twitter":       {"twitter", "cawbird", "tweetdeck"},
-	"mastodon":      {"mastodon", "tootle", "whalebird", "sengi", "hyperspace"},
-	"reddit":        {"reddit", "giara"},
-	"linkedin":      {"linkedin"},
-	"message":       {"element", "element-desktop", "fractal", "nheko", "neochat", "org.kde.neochat", "fluffychat"}, // Matrix clients - use generic message icon
-	"wechat":        {"wechat", "electronic-wechat", "wechat-uos"},
+	{"discord", []string{"discord", "discord-canary", "discord-ptb", "vesktop", "webcord", "armcord", "betterdiscord"}},
+	{"slack", []string{"slack", "slack-desktop", "slack-wayland"}},
+	{"telegram", []string{"telegram", "telegram-desktop", "telegramdesktop", "org.telegram.desktop", "64gram", "kotatogram"}},
+	{"whatsapp", []string{"whatsapp", "whatsapp-desktop", "zapzap", "whatsapp-for-linux", "whatsie", "elecwhat"}},
+	{"message", []string{"signal", "signal-desktop", "signal-desktop-beta"}},       // Signal messenger
+	{"message", []string{"element", "element-desktop", "fractal", "nheko", "neochat", "org.kde.neochat", "fluffychat"}}, // Matrix clients
+	{"skype", []string{"skype", "skypeforlinux", "skype-electron"}},
+	{"facebook", []string{"facebook", "caprine", "messenger", "facebookmessenger"}},
+	{"twitter", []string{"twitter", "cawbird", "tweetdeck"}},
+	{"mastodon", []string{"mastodon", "tootle", "whalebird", "sengi", "hyperspace"}},
+	{"reddit", []string{"reddit", "giara"}},
+	{"linkedin", []string{"linkedin"}},
+	{"wechat", []string{"wechat", "electronic-wechat", "wechat-uos"}},
 
 	// Browsers
-	"firefox":       {"firefox", "firefox-esr", "firefox-developer-edition", "firefox-nightly", "librewolf", "floorp", "waterfox", "org.mozilla.firefox"},
-	"chrome":        {"google-chrome", "google-chrome-stable", "google-chrome-beta", "google-chrome-unstable", "chromium", "chromium-browser", "ungoogled-chromium"},
-	"microsoft-edge": {"microsoft-edge", "microsoft-edge-stable", "microsoft-edge-beta", "microsoft-edge-dev"},
-	"brave":         {"brave", "brave-browser", "brave-browser-stable"},
-	"opera":         {"opera", "opera-stable", "opera-beta", "opera-developer"},
-	"vivaldi":       {"vivaldi", "vivaldi-stable", "vivaldi-snapshot"},
-	"tor-browser":   {"tor-browser", "torbrowser-launcher"},
-	"epiphany":      {"epiphany", "org.gnome.Epiphany", "gnome-web"},
-	"qutebrowser":   {"qutebrowser"},
-	"min":           {"min-browser", "min"},
-	"safari":        {"safari"}, // rare on Linux but included
+	{"firefox", []string{"firefox", "firefox-esr", "firefox-developer-edition", "firefox-nightly", "librewolf", "floorp", "waterfox", "org.mozilla.firefox"}},
+	{"chrome", []string{"google-chrome", "google-chrome-stable", "google-chrome-beta", "google-chrome-unstable", "chromium", "chromium-browser", "ungoogled-chromium"}},
+	{"microsoft-edge", []string{"microsoft-edge", "microsoft-edge-stable", "microsoft-edge-beta", "microsoft-edge-dev"}},
+	{"brave", []string{"brave", "brave-browser", "brave-browser-stable"}},
+	{"opera", []string{"opera", "opera-stable", "opera-beta", "opera-developer"}},
+	{"vivaldi", []string{"vivaldi", "vivaldi-stable", "vivaldi-snapshot"}},
+	{"tor-browser", []string{"tor-browser", "torbrowser-launcher"}},
+	{"epiphany", []string{"epiphany", "org.gnome.Epiphany", "gnome-web"}},
+	{"qutebrowser", []string{"qutebrowser"}},
+	{"min", []string{"min-browser", "min"}},
+	{"safari", []string{"safari"}}, // rare on Linux but included
 
 	// Email
-	"email":         {"thunderbird", "thunderbird-daily", "thunderbird-beta", "evolution", "evolution-mail", "geary", "org.gnome.Geary", "mailspring", "tutanota", "protonmail-bridge", "kmail", "org.kde.kmail2", "claws-mail", "sylpheed", "mutt", "neomutt", "aerc"},
-	"gmail":         {"gmail", "gmail-desktop"},
-	"outlook":       {"outlook"},
+	{"email", []string{"thunderbird", "thunderbird-daily", "thunderbird-beta", "evolution", "evolution-mail", "geary", "org.gnome.Geary", "mailspring", "tutanota", "protonmail-bridge", "kmail", "org.kde.kmail2", "claws-mail", "sylpheed", "mutt", "neomutt", "aerc"}},
+	{"gmail", []string{"gmail", "gmail-desktop"}},
+	{"outlook", []string{"outlook"}},
 
 	// Media Players
-	"spotify":       {"spotify", "spotify-client", "spotifyd", "spot", "psst"},
-	"youtube":       {"youtube", "freetube", "gtk-youtube-viewer", "minitube", "youtube-music"},
-	"vlc":           {"vlc", "org.videolan.VLC", "vlc-player"},
-	"music":         {"rhythmbox", "lollypop", "org.gnome.Lollypop", "elisa", "org.kde.elisa", "gnome-music", "org.gnome.Music", "clementine", "strawberry", "audacious", "quodlibet", "deadbeef", "cmus", "mpd", "ncmpcpp"},
-	"video":         {"mpv", "io.mpv.Mpv", "celluloid", "io.github.celluloid_player.Celluloid", "totem", "org.gnome.Totem", "gnome-videos", "haruna", "org.kde.haruna", "smplayer", "mplayer"},
-	"podcast":       {"gnome-podcasts", "org.gnome.Podcasts", "vocal", "gpodder"},
+	{"spotify", []string{"spotify", "spotify-client", "spotifyd", "spot", "psst"}},
+	{"youtube", []string{"youtube", "freetube", "gtk-youtube-viewer", "minitube", "youtube-music"}},
+	{"vlc", []string{"vlc", "org.videolan.VLC", "vlc-player"}},
+	{"music", []string{"rhythmbox", "lollypop", "org.gnome.Lollypop", "elisa", "org.kde.elisa", "gnome-music", "org.gnome.Music", "clementine", "strawberry", "audacious", "quodlibet", "deadbeef", "cmus", "mpd", "ncmpcpp"}},
+	{"video", []string{"mpv", "io.mpv.Mpv", "celluloid", "io.github.celluloid_player.Celluloid", "totem", "org.gnome.Totem", "gnome-videos", "haruna", "org.kde.haruna", "smplayer", "mplayer"}},
+	{"podcast", []string{"gnome-podcasts", "org.gnome.Podcasts", "vocal", "gpodder"}},
 
 	// Development
-	"visual-studio-code": {"code", "code-oss", "vscodium", "code-insiders", "codium", "visual-studio-code"},
-	"git":           {"git", "gitg", "gitk", "git-gui", "lazygit", "tig"},
-	"github":        {"github", "github-desktop", "gittyup"},
-	"gitlab":        {"gitlab"},
-	"bitbucket":     {"bitbucket"},
-	"docker":        {"docker", "docker-desktop", "podman", "podman-desktop"},
-	"kubernetes":    {"kubernetes", "kubectl", "k9s", "lens"},
-	"database":      {"dbeaver", "mysql-workbench", "pgadmin4", "mongodb-compass", "beekeeper-studio"},
-	"terminal":      {"gnome-terminal", "org.gnome.Terminal", "konsole", "org.kde.konsole", "kitty", "alacritty", "wezterm", "foot", "tilix", "terminator", "xfce4-terminal", "lxterminal", "xterm", "urxvt", "st", "hyper", "tabby", "contour", "rio", "ghostty"},
-	"vim":           {"vim", "neovim", "nvim", "gvim"},
-	"emacs":         {"emacs", "emacs-gtk", "doom-emacs", "spacemacs"},
+	{"visual-studio-code", []string{"code", "code-oss", "vscodium", "code-insiders", "codium", "visual-studio-code"}},
+	{"git", []string{"git", "gitg", "gitk", "git-gui", "lazygit", "tig"}},
+	{"github", []string{"github", "github-desktop", "gittyup"}},
+	{"gitlab", []string{"gitlab"}},
+	{"bitbucket", []string{"bitbucket"}},
+	{"docker", []string{"docker", "docker-desktop", "podman", "podman-desktop"}},
+	{"kubernetes", []string{"kubernetes", "kubectl", "k9s", "lens"}},
+	{"database", []string{"dbeaver", "mysql-workbench", "pgadmin4", "mongodb-compass", "beekeeper-studio"}},
+	{"terminal", []string{"gnome-terminal", "org.gnome.Terminal", "konsole", "org.kde.konsole", "kitty", "alacritty", "wezterm", "foot", "tilix", "terminator", "xfce4-terminal", "lxterminal", "xterm", "urxvt", "st", "hyper", "tabby", "contour", "rio", "ghostty"}},
+	{"vim", []string{"vim", "neovim", "nvim", "gvim"}},
+	{"emacs", []string{"emacs", "emacs-gtk", "doom-emacs", "spacemacs"}},
 
 	// IDEs
-	"intellij":      {"idea", "intellij-idea", "intellij-idea-ultimate", "intellij-idea-community", "jetbrains-idea"},
-	"pycharm":       {"pycharm", "pycharm-professional", "pycharm-community", "jetbrains-pycharm"},
-	"webstorm":      {"webstorm", "jetbrains-webstorm"},
-	"goland":        {"goland", "jetbrains-goland"},
-	"clion":         {"clion", "jetbrains-clion"},
-	"rider":         {"rider", "jetbrains-rider"},
-	"android-studio": {"android-studio"},
-	"sublime-text":  {"sublime-text", "sublime_text", "subl"},
-	"atom":          {"atom"},
+	{"intellij", []string{"idea", "intellij-idea", "intellij-idea-ultimate", "intellij-idea-community", "jetbrains-idea"}},
+	{"pycharm", []string{"pycharm", "pycharm-professional", "pycharm-community", "jetbrains-pycharm"}},
+	{"webstorm", []string{"webstorm", "jetbrains-webstorm"}},
+	{"goland", []string{"goland", "jetbrains-goland"}},
+	{"clion", []string{"clion", "jetbrains-clion"}},
+	{"rider", []string{"rider", "jetbrains-rider"}},
+	{"android-studio", []string{"android-studio"}},
+	{"sublime-text", []string{"sublime-text", "sublime_text", "subl"}},
+	{"atom", []string{"atom"}},
 
 	// File Managers
-	"folder":        {"nautilus", "org.gnome.Nautilus", "org.gnome.Files", "nemo", "thunar", "dolphin", "org.kde.dolphin", "pcmanfm", "pcmanfm-qt", "spacefm", "ranger", "lf", "nnn", "vifm", "mc", "doublecmd"},
+	{"folder", []string{"nautilus", "org.gnome.Nautilus", "org.gnome.Files", "nemo", "thunar", "dolphin", "org.kde.dolphin", "pcmanfm", "pcmanfm-qt", "spacefm", "ranger", "lf", "nnn", "vifm", "mc", "doublecmd"}},
 
 	// Office & Productivity
-	"libreoffice":   {"libreoffice", "libreoffice-writer", "libreoffice-calc", "libreoffice-impress", "libreoffice-draw", "libreoffice-base"},
-	"onlyoffice":    {"onlyoffice", "onlyoffice-desktopeditors"},
-	"office":        {"wps-office", "freeoffice"},
-	"note":          {"obsidian", "logseq", "notion", "notion-app", "joplin", "standard-notes", "simplenote", "zettlr", "marktext", "typora", "ghostwriter"},
-	"calendar":      {"gnome-calendar", "org.gnome.Calendar", "korganizer"},
+	{"libreoffice", []string{"libreoffice", "libreoffice-writer", "libreoffice-calc", "libreoffice-impress", "libreoffice-draw", "libreoffice-base"}},
+	{"onlyoffice", []string{"onlyoffice", "onlyoffice-desktopeditors"}},
+	{"office", []string{"wps-office", "freeoffice"}},
+	{"note", []string{"obsidian", "logseq", "notion", "notion-app", "joplin", "standard-notes", "simplenote", "zettlr", "marktext", "typora", "ghostwriter"}},
+	{"calendar", []string{"gnome-calendar", "org.gnome.Calendar", "korganizer"}},
 
 	// Graphics & Design
-	"image":         {"gimp", "org.gimp.GIMP", "inkscape", "org.inkscape.Inkscape", "krita", "org.kde.krita", "blender", "darktable", "rawtherapee", "digikam", "shotwell", "eog", "org.gnome.eog", "gthumb", "org.gnome.gThumb", "gwenview", "org.kde.gwenview", "feh", "sxiv", "imv", "nomacs"},
+	{"image", []string{"gimp", "org.gimp.GIMP", "inkscape", "org.inkscape.Inkscape", "krita", "org.kde.krita", "blender", "darktable", "rawtherapee", "digikam", "shotwell", "eog", "org.gnome.eog", "gthumb", "org.gnome.gThumb", "gwenview", "org.kde.gwenview", "feh", "sxiv", "imv", "nomacs"}},
 
 	// System & Utilities
-	"cog":           {"gnome-control-center", "gnome-settings", "systemsettings", "org.kde.systemsettings", "xfce4-settings-manager", "lxappearance"},
-	"lock":          {"gnome-keyring", "keepassxc", "org.keepassxc.KeePassXC", "bitwarden", "1password"},
-	"security-shield": {"firewall", "gufw", "firewalld"},
-	"package":       {"gnome-software", "org.gnome.Software", "discover", "org.kde.discover", "pamac", "octopi", "synaptic", "gdebi"},
-	"update":        {"software-update", "gnome-software", "update-manager"},
-	"backup":        {"deja-dup", "org.gnome.DejaDup", "timeshift", "borgbackup", "restic", "vorta"},
+	{"cog", []string{"gnome-control-center", "gnome-settings", "systemsettings", "org.kde.systemsettings", "xfce4-settings-manager", "lxappearance"}},
+	{"lock", []string{"gnome-keyring", "keepassxc", "org.keepassxc.KeePassXC", "bitwarden", "1password"}},
+	{"security-shield", []string{"firewall", "gufw", "firewalld"}},
+	{"package", []string{"gnome-software", "org.gnome.Software", "discover", "org.kde.discover", "pamac", "octopi", "synaptic", "gdebi"}},
+	{"update", []string{"software-update", "gnome-software", "update-manager"}},
+	{"backup", []string{"deja-dup", "org.gnome.DejaDup", "timeshift", "borgbackup", "restic", "vorta"}},
 
 	// Gaming
-	"steam":         {"steam", "steam-runtime", "steam-native"},
-	"gamepad":       {"lutris", "heroic", "heroic-games-launcher", "bottles", "protonup-qt", "gamehub"},
+	{"steam", []string{"steam", "steam-runtime", "steam-native"}},
+	{"gamepad", []string{"lutris", "heroic", "heroic-games-launcher", "bottles", "protonup-qt", "gamehub"}},
 
 	// Cloud & Sync
-	"cloud":         {"nextcloud", "owncloud", "dropbox", "insync", "megasync", "pcloud"},
-	"google-drive":  {"google-drive-ocamlfuse", "grive", "insync"},
+	{"cloud", []string{"nextcloud", "owncloud", "dropbox", "insync", "megasync", "pcloud"}},
+	{"google-drive", []string{"google-drive-ocamlfuse", "grive", "insync"}},
 
 	// Network
-	"wifi":          {"nm-applet", "network-manager-applet", "connman", "wicd"},
-	"bluetooth":     {"blueman", "blueman-manager", "blueberry", "gnome-bluetooth"},
-	"vpn":           {"openvpn", "wireguard", "protonvpn", "mullvad-vpn", "nordvpn"},
+	{"wifi", []string{"nm-applet", "network-manager-applet", "connman", "wicd"}},
+	{"bluetooth", []string{"blueman", "blueman-manager", "blueberry", "gnome-bluetooth"}},
+	{"vpn", []string{"openvpn", "wireguard", "protonvpn", "mullvad-vpn", "nordvpn"}},
 
 	// Communication & Conferencing
-	"video-account": {"zoom", "zoom-client", "teams", "microsoft-teams", "webex", "jitsi", "jitsi-meet"},
+	{"video-account", []string{"zoom", "zoom-client", "teams", "microsoft-teams", "webex", "jitsi", "jitsi-meet"}},
 
 	// Torrent & Download
-	"download":      {"transmission", "transmission-gtk", "transmission-qt", "qbittorrent", "deluge", "aria2", "uget", "jdownloader"},
+	{"download", []string{"transmission", "transmission-gtk", "transmission-qt", "qbittorrent", "deluge", "aria2", "uget", "jdownloader"}},
 
 	// Screenshot & Recording
-	"monitor-screenshot": {"flameshot", "gnome-screenshot", "org.gnome.Screenshot", "spectacle", "org.kde.spectacle", "shutter", "scrot", "maim"},
-	"video-vintage": {"obs", "obs-studio", "com.obsproject.Studio", "simplescreenrecorder", "kazam", "peek"},
+	{"monitor-screenshot", []string{"flameshot", "gnome-screenshot", "org.gnome.Screenshot", "spectacle", "org.kde.spectacle", "shutter", "scrot", "maim"}},
+	{"video-vintage", []string{"obs", "obs-studio", "com.obsproject.Studio", "simplescreenrecorder", "kazam", "peek"}},
 
 	// Virtualization
-	"desktop-classic": {"virt-manager", "gnome-boxes", "org.gnome.Boxes", "virtualbox", "vmware-workstation"},
+	{"desktop-classic", []string{"virt-manager", "gnome-boxes", "org.gnome.Boxes", "virtualbox", "vmware-workstation"}},
+}
+
+// knownAppIcons is the merged map built from knownAppIconEntries at init time.
+var knownAppIcons map[string][]string
+
+func init() {
+	knownAppIcons = make(map[string][]string)
+	for _, entry := range knownAppIconEntries {
+		if existing, ok := knownAppIcons[entry.Icon]; ok {
+			// Merge duplicate entries with a warning
+			fmt.Fprintf(os.Stderr, "WARNING: merging duplicate icon key %q (%d + %d apps)\n",
+				entry.Icon, len(existing), len(entry.Apps))
+			knownAppIcons[entry.Icon] = append(existing, entry.Apps...)
+		} else {
+			knownAppIcons[entry.Icon] = entry.Apps
+		}
+	}
 }
 
 // additionalAppNames maps extra Linux app names that don't directly match icon names
