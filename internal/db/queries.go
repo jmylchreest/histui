@@ -110,7 +110,7 @@ func (d *DB) getTopApps(limit int) ([]AppCount, error) {
 	if err != nil {
 		return nil, err
 	}
-	defer rows.Close()
+	defer func() { _ = rows.Close() }()
 
 	var apps []AppCount
 	for rows.Next() {
@@ -187,7 +187,7 @@ func (d *DB) GetAppNames() ([]string, error) {
 	if err != nil {
 		return nil, err
 	}
-	defer rows.Close()
+	defer func() { _ = rows.Close() }()
 
 	var apps []string
 	for rows.Next() {
@@ -216,7 +216,7 @@ func (d *DB) SearchNotifications(query string, limit int) ([]string, error) {
 	if err != nil {
 		return nil, err
 	}
-	defer rows.Close()
+	defer func() { _ = rows.Close() }()
 
 	var ids []string
 	for rows.Next() {

@@ -172,7 +172,7 @@ func runReplay(cmd *cobra.Command, args []string) error {
 	if err != nil {
 		return fmt.Errorf("failed to create replayer: %w", err)
 	}
-	defer replayer.Close()
+	defer func() { _ = replayer.Close() }()
 
 	// Replay single notification
 	if hasLookup {

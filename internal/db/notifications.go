@@ -62,7 +62,7 @@ func (d *DB) AddBatch(ns []model.Notification) error {
 	if err != nil {
 		return err
 	}
-	defer tx.Rollback()
+	defer func() { _ = tx.Rollback() }()
 
 	stmt, err := tx.Prepare(`
 		INSERT OR IGNORE INTO notifications (
@@ -75,7 +75,7 @@ func (d *DB) AddBatch(ns []model.Notification) error {
 	if err != nil {
 		return err
 	}
-	defer stmt.Close()
+	defer func() { _ = stmt.Close() }()
 
 	now := time.Now().Unix()
 
@@ -180,14 +180,14 @@ func (d *DB) DismissBatch(histuiIDs []string) error {
 	if err != nil {
 		return err
 	}
-	defer tx.Rollback()
+	defer func() { _ = tx.Rollback() }()
 
 	now := time.Now().Unix()
 	stmt, err := tx.Prepare("UPDATE notifications SET dismissed_at = ? WHERE histui_id = ? AND dismissed_at = 0")
 	if err != nil {
 		return err
 	}
-	defer stmt.Close()
+	defer func() { _ = stmt.Close() }()
 
 	for _, id := range histuiIDs {
 		if _, err := stmt.Exec(now, id); err != nil {
@@ -243,15 +243,15 @@ func (d *DB) MarkReplayed(histuiID string) error {
 
 // FilterOptions specifies criteria for filtering notifications.
 type FilterOptions struct {
-	Since       int64  // Only notifications after this Unix timestamp
-	AppName     string // Exact match on app name
-	Urgency     *int   // Filter by urgency level (nil=any)
-	Dismissed   *bool  // Filter by dismissed state (nil=any)
-	Seen        *bool  // Filter by seen state (nil=any)
-	Limit       int    // Maximum results (0=unlimited)
-	Offset      int    // Offset for pagination
-	OrderBy     string // Field to sort by (default: timestamp)
-	OrderDesc   bool   // Sort descending (default: true)
+	Since     int64  // Only notifications after this Unix timestamp
+	AppName   string // Exact match on app name
+	Urgency   *int   // Filter by urgency level (nil=any)
+	Dismissed *bool  // Filter by dismissed state (nil=any)
+	Seen      *bool  // Filter by seen state (nil=any)
+	Limit     int    // Maximum results (0=unlimited)
+	Offset    int    // Offset for pagination
+	OrderBy   string // Field to sort by (default: timestamp)
+	OrderDesc bool   // Sort descending (default: true)
 }
 
 // Filter returns notifications matching criteria.
@@ -324,7 +324,7 @@ func (d *DB) Filter(opts FilterOptions) ([]model.Notification, error) {
 	if err != nil {
 		return nil, err
 	}
-	defer rows.Close()
+	defer func() { _ = rows.Close() }()
 
 	return scanNotifications(rows)
 }

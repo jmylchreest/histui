@@ -134,16 +134,6 @@ func DataPath() string {
 	return filepath.Join(dataHome, "histui")
 }
 
-// HistoryPath returns the path to the history JSONL file.
-func HistoryPath() string {
-	return filepath.Join(DataPath(), "history.jsonl")
-}
-
-// TombstonePath returns the path to the tombstones file.
-func TombstonePath() string {
-	return filepath.Join(DataPath(), "tombstones.json")
-}
-
 // LoadConfig loads configuration from the specified path.
 // If path is empty, uses the default config path.
 // Returns default config if file doesn't exist.

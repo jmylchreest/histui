@@ -48,7 +48,7 @@ func Open(path string) (*DB, error) {
 
 	// Verify connection
 	if err := conn.Ping(); err != nil {
-		conn.Close()
+		_ = conn.Close()
 		return nil, fmt.Errorf("ping database: %w", err)
 	}
 
@@ -59,7 +59,7 @@ func Open(path string) (*DB, error) {
 
 	// Run migrations
 	if err := db.migrate(); err != nil {
-		conn.Close()
+		_ = conn.Close()
 		return nil, fmt.Errorf("migrate: %w", err)
 	}
 
@@ -156,7 +156,7 @@ func (d *DB) migrate() error {
 	if err != nil {
 		return err
 	}
-	defer tx.Rollback()
+	defer func() { _ = tx.Rollback() }()
 
 	if version < 1 {
 		if err := d.migrateV1(tx); err != nil {

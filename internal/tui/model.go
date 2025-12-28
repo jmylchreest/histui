@@ -1064,7 +1064,7 @@ func (m Model) replayNotification(n model.Notification) tea.Cmd {
 		if err != nil {
 			return replayResultMsg{err: err}
 		}
-		defer replayer.Close()
+		defer func() { _ = replayer.Close() }()
 
 		_, err = replayer.Replay(&n)
 		return replayResultMsg{err: err}

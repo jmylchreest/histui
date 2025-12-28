@@ -192,11 +192,6 @@ func TestDataPathDefault(t *testing.T) {
 	assert.Contains(t, path, "histui")
 }
 
-func TestHistoryPath(t *testing.T) {
-	t.Setenv("XDG_DATA_HOME", "/custom/data")
-	assert.Equal(t, "/custom/data/histui/history.jsonl", HistoryPath())
-}
-
 func TestEnsureDataDir(t *testing.T) {
 	dir := t.TempDir()
 	t.Setenv("XDG_DATA_HOME", dir)

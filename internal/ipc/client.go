@@ -4,8 +4,6 @@ import (
 	"encoding/json"
 	"fmt"
 	"net"
-	"os"
-	"path/filepath"
 	"time"
 )
 
@@ -35,7 +33,7 @@ func (c *Client) IsRunning() bool {
 	if err != nil {
 		return false
 	}
-	conn.Close()
+	_ = conn.Close()
 	return true
 }
 
@@ -162,7 +160,7 @@ func (c *Client) send(req Request) (*Response, error) {
 	if err != nil {
 		return nil, fmt.Errorf("connect: %w", err)
 	}
-	defer conn.Close()
+	defer func() { _ = conn.Close() }()
 
 	// Set deadline for the entire operation
 	if err := conn.SetDeadline(time.Now().Add(c.timeout)); err != nil {
@@ -183,13 +181,4 @@ func (c *Client) send(req Request) (*Response, error) {
 	}
 
 	return &resp, nil
-}
-
-// EnsureSocketDir ensures the socket directory exists.
-func EnsureSocketDir() error {
-	sockPath, err := SocketPath()
-	if err != nil {
-		return err
-	}
-	return os.MkdirAll(filepath.Dir(sockPath), 0700)
 }

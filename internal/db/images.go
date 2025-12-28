@@ -55,7 +55,7 @@ func (d *DB) LoadAllImages(histuiID string) (map[string][]byte, error) {
 	if err != nil {
 		return nil, err
 	}
-	defer rows.Close()
+	defer func() { _ = rows.Close() }()
 
 	images := make(map[string][]byte)
 	for rows.Next() {
@@ -117,7 +117,7 @@ func (d *DB) GetImageRefs(histuiID string) ([]string, error) {
 	if err != nil {
 		return nil, err
 	}
-	defer rows.Close()
+	defer func() { _ = rows.Close() }()
 
 	var refs []string
 	for rows.Next() {

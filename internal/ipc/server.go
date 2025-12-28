@@ -92,7 +92,7 @@ func (s *Server) Start(ctx context.Context) error {
 	s.wg.Add(1)
 	go func() {
 		defer s.wg.Done()
-		s.acceptLoop(ctx)
+		s.acceptLoop()
 	}()
 
 	return nil
@@ -110,21 +110,21 @@ func (s *Server) Stop() error {
 
 	// Close listener to unblock accept
 	if s.listener != nil {
-		s.listener.Close()
+		_ = s.listener.Close()
 	}
 
 	// Wait for goroutines
 	s.wg.Wait()
 
 	// Remove socket file
-	os.Remove(s.socketPath)
+	_ = os.Remove(s.socketPath)
 
 	s.logger.Info("IPC server stopped")
 	return nil
 }
 
 // acceptLoop accepts incoming connections.
-func (s *Server) acceptLoop(ctx context.Context) {
+func (s *Server) acceptLoop() {
 	for {
 		conn, err := s.listener.Accept()
 		if err != nil {
@@ -148,7 +148,7 @@ func (s *Server) acceptLoop(ctx context.Context) {
 
 // handleConnection handles a single client connection.
 func (s *Server) handleConnection(conn net.Conn) {
-	defer conn.Close()
+	defer func() { _ = conn.Close() }()
 
 	decoder := json.NewDecoder(conn)
 	encoder := json.NewEncoder(conn)

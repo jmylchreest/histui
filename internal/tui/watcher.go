@@ -35,7 +35,7 @@ func startFileWatcher() tea.Cmd {
 		// Watch the parent directory (file may not exist yet)
 		dir := filepath.Dir(path)
 		if err := watcher.Add(dir); err != nil {
-			watcher.Close()
+			_ = watcher.Close()
 			return nil
 		}
 
@@ -47,21 +47,20 @@ func startFileWatcher() tea.Cmd {
 			select {
 			case event, ok := <-watcher.Events:
 				if !ok {
-					watcher.Close()
+					_ = watcher.Close()
 					return nil
 				}
 				// Check if this event is for our file
 				if event.Name == path && (event.Op&fsnotify.Write != 0 || event.Op&fsnotify.Create != 0) {
 					now := time.Now()
 					if now.Sub(lastEvent) >= debounceInterval {
-						lastEvent = now
-						watcher.Close()
+						_ = watcher.Close()
 						return fileWatcherMsg{}
 					}
 				}
 			case _, ok := <-watcher.Errors:
 				if !ok {
-					watcher.Close()
+					_ = watcher.Close()
 					return nil
 				}
 				// Ignore errors, continue watching

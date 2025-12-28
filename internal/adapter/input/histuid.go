@@ -34,7 +34,7 @@ func (a *HistuidAdapter) Import(ctx context.Context) ([]model.Notification, erro
 			Err:     err,
 		}
 	}
-	defer database.Close()
+	defer func() { _ = database.Close() }()
 
 	notifications, err := database.All()
 	if err != nil {

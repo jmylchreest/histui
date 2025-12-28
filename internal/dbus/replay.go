@@ -238,18 +238,3 @@ func GetOriginalID(hints map[string]dbus.Variant) string {
 	}
 	return ""
 }
-
-// GetOriginalTimestamp extracts the original timestamp from replay hints.
-func GetOriginalTimestamp(hints map[string]dbus.Variant) int64 {
-	if v, ok := hints[HintOriginalTimestamp]; ok {
-		switch ts := v.Value().(type) {
-		case int64:
-			return ts
-		case int32:
-			return int64(ts)
-		case int:
-			return int64(ts)
-		}
-	}
-	return 0
-}
