@@ -1,12 +1,12 @@
-# Maintainer: John Googol Mylchreest <jmylchreest@gmail.com>
+# Maintainer: John Mylchreest <jmylchreest@gmail.com>
 pkgname=histui
 pkgver=0.1.0
 pkgrel=1
 pkgdesc="Notification history browser and daemon for Linux desktops"
-arch=('x86_64')
+arch=('x86_64' 'aarch64')
 url="https://github.com/jmylchreest/histui"
 license=('MIT')
-depends=('gtk4' 'glib2')
+depends=('gtk4' 'libadwaita')
 makedepends=('go' 'git')
 provides=('histui' 'histuid')
 conflicts=('histui-bin')
@@ -16,11 +16,20 @@ sha256sums=('SKIP')
 build() {
     cd "${pkgname}-${pkgver}"
 
-    export CGO_ENABLED=0
-    go build -ldflags "-s -w -X main.version=${pkgver}" -o histui ./cmd/histui
+    export GOFLAGS="-buildmode=pie -trimpath -mod=readonly -modcacherw"
+    export CGO_CFLAGS="${CFLAGS}"
+    export CGO_CXXFLAGS="${CXXFLAGS}"
+    export CGO_LDFLAGS="${LDFLAGS}"
 
-    export CGO_ENABLED=1
-    go build -ldflags "-s -w -X main.version=${pkgver}" -o histuid ./cmd/histuid
+    # histui CLI - pure Go, no CGO needed
+    CGO_ENABLED=0 go build \
+        -ldflags "-s -w -X main.version=${pkgver}" \
+        -o histui ./cmd/histui
+
+    # histuid daemon - requires CGO for GTK4 bindings
+    CGO_ENABLED=1 go build \
+        -ldflags "-s -w -X main.version=${pkgver}" \
+        -o histuid ./cmd/histuid
 }
 
 package() {
@@ -31,4 +40,15 @@ package() {
     install -Dm644 contrib/histuid.service "${pkgdir}/usr/lib/systemd/user/histuid.service"
     install -Dm644 contrib/histuid-monitor.service "${pkgdir}/usr/lib/systemd/user/histuid-monitor.service"
     install -Dm644 LICENSE "${pkgdir}/usr/share/licenses/${pkgname}/LICENSE"
+
+    # Install shell completions if available
+    if [[ -f contrib/completions/histui.bash ]]; then
+        install -Dm644 contrib/completions/histui.bash "${pkgdir}/usr/share/bash-completion/completions/histui"
+    fi
+    if [[ -f contrib/completions/histui.zsh ]]; then
+        install -Dm644 contrib/completions/histui.zsh "${pkgdir}/usr/share/zsh/site-functions/_histui"
+    fi
+    if [[ -f contrib/completions/histui.fish ]]; then
+        install -Dm644 contrib/completions/histui.fish "${pkgdir}/usr/share/fish/vendor_completions.d/histui.fish"
+    fi
 }

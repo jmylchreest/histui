@@ -1,26 +1,41 @@
-# Maintainer: John Googol Mylchreest <jmylchreest@gmail.com>
+# Maintainer: John Mylchreest <jmylchreest@gmail.com>
 pkgname=histui-bin
 pkgver=0.1.0
 pkgrel=1
 pkgdesc="Notification history browser and daemon for Linux desktops (prebuilt binaries)"
-arch=('x86_64')
+arch=('x86_64' 'aarch64')
 url="https://github.com/jmylchreest/histui"
 license=('MIT')
-depends=('gtk4' 'glib2')
+depends=('gtk4' 'libadwaita')
 provides=('histui' 'histuid')
 conflicts=('histui')
+
+_github_url="https://github.com/jmylchreest/histui"
+
+# Common sources (systemd units, license)
 source=(
-    "histui-${pkgver}::https://github.com/jmylchreest/histui/releases/download/v${pkgver}/histui-linux-amd64"
-    "histuid-${pkgver}::https://github.com/jmylchreest/histui/releases/download/v${pkgver}/histuid-linux-amd64"
-    "histuid.service::https://raw.githubusercontent.com/jmylchreest/histui/v${pkgver}/contrib/histuid.service"
-    "histuid-monitor.service::https://raw.githubusercontent.com/jmylchreest/histui/v${pkgver}/contrib/histuid-monitor.service"
+    "histuid.service::${_github_url}/releases/download/v${pkgver}/histuid.service"
+    "histuid-monitor.service::${_github_url}/releases/download/v${pkgver}/histuid-monitor.service"
     "LICENSE-${pkgver}::https://raw.githubusercontent.com/jmylchreest/histui/v${pkgver}/LICENSE"
 )
-sha256sums=('SKIP' 'SKIP' 'SKIP' 'SKIP' 'SKIP')
+
+# Architecture-specific binary sources
+source_x86_64=(
+    "histui-${pkgver}-x86_64::${_github_url}/releases/download/v${pkgver}/histui-linux-amd64"
+    "histuid-${pkgver}-x86_64::${_github_url}/releases/download/v${pkgver}/histuid-linux-amd64"
+)
+source_aarch64=(
+    "histui-${pkgver}-aarch64::${_github_url}/releases/download/v${pkgver}/histui-linux-arm64"
+    "histuid-${pkgver}-aarch64::${_github_url}/releases/download/v${pkgver}/histuid-linux-arm64"
+)
+
+sha256sums=('SKIP' 'SKIP' 'SKIP')
+sha256sums_x86_64=('SKIP' 'SKIP')
+sha256sums_aarch64=('SKIP' 'SKIP')
 
 package() {
-    install -Dm755 "histui-${pkgver}" "${pkgdir}/usr/bin/histui"
-    install -Dm755 "histuid-${pkgver}" "${pkgdir}/usr/bin/histuid"
+    install -Dm755 "histui-${pkgver}-${CARCH}" "${pkgdir}/usr/bin/histui"
+    install -Dm755 "histuid-${pkgver}-${CARCH}" "${pkgdir}/usr/bin/histuid"
     install -Dm644 "histuid.service" "${pkgdir}/usr/lib/systemd/user/histuid.service"
     install -Dm644 "histuid-monitor.service" "${pkgdir}/usr/lib/systemd/user/histuid-monitor.service"
     install -Dm644 "LICENSE-${pkgver}" "${pkgdir}/usr/share/licenses/${pkgname}/LICENSE"

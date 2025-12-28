@@ -114,10 +114,15 @@ jobs:
           go-version: ${{ env.GO_VERSION }}
           cache: true
 
+      - name: Install GTK4 and libadwaita (for histuid CGO build)
+        run: |
+          sudo apt-get update
+          sudo apt-get install -y libgtk-4-dev libadwaita-1-dev
+
       - name: Run tests
         run: go test ./...
 
-      - name: Build histui
+      - name: Build histui (CLI - pure Go)
         env:
           CGO_ENABLED: 0
           GOOS: ${{ matrix.goos }}
@@ -125,11 +130,28 @@ jobs:
         run: |
           go build -ldflags "-s -w -X main.version=${{ needs.prepare.outputs.version }} -X main.commit=${{ github.sha }} -X main.buildTime=$(date -u +%Y-%m-%dT%H:%M:%SZ)" -o histui ./cmd/histui
 
-      - name: Create archive
+      - name: Build histuid (daemon - requires CGO for GTK4)
+        env:
+          CGO_ENABLED: 1
+          GOOS: ${{ matrix.goos }}
+          GOARCH: ${{ matrix.goarch }}
+        run: |
+          go build -ldflags "-s -w -X main.version=${{ needs.prepare.outputs.version }} -X main.commit=${{ github.sha }} -X main.buildTime=$(date -u +%Y-%m-%dT%H:%M:%SZ)" -o histuid ./cmd/histuid
+
+      - name: Create distribution
         run: |
           mkdir -p dist
+
+          # Standalone binaries (for -bin package)
+          cp histui dist/histui-${{ matrix.goos }}-${{ matrix.goarch }}
+          cp histuid dist/histuid-${{ matrix.goos }}-${{ matrix.goarch }}
+
+          # Archive with all files
           tar -czvf dist/histui_${{ needs.prepare.outputs.version }}_${{ matrix.goos }}_${{ matrix.goarch }}.tar.gz \
             histui \
+            histuid \
+            contrib/histuid.service \
+            contrib/histuid-monitor.service \
             LICENSE \
             README.md
 
@@ -137,7 +159,7 @@ jobs:
         uses: actions/upload-artifact@v6
         with:
           name: histui_${{ needs.prepare.outputs.version }}_${{ matrix.goos }}_${{ matrix.goarch }}
-          path: dist/*.tar.gz
+          path: dist/*
           retention-days: 1
 
   release:
@@ -161,14 +183,21 @@ jobs:
       - name: Prepare release assets
         run: |
           mkdir -p release
-          find artifacts -name "*.tar.gz" -exec mv {} release/ \;
+
+          # Move all build artifacts to release folder
+          find artifacts -type f \( -name "*.tar.gz" -o -name "histui-*" -o -name "histuid-*" \) -exec mv {} release/ \;
+
+          # Copy systemd units to release folder
+          cp contrib/histuid.service release/
+          cp contrib/histuid-monitor.service release/
+
           echo "=== Release assets ==="
           ls -la release/
 
       - name: Generate checksums
         run: |
           cd release
-          sha256sum *.tar.gz > checksums.txt
+          sha256sum * > checksums.txt
           echo "=== Checksums ==="
           cat checksums.txt
 
