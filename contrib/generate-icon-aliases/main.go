@@ -70,7 +70,7 @@ var knownAppIcons = map[string][]string{
 	"slack":         {"slack", "slack-desktop", "slack-wayland"},
 	"telegram":      {"telegram", "telegram-desktop", "telegramdesktop", "org.telegram.desktop", "64gram", "kotatogram"},
 	"whatsapp":      {"whatsapp", "whatsapp-desktop", "zapzap", "whatsapp-for-linux", "whatsie", "elecwhat"},
-	"signal":        {"signal", "signal-desktop", "signal-desktop-beta"},
+	"message":       {"signal", "signal-desktop", "signal-desktop-beta"}, // Signal messenger uses message bubble icon (not signal-strength)
 	"skype":         {"skype", "skypeforlinux", "skype-electron"},
 	"facebook":      {"facebook", "caprine", "messenger", "facebookmessenger"},
 	"twitter":       {"twitter", "cawbird", "tweetdeck"},

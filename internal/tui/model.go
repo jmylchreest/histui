@@ -6,8 +6,10 @@ import (
 	"context"
 	"encoding/json"
 	"fmt"
+	"html"
 	"io"
 	"os"
+	"regexp"
 	"strings"
 	"time"
 
@@ -150,26 +152,31 @@ func (d notificationDelegate) Render(w io.Writer, m list.Model, index int, item 
 		}
 	}
 
-	// Build title with optional prefix
-	title := ni.Title()
+	// Status indicator in left margin (2 chars: status + space)
+	statusIndicator := "  " // default: empty margin
 	if isDismissed {
-		title = "[d] " + title
+		statusIndicator = "D "
 	}
+	statusStyle := lipgloss.NewStyle().Foreground(lipgloss.Color("8"))
 
-	// Truncate if needed
-	if itemWidth > 0 && len(title) > itemWidth {
-		title = title[:itemWidth-1] + "…"
+	// Build title
+	title := ni.Title()
+
+	// Truncate if needed (account for status margin)
+	effectiveWidth := itemWidth - 2 // subtract margin width
+	if effectiveWidth > 0 && len(title) > effectiveWidth {
+		title = title[:effectiveWidth-1] + "…"
 	}
 
 	desc := ni.Description()
-	if itemWidth > 0 && len(desc) > itemWidth {
-		desc = desc[:itemWidth-1] + "…"
+	if effectiveWidth > 0 && len(desc) > effectiveWidth {
+		desc = desc[:effectiveWidth-1] + "…"
 	}
 
-	// Render using the same structure as DefaultDelegate
-	_, _ = fmt.Fprint(w, titleStyle.Render(title))
+	// Render with status margin on left
+	_, _ = fmt.Fprint(w, statusStyle.Render(statusIndicator)+titleStyle.Render(title))
 	_, _ = fmt.Fprint(w, "\n")
-	_, _ = fmt.Fprint(w, descStyle.Render(desc))
+	_, _ = fmt.Fprint(w, "  "+descStyle.Render(desc)) // align desc with title
 }
 
 // New creates a new TUI model.
@@ -197,13 +204,14 @@ func New(cfg *config.Config, s *store.Store) Model {
 	keys := DefaultKeyMap()
 
 	m := Model{
-		cfg:         cfg,
-		store:       s,
-		mode:        ModeList,
-		list:        l,
-		searchInput: searchInput,
-		help:        h,
-		keys:        keys,
+		cfg:           cfg,
+		store:         s,
+		mode:          ModeList,
+		list:          l,
+		searchInput:   searchInput,
+		help:          h,
+		keys:          keys,
+		previewActive: true, // Enable preview by default
 	}
 
 	// Subscribe to store changes if available
@@ -754,91 +762,104 @@ func (m Model) renderDetail(n model.Notification) string {
 
 // renderPreviewPanel renders the floating preview panel for the selected notification.
 func (m Model) renderPreviewPanel(n model.Notification) string {
-	// Panel dimensions - roughly 40 cols wide to fit in top-right
-	panelWidth := 38
+	// Image is 10 cols x 5 rows, text area fills the rest
+	const imgRows = 5
+	textWidth := 24
 
 	// Styles
 	borderStyle := lipgloss.NewStyle().
 		Border(lipgloss.RoundedBorder()).
 		BorderForeground(lipgloss.Color("10")).
-		Padding(0, 1).
-		Width(panelWidth)
+		Padding(0, 1)
 
 	headerStyle := lipgloss.NewStyle().
 		Bold(true).
-		Foreground(lipgloss.Color("12"))
+		Foreground(lipgloss.Color("12")).
+		Width(textWidth)
 
 	labelStyle := lipgloss.NewStyle().
-		Foreground(lipgloss.Color("8"))
+		Foreground(lipgloss.Color("8")).
+		Width(textWidth)
 
 	dimStyle := lipgloss.NewStyle().
 		Foreground(lipgloss.Color("8"))
 
-	// Build content
-	var lines []string
-
-	// Image or placeholder (8 cols wide, 4 rows tall for square appearance)
+	// Build image column (left side)
 	imageStr := m.renderPreviewImage(n)
-	lines = append(lines, imageStr)
-	lines = append(lines, "") // spacing after image
+
+	// Build text column (right side) - start 1 row down to align with image
+	var textLines []string
+	textLines = append(textLines, "") // empty first row
 
 	// Title (truncated to fit)
-	maxTitleLen := panelWidth - 4
 	title := n.Summary
-	if len(title) > maxTitleLen {
-		title = title[:maxTitleLen-3] + "..."
+	if len(title) > textWidth {
+		title = title[:textWidth-3] + "..."
 	}
-	lines = append(lines, headerStyle.Render(title))
+	textLines = append(textLines, headerStyle.Render(title))
 
-	// App and time on same line
+	// App and time
 	meta := n.AppName + " " + dimStyle.Render("|") + " " + n.RelativeTime()
-	if n.Category != "" {
-		meta += " " + dimStyle.Render("|") + " " + n.Category
+	if len(meta) > textWidth {
+		meta = meta[:textWidth-3] + "..."
 	}
-	if len(meta) > panelWidth-4 {
-		meta = meta[:panelWidth-7] + "..."
-	}
-	lines = append(lines, labelStyle.Render(meta))
+	textLines = append(textLines, labelStyle.Render(meta))
 
-	lines = append(lines, "") // spacing
-
-	// Body (wrapped and truncated)
-	body := strings.Join(strings.Fields(n.Body), " ")
-	maxBodyLen := (panelWidth - 4) * 4 // ~4 lines of body
-	if len(body) > maxBodyLen {
-		body = body[:maxBodyLen-3] + "..."
+	// Pad text to match image height if needed, then add body
+	for len(textLines) < imgRows {
+		textLines = append(textLines, strings.Repeat(" ", textWidth))
 	}
-	// Wrap body to panel width
-	bodyLines := wrapText(body, panelWidth-4)
-	if len(bodyLines) > 4 {
-		bodyLines = bodyLines[:4]
-		if len(bodyLines[3]) > 3 {
-			bodyLines[3] = bodyLines[3][:len(bodyLines[3])-3] + "..."
+
+	// Extract URLs from pango markup before stripping
+	urls := extractURLsFromMarkup(n.Body)
+
+	// Body (wrapped) - strip pango markup for plain text display
+	body := stripPangoMarkup(n.Body)
+	body = strings.Join(strings.Fields(body), " ")
+	bodyLines := wrapText(body, textWidth)
+	maxBodyLines := 3
+	if len(bodyLines) > maxBodyLines {
+		bodyLines = bodyLines[:maxBodyLines]
+		if len(bodyLines[maxBodyLines-1]) > 3 {
+			bodyLines[maxBodyLines-1] = bodyLines[maxBodyLines-1][:len(bodyLines[maxBodyLines-1])-3] + "..."
 		}
 	}
-	for _, bl := range bodyLines {
-		lines = append(lines, bl)
+
+	textContent := strings.Join(textLines, "\n")
+
+	// Join image and text side by side
+	content := lipgloss.JoinHorizontal(lipgloss.Top, imageStr, "  ", textContent)
+
+	// Add body below if present
+	if len(bodyLines) > 0 {
+		bodyContent := strings.Join(bodyLines, "\n")
+		content = content + "\n" + bodyContent
 	}
 
-	lines = append(lines, "") // spacing before keybinds
+	// Add URLs if found
+	if len(urls) > 0 {
+		urlStyle := lipgloss.NewStyle().Foreground(lipgloss.Color("4")).Underline(true)
+		content = content + "\n"
+		for _, url := range urls {
+			// Truncate long URLs
+			displayURL := url
+			if len(displayURL) > textWidth+10 {
+				displayURL = displayURL[:textWidth+7] + "..."
+			}
+			content = content + "\n" + urlStyle.Render(displayURL)
+		}
+	}
 
-	// Keybinds hint
-	keyStyle := lipgloss.NewStyle().Foreground(lipgloss.Color("10"))
-	keybindHint := keyStyle.Render("p") + " close  " +
-		keyStyle.Render("esc") + " close  " +
-		keyStyle.Render("enter") + " details"
-	lines = append(lines, dimStyle.Render(keybindHint))
-
-	content := strings.Join(lines, "\n")
 	return borderStyle.Render(content)
 }
 
 // renderPreviewImage renders the notification image or a placeholder.
+// Uses Halfblocks protocol which renders as ANSI text characters that
+// BubbleTea can properly manage during redraws.
 func (m Model) renderPreviewImage(n model.Notification) string {
-	// Try to render image from IconPath or ImageData
-	// Terminal image dimensions: 8 cols x 4 rows ≈ 32x32 pixels (visually square)
-	const imgCols = 8
-	const imgRows = 4
+	// Terminal image dimensions: 10 cols x 5 rows
+	const imgCols = 10
+	const imgRows = 5
 
 	var img *termimg.Image
 	var err error
@@ -853,9 +874,14 @@ func (m Model) renderPreviewImage(n model.Notification) string {
 		img, err = termimg.From(bytes.NewReader(n.Extensions.ImageData))
 	}
 
-	// If we have an image, render it
 	if err == nil && img != nil {
-		rendered, renderErr := img.Width(imgCols).Height(imgRows).Render()
+		// Use ScaleFill to ensure image fills the target size (scales up small images)
+		rendered, renderErr := img.
+			Protocol(termimg.Halfblocks).
+			Width(imgCols).
+			Height(imgRows).
+			Scale(termimg.ScaleFill).
+			Render()
 		if renderErr == nil && rendered != "" {
 			return rendered
 		}
@@ -865,14 +891,26 @@ func (m Model) renderPreviewImage(n model.Notification) string {
 	return renderImagePlaceholder()
 }
 
-// renderImagePlaceholder renders a square placeholder box with an X.
+// renderImagePlaceholder renders a square placeholder using halfblock-style characters.
+// Matches the 10 cols x 5 rows dimensions of rendered images.
 func renderImagePlaceholder() string {
-	// 8 cols x 4 rows = visually square placeholder
-	// ┌──────┐
-	// │  ╲╱  │
-	// │  ╱╲  │
-	// └──────┘
-	return "┌──────┐\n│  ╲╱  │\n│  ╱╲  │\n└──────┘"
+	// Use dim block characters to create a placeholder that matches halfblock rendering
+	// 10 cols x 5 rows with an X pattern
+	dimStyle := lipgloss.NewStyle().Foreground(lipgloss.Color("8"))
+
+	lines := []string{
+		"▄▄▄▄▄▄▄▄▄▄",
+		"█▀      ▀█",
+		"█  ▀▄▄▀  █",
+		"█▄      ▄█",
+		"▀▀▀▀▀▀▀▀▀▀",
+	}
+
+	var result []string
+	for _, line := range lines {
+		result = append(result, dimStyle.Render(line))
+	}
+	return strings.Join(result, "\n")
 }
 
 // wrapText wraps text to the specified width.
@@ -901,6 +939,37 @@ func wrapText(text string, width int) []string {
 	}
 
 	return lines
+}
+
+// Regex patterns for pango/HTML markup parsing
+var (
+	// Match href URLs in anchor tags: <a href="...">
+	hrefRegex = regexp.MustCompile(`<a\s+[^>]*href=["']([^"']+)["'][^>]*>`)
+	// Match all XML/HTML tags
+	tagRegex = regexp.MustCompile(`<[^>]+>`)
+)
+
+// stripPangoMarkup removes pango/HTML markup tags and returns plain text.
+func stripPangoMarkup(markup string) string {
+	// Remove all tags
+	text := tagRegex.ReplaceAllString(markup, "")
+	// Decode HTML entities using stdlib
+	text = html.UnescapeString(text)
+	return text
+}
+
+// extractURLsFromMarkup extracts URLs from pango/HTML anchor tags.
+func extractURLsFromMarkup(markup string) []string {
+	matches := hrefRegex.FindAllStringSubmatch(markup, -1)
+	var urls []string
+	seen := make(map[string]bool)
+	for _, match := range matches {
+		if len(match) > 1 && !seen[match[1]] {
+			urls = append(urls, match[1])
+			seen[match[1]] = true
+		}
+	}
+	return urls
 }
 
 // copyToClipboard copies text to the system clipboard.
