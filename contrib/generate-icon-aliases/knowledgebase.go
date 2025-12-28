@@ -10,6 +10,7 @@ import (
 )
 
 const (
+	kbDefaultFile  = "kb-default.json"
 	kbAIFile       = "kb-ai.json"
 	kbOverridesFile = "kb-overrides.toml"
 	minConfidence  = 0.3 // Minimum confidence to include an app
@@ -109,45 +110,44 @@ func LoadOverrides(path string) (*Overrides, error) {
 	return &overrides, nil
 }
 
-// MergeIconSources merges icons from all three sources with priority: override > AI > manual.
+// MergeIconSources merges icons from all sources with priority: override > AI > default.
 // Returns a map of icon name -> MergedIcon.
-func MergeIconSources(kb *KnowledgeBase, manual map[string][]string, overrides *Overrides, verbose bool) map[string]*MergedIcon {
+func MergeIconSources(defaultKB, aiKB *KnowledgeBase, overrides *Overrides, verbose bool) map[string]*MergedIcon {
 	result := make(map[string]*MergedIcon)
 
-	// Step 1: Start with manual mappings (lowest priority)
-	for iconName, apps := range manual {
-		result[iconName] = &MergedIcon{
-			Name:   iconName,
-			Type:   "app", // default, can be overridden
-			Apps:   dedupe(apps),
-			Source: "manual",
-		}
-	}
-
-	// Step 2: Layer AI knowledge base (medium priority)
-	if kb != nil {
-		for iconName, kbIcon := range kb.Icons {
-			// Filter apps by confidence
-			var apps []string
-			var totalConf float64
-			for _, app := range kbIcon.Apps {
-				if app.Confidence >= minConfidence {
-					apps = append(apps, app.ID)
-					totalConf += app.Confidence
-				}
-			}
-
+	// Step 1: Start with default KB (lowest priority)
+	if defaultKB != nil {
+		for iconName, kbIcon := range defaultKB.Icons {
+			apps := extractApps(kbIcon, minConfidence)
 			if len(apps) == 0 {
 				continue
 			}
 
-			avgConf := totalConf / float64(len(apps))
+			result[iconName] = &MergedIcon{
+				Name:   iconName,
+				Type:   kbIcon.Type,
+				Glyph:  kbIcon.Glyph,
+				Apps:   apps,
+				Source: "default",
+			}
+		}
+	}
+
+	// Step 2: Layer AI knowledge base (medium priority)
+	if aiKB != nil {
+		for iconName, kbIcon := range aiKB.Icons {
+			apps := extractApps(kbIcon, minConfidence)
+			if len(apps) == 0 {
+				continue
+			}
+
+			avgConf := avgConfidence(kbIcon, minConfidence)
 
 			if existing, ok := result[iconName]; ok {
-				// Merge with manual: AI takes precedence but we keep manual apps not in AI
+				// Merge with default: AI takes precedence but we keep default apps not in AI
 				existing.Apps = mergeApps(apps, existing.Apps)
 				existing.Type = kbIcon.Type
-				existing.Source = "ai+manual"
+				existing.Source = "ai+default"
 				existing.Confidence = avgConf
 				if kbIcon.Glyph != "" {
 					existing.Glyph = kbIcon.Glyph
@@ -216,11 +216,11 @@ func MergeIconSources(kb *KnowledgeBase, manual map[string][]string, overrides *
 
 	if verbose {
 		// Print merge stats
-		var manualCount, aiCount, overrideCount, mixedCount int
+		var defaultCount, aiCount, overrideCount, mixedCount int
 		for _, icon := range result {
 			switch icon.Source {
-			case "manual":
-				manualCount++
+			case "default":
+				defaultCount++
 			case "ai":
 				aiCount++
 			case "override":
@@ -229,11 +229,38 @@ func MergeIconSources(kb *KnowledgeBase, manual map[string][]string, overrides *
 				mixedCount++
 			}
 		}
-		fmt.Printf("Merge stats: manual=%d, ai=%d, override=%d, mixed=%d\n",
-			manualCount, aiCount, overrideCount, mixedCount)
+		fmt.Printf("Merge stats: default=%d, ai=%d, override=%d, mixed=%d\n",
+			defaultCount, aiCount, overrideCount, mixedCount)
 	}
 
 	return result
+}
+
+// extractApps extracts app IDs from a KBIcon, filtering by minimum confidence.
+func extractApps(icon KBIcon, minConf float64) []string {
+	var apps []string
+	for _, app := range icon.Apps {
+		if app.Confidence >= minConf {
+			apps = append(apps, app.ID)
+		}
+	}
+	return apps
+}
+
+// avgConfidence calculates average confidence for apps above the threshold.
+func avgConfidence(icon KBIcon, minConf float64) float64 {
+	var total float64
+	var count int
+	for _, app := range icon.Apps {
+		if app.Confidence >= minConf {
+			total += app.Confidence
+			count++
+		}
+	}
+	if count == 0 {
+		return 0
+	}
+	return total / float64(count)
 }
 
 // ConvertMergedToAppMapping converts merged icons to AppMapping for the existing generator.

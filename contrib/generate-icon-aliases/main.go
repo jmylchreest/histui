@@ -242,10 +242,11 @@ func main() {
 	verboseFlag := flag.Bool("verbose", false, "Verbose logging")
 	preferFlag := flag.String("prefer", "md", "Preferred icon set: md (Material Design), fa (Font Awesome), dev (Devicons)")
 
-	// New KB flags
+	// Knowledge base flags
 	generateKBFlag := flag.Bool("generate-kb", false, "Generate AI knowledge base using OpenRouter (requires OPENROUTER_API_KEY)")
 	openrouterModelFlag := flag.String("openrouter-model", "", "OpenRouter model to use (default: anthropic/claude-sonnet-4)")
-	kbFileFlag := flag.String("kb-file", kbAIFile, "Path to AI knowledge base file")
+	defaultFileFlag := flag.String("default-file", kbDefaultFile, "Path to default knowledge base file")
+	aiFileFlag := flag.String("ai-file", kbAIFile, "Path to AI knowledge base file")
 	overridesFileFlag := flag.String("overrides-file", kbOverridesFile, "Path to overrides file")
 	writeExampleOverridesFlag := flag.Bool("write-example-overrides", false, "Write an example overrides file and exit")
 
@@ -288,12 +289,12 @@ func main() {
 			os.Exit(1)
 		}
 
-		if err := SaveKnowledgeBase(kb, *kbFileFlag); err != nil {
+		if err := SaveKnowledgeBase(kb, *aiFileFlag); err != nil {
 			fmt.Fprintf(os.Stderr, "Error saving knowledge base: %v\n", err)
 			os.Exit(1)
 		}
 
-		fmt.Printf("Saved knowledge base to %s\n", *kbFileFlag)
+		fmt.Printf("Saved knowledge base to %s\n", *aiFileFlag)
 		fmt.Printf("Generated %d icon mappings\n", len(kb.Icons))
 		return
 	}
@@ -310,12 +311,20 @@ func main() {
 	appGlyphs := filterAppGlyphs(glyphs)
 	fmt.Printf("Found %d app-related glyphs\n", len(appGlyphs))
 
-	// Load knowledge base (if exists)
-	kb, err := LoadKnowledgeBase(*kbFileFlag)
+	// Load default knowledge base
+	defaultKB, err := LoadKnowledgeBase(*defaultFileFlag)
 	if err != nil {
-		fmt.Fprintf(os.Stderr, "Warning: error loading KB: %v\n", err)
-	} else if kb != nil {
-		fmt.Printf("Loaded AI knowledge base (%d icons, generated %s)\n", len(kb.Icons), kb.GeneratedAt)
+		fmt.Fprintf(os.Stderr, "Warning: error loading default KB: %v\n", err)
+	} else if defaultKB != nil {
+		fmt.Printf("Loaded default KB (%d icons)\n", len(defaultKB.Icons))
+	}
+
+	// Load AI knowledge base (if exists)
+	aiKB, err := LoadKnowledgeBase(*aiFileFlag)
+	if err != nil {
+		fmt.Fprintf(os.Stderr, "Warning: error loading AI KB: %v\n", err)
+	} else if aiKB != nil {
+		fmt.Printf("Loaded AI KB (%d icons, generated %s)\n", len(aiKB.Icons), aiKB.GeneratedAt)
 	}
 
 	// Load overrides (if exists)
@@ -327,17 +336,17 @@ func main() {
 		fmt.Printf("Loaded overrides (%d icon entries)\n", iconCount)
 	}
 
-	// Decide which path to take
+	// Merge and generate mappings
 	var mappings []AppMapping
 
-	if kb != nil || overrides != nil {
-		// New path: merge KB + manual + overrides
-		fmt.Println("Using merged icon sources (override > AI > manual)")
-		merged := MergeIconSources(kb, knownAppIcons, overrides, *verboseFlag)
+	if defaultKB != nil || aiKB != nil || overrides != nil {
+		// Merge all sources: override > AI > default
+		fmt.Println("Using merged icon sources (override > AI > default)")
+		merged := MergeIconSources(defaultKB, aiKB, overrides, *verboseFlag)
 		mappings = ConvertMergedToAppMapping(merged, appGlyphs, *verboseFlag)
 	} else {
-		// Legacy path: use existing generateMappings
-		fmt.Println("Using manual icon mappings (no KB or overrides found)")
+		// Fallback: use hardcoded knownAppIcons (legacy)
+		fmt.Println("Using legacy hardcoded mappings (no KB files found)")
 		mappings = generateMappings(appGlyphs, *verboseFlag)
 	}
 
