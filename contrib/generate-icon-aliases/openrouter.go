@@ -361,7 +361,7 @@ func progressTicker(phase string, batchNum, totalBatches int) func() {
 // GenerateKnowledgeBase generates the full AI knowledge base from Nerd Font glyphs.
 func (c *OpenRouterClient) GenerateKnowledgeBase(glyphs map[string]GlyphInfo) (*KnowledgeBase, error) {
 	// Filter to app-related glyphs
-	appGlyphs := filterAppGlyphs(glyphs)
+	appGlyphs := filterAppGlyphs(glyphs, c.Config.Filter)
 
 	// Get all glyph names
 	var glyphNames []string

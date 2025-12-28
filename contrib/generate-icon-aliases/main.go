@@ -269,11 +269,12 @@ func main() {
 	}
 
 	if *writeExampleConfigFlag {
-		if err := WriteDefaultConfig(*configFileFlag); err != nil {
+		examplePath := "config.example.toml"
+		if err := WriteDefaultConfig(examplePath); err != nil {
 			fmt.Fprintf(os.Stderr, "Error writing example config: %v\n", err)
 			os.Exit(1)
 		}
-		fmt.Printf("Wrote example config to %s\n", *configFileFlag)
+		fmt.Printf("Wrote example config to %s\n", examplePath)
 		return
 	}
 
@@ -327,7 +328,7 @@ func main() {
 	}
 
 	// Find app-related glyphs for matching
-	appGlyphs := filterAppGlyphs(glyphs)
+	appGlyphs := filterAppGlyphs(glyphs, config.Filter)
 	fmt.Printf("Found %d app-related glyphs\n", len(appGlyphs))
 
 	// Load default knowledge base
@@ -463,53 +464,14 @@ func loadGlyphs(fetch bool) (map[string]GlyphInfo, error) {
 	return glyphs, nil
 }
 
-// filterAppGlyphs finds glyphs that are likely app icons
-func filterAppGlyphs(glyphs map[string]GlyphInfo) map[string]GlyphInfo {
+// filterAppGlyphs finds glyphs that are likely app icons using config filters
+func filterAppGlyphs(glyphs map[string]GlyphInfo, filter FilterConfig) map[string]GlyphInfo {
 	result := make(map[string]GlyphInfo)
-
-	// Prefixes that typically contain app icons (without nf- prefix in JSON)
-	appPrefixes := []string{
-		"fa-",      // Font Awesome
-		"md-",      // Material Design Icons
-		"dev-",     // Devicons
-		"linux-",   // Linux distro icons
-		"custom-",  // Custom icons
-		"seti-",    // Seti UI
-		"cod-",     // Codicons (VS Code)
-	}
-
-	// Keywords that suggest app-related icons
-	appKeywords := []string{
-		"discord", "slack", "telegram", "whatsapp", "signal", "skype",
-		"facebook", "twitter", "mastodon", "reddit", "linkedin",
-		"chat", "message", "comment",
-		"firefox", "chrome", "chromium", "brave", "edge", "opera", "safari", "vivaldi",
-		"browser", "web",
-		"email", "gmail", "outlook", "thunderbird",
-		"spotify", "youtube", "music", "video", "vlc", "mpv",
-		"terminal", "console", "shell",
-		"code", "visual-studio", "vim", "emacs", "atom", "sublime",
-		"git", "github", "gitlab", "bitbucket", "docker", "kubernetes",
-		"folder", "file", "archive",
-		"steam", "gamepad", "controller",
-		"cloud", "dropbox", "drive",
-		"wifi", "bluetooth", "network", "vpn",
-		"lock", "key", "security", "shield",
-		"camera", "microphone", "speaker", "volume",
-		"screenshot", "capture", "screen", "monitor",
-		"calendar", "clock", "alarm",
-		"note", "notebook", "pencil",
-		"download", "upload", "sync", "desktop",
-		"settings", "cog", "gear",
-		"android", "apple", "windows", "linux",
-		"database", "server",
-		"package", "box",
-	}
 
 	for name, glyph := range glyphs {
 		// Check prefix
 		hasAppPrefix := false
-		for _, prefix := range appPrefixes {
+		for _, prefix := range filter.Prefixes {
 			if strings.HasPrefix(name, prefix) {
 				hasAppPrefix = true
 				break
@@ -521,7 +483,7 @@ func filterAppGlyphs(glyphs map[string]GlyphInfo) map[string]GlyphInfo {
 
 		// Check if name contains app-related keyword
 		nameLower := strings.ToLower(name)
-		for _, keyword := range appKeywords {
+		for _, keyword := range filter.Keywords {
 			if strings.Contains(nameLower, keyword) {
 				result[name] = glyph
 				break

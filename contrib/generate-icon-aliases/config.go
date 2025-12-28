@@ -20,6 +20,9 @@ type Config struct {
 
 	// Prompts for AI generation (supports {{.Year}} template)
 	Prompts PromptConfig `toml:"prompts"`
+
+	// Filter settings for pre-filtering glyphs
+	Filter FilterConfig `toml:"filter"`
 }
 
 // OpenRouterConfig contains OpenRouter API settings.
@@ -55,6 +58,15 @@ type PromptConfig struct {
 	AppGenPrompt string `toml:"app_gen_prompt"`
 }
 
+// FilterConfig contains settings for pre-filtering glyphs before AI processing.
+type FilterConfig struct {
+	// Prefixes are glyph name prefixes that typically contain app icons
+	Prefixes []string `toml:"prefixes"`
+
+	// Keywords are substrings that suggest app-related icons
+	Keywords []string `toml:"keywords"`
+}
+
 // PromptVars contains variables for prompt templates.
 type PromptVars struct {
 	Year   int
@@ -74,6 +86,54 @@ func DefaultConfig() *Config {
 		Prompts: PromptConfig{
 			ClassifyPrompt: defaultClassifyPrompt,
 			AppGenPrompt:   defaultAppGenPrompt,
+		},
+		Filter: FilterConfig{
+			Prefixes: []string{
+				"fa-",     // Font Awesome
+				"md-",     // Material Design Icons
+				"dev-",    // Devicons
+				"linux-",  // Linux distro icons
+				"custom-", // Custom icons
+				"seti-",   // Seti UI
+				"cod-",    // Codicons (VS Code)
+			},
+			Keywords: []string{
+				// Messaging & Social
+				"discord", "slack", "telegram", "whatsapp", "signal", "skype",
+				"facebook", "twitter", "mastodon", "reddit", "linkedin",
+				"chat", "message", "comment",
+				// Browsers
+				"firefox", "chrome", "chromium", "brave", "edge", "opera", "safari", "vivaldi",
+				"browser", "web",
+				// Email
+				"email", "gmail", "outlook", "thunderbird",
+				// Media
+				"spotify", "youtube", "music", "video", "vlc", "mpv",
+				// Development
+				"terminal", "console", "shell",
+				"code", "visual-studio", "vim", "emacs", "atom", "sublime",
+				"git", "github", "gitlab", "bitbucket", "docker", "kubernetes",
+				// Files
+				"folder", "file", "archive",
+				// Gaming
+				"steam", "gamepad", "controller",
+				// Cloud & Network
+				"cloud", "dropbox", "drive",
+				"wifi", "bluetooth", "network", "vpn",
+				// Security
+				"lock", "key", "security", "shield",
+				// System
+				"bell", "notification", "alert", "warning",
+				"settings", "cog", "gear",
+				"power", "battery", "cpu", "memory",
+				"update", "download", "sync",
+				"calendar", "clock", "timer",
+				"camera", "image", "photo", "picture",
+				"microphone", "audio", "speaker", "volume",
+				"printer", "scanner",
+				"phone", "cellphone", "mobile",
+				"desktop", "laptop", "monitor", "display",
+			},
 		},
 	}
 }
@@ -284,6 +344,60 @@ Respond with JSON in this format:
   ]
 }
 '''
+
+[filter]
+# Pre-filter glyphs before sending to AI (reduces 10k+ to ~2.5k)
+# Only glyphs matching these prefixes AND containing keywords are processed
+
+# Glyph name prefixes that typically contain app icons
+prefixes = [
+  "fa-",     # Font Awesome
+  "md-",     # Material Design Icons
+  "dev-",    # Devicons
+  "linux-",  # Linux distro icons
+  "custom-", # Custom icons
+  "seti-",   # Seti UI
+  "cod-",    # Codicons (VS Code)
+]
+
+# Keywords that suggest app-related icons
+keywords = [
+  # Messaging & Social
+  "discord", "slack", "telegram", "whatsapp", "signal", "skype",
+  "facebook", "twitter", "mastodon", "reddit", "linkedin",
+  "chat", "message", "comment",
+  # Browsers
+  "firefox", "chrome", "chromium", "brave", "edge", "opera", "safari", "vivaldi",
+  "browser", "web",
+  # Email
+  "email", "gmail", "outlook", "thunderbird",
+  # Media
+  "spotify", "youtube", "music", "video", "vlc", "mpv",
+  # Development
+  "terminal", "console", "shell",
+  "code", "visual-studio", "vim", "emacs", "atom", "sublime",
+  "git", "github", "gitlab", "bitbucket", "docker", "kubernetes",
+  # Files
+  "folder", "file", "archive",
+  # Gaming
+  "steam", "gamepad", "controller",
+  # Cloud & Network
+  "cloud", "dropbox", "drive",
+  "wifi", "bluetooth", "network", "vpn",
+  # Security
+  "lock", "key", "security", "shield",
+  # System
+  "bell", "notification", "alert", "warning",
+  "settings", "cog", "gear",
+  "power", "battery", "cpu", "memory",
+  "update", "download", "sync",
+  "calendar", "clock", "timer",
+  "camera", "image", "photo", "picture",
+  "microphone", "audio", "speaker", "volume",
+  "printer", "scanner",
+  "phone", "cellphone", "mobile",
+  "desktop", "laptop", "monitor", "display",
+]
 `
 	return os.WriteFile(path, []byte(content), 0644)
 }
