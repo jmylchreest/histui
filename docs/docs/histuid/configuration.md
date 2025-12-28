@@ -19,11 +19,7 @@ All settings have sensible defaults.
 ~/.config/histui/histuid.toml
 ```
 
-Or set a custom path:
-
-```bash
-histuid --config /path/to/config.toml
-```
+The configuration file is automatically loaded from this location if it exists.
 
 ## Full Reference
 
@@ -50,14 +46,30 @@ histuid --log-level debug
 
 ### [display]
 
-Controls notification popup appearance and behavior.
+Controls notification popup position and behavior.
 
 | Key | Type | Default | Description |
 |-----|------|---------|-------------|
 | `position` | string | "top-right" | Popup position on screen |
-| `width` | int | 350 | Popup width in pixels |
-| `margin` | int | 10 | Margin from screen edge |
-| `gap` | int | 5 | Gap between notifications |
+| `offset_x` | int | 10 | Pixels from horizontal screen edge |
+| `offset_y` | int | 10 | Pixels from vertical screen edge |
+| `max_visible` | int | 5 | Maximum simultaneous popups (1-20) |
+| `monitor` | int | 0 | Display monitor (0 = all, 1+ = specific monitor) |
+| `new_on_top` | bool | false | New notifications appear at top of stack |
+
+**Valid Positions:**
+
+- `top-right` (default)
+- `top-left`
+- `top-center`
+- `bottom-right`
+- `bottom-left`
+- `bottom-center`
+
+:::note
+Notification width and gap are controlled by the theme layout, not configuration.
+See [Layout Reference](/docs/histuid/theming/layout-reference) for details.
+:::
 
 ### [timeouts]
 

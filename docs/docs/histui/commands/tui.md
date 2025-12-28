@@ -108,7 +108,7 @@ See the [Filtering Guide](/docs/histui/filtering) for full syntax.
 
 | Flag | Type | Default | Description |
 |------|------|---------|-------------|
-| `--filter` | string | | Pre-apply a filter expression |
+| `--source` | string | auto | Notification source: `histuid`, `stdin` (auto-detects if empty) |
 
 ## Examples
 
@@ -120,12 +120,10 @@ histui tui
 histui
 ```
 
-### Launch with pre-filter
-
-```bash
-histui --filter "app=discord"
-histui --filter "urgency=critical,dismissed=false"
-```
+:::tip
+To filter notifications, launch the TUI and press `/` to enter search mode.
+You can then type expression filters like `app=discord` or `urgency=critical,dismissed=false`.
+:::
 
 ## Workflow Tips
 

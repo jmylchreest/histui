@@ -47,10 +47,11 @@ The output is always JSON suitable for Waybar's `return-type: json`:
 
 | Flag | Type | Default | Description |
 |------|------|---------|-------------|
-| `--source` | string | auto | Notification source: `dunst`, `histuid` (auto-detects) |
+| `--source` | string | auto | Notification source: `histuid` (auto-detects if empty) |
 | `--all` | bool | false | Include history (acknowledged) notifications in count |
 | `--since` | duration | | Only count notifications from the last duration (with `--all`) |
 | `--urgency` | string | | Only count notifications of this urgency level |
+| `--detailed` | bool | false | Output detailed status with urgency breakdown |
 
 ## Examples
 

@@ -35,6 +35,10 @@ With an index or ID, it returns a specific notification.
 | `--sort` | string | timestamp | Sort by: timestamp, app, urgency |
 | `--order` | string | desc | Sort order: asc, desc |
 | `--limit` | int | 0 | Maximum number of results (0 = unlimited) |
+| `--index` | int | | Lookup notification by 1-based index |
+| `--id` | string | | Lookup notification by histui ID |
+| `--source` | string | | Notification source (histuid, stdin; auto-detects if empty) |
+| `--template` | string | | Custom Go template for output formatting |
 
 ## Output Formats
 

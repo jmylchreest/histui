@@ -25,7 +25,7 @@ are in your notification history.
 
 | Flag | Type | Default | Description |
 |------|------|---------|-------------|
-| `--source` | string | auto | Notification source: `histuid`, `dunst`, `stdin` |
+| `--source` | string | auto | Notification source: `histuid`, `stdin` (auto-detects if empty) |
 
 ## Examples
 

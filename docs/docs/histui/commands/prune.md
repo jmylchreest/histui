@@ -26,7 +26,7 @@ Use it for manual cleanup - note that histuid also provides automatic pruning vi
 | Flag | Type | Default | Description |
 |------|------|---------|-------------|
 | `--older-than` | duration | | Remove notifications older than duration (e.g., 48h, 7d, 1w) |
-| `--keep` | int | 0 | Keep only the N most recent notifications (0 = unlimited) |
+| `--keep` | int | -1 | Keep only the N most recent notifications (0 = remove all, -1 = disabled) |
 | `--dry-run` | bool | false | Show what would be removed without removing |
 
 At least one of `--older-than` or `--keep` is required.
@@ -49,6 +49,12 @@ histui prune --keep 100
 
 ```bash
 histui prune --older-than 48h --dry-run
+```
+
+### Remove all notifications
+
+```bash
+histui prune --keep 0
 ```
 
 ### Combine age and count limits
