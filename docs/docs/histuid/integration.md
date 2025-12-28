@@ -89,7 +89,7 @@ Top 5 Applications:
 
 #### Advanced Click Actions
 
-Replay missed notifications with on-click bindings:
+Add scroll actions for quick notification management:
 
 ```jsonc
 {
@@ -109,24 +109,24 @@ Replay missed notifications with on-click bindings:
         "on-click": "histui dnd toggle",
         // Open TUI
         "on-click-right": "hyprctl dispatch exec '[float;size 900 600;center] kitty --class histui-float -e histui tui'",
-        // Replay missed normal notifications (most recent 5)
-        "on-click-middle": "histui replay --filter 'seen=false,dismissed=false,urgency=normal' --limit 5 --all",
-        // Scroll up: replay missed criticals
-        "on-scroll-up": "histui replay --filter 'dismissed=false,urgency=critical' --limit 3 --all",
-        // Scroll down: dismiss all
-        "on-scroll-down": "histui set --filter 'dismissed=false' --dismiss --all"
+        // Browse in launcher
+        "on-click-middle": "histui get --format dmenu --since 24h | fuzzel --dmenu -p 'Notifications'",
+        // Scroll up: replay critical notifications (up to 3)
+        "on-scroll-up": "histui replay --urgency critical --limit 3 --all",
+        // Scroll down: dismiss all undismissed
+        "on-scroll-down": "histui get --filter 'dismissed=false' --format ids | histui set --stdin --dismiss"
     }
 }
 ```
 
 **Workflow bindings explained:**
-- **Middle click**: Replay the 5 most recent missed normal-urgency notifications
-- **Scroll up**: Replay any undismissed critical notifications (up to 3)
-- **Scroll down**: Dismiss all active notifications
+- **Middle click**: Browse recent notifications in launcher
+- **Scroll up**: Replay critical notifications (up to 3)
+- **Scroll down**: Dismiss all undismissed notifications
 
 #### Filter Expressions
 
-Use `--filter` for powerful notification selection:
+The `histui get --filter` flag supports powerful expressions:
 
 | Filter | Description |
 |--------|-------------|
