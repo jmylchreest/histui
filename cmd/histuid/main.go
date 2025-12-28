@@ -92,6 +92,9 @@ func main() {
 func runMonitorMode(logger *slog.Logger) {
 	logger.Info("starting histuid in monitor mode", "version", version)
 
+	// Clean up any leftover temp files from previous runs
+	daemon.CleanupTemp(logger)
+
 	// Initialize history store with persistence
 	historyPath, err := store.HistoryPath()
 	if err != nil {
@@ -177,6 +180,7 @@ func runMonitorMode(logger *slog.Logger) {
 	if err := historyStore.Close(); err != nil {
 		logger.Warn("error closing store", "error", err)
 	}
+	daemon.CleanupTemp(logger)
 
 	logger.Info("histuid monitor stopped")
 }
@@ -184,6 +188,9 @@ func runMonitorMode(logger *slog.Logger) {
 // runDaemonMode runs histuid as the primary notification daemon with full functionality.
 func runDaemonMode(logger *slog.Logger) {
 	logger.Info("starting histuid", "version", version)
+
+	// Clean up any leftover temp files from previous runs (in case of unclean shutdown)
+	daemon.CleanupTemp(logger)
 
 	// Initialize embedded fonts (Nerd Font symbols, etc.) for icon fallback
 	// Must be done before GTK initialization so fontconfig picks it up
@@ -212,9 +219,6 @@ func runDaemonMode(logger *slog.Logger) {
 		logger.Error("failed to load config", "error", err)
 		os.Exit(1)
 	}
-
-	// Store Viper instance for config watching
-	config.SetGlobalViper(v)
 
 	// Apply audio flags (overrides config)
 	if pflag.CommandLine.Changed("no-audio") {
@@ -656,6 +660,8 @@ func runDaemonMode(logger *slog.Logger) {
 		if historyStore != nil {
 			_ = historyStore.Close()
 		}
+		// Clean up temporary files
+		daemon.CleanupTemp(logger)
 		running.Store(false)
 	})
 
