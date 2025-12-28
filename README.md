@@ -1,133 +1,116 @@
 # histui
 
 [![Build Release](https://github.com/jmylchreest/histui/actions/workflows/build-release.yml/badge.svg)](https://github.com/jmylchreest/histui/actions/workflows/build-release.yml)
-[![Latest Tag](https://badgen.net/github/tag/jmylchreest/histui)](https://github.com/jmylchreest/histui/releases)
+[![Latest Release](https://img.shields.io/github/v/release/jmylchreest/histui)](https://github.com/jmylchreest/histui/releases)
+[![AUR Package](https://img.shields.io/aur/version/histui-bin)](https://aur.archlinux.org/packages/histui-bin)
+[![License](https://img.shields.io/github/license/jmylchreest/histui)](LICENSE)
 
-A terminal UI for browsing and managing notification history on Linux desktops.
+**A highly themeable GTK4 notification daemon for Wayland with persistent history.**
+
+histui displays desktop notifications with full CSS theming support, stores them for later browsing, and includes a TUI and CLI for querying your notification history.
+
+**[Documentation](https://jmylchreest.github.io/histui)** | **[Releases](https://github.com/jmylchreest/histui/releases)**
 
 ## Features
 
-- Browse notification history from dunst (more daemons planned)
-- Search notifications by app, summary, or body
-- Copy notification content to clipboard
-- Dismiss or permanently delete notifications
-- Persistent history across sessions
-- Vim-style keybindings
+### Notification Daemon (histuid)
+
+- **Fully themeable** - Create your own themes with CSS, custom layouts, icons, and sounds
+- **Theme packs** - Self-contained themes with styling, layout, and audio in one directory
+- **Hot reload** - Edit themes live without restarting
+- **Bundled themes** - Includes default, minimal, compact, detailed, and catppuccin
+- **Light/dark mode** - Automatic switching based on system preference
+- **Smart icons** - App aliases with Nerd Font fallbacks for 350+ apps
+- **Clickable notifications** - URLs and deep links open the source app
+- **Audio alerts** - Per-urgency sounds with customizable audio files
+- **Wayland native** - Layer-shell support for Hyprland, Sway, river, and more
+
+### History & CLI (histui)
+
+- **Persistent history** - Notifications saved to SQLite across sessions
+- **TUI browser** - Navigate history with vim-style keybindings
+- **Powerful filtering** - Query by app, urgency, time range, regex
+- **Pipeline friendly** - JSON, dmenu, and ID output formats
+- **Waybar integration** - Real-time notification counts
+
+### Flexible Deployment
+
+- **Standalone daemon** - Replace dunst/mako entirely
+- **Monitor mode** - Keep your existing daemon, just add history tracking
+- **Adapter system** - Import history from dunst, mako, or swaync
 
 ## Quick Start
 
-Download the latest [release binary](https://github.com/jmylchreest/histui/releases) and run:
-
 ```bash
-# Launch the TUI
-./histui
+# Install (Arch Linux)
+yay -S histui-bin
 
-# Or import and list notifications via CLI
-./histui get
+# Start the notification daemon
+systemctl --user enable --now histuid
+
+# Browse your history
+histui
 ```
 
-## CLI Usage
+## Theming
 
-### Output Formats
+Create custom themes with CSS and optional layout/audio:
 
-```bash
-histui get                      # Default dmenu format (for fuzzel, rofi, etc.)
-histui get --format json        # JSON output
-histui get --format ids         # Just ULIDs, one per line (for piping)
-histui get --format plain       # Plain text
+```
+~/.config/histui/themes/mytheme/
+├── theme.css        # CSS styling
+├── layout.xml       # Widget layout (optional)
+├── manifest.toml    # Metadata and audio (optional)
+└── sounds/          # Audio files (optional)
 ```
 
-### Filtering
+Or extend existing themes:
 
-Use `--filter` for expression-based filtering:
+```css
+/* ~/.config/histui/themes/my-colors/theme.css */
+@import "catppuccin.css";
 
-```bash
-# Filter by app name
-histui get --filter "app=discord"
-
-# Multiple conditions (AND logic)
-histui get --filter "app=slack,urgency=critical"
-
-# Contains search
-histui get --filter "body~meeting"
-
-# Regex matching
-histui get --filter "summary~=(?i)error|warning"
-
-# Comparison operators
-histui get --filter "urgency>=normal"
-histui get --filter "timestamp>1h"          # Last hour
-histui get --filter "dismissed=false"
+.notification-popup {
+    background-color: #1e1e2e;
+    border-radius: 16px;
+}
 ```
 
-**Supported fields:** `app`, `summary`, `body`, `urgency`, `category`, `dismissed`, `seen`, `timestamp`
+See the [Theming Guide](https://jmylchreest.github.io/histui/docs/histuid/theming) for full documentation.
 
-**Operators:** `=` (equal), `!=` (not equal), `~` (contains), `~=` (regex), `>`, `<`, `>=`, `<=`
-
-### Bulk Operations with Pipelines
-
-The `set` command modifies notification state and can read IDs from stdin:
+## CLI Examples
 
 ```bash
-# Dismiss all Discord notifications
-histui get --filter "app=discord" --format ids | histui set --stdin --dismiss
+# List recent notifications
+histui get
 
-# Mark old notifications as seen
-histui get --filter "timestamp>7d" --format ids | histui set --stdin --seen
+# Filter by app and time
+histui get --filter "app=discord,timestamp>1h"
 
-# Delete dismissed notifications older than a week
-histui get --filter "dismissed=true,timestamp>7d" --format ids | histui set --stdin --delete
-
-# Undismiss notifications matching a pattern
-histui get --filter "body~important" --format ids | histui set --stdin --undismiss
-```
-
-### Dmenu/Fuzzel Workflow
-
-```bash
-# Pick notification and copy body to clipboard
+# Fuzzel picker
 histui get | fuzzel -d | cut -d'|' -f1 | xargs histui get --field body | wl-copy
 
-# Pick and dismiss
-histui get --filter "dismissed=false" | fuzzel -d | cut -d'|' -f1 | xargs histui set --dismiss
+# Dismiss all Slack notifications
+histui get --filter "app=slack" --format ids | histui set --stdin --dismiss
 ```
 
-## Keybindings
-
-| Key | Action |
-|-----|--------|
-| `j/k` or arrows | Navigate up/down |
-| `enter` | View notification details |
-| `/` | Search |
-| `d` | Dismiss/undismiss notification |
-| `D` | Delete permanently |
-| `a` | Toggle showing dismissed |
-| `c` | Copy body to clipboard |
-| `s` | Copy summary to clipboard |
-| `?` | Show help |
-| `q` | Quit |
-
-## Configuration
-
-Configuration file is created at `~/.config/histui/config.toml` on first run.
-
-History is stored at `~/.local/share/histui/history.jsonl`.
-
 ## Waybar Integration
-
-histui includes a status command for Waybar integration. See [contrib/waybar](contrib/waybar/) for full examples.
 
 ```jsonc
 "custom/notifications": {
   "exec": "histui status --all --since 24h",
   "interval": 5,
   "return-type": "json",
-  // Middle click: floating TUI
-  "on-click-middle": "hyprctl dispatch exec '[float;size 900 600;center] kitty --class histui-float -e histui'",
-  // Right click: dmenu picker (copies body to clipboard)
-  "on-click-right": "histui get | fuzzel -d | cut -d'|' -f1 | xargs histui get --field body | wl-copy"
+  "on-click-middle": "hyprctl dispatch exec '[float;size 900 600;center] kitty -e histui'"
 }
 ```
+
+## Configuration
+
+- Daemon config: `~/.config/histui/histuid.toml`
+- CLI config: `~/.config/histui/config.toml`
+- Themes: `~/.config/histui/themes/`
+- History: `~/.local/share/histui/history.db`
 
 ## License
 
