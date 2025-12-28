@@ -646,6 +646,12 @@ func (s *Store) ReloadIfNeeded() (bool, error) {
 		return false, nil
 	}
 
+	// Reopen file handle first - external process may have replaced the file
+	// (e.g., CLI prune renames old file and creates new one)
+	if err := s.persistence.ReopenFile(); err != nil {
+		return false, err
+	}
+
 	// Load from persistence to check count
 	diskNotifications, err := s.persistence.Load()
 	if err != nil {

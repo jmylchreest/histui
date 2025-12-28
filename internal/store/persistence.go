@@ -40,6 +40,10 @@ type Persistence interface {
 	// Clear removes all stored notifications.
 	Clear() error
 
+	// ReopenFile closes and reopens the file handle.
+	// Use this after detecting external file replacement (e.g., after prune by another process).
+	ReopenFile() error
+
 	// Close releases file handles and resources.
 	Close() error
 }
@@ -490,5 +494,39 @@ func (p *JSONLPersistence) Close() error {
 		p.file = nil
 		return err
 	}
+	return nil
+}
+
+// ReopenFile closes the current file handle and opens a fresh one.
+// Use this when the file has been replaced by an external process (e.g., prune by CLI).
+// This ensures we're reading/writing to the current file, not a stale inode.
+func (p *JSONLPersistence) ReopenFile() error {
+	p.mu.Lock()
+	defer p.mu.Unlock()
+
+	if p.closed {
+		return ErrPersistenceClosed
+	}
+
+	// Close current handle
+	if p.file != nil {
+		if err := p.file.Close(); err != nil {
+			return fmt.Errorf("close old handle: %w", err)
+		}
+		p.file = nil
+	}
+
+	// Open fresh handle to current path
+	file, err := os.OpenFile(p.path, os.O_RDWR|os.O_CREATE|os.O_APPEND, 0600)
+	if err != nil {
+		return fmt.Errorf("reopen file: %w", err)
+	}
+	p.file = file
+
+	// Seek to end for appending
+	if _, err := p.file.Seek(0, io.SeekEnd); err != nil {
+		return fmt.Errorf("seek to end: %w", err)
+	}
+
 	return nil
 }
