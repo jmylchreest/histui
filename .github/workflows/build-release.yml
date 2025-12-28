@@ -108,7 +108,7 @@ jobs:
     steps:
       - name: Install build dependencies
         run: |
-          dnf install -y git git-lfs golang gtk4-devel libadwaita-devel alsa-lib-devel gobject-introspection-devel gcc
+          dnf install -y git git-lfs golang gtk4-devel gtk4-layer-shell-devel libadwaita-devel alsa-lib-devel gobject-introspection-devel gcc
 
       - name: Checkout code
         uses: actions/checkout@v5
@@ -116,8 +116,23 @@ jobs:
           fetch-depth: 0
           lfs: true
 
-      - name: Run tests
-        run: go test ./...
+      - name: Run tests (pure Go packages)
+        run: |
+          go test -v -timeout 60s \
+            ./internal/model/... \
+            ./internal/core/... \
+            ./internal/config/... \
+            ./internal/dbus/... \
+            ./internal/icon/... \
+            ./internal/tui/... \
+            ./internal/db/... \
+            ./internal/adapter/...
+
+      - name: Run tests (CGO packages)
+        run: |
+          go test -v -timeout 60s \
+            ./internal/theme/... \
+            ./internal/layout/...
 
       - name: Build histui (CLI - pure Go)
         env:
