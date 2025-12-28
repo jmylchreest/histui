@@ -18,17 +18,17 @@ jobs:
   test:
     name: Run tests
     runs-on: ubuntu-latest
+    container:
+      image: fedora:rawhide
     steps:
+      - name: Install build dependencies
+        run: |
+          dnf install -y git git-lfs golang gtk4-devel libadwaita-devel alsa-lib-devel gobject-introspection-devel gcc
+
       - name: Checkout code
         uses: actions/checkout@v5
         with:
           lfs: true
-
-      - name: Set up Go
-        uses: actions/setup-go@v5
-        with:
-          go-version: stable
-          cache: true
 
       - name: Verify dependencies
         run: go mod verify
