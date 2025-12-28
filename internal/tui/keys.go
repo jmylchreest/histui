@@ -28,6 +28,7 @@ type KeyMap struct {
 	Refresh         key.Binding
 	ToggleDismissed key.Binding
 	Preview         key.Binding
+	Replay          key.Binding
 
 	// Global
 	Quit key.Binding
@@ -45,7 +46,7 @@ func (k KeyMap) FullHelp() [][]key.Binding {
 		{k.Up, k.Down, k.PageUp, k.PageDown},
 		{k.Enter, k.Back, k.Copy, k.CopySummary},
 		{k.Search, k.Refresh, k.Dismiss, k.DismissAll, k.HardDelete},
-		{k.ToggleDismissed, k.Preview, k.Help, k.Quit},
+		{k.ToggleDismissed, k.Preview, k.Replay, k.Help, k.Quit},
 	}
 }
 
@@ -127,6 +128,10 @@ func DefaultKeyMap() KeyMap {
 		Preview: key.NewBinding(
 			key.WithKeys("p"),
 			key.WithHelp("p", "preview"),
+		),
+		Replay: key.NewBinding(
+			key.WithKeys("R"),
+			key.WithHelp("R", "replay"),
 		),
 		Quit: key.NewBinding(
 			key.WithKeys("q", "ctrl+c"),

@@ -1,9 +1,9 @@
-<!-- Compact layout: icon, summary, actions only -->
-<popup min-width="200" max-width="300" min-height="0" max-height="400">
+<!-- Compact layout: right-aligned icon, minimal elements -->
+<popup min-width="180" max-width="280" min-height="0" max-height="300">
   <header>
-    <icon size="32" />
     <summary />
     <stack-count />
+    <icon size="24" />
   </header>
   <body />
   <progress />

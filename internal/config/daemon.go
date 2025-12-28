@@ -74,6 +74,13 @@ type DaemonConfig struct {
 	Theme    ThemeConfig    `toml:"theme" mapstructure:"theme"`
 	DnD      DnDConfig      `toml:"dnd" mapstructure:"dnd"`
 	Mouse    MouseConfig    `toml:"mouse" mapstructure:"mouse"`
+	History  HistoryConfig  `toml:"history" mapstructure:"history"`
+}
+
+// HistoryConfig contains history retention settings.
+type HistoryConfig struct {
+	MaxNotifications int  `toml:"max_notifications" mapstructure:"max_notifications"` // 0 = unlimited
+	StoreImages      bool `toml:"store_images" mapstructure:"store_images"`           // Store notification images
 }
 
 // DisplayConfig contains display-related settings.
@@ -234,6 +241,10 @@ func setDefaults(v *viper.Viper) {
 	v.SetDefault("mouse.left", string(MouseActionDismiss))
 	v.SetDefault("mouse.middle", string(MouseActionDoAction))
 	v.SetDefault("mouse.right", string(MouseActionCloseAll))
+
+	// History defaults
+	v.SetDefault("history.max_notifications", 1000) // 0 = unlimited
+	v.SetDefault("history.store_images", true)
 }
 
 // stringToDurationHookFunc returns a mapstructure decode hook for Duration.
@@ -317,6 +328,10 @@ func DefaultDaemonConfig() *DaemonConfig {
 			Left:   string(MouseActionDismiss),
 			Middle: string(MouseActionDoAction),
 			Right:  string(MouseActionCloseAll),
+		},
+		History: HistoryConfig{
+			MaxNotifications: 1000,
+			StoreImages:      true,
 		},
 	}
 }

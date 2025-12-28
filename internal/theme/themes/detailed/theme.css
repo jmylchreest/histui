@@ -119,7 +119,7 @@ window {
  * ============================================================================= */
 
 .notification-popup {
-    background-color: @window_bg_color;
+    background-color: alpha(@window_bg_color, 0.8);
     color: @window_fg_color;
     border-radius: 12px;
     border: 1px solid alpha(@borders, 0.5);
@@ -166,6 +166,19 @@ window {
     /* Center the symbol in the icon area */
     min-width: 48px;
     min-height: 48px;
+}
+
+/* Per-urgency icon colors */
+.notification-popup.urgency-low .notification-icon-nerd {
+    color: alpha(@window_fg_color, 0.6);
+}
+
+.notification-popup.urgency-normal .notification-icon-nerd {
+    color: @accent_color;
+}
+
+.notification-popup.urgency-critical .notification-icon-nerd {
+    color: @error_color;
 }
 
 .notification-summary {

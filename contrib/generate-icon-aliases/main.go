@@ -690,6 +690,18 @@ func writeTOML(path string, mappings []AppMapping) error {
 	// Track written app names to detect duplicates
 	written := make(map[string]string) // appName -> targetIcon
 
+	// First, collect all canonical icon names to avoid aliasing them to different icons
+	canonicalIcons := make(map[string]bool)
+	for _, ms := range categories {
+		for _, m := range ms {
+			targetIcon := m.IconName
+			if idx := strings.Index(m.IconName, "-"); idx != -1 {
+				targetIcon = m.IconName[idx+1:]
+			}
+			canonicalIcons[strings.ToLower(targetIcon)] = true
+		}
+	}
+
 	for _, cat := range order {
 		ms := categories[cat]
 		if len(ms) == 0 {
@@ -706,22 +718,34 @@ func writeTOML(path string, mappings []AppMapping) error {
 			}
 
 			for _, appName := range m.AppNames {
+				// Normalize app name to lowercase for consistency
+				normalizedApp := strings.ToLower(appName)
+
 				// Skip if app name equals target (no alias needed)
-				if appName == targetIcon {
+				if normalizedApp == strings.ToLower(targetIcon) {
 					continue
 				}
+
+				// Skip if app name is itself a canonical icon name (should get its own icon)
+				if canonicalIcons[normalizedApp] && normalizedApp != strings.ToLower(targetIcon) {
+					fmt.Fprintf(os.Stderr, "WARNING: skipping %q -> %q (app name is a canonical icon)\n",
+						appName, targetIcon)
+					continue
+				}
+
 				// Check for duplicates
-				if existingTarget, exists := written[appName]; exists {
+				if existingTarget, exists := written[normalizedApp]; exists {
 					fmt.Fprintf(os.Stderr, "WARNING: duplicate app name %q (already mapped to %q, skipping %q)\n",
 						appName, existingTarget, targetIcon)
 					continue
 				}
-				written[appName] = targetIcon
+				written[normalizedApp] = targetIcon
+
 				// Quote keys that contain dots (TOML interprets dots as nested tables otherwise)
-				if strings.Contains(appName, ".") {
-					fmt.Fprintf(f, "%q = %q\n", appName, targetIcon)
+				if strings.Contains(normalizedApp, ".") {
+					fmt.Fprintf(f, "%q = %q\n", normalizedApp, targetIcon)
 				} else {
-					fmt.Fprintf(f, "%s = %q\n", appName, targetIcon)
+					fmt.Fprintf(f, "%s = %q\n", normalizedApp, targetIcon)
 				}
 			}
 		}

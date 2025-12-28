@@ -2,7 +2,11 @@
 package main
 
 import (
+	"bytes"
 	"context"
+	"image"
+	"image/color"
+	"image/png"
 	"log/slog"
 	"os"
 	"os/signal"
@@ -14,6 +18,7 @@ import (
 	"github.com/diamondburned/gotk4-adwaita/pkg/adw"
 	"github.com/diamondburned/gotk4/pkg/glib/v2"
 	"github.com/diamondburned/gotk4/pkg/gtk/v4"
+	godbus "github.com/godbus/dbus/v5"
 	"github.com/spf13/pflag"
 	"github.com/spf13/viper"
 
@@ -264,6 +269,8 @@ func runDaemonMode(logger *slog.Logger) {
 		themeLoader      *theme.Loader
 		audioManager     *audio.Manager
 		historyStore     *store.Store
+		imageStore       *store.ImageStore
+		retentionMgr     *store.RetentionManager
 		displayState     *daemon.DisplayStateManager
 		storeWatcher     *daemon.StoreWatcher
 		stateWatcher     *daemon.StateWatcher
@@ -307,8 +314,14 @@ func runDaemonMode(logger *slog.Logger) {
 				if dbusServer != nil {
 					_ = dbusServer.Stop()
 				}
+				if retentionMgr != nil {
+					_ = retentionMgr.Close()
+				}
 				if historyStore != nil {
 					_ = historyStore.Close()
+				}
+				if imageStore != nil {
+					_ = imageStore.Close()
 				}
 				app.Quit()
 			}
@@ -350,6 +363,32 @@ func runDaemonMode(logger *slog.Logger) {
 			logger.Warn("failed to hydrate store", "error", err)
 		}
 		logger.Info("history store initialized", "path", historyPath, "count", historyStore.Count())
+
+		// Initialize image store if enabled
+		if cfg.History.StoreImages {
+			imagePath, err := store.DefaultImageStorePath()
+			if err != nil {
+				logger.Warn("failed to get image store path", "error", err)
+			} else {
+				imageStore, err = store.NewImageStore(imagePath)
+				if err != nil {
+					logger.Warn("failed to create image store", "error", err)
+				} else {
+					logger.Debug("image store initialized", "path", imagePath)
+				}
+			}
+		}
+
+		// Initialize retention manager for auto-pruning
+		if cfg.History.MaxNotifications > 0 {
+			retentionMgr = store.NewRetentionManager(persistence, imageStore, store.RetentionConfig{
+				MaxNotifications: cfg.History.MaxNotifications,
+			}, logger)
+			// Run initial prune on startup
+			if err := retentionMgr.PruneOnStartup(); err != nil {
+				logger.Warn("failed to prune on startup", "error", err)
+			}
+		}
 
 		// Load shared state (DnD, etc.)
 		sharedState, err = store.LoadSharedState()
@@ -399,6 +438,25 @@ func runDaemonMode(logger *slog.Logger) {
 
 		// Connect D-Bus notifications to display manager AND store
 		dbusServer.SetNotifyHandler(func(notification *dbus.DBusNotification, id uint32) {
+			// Check if this is a replayed notification from histui
+			if dbus.IsReplayHint(notification.Hints) {
+				originalID := dbus.GetOriginalID(notification.Hints)
+				if originalID != "" {
+					// Update existing notification's replayed status
+					existing := historyStore.GetByID(originalID)
+					if existing != nil {
+						existing.MarkReplayed()
+						if err := historyStore.Update(*existing); err != nil {
+							logger.Warn("failed to update replayed notification", "id", originalID, "error", err)
+						} else {
+							logger.Debug("marked notification as replayed", "id", originalID)
+						}
+					}
+					// Continue to display the notification (don't return)
+					// but use the existing histui ID for tracking
+				}
+			}
+
 			// Create a model.Notification for persistence
 			n, err := model.NewNotification("histuid")
 			if err != nil {
@@ -427,10 +485,36 @@ func runDaemonMode(logger *slog.Logger) {
 				Transient:    notification.Transient(),
 			}
 
-			// Don't persist transient notifications
-			if !notification.Transient() {
+			// Store original hints for faithful replay
+			n.OriginalHints = convertHintsToJSON(notification.Hints)
+
+			// Capture and store image data if image store is enabled
+			if imageStore != nil && !notification.Transient() {
+				// Check for image-data hint
+				if imgData := notification.ImageData(); imgData != nil {
+					// Convert to PNG and store
+					pngData := convertImageDataToPNG(imgData)
+					if len(pngData) > 0 {
+						ref, err := imageStore.Save(n.HistuiID, store.ImageRefImage, pngData)
+						if err != nil {
+							logger.Warn("failed to save notification image", "error", err)
+						} else if ref != "" {
+							n.AddImageRef(ref)
+						}
+					}
+				}
+			}
+
+			// Don't persist transient notifications or replays
+			isReplay := dbus.IsReplayHint(notification.Hints)
+			if !notification.Transient() && !isReplay {
 				if err := historyStore.Add(*n); err != nil {
 					logger.Error("failed to persist notification", "id", id, "error", err)
+				}
+
+				// Trigger retention manager (debounced)
+				if retentionMgr != nil {
+					retentionMgr.TriggerPrune()
 				}
 			}
 
@@ -657,8 +741,15 @@ func runDaemonMode(logger *slog.Logger) {
 		if dbusServer != nil {
 			_ = dbusServer.Stop()
 		}
+		// Run any pending prune before closing
+		if retentionMgr != nil {
+			_ = retentionMgr.Close()
+		}
 		if historyStore != nil {
 			_ = historyStore.Close()
+		}
+		if imageStore != nil {
+			_ = imageStore.Close()
 		}
 		// Clean up temporary files
 		daemon.CleanupTemp(logger)
@@ -809,6 +900,43 @@ func convertActions(dbusActions []dbus.Action) []model.Action {
 	return actions
 }
 
+// convertHintsToJSON converts D-Bus hints to a JSON-serializable map.
+// This preserves the original hints exactly as received for faithful replay.
+// Some hint values (like image-data) are skipped as they're stored separately.
+func convertHintsToJSON(hints map[string]godbus.Variant) map[string]any {
+	if len(hints) == 0 {
+		return nil
+	}
+
+	result := make(map[string]any, len(hints))
+	for key, variant := range hints {
+		// Skip large binary data hints - these are stored separately
+		switch key {
+		case "image-data", "image_data", "icon_data":
+			continue
+		case "x-histui-image-png": // Our custom hint
+			continue
+		}
+
+		// Convert variant value to JSON-serializable type
+		value := variant.Value()
+
+		// Handle byte slices (common in D-Bus) by skipping if too large
+		if b, ok := value.([]byte); ok {
+			if len(b) > 1024 { // Skip binary data > 1KB
+				continue
+			}
+		}
+
+		result[key] = value
+	}
+
+	if len(result) == 0 {
+		return nil
+	}
+	return result
+}
+
 // loadThemeSounds loads sounds from the theme manifest into the audio manager.
 // Theme sounds are the only source of notification sounds.
 func loadThemeSounds(themeLoader *theme.Loader, audioManager *audio.Manager, logger *slog.Logger) {
@@ -854,4 +982,60 @@ func suppressGraphicsDebug() {
 			_ = os.Setenv(key, value)
 		}
 	}
+}
+
+// convertImageDataToPNG converts D-Bus image-data format to PNG bytes.
+// The D-Bus image-data format is: (width, height, rowstride, has_alpha, bits_per_sample, channels, data)
+// This represents raw RGBA or RGB pixel data.
+func convertImageDataToPNG(imgData *dbus.ImageDataStruct) []byte {
+	if imgData == nil || len(imgData.Data) == 0 {
+		return nil
+	}
+
+	width := int(imgData.Width)
+	height := int(imgData.Height)
+	rowstride := int(imgData.Rowstride)
+	hasAlpha := imgData.HasAlpha
+	channels := int(imgData.Channels)
+
+	// Validate dimensions
+	if width <= 0 || height <= 0 || width > 4096 || height > 4096 {
+		return nil
+	}
+
+	// Create image
+	img := image.NewRGBA(image.Rect(0, 0, width, height))
+
+	// Copy pixel data
+	for y := 0; y < height; y++ {
+		rowStart := y * rowstride
+		for x := 0; x < width; x++ {
+			pixelStart := rowStart + x*channels
+			if pixelStart+channels > len(imgData.Data) {
+				break
+			}
+
+			var r, g, b, a uint8
+			if channels >= 3 {
+				r = imgData.Data[pixelStart]
+				g = imgData.Data[pixelStart+1]
+				b = imgData.Data[pixelStart+2]
+			}
+			if hasAlpha && channels >= 4 {
+				a = imgData.Data[pixelStart+3]
+			} else {
+				a = 255
+			}
+
+			img.SetRGBA(x, y, color.RGBA{R: r, G: g, B: b, A: a})
+		}
+	}
+
+	// Encode to PNG
+	var buf bytes.Buffer
+	if err := png.Encode(&buf, img); err != nil {
+		return nil
+	}
+
+	return buf.Bytes()
 }

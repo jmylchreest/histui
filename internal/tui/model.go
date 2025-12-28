@@ -26,6 +26,7 @@ import (
 	"github.com/jmylchreest/histui/internal/adapter/input"
 	"github.com/jmylchreest/histui/internal/config"
 	"github.com/jmylchreest/histui/internal/core"
+	"github.com/jmylchreest/histui/internal/dbus"
 	"github.com/jmylchreest/histui/internal/model"
 	"github.com/jmylchreest/histui/internal/store"
 )
@@ -153,9 +154,12 @@ func (d notificationDelegate) Render(w io.Writer, m list.Model, index int, item 
 	}
 
 	// Status indicator in left margin (2 chars: status + space)
+	// Priority: D (dismissed) > R (replayed) > space
 	statusIndicator := "  " // default: empty margin
 	if isDismissed {
 		statusIndicator = "D "
+	} else if ni.notification.IsReplayed() {
+		statusIndicator = "R "
 	}
 	statusStyle := lipgloss.NewStyle().Foreground(lipgloss.Color("8"))
 
@@ -300,6 +304,19 @@ func (m Model) Update(msg tea.Msg) (tea.Model, tea.Cmd) {
 		return m, func() tea.Msg {
 			return statusMsg{text: "Copied to clipboard", isErr: false}
 		}
+
+	case replayResultMsg:
+		if msg.err != nil {
+			return m, func() tea.Msg {
+				return statusMsg{text: "Replay failed: " + msg.err.Error(), isErr: true}
+			}
+		}
+		// Refresh to show the R indicator
+		m.notifications = m.fetchNotifications()
+		m.list.SetItems(m.buildListItems())
+		return m, func() tea.Msg {
+			return statusMsg{text: "Notification replayed", isErr: false}
+		}
 	}
 
 	// Update child components
@@ -329,6 +346,10 @@ type statusMsg struct {
 type clearStatusMsg struct{}
 
 type copyResultMsg struct {
+	err error
+}
+
+type replayResultMsg struct {
 	err error
 }
 
@@ -531,6 +552,12 @@ func (m Model) handleListKey(msg tea.KeyMsg) (tea.Model, tea.Cmd) {
 
 	case key.Matches(msg, m.keys.Refresh):
 		return m, m.loadNotifications
+
+	case key.Matches(msg, m.keys.Replay):
+		if item, ok := m.list.SelectedItem().(notificationItem); ok {
+			return m, m.replayNotification(item.notification)
+		}
+		return m, nil
 	}
 
 	// Pass to list
@@ -754,6 +781,14 @@ func (m Model) renderDetail(n model.Notification) string {
 		if len(extLines) > 0 {
 			s += "\n" + labelStyle.Render("Extensions:") + "\n"
 			s += strings.Join(extLines, "\n") + "\n"
+		}
+	}
+
+	// Original Hints - show the raw hints that were received
+	if len(n.OriginalHints) > 0 {
+		s += "\n" + labelStyle.Render("Original Hints:") + "\n"
+		for key, value := range n.OriginalHints {
+			s += fmt.Sprintf("  %s: %v\n", key, value)
 		}
 	}
 
@@ -991,6 +1026,26 @@ func (m Model) copyToClipboard(text string) tea.Cmd {
 	}
 }
 
+// replayNotification sends the notification to the D-Bus daemon.
+func (m Model) replayNotification(n model.Notification) tea.Cmd {
+	return func() tea.Msg {
+		// Create a replayer (try to get image store path)
+		var imageStore *store.ImageStore
+		if imagePath, err := store.DefaultImageStorePath(); err == nil {
+			imageStore, _ = store.NewImageStore(imagePath)
+		}
+
+		replayer, err := dbus.NewReplayer(imageStore)
+		if err != nil {
+			return replayResultMsg{err: err}
+		}
+		defer replayer.Close()
+
+		_, err = replayer.Replay(&n)
+		return replayResultMsg{err: err}
+	}
+}
+
 // View renders the TUI.
 func (m Model) View() string {
 	if !m.ready {
@@ -1196,6 +1251,7 @@ func (m Model) viewHelpKeybindings() string {
 	s += keyStyle.Render("  a") + "            Toggle dismissed\n"
 	s += keyStyle.Render("  /") + "            Search/filter\n"
 	s += keyStyle.Render("  r") + "            Refresh\n"
+	s += keyStyle.Render("  R") + "            Replay notification\n"
 	s += "\n"
 
 	s += sectionStyle.Render("General") + "\n"
@@ -1324,8 +1380,9 @@ func (m Model) buildKeybindBar(width int, mode string) string {
 			{"a", "all", 8},
 			{"c", "copy", 9},
 			{"s", "summary", 10},
-			{"D", "delete", 11},
-			{"r", "refresh", 12},
+			{"R", "replay", 11},
+			{"D", "delete", 12},
+			{"r", "refresh", 13},
 		}
 	case "detail":
 		binds = []keybind{

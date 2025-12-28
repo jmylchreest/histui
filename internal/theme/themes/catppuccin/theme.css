@@ -94,7 +94,7 @@ window {
  * ============================================================================= */
 
 .notification-popup {
-    background-color: var(--ctp-base);
+    background-color: color-mix(in srgb, var(--ctp-base) 80%, transparent);
     color: var(--ctp-text);
     border-radius: 12px;
     border: 1px solid var(--ctp-surface0);
@@ -132,6 +132,19 @@ window {
     /* Center the symbol in the icon area */
     min-width: 48px;
     min-height: 48px;
+}
+
+/* Per-urgency icon colors */
+.notification-popup.urgency-low .notification-icon-nerd {
+    color: var(--ctp-overlay0);
+}
+
+.notification-popup.urgency-normal .notification-icon-nerd {
+    color: var(--ctp-mauve);
+}
+
+.notification-popup.urgency-critical .notification-icon-nerd {
+    color: var(--ctp-red);
 }
 
 .notification-summary {

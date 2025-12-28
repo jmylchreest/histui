@@ -34,13 +34,16 @@ var UrgencyNames = map[int]string{
 // This is the normalized format stored in the history and used by all adapters.
 type Notification struct {
 	// histui metadata (added by histui)
-	HistuiID          string `json:"histui_id"`
-	HistuiSource      string `json:"histui_source"`
-	HistuiImportedAt  int64  `json:"histui_imported_at"`
-	HistuiSeenAt      int64  `json:"histui_seen_at,omitempty"`      // When viewed in TUI
-	HistuiActedAt     int64  `json:"histui_acted_at,omitempty"`     // When user acted (copy)
-	HistuiDismissedAt int64  `json:"histui_dismissed_at,omitempty"` // When user dismissed (soft delete)
-	ContentHash       string `json:"content_hash,omitempty"`        // SHA256 hash for deduplication
+	HistuiID          string   `json:"histui_id"`
+	HistuiSource      string   `json:"histui_source"`
+	HistuiImportedAt  int64    `json:"histui_imported_at"`
+	HistuiSeenAt      int64    `json:"histui_seen_at,omitempty"`      // When viewed in TUI
+	HistuiActedAt     int64    `json:"histui_acted_at,omitempty"`     // When user acted (copy)
+	HistuiDismissedAt int64    `json:"histui_dismissed_at,omitempty"` // When user dismissed (soft delete)
+	HistuiReplayed    bool     `json:"histui_replayed,omitempty"`     // True if notification was replayed
+	HistuiReplayedAt  int64    `json:"histui_replayed_at,omitempty"`  // When last replayed
+	HistuiImageRefs   []string `json:"histui_image_refs,omitempty"`   // Image file refs in store (e.g., "icon", "image")
+	ContentHash       string   `json:"content_hash,omitempty"`        // SHA256 hash for deduplication
 
 	// Freedesktop standard fields
 	ID            int    `json:"id"`
@@ -60,6 +63,11 @@ type Notification struct {
 
 	// Daemon-specific extensions
 	Extensions *Extensions `json:"extensions,omitempty"`
+
+	// OriginalHints stores the raw D-Bus hints received with the notification.
+	// This allows replay to send exactly what was received, without reconstruction.
+	// Keys are hint names, values are JSON-serializable representations.
+	OriginalHints map[string]any `json:"original_hints,omitempty"`
 }
 
 // Extensions holds daemon-specific fields that don't map to freedesktop spec.
@@ -278,6 +286,27 @@ func (n *Notification) MarkDismissed() {
 // Undismiss clears the dismissed state.
 func (n *Notification) Undismiss() {
 	n.HistuiDismissedAt = 0
+}
+
+// IsReplayed returns true if the notification has been replayed.
+func (n *Notification) IsReplayed() bool {
+	return n.HistuiReplayed
+}
+
+// MarkReplayed marks the notification as replayed at the current time.
+func (n *Notification) MarkReplayed() {
+	n.HistuiReplayed = true
+	n.HistuiReplayedAt = time.Now().Unix()
+}
+
+// HasImages returns true if the notification has stored images.
+func (n *Notification) HasImages() bool {
+	return len(n.HistuiImageRefs) > 0
+}
+
+// AddImageRef adds an image reference to the notification.
+func (n *Notification) AddImageRef(ref string) {
+	n.HistuiImageRefs = append(n.HistuiImageRefs, ref)
 }
 
 // LogValue implements slog.LogValuer for structured logging.

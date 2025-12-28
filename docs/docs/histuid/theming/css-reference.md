@@ -287,6 +287,8 @@ These can be overridden via CLI: `histuid --font "Ubuntu" --font-size 16`
 
 ## See Also
 
+- [CSS Imports and Inheritance](/docs/histuid/theming/css-inheritance) - How @import resolution and the cascade work
+- [Layout Reference](/docs/histuid/theming/layout-reference) - Widget layout configuration
 - [Advanced Theming](/docs/histuid/theming/advanced) - Audio, fonts, animations
 - [GTK4 CSS Properties](https://docs.gtk.org/gtk4/css-properties.html) - Full GTK4 reference
 - [Theme Examples](/docs/histuid/theming/examples) - Complete themes

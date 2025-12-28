@@ -1,11 +1,11 @@
 # Compact Theme Manifest
 name = "compact"
-description = "Compact notifications with icon and summary"
+description = "Compact right-aligned notifications with small icon"
 author = "histui"
 version = "1.0.0"
 
 [icon]
-size = 32
+size = 24
 
 [audio.low]
 path = ""

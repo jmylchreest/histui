@@ -75,12 +75,23 @@ When set to `"0"` (honor client), the daemon respects what the sending applicati
 
 ### [history]
 
-Controls notification history persistence.
+Controls notification history and retention.
 
 | Key | Type | Default | Description |
 |-----|------|---------|-------------|
-| `max_count` | int | 1000 | Maximum notifications to store |
-| `path` | string | XDG data dir | History database location |
+| `max_notifications` | int | 1000 | Maximum notifications to keep (0 = unlimited) |
+| `store_images` | bool | true | Store notification images for replay |
+
+**Auto-Pruning Behavior:**
+
+The daemon automatically prunes old notifications to stay within limits:
+
+- **Buffer threshold**: Pruning triggers when count exceeds max by 10% (e.g., at 1100 for max 1000)
+- **Debounce**: At most one prune operation every 5 minutes
+- **Cascade cleanup**: Images for pruned notifications are automatically deleted
+- **Startup prune**: A prune runs on daemon startup to clean up any excess
+
+This design prevents constant disk I/O while keeping history within reasonable bounds.
 
 ### [behavior]
 
@@ -88,7 +99,46 @@ Controls daemon behavior.
 
 | Key | Type | Default | Description |
 |-----|------|---------|-------------|
-| `monitor_mode` | bool | false | Run alongside another daemon |
+| `stack_duplicates` | bool | true | Combine identical notifications |
+| `show_count` | bool | true | Show "(2)" for stacked duplicates |
+| `pause_on_hover` | bool | true | Pause timeout when mouse hovers |
+| `history_length` | int | 100 | Max notifications in session memory |
+
+### [dnd]
+
+Controls Do Not Disturb mode.
+
+| Key | Type | Default | Description |
+|-----|------|---------|-------------|
+| `enabled` | bool | false | Initial DnD state on daemon startup |
+| `critical_bypass` | bool | true | Show critical notifications even in DnD mode |
+
+**DnD Behavior:**
+
+- When DnD is enabled, notification popups and sounds are suppressed
+- Notifications are still persisted to history for later review
+- Critical bypass allows urgent notifications to break through
+- Use `histui dnd on/off/toggle` to control DnD state
+
+### [mouse]
+
+Controls mouse button actions on notification popups.
+
+| Key | Type | Default | Description |
+|-----|------|---------|-------------|
+| `left` | string | "dismiss" | Left-click action |
+| `middle` | string | "do-action" | Middle-click action |
+| `right` | string | "close-all" | Right-click action |
+
+**Available Actions:**
+
+| Action | Description |
+|--------|-------------|
+| `dismiss` | Close this notification |
+| `do-action` | Execute the default action (e.g., open link) |
+| `close-all` | Close all visible notifications |
+| `context-menu` | Show context menu (if supported) |
+| `none` | Do nothing |
 
 ### [audio]
 
@@ -148,9 +198,22 @@ fallback = "10s"
 stack_duplicates = true
 pause_on_hover = true
 
+[dnd]
+enabled = false          # Start with DnD off
+critical_bypass = true   # Allow critical through DnD
+
+[mouse]
+left = "dismiss"
+middle = "do-action"
+right = "close-all"
+
 [audio]
 enabled = true
 volume = 80
+
+[history]
+max_notifications = 1000  # 0 = unlimited
+store_images = true       # Required for replay with images
 ```
 
 ## Icon Aliases

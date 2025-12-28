@@ -9,6 +9,7 @@ import (
 	"log/slog"
 	"os"
 	"path/filepath"
+	"sort"
 	"sync"
 	"time"
 
@@ -31,6 +32,10 @@ type Persistence interface {
 
 	// Rewrite replaces the entire storage file (used after prune).
 	Rewrite(ns []model.Notification) error
+
+	// Prune removes the oldest notifications, keeping at most maxKeep.
+	// Returns the IDs of pruned notifications for cascade cleanup (e.g., images).
+	Prune(maxKeep int) (prunedIDs []string, err error)
 
 	// Clear removes all stored notifications.
 	Clear() error
@@ -325,6 +330,112 @@ func (p *JSONLPersistence) rewriteUnlocked(ns []model.Notification) error {
 	_ = os.Remove(backupPath)
 
 	return nil
+}
+
+// Prune removes the oldest notifications, keeping at most maxKeep.
+// Returns the IDs of pruned notifications for cascade cleanup (e.g., images).
+// If maxKeep <= 0, no pruning is performed.
+func (p *JSONLPersistence) Prune(maxKeep int) ([]string, error) {
+	p.mu.Lock()
+	defer p.mu.Unlock()
+
+	if p.closed {
+		return nil, ErrPersistenceClosed
+	}
+
+	if maxKeep <= 0 {
+		return nil, nil // Unlimited, no pruning
+	}
+
+	// Load all notifications
+	notifications, err := p.loadAllLocked()
+	if err != nil {
+		return nil, fmt.Errorf("load for prune: %w", err)
+	}
+
+	if len(notifications) <= maxKeep {
+		return nil, nil // Nothing to prune
+	}
+
+	// Sort by timestamp ascending (oldest first)
+	sort.Slice(notifications, func(i, j int) bool {
+		return notifications[i].Timestamp < notifications[j].Timestamp
+	})
+
+	// Calculate how many to prune
+	pruneCount := len(notifications) - maxKeep
+	toPrune := notifications[:pruneCount]
+	toKeep := notifications[pruneCount:]
+
+	// Collect IDs for cascade cleanup
+	prunedIDs := make([]string, len(toPrune))
+	for i, n := range toPrune {
+		prunedIDs[i] = n.HistuiID
+	}
+
+	// Use atomic rewrite
+	if err := p.rewriteUnlocked(toKeep); err != nil {
+		return nil, fmt.Errorf("prune rewrite: %w", err)
+	}
+
+	return prunedIDs, nil
+}
+
+// loadAllLocked reads all notifications without taking the lock.
+// Caller must hold p.mu.
+func (p *JSONLPersistence) loadAllLocked() ([]model.Notification, error) {
+	if p.file == nil {
+		return nil, ErrPersistenceClosed
+	}
+
+	// Seek to beginning
+	if _, err := p.file.Seek(0, io.SeekStart); err != nil {
+		return nil, fmt.Errorf("seek: %w", err)
+	}
+
+	var notifications []model.Notification
+	scanner := bufio.NewScanner(p.file)
+	const maxLineSize = 1024 * 1024
+	scanner.Buffer(make([]byte, 64*1024), maxLineSize)
+
+	lineNum := 0
+	for scanner.Scan() {
+		lineNum++
+		line := scanner.Bytes()
+
+		if len(line) == 0 {
+			continue
+		}
+
+		// Skip header line
+		if lineNum == 1 {
+			var header schemaHeader
+			if json.Unmarshal(line, &header) == nil && header.HistuiSchemaVersion > 0 {
+				continue
+			}
+			// Not a header, try as notification
+		}
+
+		var n model.Notification
+		if err := json.Unmarshal(line, &n); err != nil {
+			continue // Skip malformed
+		}
+
+		if n.HistuiID != "" {
+			notifications = append(notifications, n)
+		}
+	}
+
+	if err := scanner.Err(); err != nil {
+		return notifications, fmt.Errorf("scan: %w", err)
+	}
+
+	// Seek back to end for appending
+	if _, err := p.file.Seek(0, io.SeekEnd); err != nil {
+		return notifications, err
+	}
+
+	return notifications, nil
 }
 
 // Clear removes all stored notifications.

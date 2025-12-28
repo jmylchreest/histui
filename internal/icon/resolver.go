@@ -2,6 +2,7 @@
 package icon
 
 import (
+	"log/slog"
 	"strings"
 	"sync"
 
@@ -118,12 +119,21 @@ func (r *Resolver) GetNerdSymbolForCategory(category string) string {
 }
 
 // SetDefaultAliases sets the default aliases (typically from embedded TOML).
+// If a key already exists, the first value is kept and a warning is logged.
 func (r *Resolver) SetDefaultAliases(aliases map[string]string) {
 	r.mu.Lock()
 	defer r.mu.Unlock()
 
 	for appName, iconName := range aliases {
 		normalized := strings.ToLower(strings.TrimSpace(appName))
+		if existing, ok := r.aliases[normalized]; ok {
+			slog.Warn("duplicate icon alias, keeping first",
+				"app", appName,
+				"existing", existing,
+				"ignored", iconName,
+			)
+			continue
+		}
 		r.aliases[normalized] = iconName
 	}
 }

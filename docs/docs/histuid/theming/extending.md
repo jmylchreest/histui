@@ -311,4 +311,7 @@ volume = 0.7
 
 - [Theming Overview](/docs/histuid/theming) - Getting started with themes
 - [CSS Reference](/docs/histuid/theming/css-reference) - All CSS selectors
-- [Advanced Theming](/docs/histuid/theming/advanced) - Layouts, manifests, and audio
+- [CSS Imports and Inheritance](/docs/histuid/theming/css-inheritance) - Deep dive into @import resolution
+- [Layout Reference](/docs/histuid/theming/layout-reference) - Complete layout.xml reference
+- [Manifest Reference](/docs/histuid/theming/manifest-reference) - Complete manifest.toml reference
+- [Advanced Theming](/docs/histuid/theming/advanced) - Animations and compositor integration

@@ -6,6 +6,7 @@ import (
 	"encoding/json"
 	"os"
 	"path/filepath"
+	"sort"
 
 	"github.com/jmylchreest/histui/internal/model"
 )
@@ -101,6 +102,38 @@ type HistuidCounts struct {
 	Displayed int // Currently visible (seen but not dismissed)
 	History   int // Dismissed, in history
 	Waiting   int // Received but not yet displayed
+}
+
+// DetailedCounts holds comprehensive notification statistics with urgency breakdown.
+type DetailedCounts struct {
+	DnDEnabled bool // Do Not Disturb state
+
+	// Pending: currently visible (seen but not dismissed)
+	Pending         int
+	PendingCritical int
+	PendingNormal   int
+	PendingLow      int
+
+	// Missed: not visible and not dismissed (not seen, not dismissed)
+	Missed         int
+	MissedCritical int
+	MissedNormal   int
+	MissedLow      int
+
+	// Dismissed: all dismissed notifications
+	Dismissed int
+
+	// Tracked: total notifications in history
+	Tracked int
+
+	// Top applications by notification count
+	TopApps []AppCount
+}
+
+// AppCount holds an application name and its notification count.
+type AppCount struct {
+	AppName string
+	Count   int
 }
 
 // GetCounts returns notification counts from the histuid history file.
@@ -204,4 +237,89 @@ func (a *HistuidAdapter) GetHighestActiveUrgency(ctx context.Context) (string, e
 	default:
 		return "empty", nil
 	}
+}
+
+// GetDetailedCounts returns comprehensive notification statistics with urgency breakdown.
+// Categories:
+//   - Pending: seen but not dismissed (currently visible)
+//   - Missed: not seen and not dismissed (never displayed or expired without being seen)
+//   - Dismissed: explicitly dismissed
+//   - Tracked: total count
+func (a *HistuidAdapter) GetDetailedCounts(ctx context.Context) (*DetailedCounts, error) {
+	notifications, err := a.Import(ctx)
+	if err != nil {
+		return nil, err
+	}
+
+	counts := &DetailedCounts{
+		Tracked: len(notifications),
+	}
+
+	// Count apps for top apps calculation
+	appCounts := make(map[string]int)
+
+	for _, n := range notifications {
+		// Track app counts
+		if n.AppName != "" {
+			appCounts[n.AppName]++
+		}
+
+		urgency := n.Urgency
+
+		if n.HistuiDismissedAt > 0 {
+			// Dismissed
+			counts.Dismissed++
+		} else if n.HistuiSeenAt > 0 {
+			// Pending (seen but not dismissed)
+			counts.Pending++
+			switch urgency {
+			case model.UrgencyCritical:
+				counts.PendingCritical++
+			case model.UrgencyLow:
+				counts.PendingLow++
+			default:
+				counts.PendingNormal++
+			}
+		} else {
+			// Missed (not seen, not dismissed)
+			counts.Missed++
+			switch urgency {
+			case model.UrgencyCritical:
+				counts.MissedCritical++
+			case model.UrgencyLow:
+				counts.MissedLow++
+			default:
+				counts.MissedNormal++
+			}
+		}
+	}
+
+	// Build top apps list (top 5)
+	counts.TopApps = buildTopApps(appCounts, 5)
+
+	return counts, nil
+}
+
+// buildTopApps returns the top N apps by notification count.
+func buildTopApps(appCounts map[string]int, limit int) []AppCount {
+	// Convert map to slice
+	apps := make([]AppCount, 0, len(appCounts))
+	for name, count := range appCounts {
+		apps = append(apps, AppCount{AppName: name, Count: count})
+	}
+
+	// Sort by count descending, then alphabetically by name
+	sort.Slice(apps, func(i, j int) bool {
+		if apps[i].Count != apps[j].Count {
+			return apps[i].Count > apps[j].Count // Higher count first
+		}
+		return apps[i].AppName < apps[j].AppName // Alphabetical when equal
+	})
+
+	// Limit to top N
+	if len(apps) > limit {
+		apps = apps[:limit]
+	}
+
+	return apps
 }

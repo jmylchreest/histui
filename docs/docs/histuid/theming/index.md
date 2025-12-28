@@ -129,6 +129,10 @@ You can edit your theme in real-time without restarting the daemon.
 ## Next Steps
 
 - [CSS Reference](/docs/histuid/theming/css-reference) - All CSS selectors and classes
+- [CSS Imports and Inheritance](/docs/histuid/theming/css-inheritance) - How @import resolution and the CSS cascade work
 - [Extending Themes](/docs/histuid/theming/extending) - Create partial themes that inherit from existing themes
+- [Layout Reference](/docs/histuid/theming/layout-reference) - Complete layout.xml element reference
+- [Manifest Reference](/docs/histuid/theming/manifest-reference) - Complete manifest.toml configuration reference
+- [Icon Aliases](/docs/histuid/theming/icon-aliases) - Map application names to icons and Nerd Font symbols
 - [Theme Examples](/docs/histuid/theming/examples) - Ready-to-use themes
-- [Advanced Theming](/docs/histuid/theming/advanced) - Theme pack structure, layouts, manifests, and icons
+- [Advanced Theming](/docs/histuid/theming/advanced) - Theme pack structure, animations, and compositor integration

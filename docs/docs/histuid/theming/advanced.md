@@ -437,5 +437,8 @@ window {
 ## See Also
 
 - [CSS Reference](/docs/histuid/theming/css-reference) - All CSS selectors
+- [CSS Imports and Inheritance](/docs/histuid/theming/css-inheritance) - How @import and the cascade work
+- [Layout Reference](/docs/histuid/theming/layout-reference) - Complete layout.xml reference
+- [Manifest Reference](/docs/histuid/theming/manifest-reference) - Complete manifest.toml reference
 - [Theme Examples](/docs/histuid/theming/examples) - Ready-to-use themes
 - [Configuration](/docs/histuid/configuration) - Main config reference

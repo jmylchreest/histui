@@ -34,7 +34,7 @@ In `~/.config/waybar/config`:
     "modules-center": ["clock", "custom/histui"],
 
     "custom/histui": {
-        "exec": "histui status",
+        "exec": "histui status --detailed",
         "return-type": "json",
         "interval": 5,
         "format": "{icon} {text}",
@@ -56,6 +56,95 @@ In `~/.config/waybar/config`:
 - **Left click**: Toggle Do Not Disturb mode
 - **Right click** (2-finger tap): Open the TUI browser
 - **Middle click** (3-finger tap): Browse recent notifications in fuzzel/dmenu
+
+#### Detailed Tooltip
+
+Use `--detailed` for a comprehensive tooltip with:
+- DnD status
+- Pending/Missed/Dismissed counts with urgency breakdown
+- Top 5 applications by notification count
+
+Example tooltip:
+```
+DnD: disabled
+
+Pending: 2
+  Critical: 0
+  Normal: 2
+  Low: 0
+Missed: 5
+  Critical: 1
+  Normal: 3
+  Low: 1
+Dismissed: 42
+Tracked: 156
+
+Top 5 Applications:
+  1. Discord: 28
+  2. Firefox: 22
+  3. Slack: 18
+  4. Signal: 12
+  5. Thunderbird: 8
+```
+
+#### Advanced Click Actions
+
+Replay missed notifications with on-click bindings:
+
+```jsonc
+{
+    "custom/histui": {
+        "exec": "histui status --detailed",
+        "return-type": "json",
+        "interval": 5,
+        "format": "{icon} {text}",
+        "format-icons": {
+            "empty": "",
+            "dnd": "󰂛",
+            "low": "󱅫",
+            "normal": "󱅫",
+            "critical": "󰂚"
+        },
+        // Toggle DnD
+        "on-click": "histui dnd toggle",
+        // Open TUI
+        "on-click-right": "hyprctl dispatch exec '[float;size 900 600;center] kitty --class histui-float -e histui tui'",
+        // Replay missed normal notifications (most recent 5)
+        "on-click-middle": "histui replay --filter 'seen=false,dismissed=false,urgency=normal' --limit 5 --all",
+        // Scroll up: replay missed criticals
+        "on-scroll-up": "histui replay --filter 'dismissed=false,urgency=critical' --limit 3 --all",
+        // Scroll down: dismiss all
+        "on-scroll-down": "histui set --filter 'dismissed=false' --dismiss --all"
+    }
+}
+```
+
+**Workflow bindings explained:**
+- **Middle click**: Replay the 5 most recent missed normal-urgency notifications
+- **Scroll up**: Replay any undismissed critical notifications (up to 3)
+- **Scroll down**: Dismiss all active notifications
+
+#### Filter Expressions
+
+Use `--filter` for powerful notification selection:
+
+| Filter | Description |
+|--------|-------------|
+| `seen=false` | Not yet seen (missed) |
+| `dismissed=false` | Not dismissed |
+| `urgency=critical` | Critical urgency only |
+| `urgency>=normal` | Normal or critical |
+| `app=discord` | From Discord only |
+| `age<1h` | From the last hour |
+
+Combine filters with commas (AND logic):
+```bash
+# Missed critical notifications
+histui get --filter "seen=false,dismissed=false,urgency=critical"
+
+# Undismissed from Slack in the last hour
+histui get --filter "dismissed=false,app=slack,age<1h"
+```
 
 In `~/.config/waybar/style.css`:
 
@@ -92,7 +181,7 @@ The `histui status` command outputs Waybar-compatible JSON:
 {
     "text": "3",
     "alt": "normal",
-    "tooltip": "3 active\nDisplayed: 2\nWaiting: 1",
+    "tooltip": "DnD: disabled\n\nPending: 2\n  Critical: 0\n  ...",
     "class": "has-notifications normal"
 }
 ```
@@ -101,6 +190,15 @@ The `alt` field is used by Waybar to select the icon from `format-icons`. Possib
 - `empty` - No notifications
 - `dnd` - Do Not Disturb mode enabled
 - `low`, `normal`, `critical` - Highest urgency among active notifications
+
+:::tip Customizing the Text
+Waybar's `format` controls what appears next to the icon. Use `{text}` for the count, or create custom formats:
+```jsonc
+"format": "{icon}",           // Icon only
+"format": "{icon} {text}",    // Icon and count
+"format": "󰂚 {text}"          // Custom icon with count
+```
+:::
 
 :::tip Using Walker instead of Fuzzel
 Replace `fuzzel --dmenu` with `walker --dmenu` if you use Walker as your launcher.
