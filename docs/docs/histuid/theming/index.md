@@ -43,6 +43,31 @@ histuid checks for themes in this order:
 
 This allows you to override bundled themes by placing a directory with the same name in your themes directory.
 
+## Partial Themes
+
+You don't need to create a complete theme from scratch. Partial themes inherit from existing themes:
+
+```css
+/* ~/.config/histui/themes/my-colors/theme.css */
+@import "default.css";  /* Import the default theme */
+
+/* Override just what you need */
+.notification-popup {
+    background-color: #2d2d44;
+    border-color: #4a4a6a;
+}
+```
+
+Missing components are automatically inherited:
+- **Layout**: Uses default's `layout.xml` if none provided
+- **Manifest**: Merged with default (sounds, icons)
+
+:::tip Single-file themes
+For simple CSS-only themes, you can also use a single file: `~/.config/histui/themes/my-colors.css`
+:::
+
+See [Extending Themes](/docs/histuid/theming/extending) for more details.
+
 ## Bundled Themes
 
 histuid ships with these bundled themes:
@@ -104,5 +129,6 @@ You can edit your theme in real-time without restarting the daemon.
 ## Next Steps
 
 - [CSS Reference](/docs/histuid/theming/css-reference) - All CSS selectors and classes
+- [Extending Themes](/docs/histuid/theming/extending) - Create partial themes that inherit from existing themes
 - [Theme Examples](/docs/histuid/theming/examples) - Ready-to-use themes
 - [Advanced Theming](/docs/histuid/theming/advanced) - Theme pack structure, layouts, manifests, and icons

@@ -29,43 +29,82 @@ Add a custom module to show notification status in Waybar.
 
 In `~/.config/waybar/config`:
 
-```json
+```jsonc
 {
-    "modules-right": ["custom/notifications"],
-    "custom/notifications": {
-        "exec": "histui status --format json",
+    "modules-center": ["clock", "custom/histui"],
+
+    "custom/histui": {
+        "exec": "histui status",
         "return-type": "json",
         "interval": 5,
-        "on-click": "histui tui"
+        "format": "{icon} {text}",
+        "format-icons": {
+            "empty": "",      // No notifications
+            "dnd": "󰂛",        // Do Not Disturb
+            "low": "󱅫",        // Low priority
+            "normal": "󱅫",     // Normal priority
+            "critical": "󰂚"    // Critical notification
+        },
+        "on-click": "histui dnd toggle",
+        "on-click-right": "hyprctl dispatch exec '[float;size 900 600;center] kitty --class histui-float -e histui tui'",
+        "on-click-middle": "histui get --format dmenu --since 24h | fuzzel --dmenu -p 'Notifications'"
     }
 }
 ```
 
+**Click actions:**
+- **Left click**: Toggle Do Not Disturb mode
+- **Right click** (2-finger tap): Open the TUI browser
+- **Middle click** (3-finger tap): Browse recent notifications in fuzzel/dmenu
+
 In `~/.config/waybar/style.css`:
 
 ```css
-#custom-notifications {
+#custom-histui {
     padding: 0 10px;
 }
 
-#custom-notifications.dnd {
+/* Do Not Disturb active */
+#custom-histui.dnd {
     color: #f38ba8;
 }
 
-#custom-notifications.has-notifications {
+/* Has unread notifications */
+#custom-histui.has-notifications {
     color: #a6e3a1;
+}
+
+/* Critical notification pending */
+#custom-histui.critical {
+    color: #f38ba8;
+    animation: pulse 1s ease-in-out infinite;
+}
+
+@keyframes pulse {
+    0%, 100% { opacity: 1; }
+    50% { opacity: 0.5; }
 }
 ```
 
-The status command outputs:
+The `histui status` command outputs Waybar-compatible JSON:
 
 ```json
 {
     "text": "3",
-    "tooltip": "3 notifications",
-    "class": "has-notifications"
+    "alt": "normal",
+    "tooltip": "3 active\nDisplayed: 2\nWaiting: 1",
+    "class": "has-notifications normal"
 }
 ```
+
+The `alt` field is used by Waybar to select the icon from `format-icons`. Possible values:
+- `empty` - No notifications
+- `dnd` - Do Not Disturb mode enabled
+- `low`, `normal`, `critical` - Highest urgency among active notifications
+
+:::tip Using Walker instead of Fuzzel
+Replace `fuzzel --dmenu` with `walker --dmenu` if you use Walker as your launcher.
+:::
 
 ## Sway
 

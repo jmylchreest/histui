@@ -30,6 +30,14 @@ type WaybarStatus struct {
 	Percentage int    `json:"percentage,omitempty"`
 }
 
+// NotificationCounts holds notification counts from any daemon.
+type NotificationCounts struct {
+	Displayed      int    // Currently visible (seen but not dismissed)
+	History        int    // Dismissed, in history
+	Waiting        int    // Queued, waiting to be displayed
+	HighestUrgency string // Highest urgency among active notifications
+}
+
 var statusCmd = &cobra.Command{
 	Use:   "status",
 	Short: "Output Waybar-compatible JSON status",
@@ -79,25 +87,54 @@ func runStatus(cmd *cobra.Command, args []string) error {
 		dndEnabled = sharedState.DnDEnabled
 	}
 
-	// Currently only dunst is supported for status
-	adapter := input.NewDunstAdapter()
-
-	// Get counts
-	counts, err := adapter.GetCounts(ctx)
-	if err != nil {
-		return outputStatus(WaybarStatus{Text: "", Alt: "error", Class: "error"})
+	// Detect which daemon to use
+	source := statusOpts.source
+	if source == "" {
+		source = input.DetectDaemon()
 	}
 
-	// Calculate active count (displayed + waiting)
-	_ = counts.Displayed + counts.Waiting // activeCount used in generateStatusFromCounts
+	var counts *NotificationCounts
+
+	switch source {
+	case "histuid":
+		adapter := input.NewHistuidAdapter("")
+		histuidCounts, err := adapter.GetCounts(ctx)
+		if err != nil {
+			return outputStatus(WaybarStatus{Text: "", Alt: "error", Class: "error"})
+		}
+		// Get highest urgency for active notifications
+		urgency, _ := adapter.GetHighestActiveUrgency(ctx)
+		counts = &NotificationCounts{
+			Displayed:      histuidCounts.Displayed,
+			History:        histuidCounts.History,
+			Waiting:        histuidCounts.Waiting,
+			HighestUrgency: urgency,
+		}
+	case "dunst":
+		adapter := input.NewDunstAdapter()
+		dunstCounts, err := adapter.GetCounts(ctx)
+		if err != nil {
+			return outputStatus(WaybarStatus{Text: "", Alt: "error", Class: "error"})
+		}
+		counts = &NotificationCounts{
+			Displayed:      dunstCounts.Displayed,
+			History:        dunstCounts.History,
+			Waiting:        dunstCounts.Waiting,
+			HighestUrgency: "normal", // dunst doesn't provide urgency info via counts
+		}
+	default:
+		return outputStatus(WaybarStatus{Text: "", Alt: "error", Tooltip: "No notification daemon detected", Class: "error"})
+	}
 
 	// Generate status
 	status := generateStatusFromCounts(counts, statusOpts.all, dndEnabled)
 	return outputStatus(status)
 }
 
-// generateStatusFromCounts creates a WaybarStatus from dunst counts.
-func generateStatusFromCounts(counts *input.DunstCounts, includeHistory bool, dndEnabled bool) WaybarStatus {
+// generateStatusFromCounts creates a WaybarStatus from notification counts.
+// The output is designed for Waybar custom modules with return-type: json.
+// Use format: "{icon} {text}" in Waybar config with format-icons for icons.
+func generateStatusFromCounts(counts *NotificationCounts, includeHistory bool, dndEnabled bool) WaybarStatus {
 	activeCount := counts.Displayed + counts.Waiting
 
 	// Determine what to show
@@ -109,11 +146,13 @@ func generateStatusFromCounts(counts *input.DunstCounts, includeHistory bool, dn
 	// If DnD is enabled, adjust the class and alt
 	if dndEnabled {
 		tooltip := "Do Not Disturb: enabled"
+		text := ""
 		if displayCount > 0 {
 			tooltip += fmt.Sprintf("\n%d notification(s) suppressed", displayCount)
+			text = fmt.Sprintf("%d", displayCount)
 		}
 		return WaybarStatus{
-			Text:    "DnD",
+			Text:    text,
 			Alt:     "dnd",
 			Tooltip: tooltip,
 			Class:   "dnd",
@@ -128,32 +167,39 @@ func generateStatusFromCounts(counts *input.DunstCounts, includeHistory bool, dn
 		}
 	}
 
-	// Determine urgency class based on whether there are active notifications
-	// Active notifications are more urgent than just history
-	urgencyClass := "normal"
-	if activeCount == 0 {
-		urgencyClass = "low" // Only history, already acknowledged
-	} else if counts.Displayed > 0 {
-		urgencyClass = "critical" // Notifications currently on screen
+	// Determine urgency class based on highest active urgency
+	urgencyClass := counts.HighestUrgency
+	if urgencyClass == "" || urgencyClass == "empty" {
+		if activeCount == 0 {
+			urgencyClass = "low" // Only history, already acknowledged
+		} else {
+			urgencyClass = "normal"
+		}
 	}
 
 	// Build tooltip with breakdown
 	tooltip := buildCountsTooltip(counts, includeHistory)
 
-	// Text: show active count (or total if --all)
+	// Build class string - include both has-notifications and urgency
+	class := "has-notifications"
+	if urgencyClass != "" {
+		class += " " + urgencyClass
+	}
+
+	// Text: just the count, icon comes from Waybar format-icons
 	text := fmt.Sprintf("%d", displayCount)
 
 	return WaybarStatus{
 		Text:       text,
 		Alt:        urgencyClass,
 		Tooltip:    tooltip,
-		Class:      urgencyClass,
+		Class:      class,
 		Percentage: min(displayCount, 100),
 	}
 }
 
 // buildCountsTooltip creates a tooltip showing notification breakdown.
-func buildCountsTooltip(counts *input.DunstCounts, includeHistory bool) string {
+func buildCountsTooltip(counts *NotificationCounts, includeHistory bool) string {
 	var lines []string
 
 	if counts.Displayed > 0 {

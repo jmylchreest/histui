@@ -51,15 +51,27 @@ monitor_mode = true
 
 ### 2. Start both daemons
 
-In your session startup (e.g., sway/hyprland config):
+**Option A: Using systemd (recommended)**
+
+```bash
+# Enable the monitor mode service
+systemctl --user enable --now histuid-monitor.service
+```
+
+**Option B: In your session startup** (e.g., sway/hyprland config):
 
 ```bash
 # Start dunst for popups
 exec dunst
 
 # Start histuid for history (monitor mode)
-exec histuid
+exec histuid --monitor
 ```
+
+:::note Service conflict
+Don't enable both `histuid.service` and `histuid-monitor.service` simultaneously.
+Use `histuid.service` for standalone mode, or `histuid-monitor.service` when running alongside dunst.
+:::
 
 ### 3. Query history with histui
 

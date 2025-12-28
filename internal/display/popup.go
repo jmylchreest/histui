@@ -49,7 +49,6 @@ type Popup struct {
 	onWidthReady  func(width int)  // Called when actual width is measured
 
 	// State
-	position     int
 	closed       bool
 	stackCount   int // Number of stacked identical notifications
 	timestamp    time.Time
@@ -73,10 +72,7 @@ type Popup struct {
 // NewPopup creates a new notification popup with its own layer-shell window.
 // Use NewPopupWidget for embedding in a container (single-window mode).
 func NewPopup(app *gtk.Application, notification *dbus.DBusNotification, cfg *config.DaemonConfig, logger *slog.Logger) (*Popup, error) {
-	p, err := newPopupBase(notification, cfg, logger)
-	if err != nil {
-		return nil, err
-	}
+	p := newPopupBase(notification, cfg, logger)
 
 	// Create the window
 	p.window = gtk.NewWindow()
@@ -116,10 +112,7 @@ func NewPopup(app *gtk.Application, notification *dbus.DBusNotification, cfg *co
 // Unlike NewPopup, this does not create a window - just the notification content box.
 // Use this for single-window mode where all notifications share one layer-shell window.
 func NewPopupWidget(notification *dbus.DBusNotification, cfg *config.DaemonConfig, logger *slog.Logger, iconResolver *icon.Resolver) (*Popup, error) {
-	p, err := newPopupBase(notification, cfg, logger)
-	if err != nil {
-		return nil, err
-	}
+	p := newPopupBase(notification, cfg, logger)
 	p.iconResolver = iconResolver
 
 	// Build the UI from layout template
@@ -138,7 +131,7 @@ func NewPopupWidget(notification *dbus.DBusNotification, cfg *config.DaemonConfi
 }
 
 // newPopupBase creates the base Popup with configuration but no window or UI.
-func newPopupBase(notification *dbus.DBusNotification, cfg *config.DaemonConfig, logger *slog.Logger) (*Popup, error) {
+func newPopupBase(notification *dbus.DBusNotification, cfg *config.DaemonConfig, logger *slog.Logger) *Popup {
 	if logger == nil {
 		logger = slog.Default()
 	}
@@ -172,7 +165,7 @@ func newPopupBase(notification *dbus.DBusNotification, cfg *config.DaemonConfig,
 	p.maxWidth = layoutConfig.MaxWidth
 	p.maxHeight = layoutConfig.MaxHeight
 
-	return p, nil
+	return p
 }
 
 // applyThemeClasses adds CSS classes for advanced theming.
@@ -421,7 +414,7 @@ func (p *Popup) buildIcon(elem layout.LayoutElement) gtk.Widgetter {
 			return createNerdLabel(getNerdSymbol())
 		}
 		p.logger.Debug("loaded icon from file", "path", iconName, "width", pixbuf.Width(), "height", pixbuf.Height())
-		p.iconImage.SetFromPixbuf(pixbuf)
+		p.iconImage.SetFromPixbuf(pixbuf) //nolint:staticcheck // TODO: migrate to SetFromPaintable when API stabilizes
 		return p.iconImage
 	}
 
@@ -437,7 +430,7 @@ func (p *Popup) buildIcon(elem layout.LayoutElement) gtk.Widgetter {
 			return createNerdLabel(getNerdSymbol())
 		}
 		p.logger.Debug("loaded icon from file URI", "path", path, "width", pixbuf.Width(), "height", pixbuf.Height())
-		p.iconImage.SetFromPixbuf(pixbuf)
+		p.iconImage.SetFromPixbuf(pixbuf) //nolint:staticcheck // TODO: migrate to SetFromPaintable when API stabilizes
 		return p.iconImage
 	}
 
@@ -752,7 +745,7 @@ func (p *Popup) buildImageContainer(pixbuf *gdkpixbuf.Pixbuf) gtk.Widgetter {
 	gradientOverlay := gtk.NewBox(gtk.OrientationVertical, 0)
 	gradientOverlay.AddCSSClass("notification-image-fade")
 	gradientOverlay.SetVAlign(gtk.AlignEnd)
-	gradientOverlay.SetHExpand(true) // Fill width
+	gradientOverlay.SetHExpand(true)       // Fill width
 	gradientOverlay.SetSizeRequest(-1, 10) // Gradient height
 	overlay.AddOverlay(gradientOverlay)
 
@@ -1000,8 +993,7 @@ func (p *Popup) animateToOffset(targetY int) {
 	startTime := time.Now()
 
 	// Animation tick function
-	var tick func() bool
-	tick = func() bool {
+	tick := func() bool {
 		if p.closed {
 			p.animating = false
 			return false // Stop animation

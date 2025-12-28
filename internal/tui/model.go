@@ -180,6 +180,11 @@ func New(cfg *config.Config, s *store.Store) Model {
 	l.SetFilteringEnabled(true)
 	l.DisableQuitKeybindings()
 
+	// Hide the empty status bar message to prevent duplicate "no items" display
+	// The list shows both StatusEmpty in the status bar and NoItems in the content area
+	// We keep NoItems (centered in content) and hide StatusEmpty (in status bar)
+	l.Styles.StatusEmpty = lipgloss.NewStyle()
+
 	searchInput := textinput.New()
 	searchInput.Placeholder = "Search or filter (e.g., app=discord)..."
 	searchInput.CharLimit = 100
@@ -444,6 +449,32 @@ func (m Model) handleListKey(msg tea.KeyMsg) (tea.Model, tea.Cmd) {
 		}
 		return m, nil
 
+	case key.Matches(msg, m.keys.DismissAll):
+		if m.store != nil {
+			// Get all currently visible (filtered) items
+			items := m.list.Items()
+			dismissedCount := 0
+			for _, item := range items {
+				if ni, ok := item.(notificationItem); ok {
+					if !ni.notification.IsDismissed() {
+						_ = m.store.Dismiss(ni.notification.HistuiID)
+						dismissedCount++
+					}
+				}
+			}
+			if dismissedCount > 0 {
+				m.notifications = m.fetchNotifications()
+				m.list.SetItems(m.buildListItems())
+				return m, func() tea.Msg {
+					return statusMsg{text: fmt.Sprintf("Dismissed %d notification(s)", dismissedCount), isErr: false}
+				}
+			}
+			return m, func() tea.Msg {
+				return statusMsg{text: "No notifications to dismiss", isErr: false}
+			}
+		}
+		return m, nil
+
 	case key.Matches(msg, m.keys.HardDelete):
 		if item, ok := m.list.SelectedItem().(notificationItem); ok {
 			if m.store != nil {
@@ -674,14 +705,34 @@ func (m Model) renderDetail(n model.Notification) string {
 	s += "\n" + labelStyle.Render("Body:") + "\n"
 	s += n.Body + "\n"
 
-	// Extensions
+	// Extensions - only show if there's something useful
 	if n.Extensions != nil {
-		s += "\n" + labelStyle.Render("Extensions:") + "\n"
-		if n.Extensions.URLs != "" {
-			s += "  URLs: " + n.Extensions.URLs + "\n"
+		var extLines []string
+
+		if n.Extensions.Progress >= 0 {
+			extLines = append(extLines, fmt.Sprintf("  Progress: %d%%", n.Extensions.Progress))
 		}
-		if n.Extensions.Progress > 0 {
-			s += fmt.Sprintf("  Progress: %d%%\n", n.Extensions.Progress)
+		if n.Extensions.URLs != "" {
+			extLines = append(extLines, "  URLs: "+n.Extensions.URLs)
+		}
+		if n.Extensions.StackTag != "" {
+			extLines = append(extLines, "  Stack Tag: "+n.Extensions.StackTag)
+		}
+		if len(n.Extensions.Actions) > 0 {
+			var actionLabels []string
+			for _, a := range n.Extensions.Actions {
+				actionLabels = append(actionLabels, a.Label)
+			}
+			extLines = append(extLines, "  Actions: "+strings.Join(actionLabels, ", "))
+		}
+		if n.Extensions.DesktopEntry != "" {
+			extLines = append(extLines, "  Desktop: "+n.Extensions.DesktopEntry)
+		}
+
+		// Only show Extensions header if we have something to display
+		if len(extLines) > 0 {
+			s += "\n" + labelStyle.Render("Extensions:") + "\n"
+			s += strings.Join(extLines, "\n") + "\n"
 		}
 	}
 
@@ -792,6 +843,7 @@ func (m Model) viewHelpKeybindings() string {
 	s += keyStyle.Render("  C") + "            Copy all as JSON\n"
 	s += keyStyle.Render("  alt+c") + "        Copy all as YAML\n"
 	s += keyStyle.Render("  d") + "            Dismiss/undismiss\n"
+	s += keyStyle.Render("  ctrl+d") + "       Dismiss all visible\n"
 	s += keyStyle.Render("  D") + "            Delete permanently\n"
 	s += keyStyle.Render("  a") + "            Toggle dismissed\n"
 	s += keyStyle.Render("  /") + "            Search/filter\n"

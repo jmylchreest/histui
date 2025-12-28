@@ -66,9 +66,20 @@ tasks:
       - mv build ../dist/docs
 
   install:
-    desc: Install histui to GOPATH/bin
+    desc: Install histui and histuid to GOPATH/bin
     cmds:
-      - go install -ldflags "{{.LDFLAGS}}" ./cmd/histui
+      - CGO_ENABLED=0 go install -ldflags "{{.LDFLAGS}}" ./cmd/histui
+      - CGO_ENABLED=1 go install -ldflags "{{.LDFLAGS}}" ./cmd/histuid
+
+  install:histui:
+    desc: Install histui CLI only to GOPATH/bin
+    cmds:
+      - CGO_ENABLED=0 go install -ldflags "{{.LDFLAGS}}" ./cmd/histui
+
+  install:histuid:
+    desc: Install histuid daemon only to GOPATH/bin (requires GTK4)
+    cmds:
+      - CGO_ENABLED=1 go install -ldflags "{{.LDFLAGS}}" ./cmd/histuid
 
   # Code quality
   test:

@@ -1,0 +1,16 @@
+[Unit]
+Description=histuid notification daemon (monitor mode)
+Documentation=https://github.com/jmylchreest/histui
+PartOf=graphical-session.target
+After=graphical-session.target
+# Run alongside dunst or another notification daemon
+After=dunst.service
+
+[Service]
+Type=simple
+ExecStart=/usr/bin/histuid --monitor
+Restart=on-failure
+RestartSec=5
+
+[Install]
+WantedBy=graphical-session.target

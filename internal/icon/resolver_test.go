@@ -14,11 +14,11 @@ func TestResolverDefaultAliases(t *testing.T) {
 		expected string
 	}{
 		{"zapzap", "whatsapp"},
-		{"ZapZap", "whatsapp"},       // case insensitive
-		{"  zapzap  ", "whatsapp"},   // trims spaces
+		{"ZapZap", "whatsapp"},     // case insensitive
+		{"  zapzap  ", "whatsapp"}, // trims spaces
 		{"telegram-desktop", "telegram"},
 		{"firefox-esr", "firefox"},
-		{"firefox", "firefox"},       // no alias, returns as-is
+		{"firefox", "firefox"},         // no alias, returns as-is
 		{"unknown-app", "unknown-app"}, // no alias, returns as-is
 		{"", ""},                       // empty returns empty
 	}
@@ -53,9 +53,14 @@ func TestResolverCustomAliases(t *testing.T) {
 func TestResolverNerdSymbols(t *testing.T) {
 	r := NewResolver()
 
-	// Known symbol
-	if got := r.GetNerdSymbol("discord"); got == "" {
-		t.Error("GetNerdSymbol(discord) returned empty string")
+	// Known fallback symbol (from initDefaults)
+	if got := r.GetNerdSymbol("notification"); got == "" {
+		t.Error("GetNerdSymbol(notification) returned empty string")
+	}
+
+	// Known urgency symbol
+	if got := r.GetNerdSymbol("critical"); got == "" {
+		t.Error("GetNerdSymbol(critical) returned empty string")
 	}
 
 	// Unknown symbol
@@ -63,9 +68,9 @@ func TestResolverNerdSymbols(t *testing.T) {
 		t.Errorf("GetNerdSymbol(unknown) = %q, want empty string", got)
 	}
 
-	// Category lookup
-	if got := r.GetNerdSymbolForCategory("email.arrived"); got == "" {
-		t.Error("GetNerdSymbolForCategory(email.arrived) returned empty string")
+	// Category lookup - "im" is a known category from initDefaults
+	if got := r.GetNerdSymbolForCategory("im.message"); got == "" {
+		t.Error("GetNerdSymbolForCategory(im.message) returned empty string")
 	}
 
 	// Empty category returns default notification symbol

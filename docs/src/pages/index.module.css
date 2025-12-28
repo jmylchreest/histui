@@ -1,23 +1,439 @@
 /**
- * CSS files with the .module.css suffix will be treated as CSS modules
- * and scoped locally.
+ * Homepage styles - Modern, dark, terminal-inspired
  */
 
-.heroBanner {
-  padding: 4rem 0;
-  text-align: center;
+/* Hero Section */
+.hero {
   position: relative;
+  padding: 6rem 0 4rem;
   overflow: hidden;
+  background: linear-gradient(180deg, #0a0a0a 0%, #111 100%);
 }
 
-@media screen and (max-width: 996px) {
-  .heroBanner {
-    padding: 2rem;
+.heroInner {
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  text-align: center;
+  max-width: 900px;
+  margin: 0 auto;
+  padding: 0 1.5rem;
+  position: relative;
+  z-index: 1;
+}
+
+/* Subtle grid background */
+.hero::before {
+  content: '';
+  position: absolute;
+  inset: 0;
+  background-image:
+    linear-gradient(rgba(45, 212, 191, 0.03) 1px, transparent 1px),
+    linear-gradient(90deg, rgba(45, 212, 191, 0.03) 1px, transparent 1px);
+  background-size: 40px 40px;
+  mask-image: radial-gradient(ellipse at center, black 0%, transparent 70%);
+  -webkit-mask-image: radial-gradient(ellipse at center, black 0%, transparent 70%);
+}
+
+/* Gradient glow behind content */
+.hero::after {
+  content: '';
+  position: absolute;
+  top: 50%;
+  left: 50%;
+  transform: translate(-50%, -50%);
+  width: 600px;
+  height: 400px;
+  background: radial-gradient(ellipse, rgba(45, 212, 191, 0.08) 0%, transparent 60%);
+  pointer-events: none;
+}
+
+/* Title styling */
+.title {
+  font-size: 4rem;
+  font-weight: 700;
+  font-family: 'JetBrains Mono', monospace;
+  color: #fff;
+  margin-bottom: 0.5rem;
+  letter-spacing: -0.02em;
+}
+
+.titleAccent {
+  color: #2dd4bf;
+}
+
+.pronunciation {
+  font-size: 1rem;
+  color: #666;
+  font-family: 'JetBrains Mono', monospace;
+  margin-bottom: 1.5rem;
+}
+
+.tagline {
+  font-size: 1.25rem;
+  color: #a1a1aa;
+  max-width: 600px;
+  line-height: 1.6;
+  margin-bottom: 2rem;
+}
+
+/* Button group */
+.buttons {
+  display: flex;
+  gap: 1rem;
+  flex-wrap: wrap;
+  justify-content: center;
+  margin-bottom: 3rem;
+}
+
+.primaryBtn {
+  display: inline-flex;
+  align-items: center;
+  gap: 0.5rem;
+  padding: 0.875rem 1.75rem;
+  font-size: 1rem;
+  font-weight: 600;
+  color: #0a0a0a;
+  background: #2dd4bf;
+  border: none;
+  border-radius: 0.5rem;
+  cursor: pointer;
+  transition: all 0.2s ease;
+  text-decoration: none;
+}
+
+.primaryBtn:hover {
+  background: #14b8a6;
+  transform: translateY(-2px);
+  color: #0a0a0a;
+  text-decoration: none;
+}
+
+.secondaryBtn {
+  display: inline-flex;
+  align-items: center;
+  gap: 0.5rem;
+  padding: 0.875rem 1.75rem;
+  font-size: 1rem;
+  font-weight: 600;
+  color: #2dd4bf;
+  background: transparent;
+  border: 2px solid #2dd4bf;
+  border-radius: 0.5rem;
+  cursor: pointer;
+  transition: all 0.2s ease;
+  text-decoration: none;
+}
+
+.secondaryBtn:hover {
+  background: rgba(45, 212, 191, 0.1);
+  transform: translateY(-2px);
+  color: #2dd4bf;
+  text-decoration: none;
+}
+
+/* Terminal-style code preview */
+.codePreview {
+  width: 100%;
+  max-width: 700px;
+  background: #0f0f0f;
+  border: 1px solid #262626;
+  border-radius: 0.75rem;
+  overflow: hidden;
+  text-align: left;
+  box-shadow: 0 25px 50px -12px rgba(0, 0, 0, 0.5);
+}
+
+.codeHeader {
+  display: flex;
+  align-items: center;
+  gap: 0.5rem;
+  padding: 0.75rem 1rem;
+  background: #141414;
+  border-bottom: 1px solid #262626;
+}
+
+.codeDot {
+  width: 12px;
+  height: 12px;
+  border-radius: 50%;
+}
+
+.codeDotRed {
+  background: #ef4444;
+}
+
+.codeDotYellow {
+  background: #eab308;
+}
+
+.codeDotGreen {
+  background: #22c55e;
+}
+
+.codeTitle {
+  margin-left: 0.5rem;
+  font-size: 0.75rem;
+  color: #666;
+  font-family: 'JetBrains Mono', monospace;
+}
+
+.codeContent {
+  padding: 1.25rem;
+  font-family: 'JetBrains Mono', monospace;
+  font-size: 0.875rem;
+  line-height: 1.6;
+}
+
+.codeLine {
+  display: flex;
+  gap: 1rem;
+}
+
+.codePrompt {
+  color: #2dd4bf;
+  user-select: none;
+}
+
+.codeCommand {
+  color: #e4e4e7;
+}
+
+.codeComment {
+  color: #525252;
+}
+
+.codeOutput {
+  color: #a1a1aa;
+  padding-left: 2rem;
+}
+
+/* Features Section */
+.features {
+  padding: 5rem 0;
+  background: #0a0a0a;
+}
+
+.featuresInner {
+  max-width: 1200px;
+  margin: 0 auto;
+  padding: 0 1.5rem;
+}
+
+.featuresTitle {
+  text-align: center;
+  font-size: 2rem;
+  font-weight: 600;
+  color: #fff;
+  margin-bottom: 3rem;
+}
+
+.featuresGrid {
+  display: grid;
+  grid-template-columns: repeat(auto-fit, minmax(300px, 1fr));
+  gap: 1.5rem;
+}
+
+.featureCard {
+  background: #141414;
+  border: 1px solid #262626;
+  border-radius: 0.75rem;
+  padding: 1.5rem;
+  transition: all 0.2s ease;
+}
+
+.featureCard:hover {
+  border-color: #2dd4bf;
+  transform: translateY(-2px);
+}
+
+.featureIcon {
+  font-size: 2rem;
+  margin-bottom: 1rem;
+}
+
+.featureTitle {
+  font-size: 1.125rem;
+  font-weight: 600;
+  color: #fff;
+  margin-bottom: 0.5rem;
+}
+
+.featureDesc {
+  font-size: 0.9375rem;
+  color: #a1a1aa;
+  line-height: 1.5;
+  margin: 0;
+}
+
+/* Quick Install Section */
+.install {
+  padding: 4rem 0;
+  background: #111;
+  border-top: 1px solid #262626;
+  border-bottom: 1px solid #262626;
+}
+
+.installInner {
+  max-width: 700px;
+  margin: 0 auto;
+  padding: 0 1.5rem;
+  text-align: center;
+}
+
+.installTitle {
+  font-size: 1.5rem;
+  font-weight: 600;
+  color: #fff;
+  margin-bottom: 1.5rem;
+}
+
+.installCode {
+  background: #0a0a0a;
+  border: 1px solid #262626;
+  border-radius: 0.5rem;
+  padding: 1rem 1.5rem;
+  font-family: 'JetBrains Mono', monospace;
+  font-size: 0.9375rem;
+  color: #e4e4e7;
+  text-align: left;
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+}
+
+.installPrompt {
+  color: #2dd4bf;
+}
+
+/* Responsive adjustments */
+@media screen and (max-width: 768px) {
+  .hero {
+    padding: 4rem 0 3rem;
+  }
+
+  .title {
+    font-size: 2.5rem;
+  }
+
+  .tagline {
+    font-size: 1.125rem;
+  }
+
+  .codePreview {
+    max-width: 100%;
+  }
+
+  .codeContent {
+    font-size: 0.75rem;
+    padding: 1rem;
+  }
+
+  .buttons {
+    flex-direction: column;
+    width: 100%;
+    max-width: 300px;
+  }
+
+  .primaryBtn,
+  .secondaryBtn {
+    width: 100%;
+    justify-content: center;
   }
 }
 
-.buttons {
-  display: flex;
-  align-items: center;
-  justify-content: center;
+/* Light mode overrides */
+:global([data-theme='light']) .hero {
+  background: linear-gradient(180deg, #fafafa 0%, #f4f4f5 100%);
+}
+
+:global([data-theme='light']) .hero::before {
+  background-image:
+    linear-gradient(rgba(20, 184, 166, 0.05) 1px, transparent 1px),
+    linear-gradient(90deg, rgba(20, 184, 166, 0.05) 1px, transparent 1px);
+}
+
+:global([data-theme='light']) .hero::after {
+  background: radial-gradient(ellipse, rgba(20, 184, 166, 0.05) 0%, transparent 60%);
+}
+
+:global([data-theme='light']) .title {
+  color: #18181b;
+}
+
+:global([data-theme='light']) .titleAccent {
+  color: #14b8a6;
+}
+
+:global([data-theme='light']) .tagline {
+  color: #52525b;
+}
+
+:global([data-theme='light']) .codePreview {
+  background: #fff;
+  border-color: #e4e4e7;
+}
+
+:global([data-theme='light']) .codeHeader {
+  background: #f4f4f5;
+  border-color: #e4e4e7;
+}
+
+:global([data-theme='light']) .codeCommand {
+  color: #18181b;
+}
+
+:global([data-theme='light']) .codeOutput {
+  color: #52525b;
+}
+
+:global([data-theme='light']) .features {
+  background: #fafafa;
+}
+
+:global([data-theme='light']) .featuresTitle {
+  color: #18181b;
+}
+
+:global([data-theme='light']) .featureCard {
+  background: #fff;
+  border-color: #e4e4e7;
+}
+
+:global([data-theme='light']) .featureTitle {
+  color: #18181b;
+}
+
+:global([data-theme='light']) .featureDesc {
+  color: #52525b;
+}
+
+:global([data-theme='light']) .install {
+  background: #f4f4f5;
+  border-color: #e4e4e7;
+}
+
+:global([data-theme='light']) .installTitle {
+  color: #18181b;
+}
+
+:global([data-theme='light']) .installCode {
+  background: #fff;
+  border-color: #e4e4e7;
+  color: #18181b;
+}
+
+:global([data-theme='light']) .primaryBtn {
+  color: #fff;
+  background: #14b8a6;
+}
+
+:global([data-theme='light']) .primaryBtn:hover {
+  background: #0d9488;
+  color: #fff;
+}
+
+:global([data-theme='light']) .secondaryBtn {
+  color: #14b8a6;
+  border-color: #14b8a6;
 }

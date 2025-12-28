@@ -6,41 +6,16 @@ sidebar_position: 3
 
 # histuid Daemon Quickstart
 
-Install and configure histuid to capture and display desktop notifications.
+Configure histuid to capture and display desktop notifications.
 
 :::info Wayland Only
 histuid requires a Wayland compositor with layer-shell support (Hyprland, Sway, river, etc.).
 It does not support X11.
 :::
 
-## Prerequisites
-
-- Wayland compositor with layer-shell support
-- GTK4 development libraries
-- D-Bus session bus
-
-### Installing GTK4 (Arch Linux)
-
-```bash
-sudo pacman -S gtk4
-```
-
-### Installing GTK4 (Debian/Ubuntu)
-
-```bash
-sudo apt install libgtk-4-dev
-```
-
-## Installation
-
-### From Source
-
-```bash
-git clone https://github.com/jmylchreest/histui.git
-cd histui
-CGO_ENABLED=1 go build -o histuid ./cmd/histuid
-sudo mv histuid /usr/local/bin/
-```
+:::tip Installation
+See the [Installation Guide](/docs/installation) for all installation methods including AUR, pre-built binaries, and building from source.
+:::
 
 ## Starting the Daemon
 

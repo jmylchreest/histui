@@ -31,14 +31,6 @@ type SortOptions struct {
 	Order SortOrder // Sort order (asc/desc)
 }
 
-// DefaultSortOptions returns default sort options (newest first).
-func DefaultSortOptions() SortOptions {
-	return SortOptions{
-		Field: SortByTimestamp,
-		Order: SortDesc,
-	}
-}
-
 // Sort sorts notifications in place based on the provided options.
 func Sort(notifications []model.Notification, opts SortOptions) {
 	if len(notifications) == 0 {

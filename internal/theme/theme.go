@@ -18,6 +18,7 @@ type Theme struct {
 	Path      string    // Full path to the CSS file (empty for default)
 	Dir       string    // Theme directory (for directory-based themes)
 	CSS       string    // The CSS content
+	Layout    string    // Layout XML content (empty uses default)
 	ModTime   time.Time // Last modification time
 	IsDefault bool      // True if this is the embedded default theme
 	Manifest  *Manifest // Theme manifest (nil if no manifest)
@@ -132,13 +133,39 @@ func (t *Theme) GetSoundConfig(urgency int) *SoundConfig {
 	return config
 }
 
+// GetLayout returns the theme's layout XML, falling back to the default layout if none set.
+func (t *Theme) GetLayout() string {
+	if t.Layout != "" {
+		return t.Layout
+	}
+	// Fall back to default embedded layout
+	if layout, found := GetEmbeddedLayout(DefaultThemeName); found {
+		return layout
+	}
+	return ""
+}
+
 // ProcessImports resolves and inlines @import statements in CSS.
 // Imports are resolved relative to baseDir.
 // The seen map prevents circular imports.
+//
+// Import resolution order:
+//  1. Relative to current file's directory (baseDir)
+//  2. User themes directory (~/.config/histui/themes/)
+//  3. Embedded themes
+//
+// Supported import formats:
+//   - @import "default.css";           - imports embedded theme "default"
+//   - @import "default/theme.css";     - imports embedded theme "default"
+//   - @import "mytheme/theme.css";     - imports user theme "mytheme" (or embedded if not found)
+//   - @import "_base.css";             - imports embedded partial "_base.css"
 func ProcessImports(css string, baseDir string, seen map[string]bool) string {
 	if seen == nil {
 		seen = make(map[string]bool)
 	}
+
+	// Get user themes directory for fallback resolution
+	userThemesDir, _ := ThemesDir()
 
 	return importRegex.ReplaceAllStringFunc(css, func(match string) string {
 		// Extract the file path from the @import statement
@@ -149,7 +176,7 @@ func ProcessImports(css string, baseDir string, seen map[string]bool) string {
 
 		importPath := submatch[1]
 
-		// Resolve the path
+		// Resolve the path relative to current file
 		var fullPath string
 		if filepath.IsAbs(importPath) {
 			fullPath = importPath
@@ -163,31 +190,71 @@ func ProcessImports(css string, baseDir string, seen map[string]bool) string {
 		}
 		seen[fullPath] = true
 
-		// Try to read the imported file
-		importedCSS, err := os.ReadFile(fullPath)
-		if err != nil {
-			// Check if it's an embedded partial (files starting with underscore)
-			baseName := filepath.Base(importPath)
-			if strings.HasPrefix(baseName, "_") {
-				// Try embedded partials
-				if embeddedCSS, found := GetEmbeddedPartial(baseName); found {
-					return "/* imported (embedded): " + importPath + " */\n" + embeddedCSS
-				}
-			}
-			// Also try as a regular embedded theme
-			themeName := strings.TrimSuffix(baseName, ".css")
-			if embeddedCSS, found := GetEmbeddedTheme(themeName); found {
-				return "/* imported (embedded): " + importPath + " */\n" + embeddedCSS
-			}
-			return "/* import failed: " + importPath + " - " + err.Error() + " */"
+		// Try to read the imported file from disk (relative to current file)
+		if importedCSS, err := os.ReadFile(fullPath); err == nil {
+			importedBaseDir := filepath.Dir(fullPath)
+			processedImport := ProcessImports(string(importedCSS), importedBaseDir, seen)
+			return "/* imported: " + importPath + " */\n" + processedImport
 		}
 
-		// Recursively process imports in the imported file
-		importedBaseDir := filepath.Dir(fullPath)
-		processedImport := ProcessImports(string(importedCSS), importedBaseDir, seen)
+		// Try user themes directory (e.g., "mytheme/theme.css" -> ~/.config/histui/themes/mytheme/theme.css)
+		if userThemesDir != "" && !filepath.IsAbs(importPath) {
+			userPath := filepath.Join(userThemesDir, importPath)
+			if importedCSS, err := os.ReadFile(userPath); err == nil {
+				seen[userPath] = true // Also mark user path as seen
+				importedBaseDir := filepath.Dir(userPath)
+				processedImport := ProcessImports(string(importedCSS), importedBaseDir, seen)
+				return "/* imported (user): " + importPath + " */\n" + processedImport
+			}
+		}
 
-		return "/* imported: " + importPath + " */\n" + processedImport
+		// Try embedded themes
+		if embeddedCSS, found := resolveEmbeddedImport(importPath); found {
+			// Recursively process imports in the embedded CSS
+			processedImport := ProcessImports(embeddedCSS, "", seen)
+			return "/* imported (embedded): " + importPath + " */\n" + processedImport
+		}
+
+		return "/* import failed: " + importPath + " - file not found */"
 	})
+}
+
+// resolveEmbeddedImport attempts to resolve an import path to embedded CSS.
+// Supports multiple formats:
+//   - "default.css" → embedded theme "default"
+//   - "default/theme.css" → embedded theme "default"
+//   - "_base.css" → embedded partial "_base.css"
+func resolveEmbeddedImport(importPath string) (string, bool) {
+	baseName := filepath.Base(importPath)
+	dirName := filepath.Dir(importPath)
+
+	// Check for embedded partial (files starting with underscore)
+	if strings.HasPrefix(baseName, "_") {
+		if embeddedCSS, found := GetEmbeddedPartial(baseName); found {
+			return embeddedCSS, true
+		}
+	}
+
+	// Try "themename/theme.css" or "themename/themename.css" format
+	// Extract theme name from directory component
+	if dirName != "." && dirName != "" {
+		// Get the first directory component as the theme name
+		parts := strings.Split(filepath.ToSlash(importPath), "/")
+		if len(parts) >= 2 {
+			themeName := parts[0]
+			if embeddedCSS, found := GetEmbeddedTheme(themeName); found {
+				return embeddedCSS, true
+			}
+		}
+	}
+
+	// Try as a direct theme name: "default.css" → theme "default"
+	themeName := strings.TrimSuffix(baseName, ".css")
+	if embeddedCSS, found := GetEmbeddedTheme(themeName); found {
+		return embeddedCSS, true
+	}
+
+	return "", false
 }
 
 // NewDefaultTheme creates the embedded default theme.

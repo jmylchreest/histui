@@ -61,8 +61,8 @@ func TestParseTemplateString(t *testing.T) {
 			wantErr: true,
 		},
 		{
-			name: "empty popup",
-			input: `<popup></popup>`,
+			name:    "empty popup",
+			input:   `<popup></popup>`,
 			wantErr: false,
 			checkLayout: func(t *testing.T, config *LayoutConfig) {
 				assert.Empty(t, config.Elements)
@@ -80,13 +80,12 @@ func TestParseTemplateString(t *testing.T) {
 				<appname />
 				<timestamp />
 				<stack-count />
-				<close />
 				<image />
 				<box />
 			</popup>`,
 			wantErr: false,
 			checkLayout: func(t *testing.T, config *LayoutConfig) {
-				assert.Len(t, config.Elements, 12)
+				assert.Len(t, config.Elements, 11)
 			},
 		},
 	}
@@ -115,9 +114,9 @@ func TestDefaultLayout(t *testing.T) {
 	// Default layout should have header as first element
 	assert.Equal(t, ElementTypeHeader, layout.Elements[0].Type)
 
-	// Header should have icon, box (with summary/appname), stack-count, close
+	// Header should have icon, box (with summary/appname), stack-count
 	header := layout.Elements[0]
-	require.GreaterOrEqual(t, len(header.Children), 4)
+	require.GreaterOrEqual(t, len(header.Children), 3)
 	assert.Equal(t, ElementTypeIcon, header.Children[0].Type)
 }
 

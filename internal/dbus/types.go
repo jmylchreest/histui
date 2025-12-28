@@ -262,6 +262,7 @@ func (n *DBusNotification) Progress() int {
 // Notifications with the same non-empty stack-tag should replace each other.
 // Supports dunst-compatible hints:
 //   - x-dunst-stack-tag (dunstify -h string:x-dunst-stack-tag:TAG)
+//   - stack-tag (generic)
 //   - synchronous
 //   - private-synchronous
 //   - x-canonical-private-synchronous (Ubuntu/Canonical apps)
@@ -269,6 +270,7 @@ func (n *DBusNotification) StackTag() string {
 	// Check hints in priority order
 	hintNames := []string{
 		"x-dunst-stack-tag",
+		"stack-tag",
 		"synchronous",
 		"private-synchronous",
 		"x-canonical-private-synchronous",

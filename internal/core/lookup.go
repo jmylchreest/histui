@@ -48,29 +48,3 @@ func Search(notifications []model.Notification, term string) []model.Notificatio
 
 	return result
 }
-
-// UniqueApps returns a sorted list of unique app names from notifications.
-func UniqueApps(notifications []model.Notification) []string {
-	seen := make(map[string]bool)
-	var apps []string
-
-	for _, n := range notifications {
-		if n.AppName != "" && !seen[n.AppName] {
-			seen[n.AppName] = true
-			apps = append(apps, n.AppName)
-		}
-	}
-
-	// Sort alphabetically
-	sortStrings(apps)
-	return apps
-}
-
-// sortStrings sorts strings in place (simple insertion sort for small lists).
-func sortStrings(s []string) {
-	for i := 1; i < len(s); i++ {
-		for j := i; j > 0 && strings.ToLower(s[j]) < strings.ToLower(s[j-1]); j-- {
-			s[j], s[j-1] = s[j-1], s[j]
-		}
-	}
-}

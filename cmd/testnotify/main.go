@@ -48,7 +48,7 @@ func main() {
 	if err != nil {
 		log.Fatalf("Failed to connect to session bus: %v", err)
 	}
-	defer conn.Close()
+	defer func() { _ = conn.Close() }()
 
 	if *clearFlag {
 		clearNotifications(conn)
@@ -163,7 +163,7 @@ func notifyWithReplacesID(conn *dbus.Conn, appName, summary, body, icon string, 
 	return id
 }
 
-func notifyWithActions(conn *dbus.Conn, appName, summary, body, icon string, actions []string, hints map[string]dbus.Variant, timeout int32) uint32 {
+func notifyWithActions(conn *dbus.Conn, appName, summary, body, icon string, actions []string, hints map[string]dbus.Variant, timeout int32) {
 	obj := conn.Object(notifyDest, notifyPath)
 	var id uint32
 	err := obj.Call(notifyIface+".Notify", 0,
@@ -178,9 +178,9 @@ func notifyWithActions(conn *dbus.Conn, appName, summary, body, icon string, act
 	).Store(&id)
 	if err != nil {
 		log.Printf("Failed to send notification: %v", err)
-		return 0
+		return
 	}
-	return id
+	_ = id // ID available if needed for future tests
 }
 
 func clearNotifications(conn *dbus.Conn) {
@@ -431,9 +431,9 @@ func sendStack(conn *dbus.Conn, count int) {
 			for y := 0; y < height; y++ {
 				for x := 0; x < width; x++ {
 					offset := y*rowstride + x*3
-					pixels[offset] = byte((x * 255) / width)       // R: horizontal gradient
-					pixels[offset+1] = byte((y * 255) / height)   // G: vertical gradient
-					pixels[offset+2] = byte(128)                   // B: constant
+					pixels[offset] = byte((x * 255) / width)    // R: horizontal gradient
+					pixels[offset+1] = byte((y * 255) / height) // G: vertical gradient
+					pixels[offset+2] = byte(128)                // B: constant
 				}
 			}
 
@@ -481,7 +481,7 @@ func sendKittyStyle(conn *dbus.Conn) {
 	}
 	defer func() {
 		if iconPath != "" {
-			os.Remove(iconPath)
+			_ = os.Remove(iconPath)
 		}
 	}()
 
@@ -511,9 +511,9 @@ func sendWithImagePath(conn *dbus.Conn) {
 	pixels := make([]byte, width*height*4)
 	for y := 0; y < height; y++ {
 		ratio := float32(y) / float32(height)
-		r := byte(128 + int(127*ratio))      // 128 -> 255
-		g := byte(50)                        // constant
-		b := byte(200 - int(150*ratio))      // 200 -> 50
+		r := byte(128 + int(127*ratio)) // 128 -> 255
+		g := byte(50)                   // constant
+		b := byte(200 - int(150*ratio)) // 200 -> 50
 		for x := 0; x < width; x++ {
 			offset := (y*width + x) * 4
 			pixels[offset] = r
@@ -539,7 +539,7 @@ func sendWithImagePath(conn *dbus.Conn) {
 	pf, err := os.Create(ppmFile)
 	if err != nil {
 		log.Printf("Failed to create PPM file: %v", err)
-		f.Close()
+		_ = f.Close()
 		return
 	}
 
@@ -552,8 +552,8 @@ func sendWithImagePath(conn *dbus.Conn) {
 			_, _ = pf.Write([]byte{pixels[offset], pixels[offset+1], pixels[offset+2]})
 		}
 	}
-	pf.Close()
-	f.Close()
+	_ = pf.Close()
+	_ = f.Close()
 
 	hints := map[string]dbus.Variant{
 		"image-path": dbus.MakeVariant(ppmFile),
@@ -565,8 +565,8 @@ func sendWithImagePath(conn *dbus.Conn) {
 
 	// Give notification daemon time to read the file, then clean up
 	time.Sleep(delay)
-	os.Remove(ppmFile)
-	os.Remove(tmpFile)
+	_ = os.Remove(ppmFile)
+	_ = os.Remove(tmpFile)
 }
 
 // sendStackTagProgress sends progress updates using stack tag (dunst-compatible).
@@ -589,8 +589,8 @@ func sendStackTagProgress(conn *dbus.Conn) {
 
 	for _, step := range steps {
 		hints := map[string]dbus.Variant{
-			"value":              dbus.MakeVariant(step.percent),
-			"x-dunst-stack-tag":  dbus.MakeVariant("download-test"),
+			"value":             dbus.MakeVariant(step.percent),
+			"x-dunst-stack-tag": dbus.MakeVariant("download-test"),
 		}
 		notify(conn, "qbittorrent", "Downloading File", step.body, "qbittorrent", hints, 5000)
 		fmt.Printf("  -> Progress: %d%%\n", step.percent)

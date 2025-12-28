@@ -27,7 +27,7 @@ const (
 
 // FilterCondition represents a single filter condition.
 type FilterCondition struct {
-	Field    string   // Field name: app, summary, body, urgency, timestamp, category, dismissed, seen
+	Field    string   // Field name: app, summary, body, urgency, timestamp, age, category, dismissed, seen
 	Operator FilterOp // Comparison operator
 	Value    string   // Value to compare against
 
@@ -35,6 +35,7 @@ type FilterCondition struct {
 	regex       *regexp.Regexp // Compiled regex for ~= operator
 	urgencyVal  int            // Parsed urgency value
 	timestampOp time.Time      // Parsed timestamp for comparison
+	ageDuration time.Duration  // Parsed age duration for comparison
 	boolVal     bool           // Parsed bool value
 }
 
@@ -140,7 +141,7 @@ func ParseUrgency(s string) (int, error) {
 // Format: "field=value,field2~value2,field3>value3"
 // Multiple conditions are comma-separated and ANDed together.
 //
-// Supported fields: app, summary, body, urgency, category, dismissed, seen, timestamp
+// Supported fields: app, summary, body, urgency, category, dismissed, seen, timestamp, age
 // Supported operators: = (equal), != (not equal), ~ (contains), ~= (regex), >, <, >=, <=
 //
 // Examples:
@@ -149,7 +150,9 @@ func ParseUrgency(s string) (int, error) {
 //   - "urgency>=normal" - urgency is normal or higher
 //   - "app=slack,urgency=critical" - Slack critical notifications
 //   - "body~=(?i)meeting" - body matches regex (case-insensitive "meeting")
-//   - "timestamp>1h" - notifications from the last hour
+//   - "age>5m" - notifications older than 5 minutes
+//   - "age<1h" - notifications newer than 1 hour
+//   - "timestamp>1h" - notifications from the last hour (legacy, prefer age)
 func ParseFilter(expr string) (*FilterExpr, error) {
 	if expr == "" {
 		return &FilterExpr{}, nil
@@ -247,6 +250,14 @@ func (c *FilterCondition) init() error {
 			return fmt.Errorf("invalid timestamp value: %w", err)
 		}
 		c.timestampOp = time.Now().Add(-dur)
+	case "age":
+		c.Field = "age"
+		// Parse duration for age comparisons (age>5m = older than 5 minutes)
+		dur, err := ParseDuration(c.Value)
+		if err != nil {
+			return fmt.Errorf("invalid age value: %w", err)
+		}
+		c.ageDuration = dur
 	default:
 		return fmt.Errorf("unknown filter field: %s", c.Field)
 	}
@@ -304,6 +315,8 @@ func (c *FilterCondition) Match(n model.Notification) bool {
 		return c.matchBool(n.IsSeen())
 	case "timestamp":
 		return c.matchTimestamp(time.Unix(n.Timestamp, 0))
+	case "age":
+		return c.matchAge(time.Unix(n.Timestamp, 0))
 	default:
 		return false
 	}
@@ -368,6 +381,32 @@ func (c *FilterCondition) matchTimestamp(fieldValue time.Time) bool {
 		return fieldValue.After(c.timestampOp) || fieldValue.Equal(c.timestampOp)
 	case FilterOpLessEq:
 		return fieldValue.Before(c.timestampOp) || fieldValue.Equal(c.timestampOp)
+	default:
+		return false
+	}
+}
+
+// matchAge matches notification age (time since timestamp).
+// age>5m means "notifications older than 5 minutes"
+// age<5m means "notifications newer than 5 minutes"
+func (c *FilterCondition) matchAge(notificationTime time.Time) bool {
+	age := time.Since(notificationTime)
+	switch c.Operator {
+	case FilterOpGreater:
+		return age > c.ageDuration
+	case FilterOpLess:
+		return age < c.ageDuration
+	case FilterOpGreaterEq:
+		return age >= c.ageDuration
+	case FilterOpLessEq:
+		return age <= c.ageDuration
+	case FilterOpEqual:
+		// Allow some tolerance for equality (within 1 second)
+		diff := age - c.ageDuration
+		if diff < 0 {
+			diff = -diff
+		}
+		return diff < time.Second
 	default:
 		return false
 	}

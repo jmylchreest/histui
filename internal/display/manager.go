@@ -177,7 +177,7 @@ func (m *Manager) Start(ctx context.Context) error {
 	// Start timeout handler goroutine
 	go m.handleTimeouts()
 
-	m.logger.Info("display manager started (single-window mode)")
+	m.logger.Info("display manager started")
 	return nil
 }
 
@@ -728,7 +728,7 @@ func (m *Manager) handlePopupClosed(dbusID uint32, reason dbus.CloseReason) {
 
 // handleHover handles hover state changes for pause-on-hover.
 // When ANY notification in the stack is hovered, ALL notifications are paused.
-func (m *Manager) handleHover(dbusID uint32, hovering bool) {
+func (m *Manager) handleHover(_ uint32, hovering bool) {
 	if !m.config.Behavior.PauseOnHover {
 		return
 	}

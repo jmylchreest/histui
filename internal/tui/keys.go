@@ -22,6 +22,7 @@ type KeyMap struct {
 	CopyAllJSON     key.Binding
 	CopyAllYAML     key.Binding
 	Dismiss         key.Binding
+	DismissAll      key.Binding
 	HardDelete      key.Binding
 	Search          key.Binding
 	Refresh         key.Binding
@@ -42,7 +43,7 @@ func (k KeyMap) FullHelp() [][]key.Binding {
 	return [][]key.Binding{
 		{k.Up, k.Down, k.PageUp, k.PageDown},
 		{k.Enter, k.Back, k.Copy, k.CopySummary},
-		{k.Search, k.Refresh, k.Dismiss, k.HardDelete},
+		{k.Search, k.Refresh, k.Dismiss, k.DismissAll, k.HardDelete},
 		{k.ToggleDismissed, k.Help, k.Quit},
 	}
 }
@@ -101,6 +102,10 @@ func DefaultKeyMap() KeyMap {
 		Dismiss: key.NewBinding(
 			key.WithKeys("d"),
 			key.WithHelp("d", "dismiss"),
+		),
+		DismissAll: key.NewBinding(
+			key.WithKeys("ctrl+d"),
+			key.WithHelp("ctrl+d", "dismiss all visible"),
 		),
 		HardDelete: key.NewBinding(
 			key.WithKeys("D"),

@@ -254,13 +254,35 @@ func TestImagePath(t *testing.T) {
 }
 
 func TestImageData(t *testing.T) {
-	data := []byte{0x89, 0x50, 0x4E, 0x47} // PNG magic
+	// ImageData expects a D-Bus struct: (iiibiiay) - width, height, rowstride, has_alpha, bits_per_sample, channels, data
+	// When passed raw bytes, it should return nil (invalid format)
+	rawData := []byte{0x89, 0x50, 0x4E, 0x47} // PNG magic - not a valid image-data struct
 	n := &DBusNotification{
 		Hints: map[string]dbus.Variant{
-			"image-data": dbus.MakeVariant(data),
+			"image-data": dbus.MakeVariant(rawData),
 		},
 	}
-	assert.Equal(t, data, n.ImageData())
+	// Raw bytes don't match the expected struct format, so ImageData returns nil
+	assert.Nil(t, n.ImageData())
+
+	// Valid struct format: []interface{}{width, height, rowstride, hasAlpha, bitsPerSample, channels, data}
+	validData := []interface{}{
+		int32(16),              // width
+		int32(16),              // height
+		int32(64),              // rowstride
+		true,                   // has_alpha
+		int32(8),               // bits_per_sample
+		int32(4),               // channels (RGBA)
+		[]byte{0x89, 0x50, 0x4E, 0x47}, // data
+	}
+	n.Hints = map[string]dbus.Variant{
+		"image-data": dbus.MakeVariant(validData),
+	}
+	result := n.ImageData()
+	assert.NotNil(t, result)
+	assert.Equal(t, int32(16), result.Width)
+	assert.Equal(t, int32(16), result.Height)
+	assert.Equal(t, []byte{0x89, 0x50, 0x4E, 0x47}, result.Data)
 
 	n.Hints = nil
 	assert.Nil(t, n.ImageData())

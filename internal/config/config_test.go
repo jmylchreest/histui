@@ -212,10 +212,10 @@ func TestEnsureDataDir(t *testing.T) {
 
 func TestDuration_UnmarshalText(t *testing.T) {
 	tests := []struct {
-		name     string
-		input    string
-		wantMs   int
-		wantErr  bool
+		name    string
+		input   string
+		wantMs  int
+		wantErr bool
 	}{
 		{"seconds", "5s", 5000, false},
 		{"minutes", "2m", 120000, false},
@@ -246,9 +246,9 @@ func TestDuration_UnmarshalText(t *testing.T) {
 
 func TestDuration_MarshalText(t *testing.T) {
 	tests := []struct {
-		name   string
-		input  Duration
-		want   string
+		name  string
+		input Duration
+		want  string
 	}{
 		{"5_seconds", Duration(5 * 1e9), "5s"},
 		{"2_minutes", Duration(120 * 1e9), "2m0s"},
@@ -274,8 +274,8 @@ func TestDaemonConfig_Timeouts(t *testing.T) {
 	assert.Equal(t, 0, cfg.GetTimeoutForUrgency(2, -1))     // Critical: never expires
 
 	// Client timeout should be honored when config is 0
-	assert.Equal(t, 3000, cfg.GetTimeoutForUrgency(0, 3000))  // Low: honor client 3s
-	assert.Equal(t, 3000, cfg.GetTimeoutForUrgency(1, 3000))  // Normal: honor client 3s
+	assert.Equal(t, 3000, cfg.GetTimeoutForUrgency(0, 3000)) // Low: honor client 3s
+	assert.Equal(t, 3000, cfg.GetTimeoutForUrgency(1, 3000)) // Normal: honor client 3s
 }
 
 func TestDaemonConfig_TimeoutsHonorClient(t *testing.T) {
@@ -295,8 +295,8 @@ func TestDaemonConfig_TimeoutsHonorClient(t *testing.T) {
 	assert.Equal(t, 0, cfg.GetTimeoutForUrgency(2, 0)) // Honor client: never
 
 	// Client positive timeout should be honored
-	assert.Equal(t, 3000, cfg.GetTimeoutForUrgency(0, 3000))  // Honor client: 3s
-	assert.Equal(t, 7500, cfg.GetTimeoutForUrgency(1, 7500))  // Honor client: 7.5s
+	assert.Equal(t, 3000, cfg.GetTimeoutForUrgency(0, 3000))   // Honor client: 3s
+	assert.Equal(t, 7500, cfg.GetTimeoutForUrgency(1, 7500))   // Honor client: 7.5s
 	assert.Equal(t, 15000, cfg.GetTimeoutForUrgency(2, 15000)) // Honor client: 15s
 }
 

@@ -6,24 +6,11 @@ sidebar_position: 2
 
 # histui CLI Quickstart
 
-Install and start using the histui CLI to query notification history.
+Start using the histui CLI to query notification history.
 
-## Installation
-
-### From Source
-
-```bash
-git clone https://github.com/jmylchreest/histui.git
-cd histui
-go build -o histui ./cmd/histui
-sudo mv histui /usr/local/bin/
-```
-
-### From AUR (Arch Linux)
-
-```bash
-# Coming soon
-```
+:::tip Installation
+See the [Installation Guide](/docs/installation) for all installation methods including AUR, pre-built binaries, and building from source.
+:::
 
 ## Basic Usage
 

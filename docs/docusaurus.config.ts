@@ -4,7 +4,7 @@ import type * as Preset from '@docusaurus/preset-classic';
 
 const config: Config = {
   title: 'histui',
-  tagline: 'Notification history browser for Linux desktops',
+  tagline: 'A lightweight notification daemon and history browser for Wayland',
   favicon: 'img/favicon.ico',
 
   // Future flags for Docusaurus v4 compatibility

@@ -175,7 +175,7 @@ signal-desktop = "signal"
 ```
 
 Built-in aliases are provided for common apps. User aliases take precedence.
-See [Advanced Theming](/docs/histuid/theming/advanced#icon-resolution) for more details.
+See [Advanced Theming](/docs/histuid/theming/advanced#icon-configuration) for more details.
 
 ## See Also
 

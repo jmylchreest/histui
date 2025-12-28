@@ -2,11 +2,12 @@ import type {SidebarsConfig} from '@docusaurus/plugin-content-docs';
 
 /**
  * Sidebar configuration for histui documentation.
- * Organized by tool (histui CLI, histuid daemon) with hierarchical structure.
+ * Organized by outcome (what users want to accomplish) rather than just reference.
  */
 const sidebars: SidebarsConfig = {
   docs: [
     'intro',
+    'installation',
     {
       type: 'category',
       label: 'Getting Started',
@@ -18,36 +19,45 @@ const sidebars: SidebarsConfig = {
     },
     {
       type: 'category',
-      label: 'histui CLI',
+      label: 'Displaying Notifications',
+      link: {
+        type: 'doc',
+        id: 'histuid/configuration',
+      },
+      items: [
+        'histuid/integration',
+        {
+          type: 'category',
+          label: 'Theming',
+          link: {
+            type: 'doc',
+            id: 'histuid/theming/index',
+          },
+          items: [
+            'histuid/theming/css-reference',
+            'histuid/theming/extending',
+            'histuid/theming/advanced',
+            'histuid/theming/examples',
+          ],
+        },
+        'histuid/monitor-mode',
+      ],
+    },
+    {
+      type: 'category',
+      label: 'Browsing History',
       items: [
         {
           type: 'category',
           label: 'Commands',
           items: [
             'histui/commands/get',
-            'histui/commands/prune',
-            'histui/commands/status',
             'histui/commands/tui',
+            'histui/commands/status',
+            'histui/commands/prune',
           ],
         },
         'histui/filtering',
-      ],
-    },
-    {
-      type: 'category',
-      label: 'histuid Daemon',
-      items: [
-        'histuid/configuration',
-        {
-          type: 'category',
-          label: 'Theming',
-          items: [
-            'histuid/theming/index',
-            'histuid/theming/css-reference',
-            'histuid/theming/examples',
-          ],
-        },
-        'histuid/monitor-mode',
       ],
     },
   ],

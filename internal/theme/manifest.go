@@ -208,3 +208,82 @@ func DefaultManifest() *Manifest {
 		},
 	}
 }
+
+// MergeWith merges this manifest with a base manifest.
+// Fields in this manifest take precedence; base manifest provides defaults.
+// This allows partial manifests to inherit unset values from the base.
+func (m *Manifest) MergeWith(base *Manifest) {
+	if base == nil {
+		return
+	}
+
+	// Merge metadata (only if not set)
+	if m.Name == "" {
+		m.Name = base.Name
+	}
+	if m.Description == "" {
+		m.Description = base.Description
+	}
+	if m.Author == "" {
+		m.Author = base.Author
+	}
+	if m.Version == "" {
+		m.Version = base.Version
+	}
+
+	// Merge icon config
+	if m.Icon.Size == 0 {
+		m.Icon.Size = base.Icon.Size
+	}
+
+	// Merge audio configs per urgency level
+	m.Audio.Low.mergeWith(&base.Audio.Low)
+	m.Audio.Normal.mergeWith(&base.Audio.Normal)
+	m.Audio.Critical.mergeWith(&base.Audio.Critical)
+}
+
+// mergeWith merges this sound config with a base config.
+// Empty/zero values are filled from the base.
+func (s *SoundConfig) mergeWith(base *SoundConfig) {
+	if base == nil {
+		return
+	}
+
+	// Only inherit path if this config has no path set
+	if s.Path == "" {
+		s.Path = base.Path
+	}
+
+	// Volume of 0 means "use default", so we inherit if 0
+	if s.Volume == 0 {
+		s.Volume = base.Volume
+	}
+
+	// RepeatCount: 0 means "repeat forever", -1 means "don't repeat"
+	// We need a way to distinguish "not set" from "explicitly 0"
+	// Since Go zero value is 0, and 0 is a valid value, we check if path is also empty
+	// If this config has no path, inherit the repeat settings
+	if s.Path == base.Path {
+		// Same path (inherited), so also inherit repeat settings
+		if s.RepeatCount == 0 && base.RepeatCount != 0 {
+			s.RepeatCount = base.RepeatCount
+		}
+		if s.RepeatDelay == 0 {
+			s.RepeatDelay = base.RepeatDelay
+		}
+	}
+}
+
+// GetEmbeddedDefaultManifest loads and returns the embedded default theme's manifest.
+// Returns nil if not found or parse error.
+func GetEmbeddedDefaultManifest() *Manifest {
+	data, found := GetEmbeddedManifest(DefaultThemeName)
+	if !found {
+		return nil
+	}
+	manifest, err := ParseManifest([]byte(data), ".toml")
+	if err != nil {
+		return nil
+	}
+	return manifest
+}

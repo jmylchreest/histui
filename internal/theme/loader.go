@@ -15,17 +15,17 @@ import (
 
 // Loader handles loading and applying CSS themes with hot-reload support.
 type Loader struct {
-	mu            sync.RWMutex
-	logger        *slog.Logger
-	provider      *gtk.CSSProvider
-	fontProvider  *gtk.CSSProvider // Separate provider for font overrides (higher priority)
-	themesDir     string
-	currentName   string
-	theme         *Theme
-	watcher       *Watcher
-	display       *gdk.Display
-	fontFamily    string
-	fontSize      int
+	mu           sync.RWMutex
+	logger       *slog.Logger
+	provider     *gtk.CSSProvider
+	fontProvider *gtk.CSSProvider // Separate provider for font overrides (higher priority)
+	themesDir    string
+	currentName  string
+	theme        *Theme
+	watcher      *Watcher
+	display      *gdk.Display
+	fontFamily   string
+	fontSize     int
 }
 
 // NewLoader creates a new theme loader.
@@ -63,8 +63,11 @@ func ThemesDir() (string, error) {
 //     b. Single CSS file (name.css)
 //  2. Embedded/bundled themes
 //
-// This allows users to override bundled themes by placing a file with the same name
-// in their themes directory.
+// Partial themes automatically inherit from the default theme:
+//   - Missing layout.xml: uses default's layout
+//   - Missing/partial manifest.toml: merged with default's manifest (sounds, icons)
+//
+// This allows users to create themes that only override colors or specific elements.
 func (l *Loader) LoadTheme(name string) error {
 	l.mu.Lock()
 	defer l.mu.Unlock()
@@ -80,11 +83,13 @@ func (l *Loader) LoadTheme(name string) error {
 		if info, err := os.Stat(themeDir); err == nil && info.IsDir() {
 			theme, err := NewThemeFromDir(name, themeDir)
 			if err == nil {
+				// Apply defaults from embedded default theme
+				l.applyDefaults(theme)
 				l.provider.LoadFromString(theme.CSS)
 				l.currentName = name
 				l.theme = theme
 				l.logger.Info("loaded user theme (directory)", "name", name, "path", themeDir,
-					"has_manifest", theme.Manifest != nil)
+					"has_manifest", theme.Manifest != nil, "has_layout", theme.Layout != "")
 				return nil
 			}
 			l.logger.Debug("failed to load directory theme", "name", name, "error", err)
@@ -97,10 +102,13 @@ func (l *Loader) LoadTheme(name string) error {
 			if err != nil {
 				l.logger.Warn("failed to load user theme, trying bundled", "theme", name, "error", err)
 			} else {
+				// Apply defaults from embedded default theme
+				l.applyDefaults(theme)
 				l.provider.LoadFromString(theme.CSS)
 				l.currentName = name
 				l.theme = theme
-				l.logger.Info("loaded user theme", "name", name, "path", themePath)
+				l.logger.Info("loaded user theme", "name", name, "path", themePath,
+					"has_manifest", theme.Manifest != nil, "has_layout", theme.Layout != "")
 				return nil
 			}
 		}
@@ -415,4 +423,109 @@ func (l *Loader) updateManifestSoundPaths(pathMap map[string]string) {
 	if newPath, ok := pathMap[m.Audio.Critical.Path]; ok {
 		m.Audio.Critical.Path = newPath
 	}
+}
+
+// applyDefaults applies default theme settings to a user theme.
+// This enables partial themes that only override specific elements:
+//   - Layout: uses default's layout.xml if user theme has none
+//   - Manifest: merges with default's manifest (sounds, icons)
+//   - Sounds: extracts default sounds for inherited sound paths
+func (l *Loader) applyDefaults(theme *Theme) {
+	if theme == nil {
+		return
+	}
+
+	// Load layout from theme directory if present, otherwise use default
+	if theme.Dir != "" {
+		layoutPath := filepath.Join(theme.Dir, "layout.xml")
+		if data, err := os.ReadFile(layoutPath); err == nil {
+			theme.Layout = string(data)
+			l.logger.Debug("loaded theme layout", "theme", theme.Name)
+		}
+	}
+	// Layout fallback happens in Theme.GetLayout()
+
+	// Get the default manifest for merging
+	defaultManifest := GetEmbeddedDefaultManifest()
+	if defaultManifest == nil {
+		l.logger.Debug("no default manifest available for merging")
+		return
+	}
+
+	// If theme has no manifest, create one from defaults
+	if theme.Manifest == nil {
+		theme.Manifest = defaultManifest
+		l.logger.Debug("using default manifest for theme", "theme", theme.Name)
+	} else {
+		// Merge theme's manifest with defaults (theme values take precedence)
+		theme.Manifest.MergeWith(defaultManifest)
+		l.logger.Debug("merged theme manifest with defaults", "theme", theme.Name)
+	}
+
+	// Extract default sounds for any inherited sound paths
+	// (paths that still reference "sounds/..." from the default theme)
+	l.extractInheritedSounds(theme, defaultManifest)
+}
+
+// extractInheritedSounds extracts embedded default sounds for paths that were inherited.
+// This is needed when a user theme inherits sounds from the default theme.
+func (l *Loader) extractInheritedSounds(theme *Theme, defaultManifest *Manifest) {
+	if theme.Manifest == nil || defaultManifest == nil {
+		return
+	}
+
+	// Check each sound config - if it matches the default path and isn't an absolute path,
+	// it was inherited and we need to extract the embedded sound
+	needsExtraction := false
+	soundsToCheck := []struct {
+		themePath   string
+		defaultPath string
+	}{
+		{theme.Manifest.Audio.Low.Path, defaultManifest.Audio.Low.Path},
+		{theme.Manifest.Audio.Normal.Path, defaultManifest.Audio.Normal.Path},
+		{theme.Manifest.Audio.Critical.Path, defaultManifest.Audio.Critical.Path},
+	}
+
+	for _, s := range soundsToCheck {
+		if s.themePath != "" && s.themePath == s.defaultPath && !filepath.IsAbs(s.themePath) {
+			needsExtraction = true
+			break
+		}
+	}
+
+	if !needsExtraction {
+		return
+	}
+
+	// Extract default theme's embedded sounds
+	cacheDir, err := l.getSoundsCacheDir(DefaultThemeName)
+	if err != nil {
+		l.logger.Warn("failed to get sounds cache dir", "error", err)
+		return
+	}
+
+	pathMap, err := ExtractEmbeddedSounds(DefaultThemeName, cacheDir)
+	if err != nil {
+		l.logger.Warn("failed to extract inherited sounds", "error", err)
+		return
+	}
+
+	if len(pathMap) == 0 {
+		return
+	}
+
+	// Update inherited sound paths to point to extracted files
+	m := theme.Manifest
+	if newPath, ok := pathMap[m.Audio.Low.Path]; ok {
+		m.Audio.Low.Path = newPath
+	}
+	if newPath, ok := pathMap[m.Audio.Normal.Path]; ok {
+		m.Audio.Normal.Path = newPath
+	}
+	if newPath, ok := pathMap[m.Audio.Critical.Path]; ok {
+		m.Audio.Critical.Path = newPath
+	}
+
+	l.logger.Debug("extracted inherited sounds from default theme",
+		"theme", theme.Name, "count", len(pathMap))
 }

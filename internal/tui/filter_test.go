@@ -38,7 +38,7 @@ func TestIsFilterExpression(t *testing.T) {
 		{"empty", "", false},
 
 		// Edge cases
-		{"partial_field", "ap=discord", false},        // "ap" is not a valid field
+		{"partial_field", "ap=discord", false},          // "ap" is not a valid field
 		{"case_insensitive_field", "APP=discord", true}, // fields are case-insensitive
 	}
 

@@ -4,6 +4,9 @@ package input
 import (
 	"context"
 	"os/exec"
+	"strings"
+
+	"github.com/godbus/dbus/v5"
 
 	"github.com/jmylchreest/histui/internal/model"
 )
@@ -18,19 +21,58 @@ type InputAdapter interface {
 	Import(ctx context.Context) ([]model.Notification, error)
 }
 
-// DetectDaemon returns the name of the first available notification daemon.
-// Returns empty string if none found.
+// DetectDaemon returns the name of the notification daemon currently registered
+// on D-Bus at org.freedesktop.Notifications.
+// Returns empty string if none found or on error.
 func DetectDaemon() string {
-	// Check for dunst
+	// Query D-Bus for the notification server
+	serverName := getNotificationServerName()
+	if serverName != "" {
+		// Normalize known server names
+		serverLower := strings.ToLower(serverName)
+		switch {
+		case strings.Contains(serverLower, "histuid"):
+			return "histuid"
+		case strings.Contains(serverLower, "dunst"):
+			return "dunst"
+		case strings.Contains(serverLower, "mako"):
+			return "mako"
+		case strings.Contains(serverLower, "swaync"):
+			return "swaync"
+		}
+		// Return as-is for unknown servers
+		return serverLower
+	}
+
+	// Fallback: check for dunstctl in PATH
 	if _, err := exec.LookPath("dunstctl"); err == nil {
 		return "dunst"
 	}
 
-	// Future: Add detection for other daemons
-	// - mako (makoctl)
-	// - swaync (swaync-client)
-
 	return ""
+}
+
+// getNotificationServerName queries D-Bus to get the notification server name.
+// Returns empty string on error.
+func getNotificationServerName() string {
+	conn, err := dbus.SessionBus()
+	if err != nil {
+		return ""
+	}
+
+	obj := conn.Object("org.freedesktop.Notifications", "/org/freedesktop/Notifications")
+	call := obj.Call("org.freedesktop.Notifications.GetServerInformation", 0)
+	if call.Err != nil {
+		return ""
+	}
+
+	// GetServerInformation returns: name, vendor, version, spec_version
+	var name, vendor, version, specVersion string
+	if err := call.Store(&name, &vendor, &version, &specVersion); err != nil {
+		return ""
+	}
+
+	return name
 }
 
 // NewAdapter creates an InputAdapter for the specified source.
@@ -41,6 +83,8 @@ func NewAdapter(source string) (InputAdapter, error) {
 	}
 
 	switch source {
+	case "histuid":
+		return NewHistuidAdapter(""), nil
 	case "dunst":
 		return NewDunstAdapter(), nil
 	case "stdin":
