@@ -116,10 +116,10 @@ jobs:
           go-version: ${{ env.GO_VERSION }}
           cache: true
 
-      - name: Install GTK4 and libadwaita (for histuid CGO build)
+      - name: Install CGO dependencies (GTK4, libadwaita, ALSA, GObject introspection)
         run: |
           sudo apt-get update
-          sudo apt-get install -y libgtk-4-dev libadwaita-1-dev
+          sudo apt-get install -y libgtk-4-dev libadwaita-1-dev libasound2-dev libgirepository1.0-dev
 
       - name: Run tests
         run: go test ./...
