@@ -64,3 +64,5 @@ contrib/generate-icon-aliases/generate-icon-aliases
 contrib/generate-icon-aliases/glyphnames.json
 contrib/generate-icon-aliases/icon-aliases.toml
 contrib/generate-icon-aliases/SymbolsNerdFont-Regular.ttf
+contrib/generate-icon-aliases/.cache/
+contrib/generate-icon-aliases/config.toml

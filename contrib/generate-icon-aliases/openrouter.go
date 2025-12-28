@@ -42,12 +42,13 @@ type OpenRouterClient struct {
 	APIKey    string
 	Model     string
 	WebSearch bool    // Enable web search for current data
+	UseCache  bool    // Enable caching of API responses
 	Verbose   bool
 	Config    *Config // Configuration with prompts
 }
 
 // NewOpenRouterClient creates a new client from environment variables and config.
-func NewOpenRouterClient(model string, webSearch bool, config *Config, verbose bool) (*OpenRouterClient, error) {
+func NewOpenRouterClient(model string, webSearch, useCache bool, config *Config, verbose bool) (*OpenRouterClient, error) {
 	apiKey := os.Getenv("OPENROUTER_API_KEY")
 	if apiKey == "" {
 		return nil, fmt.Errorf("OPENROUTER_API_KEY environment variable not set")
@@ -79,6 +80,7 @@ func NewOpenRouterClient(model string, webSearch bool, config *Config, verbose b
 		APIKey:    apiKey,
 		Model:     model,
 		WebSearch: webSearch,
+		UseCache:  useCache,
 		Verbose:   verbose,
 		Config:    config,
 	}, nil
@@ -262,7 +264,21 @@ func appGenSchema() *JSONSchema {
 }
 
 // ClassifyIcons classifies a batch of glyph names.
-func (c *OpenRouterClient) ClassifyIcons(glyphNames []string) (*ClassifyResult, error) {
+func (c *OpenRouterClient) ClassifyIcons(glyphNames []string, useCache bool) (*ClassifyResult, error) {
+	// Check cache first
+	cacheKey := ClassifyCacheKey(glyphNames)
+	if useCache {
+		if cached, ok := loadCache("classify", cacheKey, c.Model); ok {
+			var result ClassifyResult
+			if err := json.Unmarshal([]byte(cached), &result); err == nil {
+				if c.Verbose {
+					fmt.Printf("    (using cached classification)\n")
+				}
+				return &result, nil
+			}
+		}
+	}
+
 	prompt, err := c.Config.RenderClassifyPrompt(glyphNames)
 	if err != nil {
 		return nil, fmt.Errorf("render classify prompt: %w", err)
@@ -285,6 +301,13 @@ func (c *OpenRouterClient) ClassifyIcons(glyphNames []string) (*ClassifyResult, 
 		return nil, err
 	}
 
+	// Save to cache
+	if useCache {
+		if err := saveCache("classify", cacheKey, c.Model, content); err != nil && c.Verbose {
+			fmt.Printf("    (warning: failed to save cache: %v)\n", err)
+		}
+	}
+
 	var result ClassifyResult
 	if err := json.Unmarshal([]byte(content), &result); err != nil {
 		return nil, fmt.Errorf("parse classification result: %w", err)
@@ -294,7 +317,21 @@ func (c *OpenRouterClient) ClassifyIcons(glyphNames []string) (*ClassifyResult, 
 }
 
 // GenerateAppNames generates Linux app identifiers for icons.
-func (c *OpenRouterClient) GenerateAppNames(icons []struct{ Name, Type string }) (*AppGenResult, error) {
+func (c *OpenRouterClient) GenerateAppNames(icons []struct{ Name, Type string }, useCache bool) (*AppGenResult, error) {
+	// Check cache first
+	cacheKey := AppGenCacheKey(icons)
+	if useCache {
+		if cached, ok := loadCache("appgen", cacheKey, c.Model); ok {
+			var result AppGenResult
+			if err := json.Unmarshal([]byte(cached), &result); err == nil {
+				if c.Verbose {
+					fmt.Printf("    (using cached app generation)\n")
+				}
+				return &result, nil
+			}
+		}
+	}
+
 	var iconList []string
 	for _, icon := range icons {
 		iconList = append(iconList, fmt.Sprintf("- %s (%s)", icon.Name, icon.Type))
@@ -320,6 +357,13 @@ func (c *OpenRouterClient) GenerateAppNames(icons []struct{ Name, Type string })
 	content, err := c.call(req)
 	if err != nil {
 		return nil, err
+	}
+
+	// Save to cache
+	if useCache {
+		if err := saveCache("appgen", cacheKey, c.Model, content); err != nil && c.Verbose {
+			fmt.Printf("    (warning: failed to save cache: %v)\n", err)
+		}
 	}
 
 	var result AppGenResult
@@ -393,7 +437,7 @@ func (c *OpenRouterClient) GenerateKnowledgeBase(glyphs map[string]GlyphInfo) (*
 		batch := glyphNames[i:end]
 
 		stop := progressTicker("classify", batchNum, classifyBatches)
-		result, err := c.ClassifyIcons(batch)
+		result, err := c.ClassifyIcons(batch, c.UseCache)
 		stop()
 
 		if err != nil {
@@ -444,7 +488,7 @@ func (c *OpenRouterClient) GenerateKnowledgeBase(glyphs map[string]GlyphInfo) (*
 		}
 
 		stop := progressTicker("app-gen", batchNum, appGenBatches)
-		result, err := c.GenerateAppNames(icons)
+		result, err := c.GenerateAppNames(icons, c.UseCache)
 		stop()
 
 		if err != nil {

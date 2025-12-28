@@ -246,6 +246,8 @@ func main() {
 	generateKBFlag := flag.Bool("generate-kb", false, "Generate AI knowledge base using OpenRouter (requires OPENROUTER_API_KEY)")
 	openrouterModelFlag := flag.String("openrouter-model", "", "OpenRouter model to use (from config or anthropic/claude-sonnet-4)")
 	webSearchFlag := flag.Bool("web-search", false, "Enable web search for real-time data (adds :online suffix)")
+	noCacheFlag := flag.Bool("no-cache", false, "Disable caching of API responses")
+	clearCacheFlag := flag.Bool("clear-cache", false, "Clear the API response cache before generating")
 	defaultFileFlag := flag.String("default-file", kbDefaultFile, "Path to default knowledge base file")
 	aiFileFlag := flag.String("ai-file", kbAIFile, "Path to AI knowledge base file")
 	overridesFileFlag := flag.String("overrides-file", kbOverridesFile, "Path to overrides file")
@@ -295,13 +297,33 @@ func main() {
 
 	// Handle KB generation
 	if *generateKBFlag {
-		client, err := NewOpenRouterClient(*openrouterModelFlag, *webSearchFlag, config, *verboseFlag)
+		// Handle cache clearing
+		if *clearCacheFlag {
+			if err := ClearCache(); err != nil {
+				fmt.Fprintf(os.Stderr, "Error clearing cache: %v\n", err)
+				os.Exit(1)
+			}
+			fmt.Println("Cleared API response cache")
+		}
+
+		// Show cache stats
+		useCache := !*noCacheFlag
+		if useCache {
+			classifyCount, appGenCount, totalSize := CacheStats()
+			if classifyCount > 0 || appGenCount > 0 {
+				fmt.Printf("Cache: %d classify, %d app-gen entries (%.1f KB)\n",
+					classifyCount, appGenCount, float64(totalSize)/1024)
+			}
+		}
+
+		client, err := NewOpenRouterClient(*openrouterModelFlag, *webSearchFlag, useCache, config, *verboseFlag)
 		if err != nil {
 			fmt.Fprintf(os.Stderr, "Error creating OpenRouter client: %v\n", err)
 			os.Exit(1)
 		}
 
-		fmt.Printf("Generating knowledge base using model: %s (web search: %v)\n", client.Model, client.WebSearch)
+		fmt.Printf("Generating knowledge base using model: %s (web search: %v, cache: %v)\n",
+			client.Model, client.WebSearch, client.UseCache)
 
 		kb, err := client.GenerateKnowledgeBase(glyphs)
 		if err != nil {
