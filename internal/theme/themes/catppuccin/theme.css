@@ -94,7 +94,7 @@ window {
  * ============================================================================= */
 
 .notification-popup {
-    background-color: color-mix(in srgb, var(--ctp-base) 80%, transparent);
+    background-color: color-mix(in srgb, var(--ctp-base) 85%, transparent);
     color: var(--ctp-text);
     border-radius: 12px;
     border: 1px solid var(--ctp-surface0);

@@ -29,7 +29,7 @@ window {
  * ============================================================================= */
 
 .notification-popup {
-    background-color: alpha(@window_bg_color, 0.8);
+    background-color: alpha(@window_bg_color, 0.85);
     color: @window_fg_color;
     border-radius: 8px;
     border: 1px solid alpha(@borders, 0.4);
