@@ -28,6 +28,9 @@ Examples:
   # Keep only the 100 most recent notifications
   histui prune --keep 100
 
+  # Remove all notifications
+  histui prune --keep 0
+
   # Preview what would be removed (dry run)
   histui prune --older-than 48h --dry-run`,
 	RunE: runPrune,
@@ -38,14 +41,14 @@ func init() {
 
 	pruneCmd.Flags().StringVar(&pruneOpts.olderThan, "older-than", "",
 		"Remove notifications older than this duration (e.g., 48h, 7d, 1w)")
-	pruneCmd.Flags().IntVar(&pruneOpts.keep, "keep", 0,
-		"Keep only the N most recent notifications (0=unlimited)")
+	pruneCmd.Flags().IntVar(&pruneOpts.keep, "keep", -1,
+		"Keep only the N most recent notifications (0=remove all)")
 	pruneCmd.Flags().BoolVar(&pruneOpts.dryRun, "dry-run", false,
 		"Show what would be removed without actually removing")
 }
 
 func runPrune(cmd *cobra.Command, args []string) error {
-	if pruneOpts.olderThan == "" && pruneOpts.keep == 0 {
+	if pruneOpts.olderThan == "" && pruneOpts.keep < 0 {
 		return fmt.Errorf("specify --older-than or --keep")
 	}
 
@@ -85,7 +88,7 @@ func runPrune(cmd *cobra.Command, args []string) error {
 		}
 	}
 
-	if pruneOpts.keep > 0 && len(notifications) > pruneOpts.keep {
+	if pruneOpts.keep >= 0 && len(notifications) > pruneOpts.keep {
 		// Remove the oldest ones beyond the keep limit
 		keepSet := make(map[string]bool)
 		for i := 0; i < pruneOpts.keep && i < len(notifications); i++ {
@@ -139,7 +142,7 @@ func runPrune(cmd *cobra.Command, args []string) error {
 		removed += count
 	}
 
-	if pruneOpts.keep > 0 {
+	if pruneOpts.keep >= 0 {
 		count, err := db.Prune(pruneOpts.keep)
 		if err != nil {
 			return fmt.Errorf("failed to prune: %w", err)
