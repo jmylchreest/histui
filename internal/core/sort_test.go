@@ -10,7 +10,7 @@ import (
 
 func TestSort_Empty(t *testing.T) {
 	var notifications []model.Notification
-	Sort(notifications, DefaultSortOptions())
+	Sort(notifications, SortOptions{Field: SortByTimestamp, Order: SortDesc})
 	assert.Len(t, notifications, 0)
 }
 
@@ -111,12 +111,6 @@ func TestSort_CaseInsensitiveApp(t *testing.T) {
 	assert.Equal(t, "1", notifications[0].HistuiID)
 	assert.Equal(t, "2", notifications[1].HistuiID)
 	assert.Equal(t, "3", notifications[2].HistuiID)
-}
-
-func TestDefaultSortOptions(t *testing.T) {
-	opts := DefaultSortOptions()
-	assert.Equal(t, SortByTimestamp, opts.Field)
-	assert.Equal(t, SortDesc, opts.Order)
 }
 
 func TestParseSortField(t *testing.T) {

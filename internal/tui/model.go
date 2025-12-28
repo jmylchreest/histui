@@ -804,7 +804,40 @@ func (m Model) viewSearch() string {
 	searchBar := "Search: " + m.searchInput.View() + " " +
 		lipgloss.NewStyle().Foreground(lipgloss.Color("8")).Render(countStr)
 
-	return searchBar + "\n" + m.list.View() + "\n" + m.buildKeybindBar(m.width, "search")
+	// Show quick filter suggestions when search is empty or typing "app="
+	suggestions := ""
+	query := m.searchInput.Value()
+	if query == "" || strings.HasPrefix(strings.ToLower(query), "app=") {
+		apps := core.UniqueApps(m.notifications)
+		if len(apps) > 0 {
+			dimStyle := lipgloss.NewStyle().Foreground(lipgloss.Color("8"))
+			appStyle := lipgloss.NewStyle().Foreground(lipgloss.Color("6"))
+
+			// Show up to 8 apps
+			maxApps := 8
+			if len(apps) < maxApps {
+				maxApps = len(apps)
+			}
+
+			var appList []string
+			for i := 0; i < maxApps; i++ {
+				appList = append(appList, appStyle.Render(apps[i]))
+			}
+
+			hint := "Apps: "
+			if len(apps) > maxApps {
+				hint = fmt.Sprintf("Apps (%d): ", len(apps))
+			}
+			suggestions = dimStyle.Render(hint) + strings.Join(appList, dimStyle.Render(", "))
+		}
+	}
+
+	result := searchBar
+	if suggestions != "" {
+		result += "\n" + suggestions
+	}
+
+	return result + "\n" + m.list.View() + "\n" + m.buildKeybindBar(m.width, "search")
 }
 
 func (m Model) viewHelp() string {

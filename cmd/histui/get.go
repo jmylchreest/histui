@@ -117,6 +117,13 @@ func init() {
 		"Lookup notification by 1-based index")
 	getCmd.Flags().StringVar(&getOpts.id, "id", "",
 		"Lookup notification by histui ID")
+
+	// Shell completions
+	_ = getCmd.RegisterFlagCompletionFunc("app", completeAppNames)
+	_ = getCmd.RegisterFlagCompletionFunc("urgency", completeUrgency)
+	_ = getCmd.RegisterFlagCompletionFunc("format", completeFormat)
+	_ = getCmd.RegisterFlagCompletionFunc("sort", completeSortField)
+	_ = getCmd.RegisterFlagCompletionFunc("order", completeSortOrder)
 }
 
 func runGet(cmd *cobra.Command, args []string) error {
@@ -344,4 +351,39 @@ func createFormatter() output.Formatter {
 	}
 
 	return output.NewFormatter(format, opts)
+}
+
+// Shell completion functions
+
+func completeAppNames(_ *cobra.Command, _ []string, _ string) ([]string, cobra.ShellCompDirective) {
+	ctx, cancel := context.WithTimeout(context.Background(), 5*time.Second)
+	defer cancel()
+
+	adapter, err := input.NewAdapter("")
+	if err != nil {
+		return nil, cobra.ShellCompDirectiveNoFileComp
+	}
+
+	notifications, err := adapter.Import(ctx)
+	if err != nil {
+		return nil, cobra.ShellCompDirectiveNoFileComp
+	}
+
+	return core.UniqueApps(notifications), cobra.ShellCompDirectiveNoFileComp
+}
+
+func completeUrgency(_ *cobra.Command, _ []string, _ string) ([]string, cobra.ShellCompDirective) {
+	return []string{"low", "normal", "critical"}, cobra.ShellCompDirectiveNoFileComp
+}
+
+func completeFormat(_ *cobra.Command, _ []string, _ string) ([]string, cobra.ShellCompDirective) {
+	return []string{"dmenu", "json", "plain", "ids"}, cobra.ShellCompDirectiveNoFileComp
+}
+
+func completeSortField(_ *cobra.Command, _ []string, _ string) ([]string, cobra.ShellCompDirective) {
+	return []string{"timestamp", "app", "urgency"}, cobra.ShellCompDirectiveNoFileComp
+}
+
+func completeSortOrder(_ *cobra.Command, _ []string, _ string) ([]string, cobra.ShellCompDirective) {
+	return []string{"asc", "desc"}, cobra.ShellCompDirectiveNoFileComp
 }

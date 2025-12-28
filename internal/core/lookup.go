@@ -2,6 +2,7 @@
 package core
 
 import (
+	"sort"
 	"strings"
 
 	"github.com/jmylchreest/histui/internal/model"
@@ -47,4 +48,22 @@ func Search(notifications []model.Notification, term string) []model.Notificatio
 	}
 
 	return result
+}
+
+// UniqueApps returns a sorted list of unique app names from notifications.
+// Empty app names are excluded.
+func UniqueApps(notifications []model.Notification) []string {
+	seen := make(map[string]struct{})
+	for _, n := range notifications {
+		if n.AppName != "" {
+			seen[n.AppName] = struct{}{}
+		}
+	}
+
+	apps := make([]string, 0, len(seen))
+	for app := range seen {
+		apps = append(apps, app)
+	}
+	sort.Strings(apps)
+	return apps
 }
