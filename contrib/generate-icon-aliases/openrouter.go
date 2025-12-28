@@ -11,11 +11,7 @@ import (
 	"time"
 )
 
-const (
-	openRouterURL     = "https://openrouter.ai/api/v1/chat/completions"
-	classifyBatchSize = 50
-	appGenBatchSize   = 20
-)
+const openRouterURL = "https://openrouter.ai/api/v1/chat/completions"
 
 // Recommended models for structured output (as of December 2025):
 //
@@ -344,7 +340,10 @@ func (c *OpenRouterClient) GenerateKnowledgeBase(glyphs map[string]GlyphInfo) (*
 		glyphNames = append(glyphNames, name)
 	}
 
-	fmt.Printf("Classifying %d glyphs in batches of %d...\n", len(glyphNames), classifyBatchSize)
+	classifyBatch := c.Config.OpenRouter.ClassifyBatchSize
+	appGenBatch := c.Config.OpenRouter.AppGenBatchSize
+
+	fmt.Printf("Classifying %d glyphs in batches of %d...\n", len(glyphNames), classifyBatch)
 
 	// Phase 1: Classify icons in batches
 	var classified []struct {
@@ -353,8 +352,8 @@ func (c *OpenRouterClient) GenerateKnowledgeBase(glyphs map[string]GlyphInfo) (*
 		Name  string
 	}
 
-	for i := 0; i < len(glyphNames); i += classifyBatchSize {
-		end := i + classifyBatchSize
+	for i := 0; i < len(glyphNames); i += classifyBatch {
+		end := i + classifyBatch
 		if end > len(glyphNames) {
 			end = len(glyphNames)
 		}
@@ -366,7 +365,7 @@ func (c *OpenRouterClient) GenerateKnowledgeBase(glyphs map[string]GlyphInfo) (*
 
 		result, err := c.ClassifyIcons(batch)
 		if err != nil {
-			return nil, fmt.Errorf("classify batch %d: %w", i/classifyBatchSize+1, err)
+			return nil, fmt.Errorf("classify batch %d: %w", i/classifyBatch+1, err)
 		}
 
 		for _, icon := range result.Icons {
@@ -393,8 +392,8 @@ func (c *OpenRouterClient) GenerateKnowledgeBase(glyphs map[string]GlyphInfo) (*
 		Icons:       make(map[string]KBIcon),
 	}
 
-	for i := 0; i < len(classified); i += appGenBatchSize {
-		end := i + appGenBatchSize
+	for i := 0; i < len(classified); i += appGenBatch {
+		end := i + appGenBatch
 		if end > len(classified) {
 			end = len(classified)
 		}
@@ -405,13 +404,13 @@ func (c *OpenRouterClient) GenerateKnowledgeBase(glyphs map[string]GlyphInfo) (*
 		}
 
 		var icons []struct{ Name, Type string }
-		for _, c := range batch {
-			icons = append(icons, struct{ Name, Type string }{c.Name, c.Type})
+		for _, cl := range batch {
+			icons = append(icons, struct{ Name, Type string }{cl.Name, cl.Type})
 		}
 
 		result, err := c.GenerateAppNames(icons)
 		if err != nil {
-			return nil, fmt.Errorf("generate apps batch %d: %w", i/appGenBatchSize+1, err)
+			return nil, fmt.Errorf("generate apps batch %d: %w", i/appGenBatch+1, err)
 		}
 
 		// Map back to glyphs and store
