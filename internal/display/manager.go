@@ -254,15 +254,25 @@ func (m *Manager) Show(notification *dbus.DBusNotification, dbusID uint32, histu
 				state.Notification = notification
 				state.Popup.UpdateContent(notification)
 
-				// Reset the timeout
-				if timeout := m.config.GetTimeoutForUrgency(notification.Urgency(), notification.ExpireTimeout); timeout > 0 {
+				// Reset the timeout and schedule new timeout goroutine
+				timeout := m.config.GetTimeoutForUrgency(notification.Urgency(), notification.ExpireTimeout)
+				if timeout > 0 {
 					state.ExpiresAt = time.Now().Add(time.Duration(timeout) * time.Millisecond)
+					// Schedule new timeout goroutine for the updated expiration
+					go func(id uint32, t int) {
+						time.Sleep(time.Duration(t) * time.Millisecond)
+						select {
+						case m.timeoutCh <- id:
+						case <-m.stopCh:
+						}
+					}(existingID, timeout)
 				}
 
 				m.logger.Debug("replaced notification via stack tag",
 					"stack_tag", stackTag,
 					"new_dbus_id", dbusID,
 					"existing_dbus_id", existingID,
+					"new_timeout_ms", timeout,
 				)
 
 				// Close the incoming notification immediately since we're reusing the existing one
@@ -283,15 +293,26 @@ func (m *Manager) Show(notification *dbus.DBusNotification, dbusID uint32, histu
 				state.StackCount++
 				state.Popup.IncrementStackCount()
 
-				// Reset the timeout for the stacked notification
-				if timeout := m.config.GetTimeoutForUrgency(notification.Urgency(), notification.ExpireTimeout); timeout > 0 {
+				// Reset the timeout and schedule new timeout goroutine
+				existingID := state.DBusID
+				timeout := m.config.GetTimeoutForUrgency(notification.Urgency(), notification.ExpireTimeout)
+				if timeout > 0 {
 					state.ExpiresAt = time.Now().Add(time.Duration(timeout) * time.Millisecond)
+					// Schedule new timeout goroutine for the updated expiration
+					go func(id uint32, t int) {
+						time.Sleep(time.Duration(t) * time.Millisecond)
+						select {
+						case m.timeoutCh <- id:
+						case <-m.stopCh:
+						}
+					}(existingID, timeout)
 				}
 
 				m.logger.Debug("stacked duplicate notification",
 					"dbus_id", dbusID,
 					"onto_dbus_id", state.DBusID,
 					"stack_count", state.StackCount,
+					"new_timeout_ms", timeout,
 				)
 
 				// Close the incoming notification with CloseReasonDismissed
