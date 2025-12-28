@@ -330,6 +330,34 @@ func (c *OpenRouterClient) GenerateAppNames(icons []struct{ Name, Type string })
 	return &result, nil
 }
 
+// progressTicker starts a goroutine that prints progress updates.
+// Returns a stop function to call when the operation completes.
+func progressTicker(phase string, batchNum, totalBatches int) func() {
+	start := time.Now()
+	done := make(chan struct{})
+
+	go func() {
+		ticker := time.NewTicker(5 * time.Second)
+		defer ticker.Stop()
+
+		for {
+			select {
+			case <-done:
+				return
+			case <-ticker.C:
+				elapsed := time.Since(start).Round(time.Second)
+				fmt.Printf("\r  [%s] Batch %d/%d - waiting %s...   ", phase, batchNum, totalBatches, elapsed)
+			}
+		}
+	}()
+
+	return func() {
+		close(done)
+		elapsed := time.Since(start).Round(time.Second)
+		fmt.Printf("\r  [%s] Batch %d/%d - completed in %s\n", phase, batchNum, totalBatches, elapsed)
+	}
+}
+
 // GenerateKnowledgeBase generates the full AI knowledge base from Nerd Font glyphs.
 func (c *OpenRouterClient) GenerateKnowledgeBase(glyphs map[string]GlyphInfo) (*KnowledgeBase, error) {
 	// Filter to app-related glyphs
@@ -344,7 +372,9 @@ func (c *OpenRouterClient) GenerateKnowledgeBase(glyphs map[string]GlyphInfo) (*
 	classifyBatch := c.Config.OpenRouter.ClassifyBatchSize
 	appGenBatch := c.Config.OpenRouter.AppGenBatchSize
 
-	fmt.Printf("Classifying %d glyphs in batches of %d...\n", len(glyphNames), classifyBatch)
+	// Calculate total batches
+	classifyBatches := (len(glyphNames) + classifyBatch - 1) / classifyBatch
+	fmt.Printf("Classifying %d glyphs in %d batches (batch size: %d)...\n", len(glyphNames), classifyBatches, classifyBatch)
 
 	// Phase 1: Classify icons in batches
 	var classified []struct {
@@ -353,20 +383,21 @@ func (c *OpenRouterClient) GenerateKnowledgeBase(glyphs map[string]GlyphInfo) (*
 		Name  string
 	}
 
+	batchNum := 0
 	for i := 0; i < len(glyphNames); i += classifyBatch {
+		batchNum++
 		end := i + classifyBatch
 		if end > len(glyphNames) {
 			end = len(glyphNames)
 		}
 		batch := glyphNames[i:end]
 
-		if c.Verbose {
-			fmt.Printf("  Classifying batch %d-%d of %d...\n", i+1, end, len(glyphNames))
-		}
-
+		stop := progressTicker("classify", batchNum, classifyBatches)
 		result, err := c.ClassifyIcons(batch)
+		stop()
+
 		if err != nil {
-			return nil, fmt.Errorf("classify batch %d: %w", i/classifyBatch+1, err)
+			return nil, fmt.Errorf("classify batch %d: %w", batchNum, err)
 		}
 
 		for _, icon := range result.Icons {
@@ -379,8 +410,10 @@ func (c *OpenRouterClient) GenerateKnowledgeBase(glyphs map[string]GlyphInfo) (*
 			}
 		}
 
-		// Rate limiting
-		time.Sleep(500 * time.Millisecond)
+		// Rate limiting between batches
+		if i+classifyBatch < len(glyphNames) {
+			time.Sleep(500 * time.Millisecond)
+		}
 	}
 
 	fmt.Printf("Classified %d relevant icons (app + category)\n", len(classified))
@@ -393,25 +426,29 @@ func (c *OpenRouterClient) GenerateKnowledgeBase(glyphs map[string]GlyphInfo) (*
 		Icons:       make(map[string]KBIcon),
 	}
 
+	appGenBatches := (len(classified) + appGenBatch - 1) / appGenBatch
+	fmt.Printf("Generating app names for %d icons in %d batches (batch size: %d)...\n", len(classified), appGenBatches, appGenBatch)
+
+	batchNum = 0
 	for i := 0; i < len(classified); i += appGenBatch {
+		batchNum++
 		end := i + appGenBatch
 		if end > len(classified) {
 			end = len(classified)
 		}
 		batch := classified[i:end]
 
-		if c.Verbose {
-			fmt.Printf("  Generating apps for batch %d-%d of %d...\n", i+1, end, len(classified))
-		}
-
 		var icons []struct{ Name, Type string }
 		for _, cl := range batch {
 			icons = append(icons, struct{ Name, Type string }{cl.Name, cl.Type})
 		}
 
+		stop := progressTicker("app-gen", batchNum, appGenBatches)
 		result, err := c.GenerateAppNames(icons)
+		stop()
+
 		if err != nil {
-			return nil, fmt.Errorf("generate apps batch %d: %w", i/appGenBatch+1, err)
+			return nil, fmt.Errorf("generate apps batch %d: %w", batchNum, err)
 		}
 
 		// Map back to glyphs and store
@@ -444,8 +481,10 @@ func (c *OpenRouterClient) GenerateKnowledgeBase(glyphs map[string]GlyphInfo) (*
 			}
 		}
 
-		// Rate limiting
-		time.Sleep(500 * time.Millisecond)
+		// Rate limiting between batches
+		if i+appGenBatch < len(classified) {
+			time.Sleep(500 * time.Millisecond)
+		}
 	}
 
 	fmt.Printf("Generated knowledge base with %d icon mappings\n", len(kb.Icons))
