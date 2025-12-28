@@ -246,8 +246,8 @@ type ThemeConfig struct {
 }
 
 type DnDConfig struct {
-    Enabled        bool `toml:"enabled"`        // Initial state
-    CriticalBypass bool `toml:"critical_bypass"`
+    Enabled          bool `toml:"enabled"`          // Initial state
+    SuppressCritical bool `toml:"suppress_critical"` // Also suppress critical in DnD mode
 }
 
 type MouseConfig struct {
@@ -291,8 +291,8 @@ func DefaultDaemonConfig() *DaemonConfig {
             Name: "default",
         },
         DnD: DnDConfig{
-            Enabled:        false,
-            CriticalBypass: true,
+            Enabled:          false,
+            SuppressCritical: false,
         },
         Mouse: MouseConfig{
             Left:   "dismiss",

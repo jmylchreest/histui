@@ -331,7 +331,7 @@ name = "default"            # Theme name from themes directory
 
 [dnd]
 enabled = false
-critical_bypass = true      # Show critical even in DnD mode
+suppress_critical = false   # If true, also suppress critical in DnD mode
 
 [mouse]
 left = "dismiss"            # dismiss, do-action, close-all, context-menu

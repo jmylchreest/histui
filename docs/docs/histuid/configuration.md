@@ -132,13 +132,14 @@ Controls Do Not Disturb mode.
 | Key | Type | Default | Description |
 |-----|------|---------|-------------|
 | `enabled` | bool | false | Initial DnD state on daemon startup |
-| `critical_bypass` | bool | true | Show critical notifications even in DnD mode |
+| `suppress_critical` | bool | false | Also suppress critical notifications in DnD mode |
 
 **DnD Behavior:**
 
 - When DnD is enabled, notification popups and sounds are suppressed
 - Notifications are still persisted to history for later review
-- Critical bypass allows urgent notifications to break through
+- By default (`suppress_critical = false`), critical notifications bypass DnD and are still shown
+- Set `suppress_critical = true` to also silence critical notifications when DnD is active
 - Use `histui dnd on/off/toggle` to control DnD state
 
 ### [mouse]
@@ -223,8 +224,8 @@ stack_duplicates = true
 pause_on_hover = true
 
 [dnd]
-enabled = false          # Start with DnD off
-critical_bypass = true   # Allow critical through DnD
+enabled = false           # Start with DnD off
+suppress_critical = false # Critical notifications bypass DnD (default)
 
 [mouse]
 left = "dismiss"

@@ -120,15 +120,19 @@ Use with Waybar to show DnD status and toggle on click:
 }
 ```
 
-## Critical Bypass
+## Critical Notifications
 
 By default, critical notifications bypass DnD mode and are still shown.
-This can be configured in histuid:
+This ensures important system alerts are never missed.
+
+To also suppress critical notifications when DnD is enabled:
 
 ```toml
 [dnd]
-critical_bypass = true  # Default: show critical even in DnD
+suppress_critical = true  # Also silence critical notifications in DnD
 ```
+
+The default (`suppress_critical = false`) allows critical notifications through.
 
 ## State Persistence
 

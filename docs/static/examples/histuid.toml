@@ -121,8 +121,9 @@ template = "default"
 # Whether DnD is enabled on startup
 enabled = false
 
-# Allow critical notifications even in DnD mode
-critical_bypass = true
+# Also suppress critical notifications when DnD is enabled
+# Default is false, allowing critical notifications to bypass DnD
+suppress_critical = false
 
 
 # Mouse Button Actions

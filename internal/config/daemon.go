@@ -170,8 +170,8 @@ const (
 
 // DnDConfig contains Do Not Disturb settings.
 type DnDConfig struct {
-	Enabled        bool `toml:"enabled" mapstructure:"enabled"`                 // Initial state
-	CriticalBypass bool `toml:"critical_bypass" mapstructure:"critical_bypass"` // Show critical even in DnD mode
+	Enabled          bool `toml:"enabled" mapstructure:"enabled"`                     // Initial state
+	SuppressCritical bool `toml:"suppress_critical" mapstructure:"suppress_critical"` // Also suppress critical notifications in DnD mode
 }
 
 // MouseConfig contains mouse button action mappings.
@@ -255,7 +255,7 @@ func setDefaults(v *viper.Viper) {
 
 	// DnD defaults
 	v.SetDefault("dnd.enabled", false)
-	v.SetDefault("dnd.critical_bypass", true)
+	v.SetDefault("dnd.suppress_critical", false)
 
 	// Mouse defaults
 	v.SetDefault("mouse.left", string(MouseActionDismiss))
@@ -344,8 +344,8 @@ func DefaultDaemonConfig() *DaemonConfig {
 			ColorScheme: string(ColorSchemeSystem),
 		},
 		DnD: DnDConfig{
-			Enabled:        false,
-			CriticalBypass: true,
+			Enabled:          false,
+			SuppressCritical: false,
 		},
 		Mouse: MouseConfig{
 			Left:   string(MouseActionDismiss),
