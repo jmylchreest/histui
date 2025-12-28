@@ -345,13 +345,24 @@ func (d *DB) Count() (int, error) {
 }
 
 // Prune removes oldest notifications beyond limit, returns count removed.
+// If keepCount is 0, removes all notifications.
 func (d *DB) Prune(keepCount int) (int, error) {
-	if keepCount <= 0 {
+	if keepCount < 0 {
 		return 0, nil
 	}
 
 	d.mu.Lock()
 	defer d.mu.Unlock()
+
+	// Special case: keepCount == 0 means delete all
+	if keepCount == 0 {
+		result, err := d.conn.Exec("DELETE FROM notifications")
+		if err != nil {
+			return 0, err
+		}
+		affected, _ := result.RowsAffected()
+		return int(affected), nil
+	}
 
 	// Delete notifications beyond the keep limit (oldest first)
 	result, err := d.conn.Exec(`
