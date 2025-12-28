@@ -24,11 +24,6 @@ func NewStdinAdapter() *StdinAdapter {
 	return &StdinAdapter{reader: os.Stdin}
 }
 
-// NewStdinAdapterWithReader creates a new StdinAdapter with a custom reader.
-func NewStdinAdapterWithReader(r io.Reader) *StdinAdapter {
-	return &StdinAdapter{reader: r}
-}
-
 // Name returns the adapter identifier.
 func (a *StdinAdapter) Name() string {
 	return "stdin"

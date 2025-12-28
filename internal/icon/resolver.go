@@ -150,15 +150,6 @@ func (r *Resolver) AddSymbols(symbols map[string]string) {
 	}
 }
 
-// AddAlias adds a custom alias mapping.
-func (r *Resolver) AddAlias(appName, iconName string) {
-	r.mu.Lock()
-	defer r.mu.Unlock()
-
-	normalized := strings.ToLower(strings.TrimSpace(appName))
-	r.customAliases[normalized] = iconName
-}
-
 // AddAliases adds multiple custom alias mappings.
 func (r *Resolver) AddAliases(aliases map[string]string) {
 	r.mu.Lock()
@@ -168,21 +159,6 @@ func (r *Resolver) AddAliases(aliases map[string]string) {
 		normalized := strings.ToLower(strings.TrimSpace(appName))
 		r.customAliases[normalized] = iconName
 	}
-}
-
-// ListAliases returns all registered aliases (both default and custom).
-func (r *Resolver) ListAliases() map[string]string {
-	r.mu.RLock()
-	defer r.mu.RUnlock()
-
-	result := make(map[string]string, len(r.aliases)+len(r.customAliases))
-	for k, v := range r.aliases {
-		result[k] = v
-	}
-	for k, v := range r.customAliases {
-		result[k] = v // Custom aliases override defaults
-	}
-	return result
 }
 
 // SetUserAliases replaces all custom (user) aliases with the provided map.
@@ -199,19 +175,6 @@ func (r *Resolver) SetUserAliases(aliases map[string]string) {
 	}
 }
 
-// FallbackIconForUrgency returns an appropriate fallback icon based on notification urgency.
-// Use this when icon resolution fails and no notification-provided icon is available.
-func FallbackIconForUrgency(urgency int) string {
-	switch urgency {
-	case model.UrgencyCritical:
-		return "dialog-warning"
-	case model.UrgencyLow:
-		return "go-down-symbolic"
-	default: // normal or unknown
-		return "dialog-information"
-	}
-}
-
 // FallbackNerdSymbolForUrgency returns a Nerd Font symbol based on notification urgency.
 func FallbackNerdSymbolForUrgency(urgency int) string {
 	switch urgency {
@@ -222,14 +185,4 @@ func FallbackNerdSymbolForUrgency(urgency int) string {
 	default: // normal or unknown
 		return "\U000f009a" // nf-md-bell
 	}
-}
-
-// DefaultFallbackIcon returns the default fallback icon name (for normal urgency).
-func DefaultFallbackIcon() string {
-	return "dialog-information"
-}
-
-// DefaultNerdSymbol returns the default Nerd Font notification symbol.
-func DefaultNerdSymbol() string {
-	return "\U000f009a" // nf-md-bell
 }

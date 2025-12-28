@@ -159,16 +159,6 @@ func (w *Watcher) Stop() {
 	w.logger.Debug("theme inotify watcher stopped")
 }
 
-// UpdateTheme switches to watching a different theme.
-func (w *Watcher) UpdateTheme(theme *Theme) {
-	w.mu.Lock()
-	defer w.mu.Unlock()
-	w.theme = theme
-	if w.themesDir != "" && theme != nil {
-		w.absPath = filepath.Join(w.themesDir, theme.Name+".css")
-	}
-}
-
 // eventLoop processes inotify events.
 func (w *Watcher) eventLoop(ctx context.Context) {
 	defer close(w.doneCh)
@@ -267,11 +257,4 @@ func (w *Watcher) handleEvent(event fsnotify.Event) {
 
 	// Case 3: A different CSS file in the themes directory was modified
 	// We don't care about this unless it matches the current theme name
-}
-
-// IsRunning returns whether the watcher is currently running.
-func (w *Watcher) IsRunning() bool {
-	w.mu.RLock()
-	defer w.mu.RUnlock()
-	return w.running
 }

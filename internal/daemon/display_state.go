@@ -95,25 +95,6 @@ func (m *DisplayStateManager) Register(histuiID string, dbusID uint32, expiresAt
 	return state
 }
 
-// GetByHistuiID returns the display state for a histui ID.
-func (m *DisplayStateManager) GetByHistuiID(histuiID string) *DisplayState {
-	m.mu.RLock()
-	defer m.mu.RUnlock()
-	return m.byHistuiID[histuiID]
-}
-
-// GetByDBusID returns the display state for a D-Bus ID.
-func (m *DisplayStateManager) GetByDBusID(dbusID uint32) *DisplayState {
-	m.mu.RLock()
-	defer m.mu.RUnlock()
-
-	histuiID, exists := m.byDBusID[dbusID]
-	if !exists {
-		return nil
-	}
-	return m.byHistuiID[histuiID]
-}
-
 // GetHistuiIDByDBusID returns the histui ID for a D-Bus ID.
 func (m *DisplayStateManager) GetHistuiIDByDBusID(dbusID uint32) string {
 	m.mu.RLock()
@@ -131,57 +112,6 @@ func (m *DisplayStateManager) GetDBusIDByHistuiID(histuiID string) (uint32, bool
 		return 0, false
 	}
 	return state.DBusID, true
-}
-
-// SetStatus updates the status of a notification.
-func (m *DisplayStateManager) SetStatus(histuiID string, status DisplayStatus) {
-	m.mu.Lock()
-	defer m.mu.Unlock()
-
-	state, exists := m.byHistuiID[histuiID]
-	if !exists {
-		return
-	}
-
-	state.Status = status
-	if status == DisplayStatusDismissed || status == DisplayStatusExpired || status == DisplayStatusClosed {
-		state.ClosedAt = time.Now()
-	}
-}
-
-// SetStatusByDBusID updates the status by D-Bus ID.
-func (m *DisplayStateManager) SetStatusByDBusID(dbusID uint32, status DisplayStatus) {
-	m.mu.Lock()
-	defer m.mu.Unlock()
-
-	histuiID, exists := m.byDBusID[dbusID]
-	if !exists {
-		return
-	}
-
-	state, exists := m.byHistuiID[histuiID]
-	if !exists {
-		return
-	}
-
-	state.Status = status
-	if status == DisplayStatusDismissed || status == DisplayStatusExpired || status == DisplayStatusClosed {
-		state.ClosedAt = time.Now()
-	}
-}
-
-// Remove removes a display state entry.
-func (m *DisplayStateManager) Remove(histuiID string) {
-	m.mu.Lock()
-	defer m.mu.Unlock()
-
-	state, exists := m.byHistuiID[histuiID]
-	if !exists {
-		return
-	}
-
-	delete(m.byDBusID, state.DBusID)
-	delete(m.byHistuiID, histuiID)
 }
 
 // RemoveByDBusID removes a display state entry by D-Bus ID.
@@ -210,13 +140,6 @@ func (m *DisplayStateManager) ActiveNotifications() []string {
 		}
 	}
 	return active
-}
-
-// Count returns the number of tracked notifications.
-func (m *DisplayStateManager) Count() int {
-	m.mu.RLock()
-	defer m.mu.RUnlock()
-	return len(m.byHistuiID)
 }
 
 // ActiveCount returns the number of active notifications.

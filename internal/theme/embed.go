@@ -109,20 +109,6 @@ func GetEmbeddedLayout(name string) (string, bool) {
 	return string(data), true
 }
 
-// ListEmbeddedLayouts returns names of all embedded layouts.
-// Only themes that have a layout.xml are included.
-func ListEmbeddedLayouts() []string {
-	var layouts []string
-
-	for _, name := range ListEmbeddedThemes() {
-		if _, found := GetEmbeddedLayout(name); found {
-			layouts = append(layouts, name)
-		}
-	}
-
-	return layouts
-}
-
 // GetEmbeddedManifest retrieves a bundled manifest by theme name.
 // Returns the manifest TOML content and whether it was found.
 // Manifests are stored as: themes/{name}/manifest.toml
@@ -133,18 +119,6 @@ func GetEmbeddedManifest(name string) (string, bool) {
 		return "", false
 	}
 	return string(data), true
-}
-
-// GetEmbeddedSound retrieves a bundled sound file by theme name and relative path.
-// Returns the sound data and whether it was found.
-// Sound paths are relative to the theme directory (e.g., "sounds/normal.wav").
-func GetEmbeddedSound(themeName, soundPath string) ([]byte, bool) {
-	path := "themes/" + themeName + "/" + soundPath
-	data, err := EmbeddedThemes.ReadFile(path)
-	if err != nil {
-		return nil, false
-	}
-	return data, true
 }
 
 // ExtractEmbeddedSounds extracts all embedded sounds for a theme to a directory.

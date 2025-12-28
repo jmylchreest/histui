@@ -59,20 +59,6 @@ func (n *InternalNotifier) SetNotifyHandler(handler func(notification *dbus.DBus
 	n.notifyHandler = handler
 }
 
-// SetEnabled enables or disables internal notifications.
-func (n *InternalNotifier) SetEnabled(enabled bool) {
-	n.mu.Lock()
-	defer n.mu.Unlock()
-	n.enabled = enabled
-}
-
-// SetMinInterval sets the minimum interval between duplicate notifications.
-func (n *InternalNotifier) SetMinInterval(interval time.Duration) {
-	n.mu.Lock()
-	defer n.mu.Unlock()
-	n.minInterval = interval
-}
-
 // Notify sends an internal notification if not rate-limited.
 // The key is used for rate limiting - same key won't notify again within minInterval.
 func (n *InternalNotifier) Notify(key, summary, body string, level NotificationLevel) {
@@ -195,16 +181,6 @@ func (n *InternalNotifier) NotifyDnDChanged(enabled bool, reason string) {
 		"dnd-change",
 		summary,
 		body,
-		NotificationLevelInfo,
-	)
-}
-
-// NotifyStartup sends a notification that the daemon has started.
-func (n *InternalNotifier) NotifyStartup(version string) {
-	n.Notify(
-		"startup",
-		"histuid Started",
-		"Notification daemon v"+version+" is now running.",
 		NotificationLevelInfo,
 	)
 }

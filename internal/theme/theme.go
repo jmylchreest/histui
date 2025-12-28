@@ -112,14 +112,6 @@ func (t *Theme) resolveManifestPaths() {
 	t.Manifest.Audio.Critical.Path = resolvePath(t.Manifest.Audio.Critical.Path)
 }
 
-// GetIconSize returns the icon size from the manifest, or the default (48).
-func (t *Theme) GetIconSize() int {
-	if t.Manifest != nil {
-		return t.Manifest.GetIconSize()
-	}
-	return 48
-}
-
 // GetSoundConfig returns the sound configuration for a given urgency level.
 // Returns nil if no manifest or no sound is configured.
 func (t *Theme) GetSoundConfig(urgency int) *SoundConfig {
@@ -131,18 +123,6 @@ func (t *Theme) GetSoundConfig(urgency int) *SoundConfig {
 		return nil
 	}
 	return config
-}
-
-// GetLayout returns the theme's layout XML, falling back to the default layout if none set.
-func (t *Theme) GetLayout() string {
-	if t.Layout != "" {
-		return t.Layout
-	}
-	// Fall back to default embedded layout
-	if layout, found := GetEmbeddedLayout(DefaultThemeName); found {
-		return layout
-	}
-	return ""
 }
 
 // ProcessImports resolves and inlines @import statements in CSS.
@@ -255,18 +235,6 @@ func resolveEmbeddedImport(importPath string) (string, bool) {
 	}
 
 	return "", false
-}
-
-// NewDefaultTheme creates the embedded default theme.
-func NewDefaultTheme() *Theme {
-	css, _ := GetEmbeddedTheme(DefaultThemeName)
-	return &Theme{
-		Name:      DefaultThemeName,
-		Path:      "",
-		CSS:       css,
-		ModTime:   time.Time{},
-		IsDefault: true,
-	}
 }
 
 // Reload reloads the theme from disk.
@@ -397,13 +365,4 @@ func isThemeDir(dir string) bool {
 		}
 	}
 	return false
-}
-
-// CreateThemesDir creates the themes directory if it doesn't exist.
-func CreateThemesDir() error {
-	themesDir, err := ThemesDir()
-	if err != nil {
-		return err
-	}
-	return os.MkdirAll(themesDir, 0755)
 }

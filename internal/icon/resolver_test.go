@@ -37,14 +37,14 @@ func TestResolverCustomAliases(t *testing.T) {
 	r := NewResolver()
 
 	// Add custom alias that overrides default
-	r.AddAlias("zapzap", "custom-whatsapp")
+	r.AddAliases(map[string]string{"zapzap": "custom-whatsapp"})
 
 	if got := r.Resolve("zapzap"); got != "custom-whatsapp" {
 		t.Errorf("Resolve(zapzap) = %q, want custom-whatsapp", got)
 	}
 
 	// Add new custom alias
-	r.AddAlias("myapp", "myicon")
+	r.AddAliases(map[string]string{"myapp": "myicon"})
 	if got := r.Resolve("myapp"); got != "myicon" {
 		t.Errorf("Resolve(myapp) = %q, want myicon", got)
 	}
@@ -79,24 +79,3 @@ func TestResolverNerdSymbols(t *testing.T) {
 	}
 }
 
-func TestListAliases(t *testing.T) {
-	// Use NewResolverWithAliases to get embedded default aliases
-	r, err := NewResolverWithAliases()
-	if err != nil {
-		t.Fatalf("NewResolverWithAliases() error: %v", err)
-	}
-	r.AddAlias("custom", "icon")
-
-	aliases := r.ListAliases()
-	if len(aliases) == 0 {
-		t.Error("ListAliases returned empty map")
-	}
-
-	if aliases["custom"] != "icon" {
-		t.Error("ListAliases missing custom alias")
-	}
-
-	if aliases["zapzap"] != "whatsapp" {
-		t.Error("ListAliases missing default alias")
-	}
-}

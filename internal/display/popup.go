@@ -7,7 +7,6 @@ import (
 	"time"
 
 	"github.com/diamondburned/gotk4-adwaita/pkg/adw"
-	layershell "github.com/diamondburned/gotk4-layer-shell/pkg/gtk4layershell"
 	"github.com/diamondburned/gotk4/pkg/gdk/v4"
 	"github.com/diamondburned/gotk4/pkg/gdkpixbuf/v2"
 	"github.com/diamondburned/gotk4/pkg/glib/v2"
@@ -20,9 +19,8 @@ import (
 	"github.com/jmylchreest/histui/internal/model"
 )
 
-// Popup represents a notification popup window.
+// Popup represents a notification popup widget.
 type Popup struct {
-	window       *gtk.Window
 	notification *dbus.DBusNotification
 	config       *config.DaemonConfig
 	layout       *layout.LayoutConfig
@@ -41,76 +39,27 @@ type Popup struct {
 	stackCountLbl *gtk.Label
 
 	// Callbacks
-	onClose       func(reason dbus.CloseReason)
-	onAction      func(actionKey string)
-	onHover       func(hovering bool)
-	onCloseAll    func()
-	onHeightReady func(height int) // Called when actual height is measured
-	onWidthReady  func(width int)  // Called when actual width is measured
+	onClose    func(reason dbus.CloseReason)
+	onAction   func(actionKey string)
+	onHover    func(hovering bool)
+	onCloseAll func()
 
 	// State
-	closed       bool
-	stackCount   int // Number of stacked identical notifications
-	timestamp    time.Time
-	actualHeight int // Measured height after GTK layout
-	actualWidth  int // Measured width after GTK layout
+	closed     bool
+	stackCount int // Number of stacked identical notifications
+	timestamp  time.Time
 
 	// Stack position for unified stack styling
 	stackPosition string // "single", "first", "middle", "last"
 
-	// Animation state
-	currentOffsetY int // Current animated Y offset
-	targetOffsetY  int // Target Y offset for animation
-	animating      bool
-
 	// Layout-derived sizing (for position calculations)
-	minWidth  int
-	maxWidth  int
-	maxHeight int
-}
-
-// NewPopup creates a new notification popup with its own layer-shell window.
-// Use NewPopupWidget for embedding in a container (single-window mode).
-func NewPopup(app *gtk.Application, notification *dbus.DBusNotification, cfg *config.DaemonConfig, logger *slog.Logger) (*Popup, error) {
-	p := newPopupBase(notification, cfg, logger)
-
-	// Create the window
-	p.window = gtk.NewWindow()
-	p.window.SetApplication(app)
-	p.window.SetDecorated(false)
-	p.window.SetResizable(false)
-
-	// Set window size constraints
-	p.window.SetDefaultSize(p.maxWidth, -1)
-	p.window.SetSizeRequest(p.minWidth, p.layout.MinHeight)
-
-	// Initialize layer-shell
-	layershell.InitForWindow(p.window)
-	layershell.SetLayer(p.window, layershell.LayerShellLayerTop)
-	layershell.SetExclusiveZone(p.window, 0) // Don't reserve space
-	layershell.SetKeyboardMode(p.window, layershell.LayerShellKeyboardModeNone)
-
-	// Set namespace for window managers
-	layershell.SetNamespace(p.window, "histui-notification")
-
-	// Build the UI from layout template
-	p.buildUI()
-
-	// Apply CSS classes for theming
-	p.applyThemeClasses()
-
-	// Connect signals (window-level)
-	p.connectSignals()
-
-	// Set the box as window child
-	p.window.SetChild(p.box)
-
-	return p, nil
+	minWidth int
+	maxWidth int
 }
 
 // NewPopupWidget creates a notification popup widget for embedding in a container.
-// Unlike NewPopup, this does not create a window - just the notification content box.
-// Use this for single-window mode where all notifications share one layer-shell window.
+// This creates just the notification content box, not a window.
+// All notifications share one layer-shell window managed by the stack.
 func NewPopupWidget(notification *dbus.DBusNotification, cfg *config.DaemonConfig, logger *slog.Logger, iconResolver *icon.Resolver) (*Popup, error) {
 	p := newPopupBase(notification, cfg, logger)
 	p.iconResolver = iconResolver
@@ -163,7 +112,6 @@ func newPopupBase(notification *dbus.DBusNotification, cfg *config.DaemonConfig,
 	// Use layout sizing (layout package provides sensible defaults)
 	p.minWidth = layoutConfig.MinWidth
 	p.maxWidth = layoutConfig.MaxWidth
-	p.maxHeight = layoutConfig.MaxHeight
 
 	return p
 }
@@ -773,40 +721,7 @@ func formatRelativeTime(t time.Time) string {
 	}
 }
 
-// connectSignals sets up event handlers.
-func (p *Popup) connectSignals() {
-	// Mouse enter/leave for hover effects
-	motionCtrl := gtk.NewEventControllerMotion()
-	motionCtrl.ConnectEnter(func(x, y float64) {
-		if p.actionBox != nil {
-			p.actionBox.SetVisible(true)
-		}
-		if p.onHover != nil {
-			p.onHover(true)
-		}
-	})
-	motionCtrl.ConnectLeave(func() {
-		if p.actionBox != nil {
-			p.actionBox.SetVisible(false)
-		}
-		if p.onHover != nil {
-			p.onHover(false)
-		}
-	})
-	p.window.AddController(motionCtrl)
-
-	// Click handler for configurable mouse actions
-	clickCtrl := gtk.NewGestureClick()
-	clickCtrl.SetButton(0) // All buttons
-	clickCtrl.ConnectReleased(func(nPress int, x, y float64) {
-		button := clickCtrl.CurrentButton()
-		p.handleClick(button)
-	})
-	p.window.AddController(clickCtrl)
-}
-
-// connectWidgetSignals sets up event handlers on the box widget (for embedded mode).
-// Similar to connectSignals but attaches to p.box instead of p.window.
+// connectWidgetSignals sets up event handlers on the box widget.
 func (p *Popup) connectWidgetSignals() {
 	// Mouse enter/leave for hover effects
 	motionCtrl := gtk.NewEventControllerMotion()
@@ -896,190 +811,17 @@ func (p *Popup) handleClick(button uint) {
 	}
 }
 
-// Show displays the popup at the given vertical offset.
-// The offsetY is the absolute Y position from the screen edge.
-func (p *Popup) Show(offsetY int) {
-	p.currentOffsetY = offsetY
-	p.targetOffsetY = offsetY
-	p.updateAnchorPositionWithOffset(offsetY)
-
-	// Connect to map signal to measure actual size after GTK layout
-	var signalHandle glib.SignalHandle
-	signalHandle = p.window.ConnectMap(func() {
-		// Use idle callback to ensure layout is complete
-		glib.IdleAdd(func() {
-			// Get the actual window size (not preferred size) for accurate positioning
-			// The window size is what layer-shell uses for positioning other windows
-			height := p.window.Height()
-			width := p.window.Width()
-
-			// Clamp to max height
-			if height > p.maxHeight {
-				height = p.maxHeight
-			}
-
-			p.actualHeight = height
-			p.actualWidth = width
-			p.logger.Debug("measured popup size",
-				"height", height,
-				"width", width,
-				"max_height", p.maxHeight,
-			)
-
-			// Notify manager of actual dimensions
-			if p.onHeightReady != nil {
-				p.onHeightReady(height)
-			}
-			if p.onWidthReady != nil {
-				p.onWidthReady(width)
-			}
-		})
-
-		// Disconnect after first map
-		p.window.HandlerDisconnect(signalHandle)
-	})
-
-	p.window.Present()
-}
-
-// Close closes the popup.
-// For windowed popups, this closes the window.
-// For embedded widgets, this just marks as closed (container handles removal).
+// Close marks the popup as closed (container handles removal).
 func (p *Popup) Close() {
 	if p.closed {
 		return
 	}
 	p.closed = true
-	if p.window != nil {
-		p.window.Close()
-	}
 }
 
 // Widget returns the notification box widget for embedding in a container.
-// Returns nil if called on a windowed popup.
 func (p *Popup) Widget() *gtk.Box {
 	return p.box
-}
-
-// IsEmbedded returns true if this popup is a widget (no window).
-func (p *Popup) IsEmbedded() bool {
-	return p.window == nil
-}
-
-// UpdatePosition updates the popup's vertical offset with animation.
-func (p *Popup) UpdatePosition(offsetY int) {
-	if p.targetOffsetY == offsetY {
-		return
-	}
-	p.animateToOffset(offsetY)
-}
-
-// animateToOffset smoothly animates the popup to a new Y offset.
-func (p *Popup) animateToOffset(targetY int) {
-	if p.closed {
-		return
-	}
-
-	p.targetOffsetY = targetY
-
-	// If already animating, the existing animation will pick up the new target
-	if p.animating {
-		return
-	}
-
-	p.animating = true
-
-	// Animation parameters
-	const (
-		animationDuration = 150 * time.Millisecond
-		frameInterval     = 16 * time.Millisecond // ~60fps
-	)
-
-	startY := p.currentOffsetY
-	startTime := time.Now()
-
-	// Animation tick function
-	tick := func() bool {
-		if p.closed {
-			p.animating = false
-			return false // Stop animation
-		}
-
-		elapsed := time.Since(startTime)
-		progress := float64(elapsed) / float64(animationDuration)
-
-		if progress >= 1.0 {
-			// Animation complete
-			p.currentOffsetY = p.targetOffsetY
-			p.updateAnchorPositionWithOffset(p.currentOffsetY)
-			p.animating = false
-
-			// Check if target changed during animation
-			if p.currentOffsetY != p.targetOffsetY {
-				// Start new animation to new target
-				p.animateToOffset(p.targetOffsetY)
-			}
-			return false // Stop this animation
-		}
-
-		// Ease-out cubic: 1 - (1 - t)^3
-		eased := 1.0 - (1.0-progress)*(1.0-progress)*(1.0-progress)
-
-		// Interpolate position
-		p.currentOffsetY = startY + int(float64(p.targetOffsetY-startY)*eased)
-		p.updateAnchorPositionWithOffset(p.currentOffsetY)
-
-		return true // Continue animation
-	}
-
-	// Start animation loop
-	glib.TimeoutAdd(uint(frameInterval.Milliseconds()), tick)
-}
-
-// updateAnchorPositionWithOffset sets the layer-shell position with a specific Y offset.
-func (p *Popup) updateAnchorPositionWithOffset(offsetY int) {
-	pos := config.Position(p.config.Display.Position)
-	offsetX := p.config.Display.OffsetX
-
-	// Reset all anchors first
-	layershell.SetAnchor(p.window, layershell.LayerShellEdgeTop, false)
-	layershell.SetAnchor(p.window, layershell.LayerShellEdgeBottom, false)
-	layershell.SetAnchor(p.window, layershell.LayerShellEdgeLeft, false)
-	layershell.SetAnchor(p.window, layershell.LayerShellEdgeRight, false)
-
-	switch pos {
-	case config.PositionTopRight:
-		layershell.SetAnchor(p.window, layershell.LayerShellEdgeTop, true)
-		layershell.SetAnchor(p.window, layershell.LayerShellEdgeRight, true)
-		layershell.SetMargin(p.window, layershell.LayerShellEdgeTop, offsetY)
-		layershell.SetMargin(p.window, layershell.LayerShellEdgeRight, offsetX)
-
-	case config.PositionTopLeft:
-		layershell.SetAnchor(p.window, layershell.LayerShellEdgeTop, true)
-		layershell.SetAnchor(p.window, layershell.LayerShellEdgeLeft, true)
-		layershell.SetMargin(p.window, layershell.LayerShellEdgeTop, offsetY)
-		layershell.SetMargin(p.window, layershell.LayerShellEdgeLeft, offsetX)
-
-	case config.PositionTopCenter:
-		layershell.SetAnchor(p.window, layershell.LayerShellEdgeTop, true)
-		layershell.SetMargin(p.window, layershell.LayerShellEdgeTop, offsetY)
-
-	case config.PositionBottomRight:
-		layershell.SetAnchor(p.window, layershell.LayerShellEdgeBottom, true)
-		layershell.SetAnchor(p.window, layershell.LayerShellEdgeRight, true)
-		layershell.SetMargin(p.window, layershell.LayerShellEdgeBottom, offsetY)
-		layershell.SetMargin(p.window, layershell.LayerShellEdgeRight, offsetX)
-
-	case config.PositionBottomLeft:
-		layershell.SetAnchor(p.window, layershell.LayerShellEdgeBottom, true)
-		layershell.SetAnchor(p.window, layershell.LayerShellEdgeLeft, true)
-		layershell.SetMargin(p.window, layershell.LayerShellEdgeBottom, offsetY)
-		layershell.SetMargin(p.window, layershell.LayerShellEdgeLeft, offsetX)
-
-	case config.PositionBottomCenter:
-		layershell.SetAnchor(p.window, layershell.LayerShellEdgeBottom, true)
-		layershell.SetMargin(p.window, layershell.LayerShellEdgeBottom, offsetY)
-	}
 }
 
 // OnClose sets the callback for when the popup is closed.
@@ -1100,33 +842,6 @@ func (p *Popup) OnHover(cb func(hovering bool)) {
 // OnCloseAll sets the callback for close-all action.
 func (p *Popup) OnCloseAll(cb func()) {
 	p.onCloseAll = cb
-}
-
-// OnHeightReady sets the callback for when actual height is measured.
-func (p *Popup) OnHeightReady(cb func(height int)) {
-	p.onHeightReady = cb
-}
-
-// OnWidthReady sets the callback for when actual width is measured.
-func (p *Popup) OnWidthReady(cb func(width int)) {
-	p.onWidthReady = cb
-}
-
-// GetActualHeight returns the measured actual height of the popup.
-// Returns 0 if height hasn't been measured yet.
-func (p *Popup) GetActualHeight() int {
-	return p.actualHeight
-}
-
-// GetMaxHeight returns the maximum allowed height.
-func (p *Popup) GetMaxHeight() int {
-	return p.maxHeight
-}
-
-// GetActualWidth returns the measured actual width of the popup.
-// Returns 0 if width hasn't been measured yet.
-func (p *Popup) GetActualWidth() int {
-	return p.actualWidth
 }
 
 // SetStackPosition updates the popup's position in the notification stack.

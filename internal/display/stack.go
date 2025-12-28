@@ -274,32 +274,6 @@ func (s *NotificationStack) RemoveByHistuiID(histuiID string) *NotificationWidge
 	return removed
 }
 
-// Get returns a notification widget by D-Bus ID.
-func (s *NotificationStack) Get(dbusID uint32) *NotificationWidget {
-	s.mu.RLock()
-	defer s.mu.RUnlock()
-
-	for _, w := range s.widgets {
-		if w.DBusID == dbusID {
-			return w
-		}
-	}
-	return nil
-}
-
-// GetByHistuiID returns a notification widget by histui ID.
-func (s *NotificationStack) GetByHistuiID(histuiID string) *NotificationWidget {
-	s.mu.RLock()
-	defer s.mu.RUnlock()
-
-	for _, w := range s.widgets {
-		if w.HistuiID == histuiID {
-			return w
-		}
-	}
-	return nil
-}
-
 // Clear removes all notifications from the stack.
 func (s *NotificationStack) Clear() []*NotificationWidget {
 	s.mu.Lock()
@@ -331,23 +305,6 @@ func (s *NotificationStack) Clear() []*NotificationWidget {
 	s.logger.Debug("cleared notification stack", "removed", len(removed))
 
 	return removed
-}
-
-// Count returns the number of notifications in the stack.
-func (s *NotificationStack) Count() int {
-	s.mu.RLock()
-	defer s.mu.RUnlock()
-	return len(s.widgets)
-}
-
-// All returns all notification widgets in order.
-func (s *NotificationStack) All() []*NotificationWidget {
-	s.mu.RLock()
-	defer s.mu.RUnlock()
-
-	result := make([]*NotificationWidget, len(s.widgets))
-	copy(result, s.widgets)
-	return result
 }
 
 // stackPositionUpdate captures a position update for deferred GTK execution.

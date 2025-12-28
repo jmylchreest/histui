@@ -797,27 +797,6 @@ func (m *Manager) handleTimeouts() {
 	}
 }
 
-// ActiveCount returns the number of active popups.
-func (m *Manager) ActiveCount() int {
-	m.mu.RLock()
-	defer m.mu.RUnlock()
-	return len(m.popups)
-}
-
-// QueuedCount returns the number of queued notifications.
-func (m *Manager) QueuedCount() int {
-	m.mu.RLock()
-	defer m.mu.RUnlock()
-	return m.queue.Len()
-}
-
-// TotalCount returns the total number of pending notifications (active + queued).
-func (m *Manager) TotalCount() int {
-	m.mu.RLock()
-	defer m.mu.RUnlock()
-	return len(m.popups) + m.queue.Len()
-}
-
 // UpdateConfig updates the configuration and adjusts displayed popups if necessary.
 // This is called when the config file is hot-reloaded.
 func (m *Manager) UpdateConfig(cfg *config.DaemonConfig) {

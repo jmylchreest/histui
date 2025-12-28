@@ -218,15 +218,6 @@ func (l *Loader) Apply(display *gdk.Display) {
 	l.logger.Debug("applied theme to display", "name", l.currentName)
 }
 
-// Reload reloads the current theme from disk.
-// This is useful for hot-reloading theme changes.
-func (l *Loader) Reload() error {
-	l.mu.RLock()
-	name := l.currentName
-	l.mu.RUnlock()
-	return l.LoadTheme(name)
-}
-
 // StartHotReload starts watching the current theme for changes.
 // Changes are automatically applied to the display.
 // Also watches for user theme overrides of bundled themes.
@@ -279,11 +270,6 @@ func (l *Loader) StopHotReload() {
 		l.watcher.Stop()
 		l.watcher = nil
 	}
-}
-
-// Provider returns the underlying CSS provider.
-func (l *Loader) Provider() *gtk.CSSProvider {
-	return l.provider
 }
 
 // CurrentTheme returns the name of the currently loaded theme.
@@ -386,13 +372,6 @@ func (l *Loader) generateFontCSS(fontFamily string, fontSize int) string {
 	css += "}\n"
 
 	return css
-}
-
-// GetFontSettings returns the current font override settings.
-func (l *Loader) GetFontSettings() (fontFamily string, fontSize int) {
-	l.mu.RLock()
-	defer l.mu.RUnlock()
-	return l.fontFamily, l.fontSize
 }
 
 // getSoundsCacheDir returns the cache directory for a theme's extracted sounds.
