@@ -459,6 +459,8 @@ func runDaemonMode(logger *slog.Logger) {
 				DesktopEntry: notification.DesktopEntry(),
 				Resident:     notification.Resident(),
 				Transient:    notification.Transient(),
+				StackTag:     notification.StackTag(),
+				Progress:     notification.Progress(),
 			}
 
 			// Store original hints for faithful replay
@@ -822,19 +824,14 @@ func loadThemeSounds(themeLoader *theme.Loader, audioManager *audio.Manager, log
 }
 
 // suppressGraphicsDebug sets environment variables to suppress verbose
-// debug output from Mesa/Vulkan/libGL that would otherwise pollute stderr.
-// These graphics libraries write directly to stderr without using Go's logging.
+// debug output from GTK/Vulkan that would otherwise pollute stderr.
 func suppressGraphicsDebug() {
 	// Only set if not already set (allow user override)
 	envVars := map[string]string{
-		// Suppress Mesa debug output
-		"MESA_DEBUG": "silent",
-		// Suppress libGL debug output
-		"LIBGL_DEBUG": "quiet",
-		// Suppress Vulkan loader debug output (all levels)
-		"VK_LOADER_DEBUG": "none",
-		// Suppress GLib log messages from Vulkan loader (goes through GTK logging)
+		// Suppress GLib/GTK debug messages (includes Gdk domain)
 		"G_MESSAGES_DEBUG": "",
+		// Only show errors/warnings from Vulkan loader, suppress info/debug
+		"VK_LOADER_DEBUG": "error,warn",
 	}
 
 	for key, value := range envVars {

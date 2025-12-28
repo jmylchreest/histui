@@ -2,16 +2,27 @@
 version: '3'
 
 vars:
-  # Use gitversion for semver if available, otherwise fallback
+  # Use gitversion for semver if available, otherwise fallback to git describe
   VERSION:
     sh: |
       if command -v gitversion >/dev/null 2>&1; then
         gitversion -showvariable SemVer 2>/dev/null || echo "0.0.0-dev"
-      elif git describe --tags --exact-match 2>/dev/null; then
+      elif git describe --tags --exact-match >/dev/null 2>&1; then
+        # Exact tag match - use the tag directly
         git describe --tags --exact-match | sed 's/^v//'
+      elif git describe --tags >/dev/null 2>&1; then
+        # Ahead of a tag - extract version and build metadata
+        DESC=$(git describe --tags 2>/dev/null)
+        # Extract semver base (e.g., 0.0.1 from v0.0.1-dev.0-abc123-57-g51d534c)
+        BASE=$(echo "$DESC" | sed -E 's/^v?([0-9]+\.[0-9]+\.[0-9]+).*/\1/')
+        # Extract commit count (second-to-last segment before -gSHA)
+        COUNT=$(echo "$DESC" | sed -E 's/.*-([0-9]+)-g[a-f0-9]+$/\1/')
+        # Extract current SHA
+        SHA=$(git rev-parse --short HEAD 2>/dev/null)
+        echo "v${BASE}-dev.${COUNT}-${SHA}"
       else
         SHA=$(git rev-parse --short HEAD 2>/dev/null || echo "unknown")
-        echo "0.0.0-dev+${SHA}"
+        echo "v0.0.0-dev.0-${SHA}"
       fi
   COMMIT:
     sh: git rev-parse --short HEAD 2>/dev/null || echo "unknown"
