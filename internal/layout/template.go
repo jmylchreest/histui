@@ -226,4 +226,3 @@ func DefaultLayout() *LayoutConfig {
 		},
 	}
 }
-

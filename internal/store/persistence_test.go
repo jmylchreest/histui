@@ -260,37 +260,6 @@ func TestStoreWithPersistence(t *testing.T) {
 	s2.Close()
 }
 
-func TestRecoverFromCorruption(t *testing.T) {
-	dir := t.TempDir()
-	path := filepath.Join(dir, "test.jsonl")
-
-	// Write file with corruption
-	content := `{"histui_schema_version":1,"created_at":1703577600}
-{"histui_id":"valid1","histui_source":"test","app_name":"test","summary":"Test","timestamp":1703577600,"urgency":1,"urgency_name":"normal","histui_imported_at":1703577600}
-corrupt line that will break things
-{"histui_id":"valid2","histui_source":"test","app_name":"test","summary":"Test","timestamp":1703577601,"urgency":1,"urgency_name":"normal","histui_imported_at":1703577601}
-`
-	err := os.WriteFile(path, []byte(content), 0600)
-	require.NoError(t, err)
-
-	// Recover
-	err = RecoverFromCorruption(path)
-	require.NoError(t, err)
-
-	// Verify recovered file
-	p, err := NewJSONLPersistence(path)
-	require.NoError(t, err)
-	defer p.Close()
-
-	notifications, err := p.Load()
-	require.NoError(t, err)
-	assert.Len(t, notifications, 2)
-
-	// Backup should exist
-	matches, _ := filepath.Glob(path + ".corrupted.*")
-	assert.Len(t, matches, 1)
-}
-
 func persistTestNotification(id string) model.Notification {
 	return model.Notification{
 		HistuiID:         id,

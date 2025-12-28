@@ -51,8 +51,8 @@ type JSONLPersistence struct {
 	path           string
 	file           *os.File
 	closed         bool
-	needsRepair    bool  // true if corruption was detected during Load
-	malformedCount int   // number of malformed lines found
+	needsRepair    bool                 // true if corruption was detected during Load
+	malformedCount int                  // number of malformed lines found
 	lastValid      []model.Notification // cached valid notifications from last Load
 }
 
@@ -380,53 +380,4 @@ func (p *JSONLPersistence) Close() error {
 		return err
 	}
 	return nil
-}
-
-// RecoverFromCorruption attempts to recover from a corrupted file.
-// It creates a backup and rewrites only valid notifications.
-func RecoverFromCorruption(path string) error {
-	// Read file and collect valid notifications
-	file, err := os.Open(path)
-	if err != nil {
-		return err
-	}
-
-	var valid []model.Notification
-	scanner := bufio.NewScanner(file)
-	const maxLineSize = 1024 * 1024
-	scanner.Buffer(make([]byte, 64*1024), maxLineSize)
-
-	for scanner.Scan() {
-		line := scanner.Bytes()
-		if len(line) == 0 {
-			continue
-		}
-
-		// Skip header lines
-		var header schemaHeader
-		if json.Unmarshal(line, &header) == nil && header.HistuiSchemaVersion > 0 {
-			continue
-		}
-
-		var n model.Notification
-		if err := json.Unmarshal(line, &n); err == nil && n.HistuiID != "" {
-			valid = append(valid, n)
-		}
-	}
-	_ = file.Close()
-
-	// Create backup
-	backupPath := path + ".corrupted." + time.Now().Format("20060102-150405")
-	if err := os.Rename(path, backupPath); err != nil {
-		return fmt.Errorf("failed to backup corrupted file: %w", err)
-	}
-
-	// Create new persistence and write valid notifications
-	p, err := NewJSONLPersistence(path)
-	if err != nil {
-		return err
-	}
-	defer func() { _ = p.Close() }()
-
-	return p.AppendBatch(valid)
 }

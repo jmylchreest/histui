@@ -203,4 +203,3 @@ func (w *Watcher) handleEvent(event fsnotify.Event) {
 		}
 	}
 }
-

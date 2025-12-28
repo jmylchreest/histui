@@ -203,8 +203,3 @@ func (w *AliasesWatcher) handleEvent(event fsnotify.Event) {
 		}
 	}
 }
-
-// Path returns the path being watched.
-func (w *AliasesWatcher) Path() string {
-	return w.aliasesPath
-}

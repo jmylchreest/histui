@@ -189,26 +189,6 @@ func FindManifest(themeDir string) (string, bool) {
 	return "", false
 }
 
-// DefaultManifest returns a manifest with default values.
-func DefaultManifest() *Manifest {
-	return &Manifest{
-		Icon: IconManifest{
-			Size: 48,
-		},
-		Audio: AudioManifest{
-			Low: SoundConfig{
-				RepeatCount: -1, // Don't repeat
-			},
-			Normal: SoundConfig{
-				RepeatCount: -1, // Don't repeat
-			},
-			Critical: SoundConfig{
-				RepeatCount: -1, // Don't repeat
-			},
-		},
-	}
-}
-
 // MergeWith merges this manifest with a base manifest.
 // Fields in this manifest take precedence; base manifest provides defaults.
 // This allows partial manifests to inherit unset values from the base.

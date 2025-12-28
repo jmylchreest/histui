@@ -62,11 +62,6 @@ func LoadEmbeddedAliasesFile() (*AliasesFile, error) {
 	return loadAliasesFileFromData(defaultAliasesData)
 }
 
-// LoadEmbeddedAliases returns the built-in default aliases.
-func LoadEmbeddedAliases() (map[string]string, error) {
-	return loadAliasesFromData(defaultAliasesData)
-}
-
 // LoadUserAliasesFile loads icon aliases and symbols from the user's config file.
 // Returns nil if the file doesn't exist.
 func LoadUserAliasesFile() (*AliasesFile, error) {

@@ -485,13 +485,6 @@ func (w *ConfigWatcher) Stop() {
 	w.logger.Debug("config inotify watcher stopped")
 }
 
-// GetCurrentConfig returns the current valid configuration.
-func (w *ConfigWatcher) GetCurrentConfig() *config.DaemonConfig {
-	w.mu.RLock()
-	defer w.mu.RUnlock()
-	return w.currentConfig
-}
-
 // eventLoop processes inotify events.
 func (w *ConfigWatcher) eventLoop(ctx context.Context) {
 	defer close(w.doneCh)

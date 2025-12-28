@@ -564,12 +564,3 @@ func expandPath(path string) string {
 	}
 	return path
 }
-
-// GetViper returns the Viper instance for advanced usage (e.g., config watching).
-// Returns nil if NewViper() hasn't been called.
-var globalViper *viper.Viper
-
-// SetGlobalViper sets the global Viper instance for config watching.
-func SetGlobalViper(v *viper.Viper) {
-	globalViper = v
-}
