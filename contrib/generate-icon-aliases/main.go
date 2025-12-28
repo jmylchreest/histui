@@ -244,18 +244,21 @@ func main() {
 
 	// Knowledge base flags
 	generateKBFlag := flag.Bool("generate-kb", false, "Generate AI knowledge base using OpenRouter (requires OPENROUTER_API_KEY)")
-	openrouterModelFlag := flag.String("openrouter-model", "", "OpenRouter model to use (default: anthropic/claude-sonnet-4)")
+	openrouterModelFlag := flag.String("openrouter-model", "", "OpenRouter model to use (from config or anthropic/claude-sonnet-4)")
+	webSearchFlag := flag.Bool("web-search", false, "Enable web search for real-time data (adds :online suffix)")
 	defaultFileFlag := flag.String("default-file", kbDefaultFile, "Path to default knowledge base file")
 	aiFileFlag := flag.String("ai-file", kbAIFile, "Path to AI knowledge base file")
 	overridesFileFlag := flag.String("overrides-file", kbOverridesFile, "Path to overrides file")
+	configFileFlag := flag.String("config", configFile, "Path to config file")
 	writeExampleOverridesFlag := flag.Bool("write-example-overrides", false, "Write an example overrides file and exit")
+	writeExampleConfigFlag := flag.Bool("write-example-config", false, "Write an example config file and exit")
 
 	flag.Parse()
 
 	// Set global preference
 	iconPreference = *preferFlag
 
-	// Handle example overrides generation
+	// Handle example file generation
 	if *writeExampleOverridesFlag {
 		if err := WriteExampleOverrides(*overridesFileFlag); err != nil {
 			fmt.Fprintf(os.Stderr, "Error writing example overrides: %v\n", err)
@@ -263,6 +266,22 @@ func main() {
 		}
 		fmt.Printf("Wrote example overrides to %s\n", *overridesFileFlag)
 		return
+	}
+
+	if *writeExampleConfigFlag {
+		if err := WriteDefaultConfig(*configFileFlag); err != nil {
+			fmt.Fprintf(os.Stderr, "Error writing example config: %v\n", err)
+			os.Exit(1)
+		}
+		fmt.Printf("Wrote example config to %s\n", *configFileFlag)
+		return
+	}
+
+	// Load config
+	config, err := LoadConfig(*configFileFlag)
+	if err != nil {
+		fmt.Fprintf(os.Stderr, "Error loading config: %v\n", err)
+		os.Exit(1)
 	}
 
 	// Load or fetch glyph data
@@ -275,13 +294,13 @@ func main() {
 
 	// Handle KB generation
 	if *generateKBFlag {
-		client, err := NewOpenRouterClient(*openrouterModelFlag, *verboseFlag)
+		client, err := NewOpenRouterClient(*openrouterModelFlag, *webSearchFlag, config, *verboseFlag)
 		if err != nil {
 			fmt.Fprintf(os.Stderr, "Error creating OpenRouter client: %v\n", err)
 			os.Exit(1)
 		}
 
-		fmt.Printf("Generating knowledge base using model: %s\n", client.Model)
+		fmt.Printf("Generating knowledge base using model: %s (web search: %v)\n", client.Model, client.WebSearch)
 
 		kb, err := client.GenerateKnowledgeBase(glyphs)
 		if err != nil {

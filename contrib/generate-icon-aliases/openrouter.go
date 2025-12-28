@@ -12,37 +12,79 @@ import (
 )
 
 const (
-	openRouterURL    = "https://openrouter.ai/api/v1/chat/completions"
-	defaultModel     = "anthropic/claude-sonnet-4"
+	openRouterURL     = "https://openrouter.ai/api/v1/chat/completions"
 	classifyBatchSize = 50
 	appGenBatchSize   = 20
 )
 
+// Recommended models for structured output (as of December 2025):
+//
+// Cost-Effective:
+//   - openai/gpt-4o-mini           - Good balance of cost/quality, native structured output
+//   - google/gemini-2.0-flash      - Fast and cheap, good for bulk operations
+//
+// High Quality:
+//   - anthropic/claude-sonnet-4.5  - Best for coding/agentic tasks, structured via tool use
+//   - anthropic/claude-sonnet-4    - Excellent balance of speed and quality
+//   - openai/gpt-5.1               - Latest GPT with native structured output
+//   - google/gemini-3-pro-preview  - Google's latest flagship
+//
+// Maximum Quality:
+//   - anthropic/claude-opus-4.5    - Most capable, best reasoning
+//
+// Web Search:
+//   Append ":online" to any model to enable real-time web search (e.g., "anthropic/claude-sonnet-4:online")
+//   This adds current package data, new apps, and 2025 Linux ecosystem information.
+//   Native search for Anthropic/OpenAI/Perplexity/xAI; Exa-powered for others ($0.02/request).
+//
+// See: https://openrouter.ai/models and https://openrouter.ai/docs/features/web-search
+
+const defaultModel = "anthropic/claude-sonnet-4"
+
 // OpenRouterClient handles API calls to OpenRouter.
 type OpenRouterClient struct {
-	APIKey  string
-	Model   string
-	Verbose bool
+	APIKey    string
+	Model     string
+	WebSearch bool    // Enable web search for current data
+	Verbose   bool
+	Config    *Config // Configuration with prompts
 }
 
-// NewOpenRouterClient creates a new client from environment variables.
-func NewOpenRouterClient(model string, verbose bool) (*OpenRouterClient, error) {
+// NewOpenRouterClient creates a new client from environment variables and config.
+func NewOpenRouterClient(model string, webSearch bool, config *Config, verbose bool) (*OpenRouterClient, error) {
 	apiKey := os.Getenv("OPENROUTER_API_KEY")
 	if apiKey == "" {
 		return nil, fmt.Errorf("OPENROUTER_API_KEY environment variable not set")
 	}
 
+	// Use config defaults if not specified
+	if config == nil {
+		config = DefaultConfig()
+	}
+
 	if model == "" {
 		model = os.Getenv("OPENROUTER_MODEL")
 		if model == "" {
-			model = defaultModel
+			model = config.OpenRouter.DefaultModel
 		}
 	}
 
+	// Use config's web search setting if not explicitly set
+	if !webSearch {
+		webSearch = config.OpenRouter.WebSearch
+	}
+
+	// Append :online suffix for web search if not already present
+	if webSearch && !strings.HasSuffix(model, ":online") {
+		model = model + ":online"
+	}
+
 	return &OpenRouterClient{
-		APIKey:  apiKey,
-		Model:   model,
-		Verbose: verbose,
+		APIKey:    apiKey,
+		Model:     model,
+		WebSearch: webSearch,
+		Verbose:   verbose,
+		Config:    config,
 	}, nil
 }
 
@@ -224,18 +266,10 @@ func appGenSchema() *JSONSchema {
 
 // ClassifyIcons classifies a batch of glyph names.
 func (c *OpenRouterClient) ClassifyIcons(glyphNames []string) (*ClassifyResult, error) {
-	prompt := fmt.Sprintf(`You are classifying Nerd Font icon names for a Linux desktop notification system.
-
-For each icon glyph name, determine:
-- type: "app" if it represents a specific application (Discord, Firefox, Spotify), "category" if it's generic (email, browser, folder, music), or "skip" if not useful for app icons (arrows, shapes, abstract symbols)
-- name: the canonical lowercase name extracted from the glyph (e.g., "md-discord" → "discord", "fa-envelope" → "email", "md-folder" → "folder")
-
-Focus on icons that would be useful for matching Linux desktop applications and notification sources.
-
-Icons to classify:
-%s
-
-Respond with JSON matching the schema.`, strings.Join(glyphNames, "\n"))
+	prompt, err := c.Config.RenderClassifyPrompt(glyphNames)
+	if err != nil {
+		return nil, fmt.Errorf("render classify prompt: %w", err)
+	}
 
 	req := ChatRequest{
 		Model: c.Model,
@@ -269,28 +303,10 @@ func (c *OpenRouterClient) GenerateAppNames(icons []struct{ Name, Type string })
 		iconList = append(iconList, fmt.Sprintf("- %s (%s)", icon.Name, icon.Type))
 	}
 
-	prompt := fmt.Sprintf(`You are generating Linux application identifiers for icon mappings in a desktop notification system.
-
-For each icon, list all Linux apps that would use this icon. Include:
-- Package names (apt, pacman, dnf, etc.): discord, firefox, thunderbird
-- Desktop file base names: org.mozilla.firefox, com.discordapp.Discord
-- Flatpak application IDs: com.discordapp.Discord, org.mozilla.firefox
-- Common variants and forks: discord-canary, firefox-esr, firefox-nightly, librewolf
-
-Confidence scoring guidelines:
-- 0.9-1.0: Official/primary app that exactly matches the icon (discord for discord icon)
-- 0.7-0.9: Well-known official variants (discord-canary, firefox-esr)
-- 0.5-0.7: Popular third-party clients or forks (vesktop, librewolf, evolution for email)
-- 0.3-0.5: Less common alternatives or inferred matches
-
-For "category" type icons (email, browser, file-manager, music), list the most popular Linux applications in that category.
-
-Icons to map (format: name (type)):
-%s
-
-Be comprehensive but accurate. Only include apps you're confident exist on Linux.
-
-Respond with JSON matching the schema.`, strings.Join(iconList, "\n"))
+	prompt, err := c.Config.RenderAppGenPrompt(iconList)
+	if err != nil {
+		return nil, fmt.Errorf("render app gen prompt: %w", err)
+	}
 
 	req := ChatRequest{
 		Model: c.Model,
