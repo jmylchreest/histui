@@ -36,6 +36,13 @@ const (
 
 var delay = 300 * time.Millisecond
 
+// randomDelay sleeps for a random duration between 200ms and 1200ms.
+// This simulates realistic notification timing and helps expose race conditions.
+func randomDelay() {
+	ms := 200 + rand.Intn(1000) // 200-1199ms
+	time.Sleep(time.Duration(ms) * time.Millisecond)
+}
+
 func main() {
 	clearFlag := flag.Bool("clear", false, "Clear all notifications before sending")
 	typeFlag := flag.String("type", "all", "Type of notification to send (all, simple, url, image, imagedata, tallimage, progress, stacktag, progressupdate, actions, signal, low, critical, html, long, stack, duplicates, apps)")
@@ -194,16 +201,16 @@ func sendSimple(conn *dbus.Conn) {
 	fmt.Println("[TEST] Sending simple notification (vesktop -> discord)...")
 	notify(conn, "vesktop", "New Message",
 		"[TEST] You have a new message from @friend in #general",
-		"vesktop", nil, 5000)
-	time.Sleep(delay)
+		"vesktop", nil, 15000) // 15 seconds for normal urgency
+	randomDelay()
 }
 
 func sendWithURL(conn *dbus.Conn) {
 	fmt.Println("[TEST] Sending notification with URL (librewolf -> firefox)...")
 	notify(conn, "librewolf", "Link Notification",
 		`[TEST] Check out: <a href="https://github.com/jmylchreest/histui">histui on GitHub</a>`,
-		"librewolf", nil, 5000)
-	time.Sleep(delay)
+		"librewolf", nil, 15000)
+	randomDelay()
 }
 
 func sendWithImage(conn *dbus.Conn) {
@@ -224,8 +231,8 @@ func sendWithImage(conn *dbus.Conn) {
 	}
 	notify(conn, "Image Test", "Notification with Icon",
 		"[TEST] This notification includes an application icon.",
-		icon, nil, 5000)
-	time.Sleep(delay)
+		icon, nil, 15000)
+	randomDelay()
 }
 
 // ImageDataStruct matches the D-Bus signature (iiibiiay) for image-data hint.
@@ -279,8 +286,8 @@ func sendWithImageData(conn *dbus.Conn) {
 
 	notify(conn, "Image Data Test", "Embedded Image",
 		"[TEST] Raw pixel data embedded (32x32 red square).",
-		"", hints, 5000)
-	time.Sleep(delay)
+		"", hints, 15000)
+	randomDelay()
 }
 
 func sendWithTallImage(conn *dbus.Conn) {
@@ -333,8 +340,8 @@ func sendWithTallImage(conn *dbus.Conn) {
 
 	notify(conn, "Tall Image Test", "Cropped Image",
 		"[TEST] Tall image cropped with fade gradient at bottom.",
-		"", hints, 5000)
-	time.Sleep(delay)
+		"", hints, 15000)
+	randomDelay()
 }
 
 func sendWithProgress(conn *dbus.Conn) {
@@ -357,11 +364,11 @@ func sendWithProgress(conn *dbus.Conn) {
 			"value":             dbus.MakeVariant(step.percent),
 			"x-dunst-stack-tag": dbus.MakeVariant("download-progress"),
 		}
-		notify(conn, "qbittorrent", "Downloading File", step.body, "qbittorrent", hints, 5000)
+		notify(conn, "qbittorrent", "Downloading File", step.body, "qbittorrent", hints, 15000)
 		fmt.Printf("  -> Progress: %d%%\n", step.percent)
 		time.Sleep(600 * time.Millisecond)
 	}
-	time.Sleep(delay)
+	randomDelay()
 }
 
 func sendWithActions(conn *dbus.Conn) {
@@ -374,7 +381,7 @@ func sendWithActions(conn *dbus.Conn) {
 	notifyWithActions(conn, "rhythmbox", "Now Playing",
 		"[TEST] Miles Davis - So What",
 		"rhythmbox", actions, nil, 5000)
-	time.Sleep(delay)
+	randomDelay()
 }
 
 func sendLowUrgency(conn *dbus.Conn) {
@@ -384,8 +391,8 @@ func sendLowUrgency(conn *dbus.Conn) {
 	}
 	notify(conn, "spotify", "Now Playing",
 		"[TEST] Artist Name - Song Title (Discover Weekly)",
-		"spotify", hints, 5000)
-	time.Sleep(delay)
+		"spotify", hints, 5000) // 5 seconds for low urgency
+	randomDelay()
 }
 
 func sendCriticalUrgency(conn *dbus.Conn) {
@@ -395,24 +402,24 @@ func sendCriticalUrgency(conn *dbus.Conn) {
 	}
 	notify(conn, "gufw", "Firewall Alert!",
 		"[TEST] Blocked incoming connection from suspicious IP.",
-		"gufw", hints, 5000)
-	time.Sleep(delay)
+		"gufw", hints, 30000) // 30 seconds for critical
+	randomDelay()
 }
 
 func sendHTMLFormatted(conn *dbus.Conn) {
 	fmt.Println("[TEST] Sending HTML formatted notification (telegram-desktop -> telegram)...")
 	notify(conn, "telegram-desktop", "Message from Alice",
 		"[TEST] <b>Bold</b>, <i>italic</i>, and <u>underlined</u> text.",
-		"telegram-desktop", nil, 5000)
-	time.Sleep(delay)
+		"telegram-desktop", nil, 15000)
+	randomDelay()
 }
 
 func sendLongBody(conn *dbus.Conn) {
 	fmt.Println("[TEST] Sending notification with long body (thunderbird -> email)...")
 	notify(conn, "thunderbird", "New Email from John Doe",
 		"[TEST] Lorem ipsum dolor sit amet, consectetur adipiscing elit. Sed do eiusmod tempor incididunt ut labore et dolore magna aliqua. Ut enim ad minim veniam.",
-		"thunderbird", nil, 5000)
-	time.Sleep(delay)
+		"thunderbird", nil, 15000)
+	randomDelay()
 }
 
 func sendStack(conn *dbus.Conn, count int) {
@@ -458,7 +465,7 @@ func sendStack(conn *dbus.Conn, count int) {
 		}
 		time.Sleep(100 * time.Millisecond)
 	}
-	time.Sleep(delay)
+	randomDelay()
 }
 
 func sendKittyStyle(conn *dbus.Conn) {
@@ -500,7 +507,7 @@ func sendKittyStyle(conn *dbus.Conn) {
 		hints,
 		-1, // expire_timeout: never expires
 	)
-	time.Sleep(delay)
+	randomDelay()
 }
 
 func sendWithImagePath(conn *dbus.Conn) {
@@ -596,7 +603,7 @@ func sendStackTagProgress(conn *dbus.Conn) {
 		fmt.Printf("  -> Progress: %d%%\n", step.percent)
 		time.Sleep(800 * time.Millisecond)
 	}
-	time.Sleep(delay)
+	randomDelay()
 }
 
 // sendProgressUpdating sends a notification and then updates it with increasing progress.
@@ -641,7 +648,7 @@ func sendProgressUpdating(conn *dbus.Conn) {
 
 		fmt.Printf("  -> Progress: %d%%\n", step.percent)
 	}
-	time.Sleep(delay)
+	randomDelay()
 }
 
 // sendSignalStyle sends a Signal-like notification with a "View" action button.
@@ -664,7 +671,7 @@ func sendSignalStyle(conn *dbus.Conn) {
 		actions,
 		hints,
 		5000)
-	time.Sleep(delay)
+	randomDelay()
 }
 
 // sendDuplicates sends identical notifications to test duplicate stacking.
@@ -676,30 +683,43 @@ func sendDuplicates(conn *dbus.Conn) {
 	for i := 1; i <= 4; i++ {
 		notify(conn, "discord", "New Message",
 			"[TEST] @everyone Someone mentioned you in #general",
-			"discord", nil, 8000)
+			"discord", nil, 15000)
 		fmt.Printf("  -> Duplicate %d sent\n", i)
 		time.Sleep(200 * time.Millisecond)
 	}
-	time.Sleep(delay)
+	randomDelay()
 }
 
 func runAllTests(conn *dbus.Conn) {
 	fmt.Println("[TEST] Starting notification tests...")
 	fmt.Println()
 
+	// Low urgency first (5 second timeout - should expire early)
+	sendLowUrgency(conn)
+
+	// Normal urgency notifications (15 second timeout)
 	sendSimple(conn)
 	sendWithURL(conn)
 	sendWithImage(conn)
 	sendWithImageData(conn)
 	sendWithTallImage(conn)
-	sendLowUrgency(conn)
+
+	// Critical urgency (30 second timeout - stays visible longer)
 	sendCriticalUrgency(conn)
+
+	// Progress with stack tag (tests in-place updates)
 	sendWithProgress(conn)
+
+	// More normal urgency
 	sendLongBody(conn)
 	sendHTMLFormatted(conn)
-	sendSignalStyle(conn)        // Test View action button
-	sendDuplicates(conn)         // Test duplicate stacking
-	sendRandomAppSample(conn, 5) // Random sample of apps
+	sendSignalStyle(conn) // Test View action button
+
+	// Duplicate stacking test
+	sendDuplicates(conn)
+
+	// Random sample of apps
+	sendRandomAppSample(conn, 5)
 
 	fmt.Println()
 	fmt.Println("[OK] All test notifications sent!")
@@ -794,7 +814,7 @@ func sendRandomAppSample(conn *dbus.Conn, count int) {
 		notify(conn, app.appName, app.summary, app.body, app.icon, hints, 5000)
 		time.Sleep(100 * time.Millisecond)
 	}
-	time.Sleep(delay)
+	randomDelay()
 }
 
 func sendAppNotifications(conn *dbus.Conn) {
@@ -808,5 +828,5 @@ func sendAppNotifications(conn *dbus.Conn) {
 		notify(conn, app.appName, app.summary, app.body, app.icon, hints, 5000)
 		time.Sleep(100 * time.Millisecond)
 	}
-	time.Sleep(delay)
+	randomDelay()
 }
