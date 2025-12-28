@@ -161,7 +161,8 @@ func (c *OpenRouterClient) call(req ChatRequest) (string, error) {
 	httpReq.Header.Set("HTTP-Referer", "https://github.com/jmylchreest/histui")
 	httpReq.Header.Set("X-Title", "histui icon-aliases generator")
 
-	client := &http.Client{Timeout: 120 * time.Second}
+	timeout := time.Duration(c.Config.OpenRouter.RequestTimeout) * time.Second
+	client := &http.Client{Timeout: timeout}
 	resp, err := client.Do(httpReq)
 	if err != nil {
 		return "", fmt.Errorf("API call failed: %w", err)

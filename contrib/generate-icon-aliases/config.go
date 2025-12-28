@@ -39,6 +39,10 @@ type OpenRouterConfig struct {
 	// AppGenBatchSize is the number of icons to generate apps for per API call
 	// Keep smaller than classify since output is much larger per icon
 	AppGenBatchSize int `toml:"app_gen_batch_size"`
+
+	// RequestTimeout is the timeout for each API request in seconds
+	// Web search requests need longer timeouts (300-600s recommended)
+	RequestTimeout int `toml:"request_timeout"`
 }
 
 // PromptConfig contains customizable AI prompts.
@@ -63,8 +67,9 @@ func DefaultConfig() *Config {
 		OpenRouter: OpenRouterConfig{
 			DefaultModel:      "anthropic/claude-sonnet-4",
 			WebSearch:         true,
-			ClassifyBatchSize: 200, // Modern models handle 200-500 easily
-			AppGenBatchSize:   50,  // Smaller since output per icon is larger
+			ClassifyBatchSize: 500, // Large batches - modern models handle easily
+			AppGenBatchSize:   100, // Smaller since output per icon is larger
+			RequestTimeout:    600, // 10 minutes - web search needs longer
 		},
 		Prompts: PromptConfig{
 			ClassifyPrompt: defaultClassifyPrompt,
@@ -205,10 +210,13 @@ default_model = "anthropic/claude-sonnet-4"
 web_search = true
 
 # Batch sizes for API calls
-# Higher = fewer API calls but may hit output token limits
-# Modern models (128k+ context) can handle larger batches
-classify_batch_size = 200  # Icons to classify per call (200-500 for modern models)
-app_gen_batch_size = 50    # Icons to generate apps for per call (smaller due to larger output)
+# Higher = fewer API calls, modern models handle large batches easily
+classify_batch_size = 500  # Icons to classify per call
+app_gen_batch_size = 100   # Icons to generate apps for per call (output is larger)
+
+# Request timeout in seconds
+# Web search requests need longer timeouts
+request_timeout = 600  # 10 minutes
 
 [prompts]
 # Classification prompt template
