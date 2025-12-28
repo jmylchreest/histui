@@ -246,6 +246,13 @@ jobs:
         env:
           GH_TOKEN: ${{ secrets.GITHUB_TOKEN }}
 
+      - name: Save checksums for publishing jobs
+        uses: actions/upload-artifact@v6
+        with:
+          name: histui_${{ needs.prepare.outputs.version }}_checksums
+          path: release/checksums.txt
+          retention-days: 1
+
       - name: Cleanup old snapshot releases
         if: needs.prepare.outputs.is_release != 'true'
         run: |
@@ -268,3 +275,77 @@ jobs:
           echo "Cleanup complete. Kept ${RETENTION} most recent snapshots."
         env:
           GH_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+
+  publish-aur:
+    name: Publish to AUR
+    runs-on: ubuntu-latest
+    needs: [prepare, release]
+    if: needs.prepare.outputs.is_release == 'true'
+    steps:
+      - name: Checkout code
+        uses: actions/checkout@v5
+
+      - name: Download checksums
+        uses: actions/download-artifact@v7
+        with:
+          name: histui_${{ needs.prepare.outputs.version }}_checksums
+          path: checksums
+
+      - name: Extract checksums
+        id: checksums
+        run: |
+          VERSION="${{ needs.prepare.outputs.version }}"
+          CHECKSUM_FILE="checksums/checksums.txt"
+
+          # Extract checksums for binaries
+          SHA256_HISTUI_AMD64=$(grep "histui-linux-amd64$" "$CHECKSUM_FILE" | awk '{print $1}')
+          SHA256_HISTUID_AMD64=$(grep "histuid-linux-amd64$" "$CHECKSUM_FILE" | awk '{print $1}')
+          SHA256_HISTUI_ARM64=$(grep "histui-linux-arm64$" "$CHECKSUM_FILE" | awk '{print $1}')
+          SHA256_HISTUID_ARM64=$(grep "histuid-linux-arm64$" "$CHECKSUM_FILE" | awk '{print $1}')
+
+          # Extract checksums for common files
+          SHA256_SERVICE=$(grep "histuid.service$" "$CHECKSUM_FILE" | awk '{print $1}')
+          SHA256_MONITOR_SERVICE=$(grep "histuid-monitor.service$" "$CHECKSUM_FILE" | awk '{print $1}')
+
+          # Get LICENSE checksum from GitHub raw
+          SHA256_LICENSE=$(curl -sL "https://raw.githubusercontent.com/jmylchreest/histui/v${VERSION}/LICENSE" | sha256sum | awk '{print $1}')
+
+          echo "SHA256_HISTUI_AMD64=${SHA256_HISTUI_AMD64}" >> $GITHUB_OUTPUT
+          echo "SHA256_HISTUID_AMD64=${SHA256_HISTUID_AMD64}" >> $GITHUB_OUTPUT
+          echo "SHA256_HISTUI_ARM64=${SHA256_HISTUI_ARM64}" >> $GITHUB_OUTPUT
+          echo "SHA256_HISTUID_ARM64=${SHA256_HISTUID_ARM64}" >> $GITHUB_OUTPUT
+          echo "SHA256_SERVICE=${SHA256_SERVICE}" >> $GITHUB_OUTPUT
+          echo "SHA256_MONITOR_SERVICE=${SHA256_MONITOR_SERVICE}" >> $GITHUB_OUTPUT
+          echo "SHA256_LICENSE=${SHA256_LICENSE}" >> $GITHUB_OUTPUT
+
+          echo "=== Extracted checksums ==="
+          cat "$CHECKSUM_FILE"
+
+      - name: Generate histui-bin PKGBUILD
+        run: |
+          VERSION="${{ needs.prepare.outputs.version }}"
+          mkdir -p aur/histui-bin
+
+          sed -e "s/{{VERSION}}/${VERSION}/g" \
+              -e "s/{{AUR_MAINTAINER}}/${{ secrets.AUR_MAINTAINER }}/g" \
+              -e "s/{{SHA256_HISTUI_AMD64}}/${{ steps.checksums.outputs.SHA256_HISTUI_AMD64 }}/g" \
+              -e "s/{{SHA256_HISTUID_AMD64}}/${{ steps.checksums.outputs.SHA256_HISTUID_AMD64 }}/g" \
+              -e "s/{{SHA256_HISTUI_ARM64}}/${{ steps.checksums.outputs.SHA256_HISTUI_ARM64 }}/g" \
+              -e "s/{{SHA256_HISTUID_ARM64}}/${{ steps.checksums.outputs.SHA256_HISTUID_ARM64 }}/g" \
+              -e "s/{{SHA256_SERVICE}}/${{ steps.checksums.outputs.SHA256_SERVICE }}/g" \
+              -e "s/{{SHA256_MONITOR_SERVICE}}/${{ steps.checksums.outputs.SHA256_MONITOR_SERVICE }}/g" \
+              -e "s/{{SHA256_LICENSE}}/${{ steps.checksums.outputs.SHA256_LICENSE }}/g" \
+              contrib/aur/histui-bin/PKGBUILD.template > aur/histui-bin/PKGBUILD
+
+          echo "=== Generated histui-bin PKGBUILD ==="
+          cat aur/histui-bin/PKGBUILD
+
+      - name: Publish histui-bin to AUR
+        uses: KSXGitHub/github-actions-deploy-aur@v4.1.1
+        with:
+          pkgname: histui-bin
+          pkgbuild: aur/histui-bin/PKGBUILD
+          commit_username: github-actions[bot]
+          commit_email: github-actions[bot]@users.noreply.github.com
+          ssh_private_key: ${{ secrets.AUR_KEY }}
+          commit_message: "Update to ${{ needs.prepare.outputs.version }}"

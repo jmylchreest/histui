@@ -1,0 +1,43 @@
+# Maintainer: {{AUR_MAINTAINER}}
+
+pkgname='histui-bin'
+pkgver={{VERSION}}
+pkgrel=1
+pkgdesc='Notification history browser and daemon for Linux desktops (prebuilt binaries)'
+url='https://github.com/jmylchreest/histui'
+arch=('aarch64' 'x86_64')
+license=('MIT')
+depends=('gtk4' 'libadwaita')
+provides=('histui' 'histuid')
+conflicts=('histui')
+
+_github_url="https://github.com/jmylchreest/histui"
+
+# Common sources (systemd units, license)
+source=(
+    "histuid.service::${_github_url}/releases/download/v${pkgver}/histuid.service"
+    "histuid-monitor.service::${_github_url}/releases/download/v${pkgver}/histuid-monitor.service"
+    "LICENSE-${pkgver}::https://raw.githubusercontent.com/jmylchreest/histui/v${pkgver}/LICENSE"
+)
+
+# Architecture-specific binary sources
+source_x86_64=(
+    "histui-${pkgver}-x86_64::${_github_url}/releases/download/v${pkgver}/histui-linux-amd64"
+    "histuid-${pkgver}-x86_64::${_github_url}/releases/download/v${pkgver}/histuid-linux-amd64"
+)
+source_aarch64=(
+    "histui-${pkgver}-aarch64::${_github_url}/releases/download/v${pkgver}/histui-linux-arm64"
+    "histuid-${pkgver}-aarch64::${_github_url}/releases/download/v${pkgver}/histuid-linux-arm64"
+)
+
+sha256sums=('{{SHA256_SERVICE}}' '{{SHA256_MONITOR_SERVICE}}' '{{SHA256_LICENSE}}')
+sha256sums_x86_64=('{{SHA256_HISTUI_AMD64}}' '{{SHA256_HISTUID_AMD64}}')
+sha256sums_aarch64=('{{SHA256_HISTUI_ARM64}}' '{{SHA256_HISTUID_ARM64}}')
+
+package() {
+    install -Dm755 "histui-${pkgver}-${CARCH}" "${pkgdir}/usr/bin/histui"
+    install -Dm755 "histuid-${pkgver}-${CARCH}" "${pkgdir}/usr/bin/histuid"
+    install -Dm644 "histuid.service" "${pkgdir}/usr/lib/systemd/user/histuid.service"
+    install -Dm644 "histuid-monitor.service" "${pkgdir}/usr/lib/systemd/user/histuid-monitor.service"
+    install -Dm644 "LICENSE-${pkgver}" "${pkgdir}/usr/share/licenses/${pkgname}/LICENSE"
+}
