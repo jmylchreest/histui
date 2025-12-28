@@ -235,15 +235,34 @@ var explicitIconOverrides = map[string]string{
 }
 
 func main() {
+	// Existing flags
 	fetchFlag := flag.Bool("fetch", false, "Fetch fresh glyphnames.json and font from GitHub")
 	outputFlag := flag.String("output", "icon-aliases.toml", "Output TOML file path")
 	fontOutputFlag := flag.String("font-output", "", "Output path for Nerd Font symbols TTF (optional)")
 	verboseFlag := flag.Bool("verbose", false, "Verbose logging")
 	preferFlag := flag.String("prefer", "md", "Preferred icon set: md (Material Design), fa (Font Awesome), dev (Devicons)")
+
+	// New KB flags
+	generateKBFlag := flag.Bool("generate-kb", false, "Generate AI knowledge base using OpenRouter (requires OPENROUTER_API_KEY)")
+	openrouterModelFlag := flag.String("openrouter-model", "", "OpenRouter model to use (default: anthropic/claude-sonnet-4)")
+	kbFileFlag := flag.String("kb-file", kbAIFile, "Path to AI knowledge base file")
+	overridesFileFlag := flag.String("overrides-file", kbOverridesFile, "Path to overrides file")
+	writeExampleOverridesFlag := flag.Bool("write-example-overrides", false, "Write an example overrides file and exit")
+
 	flag.Parse()
 
 	// Set global preference
 	iconPreference = *preferFlag
+
+	// Handle example overrides generation
+	if *writeExampleOverridesFlag {
+		if err := WriteExampleOverrides(*overridesFileFlag); err != nil {
+			fmt.Fprintf(os.Stderr, "Error writing example overrides: %v\n", err)
+			os.Exit(1)
+		}
+		fmt.Printf("Wrote example overrides to %s\n", *overridesFileFlag)
+		return
+	}
 
 	// Load or fetch glyph data
 	glyphs, err := loadGlyphs(*fetchFlag)
@@ -253,6 +272,32 @@ func main() {
 	}
 	fmt.Printf("Loaded %d glyphs from Nerd Fonts\n", len(glyphs))
 
+	// Handle KB generation
+	if *generateKBFlag {
+		client, err := NewOpenRouterClient(*openrouterModelFlag, *verboseFlag)
+		if err != nil {
+			fmt.Fprintf(os.Stderr, "Error creating OpenRouter client: %v\n", err)
+			os.Exit(1)
+		}
+
+		fmt.Printf("Generating knowledge base using model: %s\n", client.Model)
+
+		kb, err := client.GenerateKnowledgeBase(glyphs)
+		if err != nil {
+			fmt.Fprintf(os.Stderr, "Error generating knowledge base: %v\n", err)
+			os.Exit(1)
+		}
+
+		if err := SaveKnowledgeBase(kb, *kbFileFlag); err != nil {
+			fmt.Fprintf(os.Stderr, "Error saving knowledge base: %v\n", err)
+			os.Exit(1)
+		}
+
+		fmt.Printf("Saved knowledge base to %s\n", *kbFileFlag)
+		fmt.Printf("Generated %d icon mappings\n", len(kb.Icons))
+		return
+	}
+
 	// Fetch font if requested
 	if *fontOutputFlag != "" {
 		if err := fetchFont(*fetchFlag, *fontOutputFlag); err != nil {
@@ -261,12 +306,41 @@ func main() {
 		}
 	}
 
-	// Find app-related icons
+	// Find app-related glyphs for matching
 	appGlyphs := filterAppGlyphs(glyphs)
 	fmt.Printf("Found %d app-related glyphs\n", len(appGlyphs))
 
-	// Generate mappings
-	mappings := generateMappings(appGlyphs, *verboseFlag)
+	// Load knowledge base (if exists)
+	kb, err := LoadKnowledgeBase(*kbFileFlag)
+	if err != nil {
+		fmt.Fprintf(os.Stderr, "Warning: error loading KB: %v\n", err)
+	} else if kb != nil {
+		fmt.Printf("Loaded AI knowledge base (%d icons, generated %s)\n", len(kb.Icons), kb.GeneratedAt)
+	}
+
+	// Load overrides (if exists)
+	overrides, err := LoadOverrides(*overridesFileFlag)
+	if err != nil {
+		fmt.Fprintf(os.Stderr, "Warning: error loading overrides: %v\n", err)
+	} else if overrides != nil {
+		iconCount := len(overrides.Icons) + len(overrides.Additions)
+		fmt.Printf("Loaded overrides (%d icon entries)\n", iconCount)
+	}
+
+	// Decide which path to take
+	var mappings []AppMapping
+
+	if kb != nil || overrides != nil {
+		// New path: merge KB + manual + overrides
+		fmt.Println("Using merged icon sources (override > AI > manual)")
+		merged := MergeIconSources(kb, knownAppIcons, overrides, *verboseFlag)
+		mappings = ConvertMergedToAppMapping(merged, appGlyphs, *verboseFlag)
+	} else {
+		// Legacy path: use existing generateMappings
+		fmt.Println("Using manual icon mappings (no KB or overrides found)")
+		mappings = generateMappings(appGlyphs, *verboseFlag)
+	}
+
 	fmt.Printf("Generated %d app mappings\n", len(mappings))
 
 	// Write TOML output
