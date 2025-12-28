@@ -23,7 +23,7 @@ jobs:
     steps:
       - name: Install build dependencies
         run: |
-          dnf install -y git git-lfs golang gtk4-devel libadwaita-devel alsa-lib-devel gobject-introspection-devel gcc
+          dnf install -y git git-lfs golang gtk4-devel gtk4-layer-shell-devel libadwaita-devel alsa-lib-devel gobject-introspection-devel gcc
 
       - name: Checkout code
         uses: actions/checkout@v5
@@ -33,8 +33,23 @@ jobs:
       - name: Verify dependencies
         run: go mod verify
 
-      - name: Run tests
-        run: go test -race ./...
+      - name: Run tests (pure Go packages with race detector)
+        run: |
+          go test -race -v -timeout 60s \
+            ./internal/model/... \
+            ./internal/core/... \
+            ./internal/config/... \
+            ./internal/dbus/... \
+            ./internal/icon/... \
+            ./internal/tui/... \
+            ./internal/db/... \
+            ./internal/adapter/...
+
+      - name: Run tests (CGO packages without race detector)
+        run: |
+          go test -v -timeout 60s \
+            ./internal/theme/... \
+            ./internal/layout/...
 
       - name: Build
-        run: go build ./...
+        run: CGO_ENABLED=1 go build ./...

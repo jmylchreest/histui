@@ -4,6 +4,7 @@ import (
 	"os"
 	"path/filepath"
 	"testing"
+	"time"
 
 	"github.com/stretchr/testify/assert"
 	"github.com/stretchr/testify/require"
@@ -177,6 +178,8 @@ func TestTheme_Reload_ProcessesImports(t *testing.T) {
 	// Update theme to import the partial
 	newContent := `@import "_new.css";
 .notification-popup { color: var(--new-color); }`
+	// Sleep to ensure file modification time changes (some filesystems have 1s granularity)
+	time.Sleep(10 * time.Millisecond)
 	err = os.WriteFile(themePath, []byte(newContent), 0644)
 	require.NoError(t, err)
 

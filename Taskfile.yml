@@ -101,7 +101,7 @@ tasks:
   test-race:
     desc: Run tests with race detector (skips CGO packages which are slow)
     cmds:
-      - go test -race -v -timeout 60s ./internal/model/... ./internal/core/... ./internal/config/... ./internal/dbus/... ./internal/icon/... ./internal/tui/... ./internal/adapter/...
+      - go test -race -v -timeout 60s ./internal/model/... ./internal/core/... ./internal/config/... ./internal/dbus/... ./internal/icon/... ./internal/tui/... ./internal/db/... ./internal/adapter/...
 
   test-coverage:
     desc: Run tests with coverage
