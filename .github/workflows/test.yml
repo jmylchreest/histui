@@ -30,6 +30,9 @@ jobs:
         with:
           lfs: true
 
+      - name: Configure Git safe directory
+        run: git config --global --add safe.directory "$GITHUB_WORKSPACE"
+
       - name: Verify dependencies
         run: go mod verify
 
