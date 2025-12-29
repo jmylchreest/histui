@@ -34,7 +34,13 @@ Complete reference for histuid CSS selectors and GTK4 CSS properties.
 ├── .notification-progress             <- Progress bar
 │   └── trough > progress              <- Fill
 │
-├── .notification-image                <- Embedded image
+├── .notification-image                <- Embedded image (non-cropped)
+│
+├── .notification-image-container      <- Container for cropped images
+│   ├── .cropped                       <- Added when image is cropped
+│   ├── .notification-image-box        <- Box holding the image
+│   │   └── .notification-image        <- The image itself
+│   └── .notification-image-fade       <- Gradient overlay for cropped images
 │
 └── .notification-actions              <- Action buttons container
     └── .notification-action           <- Individual button
@@ -67,6 +73,27 @@ Complete reference for histuid CSS selectors and GTK4 CSS properties.
 | `.notification-progress`   | Progress bar                 |
 | `.notification-image`      | Embedded image               |
 | `.notification-stack-count`| Stacked notification badge   |
+
+## Image Classes
+
+Classes for notification images and cropped image handling:
+
+| Class                            | Element                              |
+|----------------------------------|--------------------------------------|
+| `.notification-image`            | The image element itself             |
+| `.notification-image-container`  | Container for cropped images         |
+| `.notification-image-container.cropped` | Applied when image is cropped  |
+| `.notification-image-box`        | Inner box holding the image          |
+| `.notification-image-fade`       | Gradient overlay on cropped images   |
+
+### Image Cropping Behavior
+
+When notification images exceed the maximum height (150px by default):
+1. The image is placed in a `.notification-image-container.cropped` wrapper
+2. A `.notification-image-fade` overlay is added to indicate truncation
+3. The fade uses a gradient that blends to `@window_bg_color`
+
+See [Layout Reference](/docs/histuid/theming/layout-reference#image-element) for more details on image sizing rules.
 
 ## Urgency Classes
 
@@ -269,10 +296,10 @@ See [Advanced Theming](/docs/histuid/theming/advanced) for more animation exampl
 
 ## Font Variables
 
-Themes can use CSS custom properties for fonts:
+Themes can use CSS custom properties for fonts. GTK CSS uses `*` (universal selector) instead of `:root`:
 
 ```css
-:root {
+* {
     --histui-font-family: "Inter", sans-serif;
     --histui-font-size: 14px;
 }
@@ -289,6 +316,7 @@ These can be overridden via CLI: `histuid --font "Ubuntu" --font-size 16`
 
 - [CSS Imports and Inheritance](/docs/histuid/theming/css-inheritance) - How @import resolution and the cascade work
 - [Layout Reference](/docs/histuid/theming/layout-reference) - Widget layout configuration
-- [Advanced Theming](/docs/histuid/theming/advanced) - Audio, fonts, animations
+- [Effects Library](/docs/histuid/theming/effects) - Animations and gradients
+- [Advanced Theming](/docs/histuid/theming/advanced) - Audio, fonts, theme packs
 - [GTK4 CSS Properties](https://docs.gtk.org/gtk4/css-properties.html) - Full GTK4 reference
 - [Theme Examples](/docs/histuid/theming/examples) - Complete themes

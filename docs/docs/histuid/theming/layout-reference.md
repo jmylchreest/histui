@@ -99,6 +99,43 @@ The icon element displays:
 2. GTK icon theme icon (if app name matches)
 3. Nerd Font symbol (fallback, styled with `.notification-icon-nerd`)
 
+### Image Element
+
+```xml
+<image />
+```
+
+The `<image />` element displays notification images from `image-data` or `image-path` hints. It has special sizing and cropping behavior:
+
+**Sizing Rules:**
+1. Images scale down to fit the popup width (minus padding)
+2. Images never scale up beyond their original size
+3. Tall images are cropped to max 150px height, showing the top portion
+4. Cropped images display a fade gradient at the bottom to indicate truncation
+
+**Omitting Images:**
+
+To create a compact layout that never displays images, simply omit the `<image />` element:
+
+```xml
+<!-- Minimal layout - no images -->
+<popup min-width="150" max-width="250">
+  <summary />
+  <body />
+</popup>
+```
+
+This is useful for text-focused themes like `minimal` and `compact`.
+
+**CSS Classes:**
+
+| Class | Description |
+|-------|-------------|
+| `.notification-image` | The image itself |
+| `.notification-image-container` | Wrapper for cropped images |
+| `.notification-image-container.cropped` | Added when image is cropped |
+| `.notification-image-fade` | Gradient overlay on cropped images |
+
 ### Box Attributes
 
 ```xml

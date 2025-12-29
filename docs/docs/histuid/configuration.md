@@ -56,6 +56,7 @@ Controls notification popup position and behavior.
 | `max_visible` | int | 5 | Maximum simultaneous popups (1-20) |
 | `monitor` | int | 0 | Display monitor (0 = all, 1+ = specific monitor) |
 | `new_on_top` | bool | false | New notifications appear at top of stack |
+| `image_data_preview_size` | bytesize | "100 KiB" | Minimum size for showing image-data in body |
 
 **Valid Positions:**
 
@@ -70,6 +71,33 @@ Controls notification popup position and behavior.
 Notification width and gap are controlled by the theme layout, not configuration.
 See [Layout Reference](/docs/histuid/theming/layout-reference) for details.
 :::
+
+**Image Data Preview:**
+
+The `image_data_preview_size` setting controls whether `image-data` from notifications is displayed in the popup body. Many messaging apps (Signal, Discord) send profile pictures via `image-data` which can clutter notifications.
+
+| Value | Meaning |
+|-------|---------|
+| `"never"` or `"-1"` | Never display image-data |
+| `"always"` or `"0"` | Always display image-data |
+| Size threshold (e.g., `"100 KiB"`) | Only display if data size >= threshold |
+
+The default `100 KiB` filters out profile pictures (typically 64-128px = ~64KB raw RGBA) while showing larger content like album art (300px+ = ~360KB+ raw).
+
+:::tip
+The `image-path` hint is **always** displayed since explicit file paths indicate intentional content images.
+:::
+
+**Byte Size Format:**
+
+Byte sizes can be specified as:
+- `"100"` - 100 bytes
+- `"100 KB"` or `"100KB"` - 100,000 bytes (SI, base 1000)
+- `"100 KiB"` - 102,400 bytes (IEC, base 1024)
+- `"1 MB"` - 1,000,000 bytes
+- `"1 MiB"` - 1,048,576 bytes
+
+See [Icon Aliases](/docs/histuid/theming/icon-aliases#icons-vs-images-in-notifications) for more details on how icons and images are handled.
 
 ### [timeouts]
 
@@ -219,6 +247,7 @@ position = "top-right"
 max_visible = 5
 offset_x = 10
 offset_y = 10
+image_data_preview_size = "100 KiB"  # Filter small images like profile pics
 
 [timeouts]
 # Honor whatever the application requests (default for low/normal)

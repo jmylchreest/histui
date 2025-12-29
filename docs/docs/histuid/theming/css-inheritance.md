@@ -192,8 +192,8 @@ Here's a complete example of a partial theme that inherits from default:
 /* Start with the default theme */
 @import "default.css";
 
-/* Override CSS custom properties */
-:root {
+/* Override CSS custom properties (use * not :root for GTK CSS) */
+* {
     --histui-font-family: "JetBrains Mono", monospace;
     --histui-font-size: 13px;
 }
@@ -303,10 +303,10 @@ Using these ensures your theme respects the user's system theme:
 
 ## CSS Custom Properties
 
-Themes should define custom properties for easy overriding:
+Themes should define custom properties for easy overriding. Note that GTK CSS uses `*` (universal selector) instead of `:root` for global variables:
 
 ```css
-:root {
+* {
     --histui-font-family: inherit;
     --histui-font-size: 14px;
 }

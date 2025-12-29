@@ -88,7 +88,8 @@ You can place shared CSS files directly in the themes directory for reuse across
 
 **_colors.css:**
 ```css
-:root {
+/* GTK CSS uses * instead of :root for global variables */
+* {
     --my-bg: #1e1e2e;
     --my-fg: #cdd6f4;
     --my-accent: #89b4fa;
@@ -125,7 +126,7 @@ External tools can write color palettes directly to the themes directory. For ex
 
 **tinct-colors.css** (auto-generated):
 ```css
-:root {
+* {
     --tinct-bg: #1a1b26;
     --tinct-fg: #c0caf5;
     --tinct-accent: #7aa2f7;
@@ -230,7 +231,7 @@ You can extend other user themes, not just embedded ones:
 /* ~/.config/histui/themes/dark.css */
 @import "default.css";
 
-:root {
+* {
     --histui-font-size: 15px;
 }
 
@@ -303,7 +304,7 @@ volume = 0.7
 ## Tips
 
 1. **Start minimal** - Import a base theme and override only what you need
-2. **Use CSS variables** - Override `:root` variables for consistent changes
+2. **Use CSS variables** - Override `*` selector variables for consistent changes (GTK CSS uses `*` not `:root`)
 3. **Test incrementally** - Hot-reload updates your theme as you save
 4. **Check the CSS reference** - See [CSS Reference](/docs/histuid/theming/css-reference) for all available classes
 

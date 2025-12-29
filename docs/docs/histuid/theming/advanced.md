@@ -250,10 +250,10 @@ go run . --fetch --prefer fa --output ../../internal/icon/aliases_default.toml
 
 ### CSS Variables
 
-Themes should use these variables for fonts:
+Themes should use these variables for fonts. Note that GTK CSS uses `*` (universal selector) instead of `:root`:
 
 ```css
-:root {
+* {
     --histui-font-family: inherit;  /* System font */
     --histui-font-size: 14px;
 }
@@ -268,7 +268,7 @@ Themes should use these variables for fonts:
 
 1. **CLI flags** (highest): `histuid --font "Ubuntu" --font-size 16`
 2. **Config file**: `theme.font = "Ubuntu"`
-3. **Theme CSS**: `:root { --histui-font-family: "Ubuntu"; }`
+3. **Theme CSS**: `* { --histui-font-family: "Ubuntu"; }`
 
 ## CSS Animations
 
@@ -403,7 +403,7 @@ repeat_delay = "5s"
 
 **theme.css:**
 ```css
-:root {
+* {
     --histui-font-family: "Inter", sans-serif;
     --histui-font-size: 14px;
 }

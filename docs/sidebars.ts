@@ -36,6 +36,7 @@ const sidebars: SidebarsConfig = {
           items: [
             'histuid/theming/css-reference',
             'histuid/theming/extending',
+            'histuid/theming/animations',
             'histuid/theming/advanced',
             'histuid/theming/examples',
           ],

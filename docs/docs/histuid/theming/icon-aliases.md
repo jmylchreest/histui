@@ -201,6 +201,65 @@ discord = "fa-discord"
 The icon generator is available at:
 [github.com/jmylchreest/histui/tree/main/contrib/generate-icon-aliases](https://github.com/jmylchreest/histui/tree/main/contrib/generate-icon-aliases)
 
+## Icons vs Images in Notifications
+
+The freedesktop.org notification spec defines two distinct visual elements:
+
+| Element | Source | Purpose |
+|---------|--------|---------|
+| **Icon** | `app_icon` parameter | Application's identifying icon (header/sidebar) |
+| **Image** | `image-data` or `image-path` hints | Notification content image (body area) |
+
+### How histui/histuid Renders Icons
+
+The **icon** (displayed in header/sidebar) is resolved in this order:
+
+1. **app_icon parameter** - The icon name/path sent by the application
+   - Icon names (e.g., `firefox`) are looked up in the GTK icon theme
+   - File paths (e.g., `/usr/share/icons/app.png`) are loaded directly
+2. **Icon alias resolution** - User aliases → built-in aliases
+3. **Nerd Font symbol fallback** - Based on app name, category, or urgency
+
+### How histui/histuid Renders Images
+
+The **image** (displayed in body area) follows the freedesktop spec priority:
+
+1. **image-data hint** - Raw pixel data embedded in the notification
+2. **image-path hint** - File path to an image
+
+However, many messaging apps (Signal, Discord) misuse `image-data` for profile pictures when semantically they should be icons. To handle this:
+
+```toml
+# ~/.config/histui/histuid.toml
+[display]
+# Control image-data display in notification body
+# "never"    - Never show image-data (profile pics won't appear)
+# "always"   - Always show image-data
+# "100 KiB"  - Only show if raw data >= threshold (filters small profile pics)
+image_data_preview_size = "100 KiB"  # default
+```
+
+| Setting | Effect |
+|---------|--------|
+| `"never"` or `-1` | Never display image-data in body |
+| `"always"` or `0` | Always display image-data in body |
+| `"100 KiB"` | Only display if data size ≥ 100 KiB |
+
+The default `100 KiB` filters out profile pictures (typically 64-128px = ~64KB raw) while showing larger content like album art (300px+ = ~360KB+ raw).
+
+:::tip
+The `image-path` hint is **always** displayed since explicit file paths indicate intentional content images (screenshots, etc.).
+:::
+
+### Real-World App Behavior
+
+| App | app_icon | image-data | Typical Use |
+|-----|----------|------------|-------------|
+| Signal | `signal-desktop` | Profile pic (~96px) | Profile = icon-ish |
+| Discord | `discord` | Profile pic (~128px) | Profile = icon-ish |
+| Spotify | `spotify` | Album art (~300px+) | Content image |
+| Browser | `firefox` | Screenshot (large) | Content image |
+
 ## See Also
 
 - [Manifest Reference](/docs/histuid/theming/manifest-reference) - Icon size configuration

@@ -7,6 +7,7 @@
 # Generated files
 .docusaurus
 .cache-loader
+src/components/AnimationDemo/effects-generated.css
 
 # Misc
 .DS_Store
