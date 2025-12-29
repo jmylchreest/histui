@@ -31,25 +31,30 @@ type QueuedNotification struct {
 // PopupState represents the state of an active notification popup.
 // Only created for visible notifications.
 type PopupState struct {
-	DBusID        uint32
-	HistuiID      string
-	Popup         *Popup
-	Notification  *dbus.DBusNotification // Stored for duplicate detection
-	Urgency       int                    // Cached urgency level for preemption comparison
-	ClientTimeout int32                  // Client's requested timeout (-1=server decides, 0=never, >0=ms)
-	CreatedAt     time.Time
-	ExpiresAt     time.Time // Zero means never expires
-	Paused        bool      // Timeout paused (e.g., on hover)
-	StackCount    int       // Number of stacked identical notifications
-	ActualHeight  int       // Measured height after GTK layout (for dynamic stacking)
-	ActualWidth   int       // Measured width after GTK layout (for unified stack width)
+	DBusID           uint32
+	HistuiID         string
+	StackedHistuiIDs []string // Additional histuiIDs that were stacked onto this popup
+	Popup            *Popup
+	Notification     *dbus.DBusNotification // Stored for duplicate detection
+	Urgency          int                    // Cached urgency level for preemption comparison
+	ClientTimeout    int32                  // Client's requested timeout (-1=server decides, 0=never, >0=ms)
+	CreatedAt        time.Time
+	ExpiresAt        time.Time // Zero means never expires
+	Paused           bool      // Timeout paused (e.g., on hover)
+	StackCount       int       // Number of stacked identical notifications
+	ActualHeight     int       // Measured height after GTK layout (for dynamic stacking)
+	ActualWidth      int       // Measured width after GTK layout (for unified stack width)
 }
 
 // CloseCallback is called when a popup is closed.
-type CloseCallback func(dbusID uint32, reason dbus.CloseReason)
+// histuiIDs includes the primary and all stacked histuiIDs (for batch dismissal).
+type CloseCallback func(dbusID uint32, histuiIDs []string, reason dbus.CloseReason)
 
 // ActionCallback is called when an action is invoked.
 type ActionCallback func(dbusID uint32, actionKey string)
+
+// DisplayCallback is called when a popup is displayed.
+type DisplayCallback func(histuiID string)
 
 // Manager manages notification popup windows with memory-efficient queuing.
 // Uses a single-window approach where all notifications are widgets inside one
@@ -79,8 +84,9 @@ type Manager struct {
 	queueIndex map[uint32]*list.Element // Fast lookup by D-Bus ID
 
 	// Callbacks
-	onClose  CloseCallback
-	onAction ActionCallback
+	onClose   CloseCallback
+	onAction  ActionCallback
+	onDisplay DisplayCallback
 
 	// Timeout management
 	timeoutCh chan uint32
@@ -217,6 +223,11 @@ func (m *Manager) SetActionCallback(cb ActionCallback) {
 	m.onAction = cb
 }
 
+// SetDisplayCallback sets the callback for popup display events.
+func (m *Manager) SetDisplayCallback(cb DisplayCallback) {
+	m.onDisplay = cb
+}
+
 // isDuplicate checks if two notifications are considered duplicates for stacking.
 func isDuplicate(a, b *dbus.DBusNotification) bool {
 	return a.AppName == b.AppName &&
@@ -250,6 +261,13 @@ func (m *Manager) Show(notification *dbus.DBusNotification, dbusID uint32, histu
 			existingTag := state.Notification.StackTag()
 			// Match on stack tag AND app name (for safety)
 			if existingTag == stackTag && state.Notification.AppName == notification.AppName {
+				// Track the replaced histuiID for dismissal when popup is closed
+				if state.HistuiID != "" && histuiID != state.HistuiID {
+					state.StackedHistuiIDs = append(state.StackedHistuiIDs, state.HistuiID)
+				}
+				// Update to the new histuiID
+				state.HistuiID = histuiID
+
 				// Update the existing popup's content in place
 				state.Notification = notification
 				state.Popup.UpdateContent(notification)
@@ -271,13 +289,15 @@ func (m *Manager) Show(notification *dbus.DBusNotification, dbusID uint32, histu
 				m.logger.Debug("replaced notification via stack tag",
 					"stack_tag", stackTag,
 					"new_dbus_id", dbusID,
+					"new_histui_id", histuiID,
 					"existing_dbus_id", existingID,
 					"new_timeout_ms", timeout,
 				)
 
-				// Close the incoming notification immediately since we're reusing the existing one
+				// Close the incoming notification via D-Bus (tell client it was handled)
+				// Pass empty histuiIDs - we don't want to dismiss yet
 				if m.onClose != nil {
-					go m.onClose(dbusID, dbus.CloseReasonDismissed)
+					go m.onClose(dbusID, nil, dbus.CloseReasonClosed)
 				}
 
 				return nil
@@ -292,6 +312,11 @@ func (m *Manager) Show(notification *dbus.DBusNotification, dbusID uint32, histu
 				// Stack onto existing popup
 				state.StackCount++
 				state.Popup.IncrementStackCount()
+
+				// Track the stacked histuiID for batch dismissal when popup is closed
+				if histuiID != "" {
+					state.StackedHistuiIDs = append(state.StackedHistuiIDs, histuiID)
+				}
 
 				// Reset the timeout and schedule new timeout goroutine
 				existingID := state.DBusID
@@ -310,15 +335,16 @@ func (m *Manager) Show(notification *dbus.DBusNotification, dbusID uint32, histu
 
 				m.logger.Debug("stacked duplicate notification",
 					"dbus_id", dbusID,
+					"histui_id", histuiID,
 					"onto_dbus_id", state.DBusID,
 					"stack_count", state.StackCount,
 					"new_timeout_ms", timeout,
 				)
 
-				// Close the incoming notification with CloseReasonDismissed
-				// since we're not actually showing it
+				// Close the incoming notification via D-Bus (tell client it was handled)
+				// Pass empty histuiIDs - we don't want to dismiss yet, just acknowledge the D-Bus notification
 				if m.onClose != nil {
-					go m.onClose(dbusID, dbus.CloseReasonDismissed)
+					go m.onClose(dbusID, nil, dbus.CloseReasonClosed)
 				}
 
 				return nil
@@ -355,10 +381,16 @@ func (m *Manager) Show(notification *dbus.DBusNotification, dbusID uint32, histu
 				// would store the original notification data.
 				m.stack.Remove(preemptedID)
 				state.Popup.Close()
+				// Gather all histuiIDs (primary + stacked)
+				allIDs := []string{}
+				if state.HistuiID != "" {
+					allIDs = append(allIDs, state.HistuiID)
+				}
+				allIDs = append(allIDs, state.StackedHistuiIDs...)
 				delete(m.popups, preemptedID)
 				if m.onClose != nil {
 					// Run outside lock to avoid deadlock
-					go m.onClose(preemptedID, dbus.CloseReasonExpired)
+					go m.onClose(preemptedID, allIDs, dbus.CloseReasonExpired)
 				}
 			}
 			// Now show the new, higher priority notification
@@ -465,6 +497,11 @@ func (m *Manager) showPopupLocked(notification *dbus.DBusNotification, dbusID ui
 		"timeout_ms", timeout,
 		"active_popups", len(m.popups),
 	)
+
+	// Call display callback (outside lock for safety)
+	if m.onDisplay != nil && histuiID != "" {
+		go m.onDisplay(histuiID)
+	}
 
 	return nil
 }
@@ -589,6 +626,13 @@ func (m *Manager) CloseByHistuiID(histuiID string, reason dbus.CloseReason) bool
 		return false
 	}
 
+	// Gather all histuiIDs (primary + stacked)
+	allIDs := []string{}
+	if state.HistuiID != "" {
+		allIDs = append(allIDs, state.HistuiID)
+	}
+	allIDs = append(allIDs, state.StackedHistuiIDs...)
+
 	delete(m.popups, dbusID)
 	m.mu.Unlock()
 
@@ -599,7 +643,7 @@ func (m *Manager) CloseByHistuiID(histuiID string, reason dbus.CloseReason) bool
 	state.Popup = nil // Help GC
 
 	if m.onClose != nil {
-		m.onClose(dbusID, reason)
+		m.onClose(dbusID, allIDs, reason)
 	}
 
 	// Try to show next queued notification
@@ -608,6 +652,7 @@ func (m *Manager) CloseByHistuiID(histuiID string, reason dbus.CloseReason) bool
 	m.logger.Debug("closed popup by histui_id",
 		"histui_id", histuiID,
 		"dbus_id", dbusID,
+		"stacked_count", len(state.StackedHistuiIDs),
 	)
 
 	return true
@@ -636,11 +681,39 @@ func (m *Manager) GetActiveHistuiIDs() []string {
 	return ids
 }
 
+// IsNotificationActive checks if a notification has an active or queued popup.
+func (m *Manager) IsNotificationActive(histuiID string) bool {
+	m.mu.RLock()
+	defer m.mu.RUnlock()
+
+	for _, state := range m.popups {
+		if state.HistuiID == histuiID {
+			return true
+		}
+	}
+
+	for elem := m.queue.Front(); elem != nil; elem = elem.Next() {
+		queued := elem.Value.(*QueuedNotification)
+		if queued.HistuiID == histuiID {
+			return true
+		}
+	}
+
+	return false
+}
+
 // Close closes a popup by D-Bus ID.
 func (m *Manager) Close(dbusID uint32, reason dbus.CloseReason) {
 	m.mu.Lock()
 	state, exists := m.popups[dbusID]
+
+	// Gather all histuiIDs before deleting
+	var allIDs []string
 	if exists {
+		if state.HistuiID != "" {
+			allIDs = append(allIDs, state.HistuiID)
+		}
+		allIDs = append(allIDs, state.StackedHistuiIDs...)
 		delete(m.popups, dbusID)
 	}
 
@@ -660,7 +733,7 @@ func (m *Manager) Close(dbusID uint32, reason dbus.CloseReason) {
 		state.Popup = nil
 
 		if m.onClose != nil {
-			m.onClose(dbusID, reason)
+			m.onClose(dbusID, allIDs, reason)
 		}
 
 		// Try to show next queued notification
@@ -690,7 +763,13 @@ func (m *Manager) CloseAll(reason dbus.CloseReason) int {
 		state.Popup.Close()
 		state.Popup = nil // Help GC
 		if m.onClose != nil {
-			m.onClose(state.DBusID, reason)
+			// Gather all histuiIDs (primary + stacked)
+			allIDs := []string{}
+			if state.HistuiID != "" {
+				allIDs = append(allIDs, state.HistuiID)
+			}
+			allIDs = append(allIDs, state.StackedHistuiIDs...)
+			m.onClose(state.DBusID, allIDs, reason)
 		}
 	}
 
@@ -733,7 +812,14 @@ func (m *Manager) showNextQueued() {
 func (m *Manager) handlePopupClosed(dbusID uint32, reason dbus.CloseReason) {
 	m.mu.Lock()
 	state, exists := m.popups[dbusID]
+
+	// Gather all histuiIDs before deleting
+	var allIDs []string
 	if exists {
+		if state.HistuiID != "" {
+			allIDs = append(allIDs, state.HistuiID)
+		}
+		allIDs = append(allIDs, state.StackedHistuiIDs...)
 		delete(m.popups, dbusID)
 		state.Popup = nil // Help GC
 	}
@@ -743,7 +829,7 @@ func (m *Manager) handlePopupClosed(dbusID uint32, reason dbus.CloseReason) {
 	m.stack.Remove(dbusID)
 
 	if exists && m.onClose != nil {
-		m.onClose(dbusID, reason)
+		m.onClose(dbusID, allIDs, reason)
 	}
 
 	// Show next queued notification

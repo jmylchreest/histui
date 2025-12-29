@@ -6,6 +6,7 @@ import (
 	"fmt"
 	"os"
 	"path/filepath"
+	"strings"
 	"sync"
 	"time"
 
@@ -39,17 +40,36 @@ func Open(path string) (*DB, error) {
 	}
 
 	// Open with WAL mode and other pragmas via query string
-	dsn := fmt.Sprintf("file:%s?_journal_mode=WAL&_busy_timeout=5000&_foreign_keys=ON&_synchronous=NORMAL", path)
+	// Use longer busy_timeout (30s) to handle cross-process contention
+	dsn := fmt.Sprintf("file:%s?_journal_mode=WAL&_busy_timeout=30000&_foreign_keys=ON&_synchronous=NORMAL", path)
 
 	conn, err := sql.Open("sqlite", dsn)
 	if err != nil {
 		return nil, fmt.Errorf("open database: %w", err)
 	}
 
-	// Verify connection
+	// Serialize writes within this process to reduce contention
+	// WAL mode allows concurrent reads, so this mainly helps with writes
+	conn.SetMaxOpenConns(1)
+
+	// Verify connection and apply pragmas explicitly (belt and suspenders)
 	if err := conn.Ping(); err != nil {
 		_ = conn.Close()
 		return nil, fmt.Errorf("ping database: %w", err)
+	}
+
+	// Ensure WAL mode and busy timeout are set (DSN params may not always work)
+	pragmas := []string{
+		"PRAGMA journal_mode=WAL",
+		"PRAGMA busy_timeout=30000",
+		"PRAGMA synchronous=NORMAL",
+		"PRAGMA foreign_keys=ON",
+	}
+	for _, pragma := range pragmas {
+		if _, err := conn.Exec(pragma); err != nil {
+			_ = conn.Close()
+			return nil, fmt.Errorf("set pragma %s: %w", pragma, err)
+		}
 	}
 
 	db := &DB{
@@ -82,6 +102,40 @@ func (d *DB) Close() error {
 // Path returns the database file path.
 func (d *DB) Path() string {
 	return d.path
+}
+
+// isBusyError checks if an error is a SQLite BUSY error.
+func isBusyError(err error) bool {
+	if err == nil {
+		return false
+	}
+	errStr := err.Error()
+	return strings.Contains(errStr, "SQLITE_BUSY") ||
+		strings.Contains(errStr, "database is locked")
+}
+
+// retryOnBusy retries a database operation with exponential backoff on SQLITE_BUSY.
+func (d *DB) retryOnBusy(op func() error) error {
+	const maxRetries = 5
+	backoff := 50 * time.Millisecond
+
+	var lastErr error
+	for i := 0; i < maxRetries; i++ {
+		lastErr = op()
+		if lastErr == nil {
+			return nil
+		}
+		if !isBusyError(lastErr) {
+			return lastErr
+		}
+		// Exponential backoff with jitter
+		time.Sleep(backoff)
+		backoff *= 2
+		if backoff > 2*time.Second {
+			backoff = 2 * time.Second
+		}
+	}
+	return fmt.Errorf("database busy after %d retries: %w", maxRetries, lastErr)
 }
 
 // DataDir returns the directory containing the database file.

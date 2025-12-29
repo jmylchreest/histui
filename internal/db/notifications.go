@@ -32,21 +32,22 @@ func (d *DB) AddNotification(n *model.Notification) error {
 		hints = []byte("{}")
 	}
 
-	_, err = d.conn.Exec(`
-		INSERT OR IGNORE INTO notifications (
-			histui_id, dbus_id, app_name, summary, body, icon_path,
-			urgency, category, timestamp, expire_timeout,
-			source, imported_at, seen_at, acted_at, dismissed_at,
-			replayed, replayed_at, content_hash, extensions, original_hints
-		) VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)
-	`,
-		n.HistuiID, n.ID, n.AppName, n.Summary, n.Body, n.IconPath,
-		n.Urgency, n.Category, n.Timestamp, n.ExpireTimeout,
-		n.HistuiSource, n.HistuiImportedAt, n.HistuiSeenAt, n.HistuiActedAt, n.HistuiDismissedAt,
-		boolToInt(n.HistuiReplayed), n.HistuiReplayedAt, n.ContentHash, string(extensions), string(hints),
-	)
-
-	return err
+	return d.retryOnBusy(func() error {
+		_, err := d.conn.Exec(`
+			INSERT OR IGNORE INTO notifications (
+				histui_id, dbus_id, app_name, summary, body, icon_path,
+				urgency, category, timestamp, expire_timeout,
+				source, imported_at, seen_at, acted_at, dismissed_at,
+				replayed, replayed_at, content_hash, extensions, original_hints
+			) VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)
+		`,
+			n.HistuiID, n.ID, n.AppName, n.Summary, n.Body, n.IconPath,
+			n.Urgency, n.Category, n.Timestamp, n.ExpireTimeout,
+			n.HistuiSource, n.HistuiImportedAt, n.HistuiSeenAt, n.HistuiActedAt, n.HistuiDismissedAt,
+			boolToInt(n.HistuiReplayed), n.HistuiReplayedAt, n.ContentHash, string(extensions), string(hints),
+		)
+		return err
+	})
 }
 
 // AddBatch inserts multiple notifications efficiently.
@@ -160,11 +161,13 @@ func (d *DB) DismissNotification(histuiID string) error {
 	d.mu.Lock()
 	defer d.mu.Unlock()
 
-	_, err := d.conn.Exec(
-		"UPDATE notifications SET dismissed_at = ? WHERE histui_id = ?",
-		time.Now().Unix(), histuiID,
-	)
-	return err
+	return d.retryOnBusy(func() error {
+		_, err := d.conn.Exec(
+			"UPDATE notifications SET dismissed_at = ? WHERE histui_id = ?",
+			time.Now().Unix(), histuiID,
+		)
+		return err
+	})
 }
 
 // DismissBatch marks multiple notifications as dismissed.
@@ -221,11 +224,13 @@ func (d *DB) MarkSeen(histuiID string) error {
 	d.mu.Lock()
 	defer d.mu.Unlock()
 
-	_, err := d.conn.Exec(
-		"UPDATE notifications SET seen_at = ? WHERE histui_id = ? AND seen_at = 0",
-		time.Now().Unix(), histuiID,
-	)
-	return err
+	return d.retryOnBusy(func() error {
+		_, err := d.conn.Exec(
+			"UPDATE notifications SET seen_at = ? WHERE histui_id = ? AND seen_at = 0",
+			time.Now().Unix(), histuiID,
+		)
+		return err
+	})
 }
 
 // MarkReplayed marks a notification as replayed.
@@ -234,11 +239,13 @@ func (d *DB) MarkReplayed(histuiID string) error {
 	defer d.mu.Unlock()
 
 	now := time.Now().Unix()
-	_, err := d.conn.Exec(
-		"UPDATE notifications SET replayed = 1, replayed_at = ? WHERE histui_id = ?",
-		now, histuiID,
-	)
-	return err
+	return d.retryOnBusy(func() error {
+		_, err := d.conn.Exec(
+			"UPDATE notifications SET replayed = 1, replayed_at = ? WHERE histui_id = ?",
+			now, histuiID,
+		)
+		return err
+	})
 }
 
 // FilterOptions specifies criteria for filtering notifications.
@@ -476,4 +483,64 @@ func boolToInt(b bool) int {
 		return 1
 	}
 	return 0
+}
+
+// GetStackTagCounts returns a map of stack_tag to count of notifications.
+// Only includes stack_tags that have more than one notification.
+func (d *DB) GetStackTagCounts() (map[string]int, error) {
+	d.mu.RLock()
+	defer d.mu.RUnlock()
+
+	// Use json_extract to get stack_tag from extensions JSON
+	rows, err := d.conn.Query(`
+		SELECT json_extract(extensions, '$.stack_tag') as stack_tag, COUNT(*) as cnt
+		FROM notifications
+		WHERE json_extract(extensions, '$.stack_tag') IS NOT NULL
+		  AND json_extract(extensions, '$.stack_tag') != ''
+		GROUP BY stack_tag
+		HAVING cnt > 1
+	`)
+	if err != nil {
+		return nil, err
+	}
+	defer func() { _ = rows.Close() }()
+
+	counts := make(map[string]int)
+	for rows.Next() {
+		var stackTag string
+		var count int
+		if err := rows.Scan(&stackTag, &count); err != nil {
+			return counts, err
+		}
+		counts[stackTag] = count
+	}
+
+	return counts, rows.Err()
+}
+
+// GetByStackTag returns all notifications with the given stack_tag.
+// Ordered by timestamp descending (newest first).
+func (d *DB) GetByStackTag(stackTag string) ([]model.Notification, error) {
+	if stackTag == "" {
+		return nil, nil
+	}
+
+	d.mu.RLock()
+	defer d.mu.RUnlock()
+
+	rows, err := d.conn.Query(`
+		SELECT histui_id, dbus_id, app_name, summary, body, icon_path,
+			urgency, category, timestamp, expire_timeout,
+			source, imported_at, seen_at, acted_at, dismissed_at,
+			replayed, replayed_at, content_hash, extensions, original_hints
+		FROM notifications
+		WHERE json_extract(extensions, '$.stack_tag') = ?
+		ORDER BY timestamp DESC
+	`, stackTag)
+	if err != nil {
+		return nil, err
+	}
+	defer func() { _ = rows.Close() }()
+
+	return scanNotifications(rows)
 }

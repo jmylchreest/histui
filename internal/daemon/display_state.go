@@ -128,6 +128,20 @@ func (m *DisplayStateManager) RemoveByDBusID(dbusID uint32) {
 	delete(m.byHistuiID, histuiID)
 }
 
+// RemoveByHistuiID removes a display state entry by histui ID.
+func (m *DisplayStateManager) RemoveByHistuiID(histuiID string) {
+	m.mu.Lock()
+	defer m.mu.Unlock()
+
+	state, exists := m.byHistuiID[histuiID]
+	if !exists {
+		return
+	}
+
+	delete(m.byHistuiID, histuiID)
+	delete(m.byDBusID, state.DBusID)
+}
+
 // ActiveNotifications returns all currently active notification histui IDs.
 func (m *DisplayStateManager) ActiveNotifications() []string {
 	m.mu.RLock()

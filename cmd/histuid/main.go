@@ -30,11 +30,9 @@ import (
 	"github.com/jmylchreest/histui/internal/dbus"
 	"github.com/jmylchreest/histui/internal/display"
 	"github.com/jmylchreest/histui/internal/icon"
-	"github.com/jmylchreest/histui/internal/ipc"
 	"github.com/jmylchreest/histui/internal/model"
 	"github.com/jmylchreest/histui/internal/theme"
 )
-
 
 const (
 	appID   = "io.github.jmylchreest.histuid"
@@ -283,12 +281,12 @@ func runDaemonMode(logger *slog.Logger) {
 	// Shared state between GTK main loop and signal handlers
 	var (
 		dbusServer       *dbus.NotificationServer
+		daemonServer     *dbus.DaemonServer
 		displayManager   *display.Manager
 		themeLoader      *theme.Loader
 		audioManager     *audio.Manager
 		database         *db.DB
 		dndManager       *db.DnDManager
-		ipcServer        *ipc.Server
 		displayState     *daemon.DisplayStateManager
 		configWatcher    *daemon.ConfigWatcher
 		internalNotifier *daemon.InternalNotifier
@@ -309,8 +307,8 @@ func runDaemonMode(logger *slog.Logger) {
 		// Stop components in GTK main loop context
 		glib.IdleAdd(func() {
 			if running.Load() {
-				if ipcServer != nil {
-					_ = ipcServer.Stop()
+				if daemonServer != nil {
+					_ = daemonServer.Stop()
 				}
 				if audioManager != nil {
 					audioManager.Stop()
@@ -419,17 +417,19 @@ func runDaemonMode(logger *slog.Logger) {
 		// Connect D-Bus notifications to display manager AND store
 		dbusServer.SetNotifyHandler(func(notification *dbus.DBusNotification, id uint32) {
 			// Check if this is a replayed notification from histui
-			if dbus.IsReplayHint(notification.Hints) {
+			// If so, we'll use the original histui ID for tracking popups
+			var trackingID string
+			isReplay := dbus.IsReplayHint(notification.Hints)
+			if isReplay {
 				originalID := dbus.GetOriginalID(notification.Hints)
 				if originalID != "" {
+					trackingID = originalID
 					// Update existing notification's replayed status
 					if err := database.MarkReplayed(originalID); err != nil {
 						logger.Warn("failed to update replayed notification", "id", originalID, "error", err)
 					} else {
 						logger.Debug("marked notification as replayed", "id", originalID)
 					}
-					// Continue to display the notification (don't return)
-					// but use the existing histui ID for tracking
 				}
 			}
 
@@ -466,8 +466,12 @@ func runDaemonMode(logger *slog.Logger) {
 			// Store original hints for faithful replay
 			n.OriginalHints = convertHintsToJSON(notification.Hints)
 
+			// Use trackingID for replays, otherwise use the new notification's ID
+			if trackingID == "" {
+				trackingID = n.HistuiID
+			}
+
 			// Don't persist transient notifications or replays
-			isReplay := dbus.IsReplayHint(notification.Hints)
 			if !notification.Transient() && !isReplay {
 				if err := database.AddNotification(n); err != nil {
 					logger.Error("failed to persist notification", "id", id, "error", err)
@@ -491,13 +495,13 @@ func runDaemonMode(logger *slog.Logger) {
 				}
 			}
 
-			// Track the mapping between D-Bus ID and histui ID
+			// Track the mapping between D-Bus ID and histui ID (use trackingID for replays)
 			timeout := cfg.GetTimeoutForUrgency(notification.Urgency(), notification.ExpireTimeout)
 			var expiresAt time.Time
 			if timeout > 0 {
 				expiresAt = time.Now().Add(time.Duration(timeout) * time.Millisecond)
 			}
-			displayState.Register(n.HistuiID, id, expiresAt)
+			displayState.Register(trackingID, id, expiresAt)
 
 			// Check if DnD is enabled (suppress popups and sounds)
 			urgency := notification.Urgency()
@@ -527,9 +531,10 @@ func runDaemonMode(logger *slog.Logger) {
 				}
 			}()
 
-			// Schedule display on GTK main loop
+			// Schedule display on GTK main loop (use trackingID for signal emission)
+			histuiIDForDisplay := trackingID
 			glib.IdleAdd(func() {
-				if err := displayManager.Show(notification, id, n.HistuiID); err != nil {
+				if err := displayManager.Show(notification, id, histuiIDForDisplay); err != nil {
 					logger.Error("failed to show notification", "id", id, "error", err)
 				}
 			})
@@ -542,26 +547,47 @@ func runDaemonMode(logger *slog.Logger) {
 		})
 
 		// Connect display manager callbacks to D-Bus and database
-		displayManager.SetCloseCallback(func(dbusID uint32, reason dbus.CloseReason) {
-			// Emit D-Bus signal
+		// histuiIDs includes all stacked notification IDs that should be dismissed together
+		displayManager.SetCloseCallback(func(dbusID uint32, histuiIDs []string, reason dbus.CloseReason) {
+			// Emit standard D-Bus NotificationClosed signal
 			if err := dbusServer.CloseWithReason(dbusID, reason); err != nil {
 				logger.Warn("failed to emit close signal", "id", dbusID, "error", err)
 			}
 
-			// Update database if user dismissed (not expired)
-			if reason == dbus.CloseReasonDismissed {
-				histuiID := displayState.GetHistuiIDByDBusID(dbusID)
-				if histuiID != "" {
-					if err := database.DismissNotification(histuiID); err != nil {
-						logger.Warn("failed to mark notification as dismissed", "histui_id", histuiID, "error", err)
-					} else {
-						// Signal histui that notifications changed
-						updateNotifier.Trigger()
+			// Emit daemon NotificationDismissed signal for histui tracking
+			// Emit for all histuiIDs (primary + stacked)
+			if daemonServer != nil && len(histuiIDs) > 0 {
+				var reasonStr string
+				switch reason {
+				case dbus.CloseReasonDismissed:
+					reasonStr = "dismissed"
+				case dbus.CloseReasonClosed:
+					reasonStr = "closed"
+				default:
+					reasonStr = "expired"
+				}
+				for _, histuiID := range histuiIDs {
+					if err := daemonServer.EmitNotificationDismissed(histuiID, reasonStr); err != nil {
+						logger.Warn("failed to emit NotificationDismissed signal", "histui_id", histuiID, "error", err)
 					}
 				}
 			}
 
-			// Update display state
+			// Update database if user dismissed (not expired)
+			// Dismiss all notifications in the stack
+			if reason == dbus.CloseReasonDismissed && len(histuiIDs) > 0 {
+				if err := database.DismissBatch(histuiIDs); err != nil {
+					logger.Warn("failed to mark notifications as dismissed", "histui_ids", histuiIDs, "error", err)
+				} else if len(histuiIDs) > 0 {
+					// Signal histui that notifications changed
+					updateNotifier.Trigger()
+				}
+			}
+
+			// Update display state for all histuiIDs
+			for _, histuiID := range histuiIDs {
+				displayState.RemoveByHistuiID(histuiID)
+			}
 			displayState.RemoveByDBusID(dbusID)
 		})
 
@@ -571,7 +597,17 @@ func runDaemonMode(logger *slog.Logger) {
 			}
 		})
 
-		// Start D-Bus server
+		// Set display callback for D-Bus signal emission
+		// This will be connected to daemonServer after it's created
+		displayManager.SetDisplayCallback(func(histuiID string) {
+			if daemonServer != nil {
+				if err := daemonServer.EmitNotificationDisplayed(histuiID); err != nil {
+					logger.Warn("failed to emit NotificationDisplayed signal", "histui_id", histuiID, "error", err)
+				}
+			}
+		})
+
+		// Start D-Bus notification server
 		if err := dbusServer.Start(); err != nil {
 			logger.Error("failed to start D-Bus server", "error", err)
 			displayManager.Stop()
@@ -579,16 +615,21 @@ func runDaemonMode(logger *slog.Logger) {
 			return
 		}
 
-		// Start IPC server for histui CLI communication
-		ipcHandler := daemon.NewIPCHandler(dndManager, audioManager, displayManager)
-		ipcServer, err = ipc.NewServer(ipcHandler, logger)
-		if err != nil {
-			logger.Warn("failed to create IPC server", "error", err)
-		} else {
-			if err := ipcServer.Start(ctx); err != nil {
-				logger.Warn("failed to start IPC server", "error", err)
-			}
+		// Start D-Bus daemon server for histui CLI communication
+		daemonHandler := daemon.NewDaemonHandler(dndManager, audioManager, displayManager)
+		daemonServer = dbus.NewDaemonServer(dbusServer.Connection(), daemonHandler, version, logger)
+		if err := daemonServer.Start(); err != nil {
+			logger.Warn("failed to start daemon D-Bus server", "error", err)
 		}
+
+		// Wire up DnD change callback to emit D-Bus signal
+		dndManager.SetChangeCallback(func(enabled bool) {
+			if daemonServer != nil {
+				if err := daemonServer.EmitDnDChanged(enabled); err != nil {
+					logger.Warn("failed to emit DnDChanged signal", "error", err)
+				}
+			}
+		})
 
 		// Initialize internal notifier for self-notifications
 		internalNotifier = daemon.NewInternalNotifier(logger)
@@ -640,6 +681,13 @@ func runDaemonMode(logger *slog.Logger) {
 
 					// Notify user
 					internalNotifier.NotifyConfigReloaded()
+
+					// Emit D-Bus signal for histui TUI to refresh
+					if daemonServer != nil {
+						if err := daemonServer.EmitConfigChanged(); err != nil {
+							logger.Warn("failed to emit ConfigChanged signal", "error", err)
+						}
+					}
 				})
 			})
 			configWatcher.SetErrorCallback(func(err error) {
@@ -665,8 +713,8 @@ func runDaemonMode(logger *slog.Logger) {
 	// Handle shutdown
 	app.ConnectShutdown(func() {
 		logger.Info("application shutting down")
-		if ipcServer != nil {
-			_ = ipcServer.Stop()
+		if daemonServer != nil {
+			_ = daemonServer.Stop()
 		}
 		if audioManager != nil {
 			audioManager.Stop()

@@ -526,14 +526,35 @@ const (
 // buildImage creates the embedded image widget.
 // Handles both image-path (file path) and image-data (raw pixel data) hints.
 // Images are scaled to fit the popup width and cropped if too tall.
+//
+// Image-data display is controlled by display.image_data_preview_size config:
+//   - "never" or -1: Never show image-data in body
+//   - "always" or 0: Always show image-data in body
+//   - "100KB" etc: Only show if raw data size >= threshold (filters small profile pics)
 func (p *Popup) buildImage() gtk.Widgetter {
 	var pixbuf *gdkpixbuf.Pixbuf
 
-	// Try image-data first (embedded pixel data)
+	// Try image-data if size threshold is met
 	if imgData := p.notification.ImageData(); imgData != nil {
-		pixbuf = p.createPixbufFromData(imgData)
-	} else {
-		// Fall back to image-path (file path)
+		dataSize := int64(len(imgData.Data))
+		threshold := p.config.Display.ImageDataPreviewSize
+
+		if threshold.ShouldShow(dataSize) {
+			p.logger.Debug("image-data meets size threshold",
+				"data_size", dataSize,
+				"threshold", threshold.Bytes(),
+			)
+			pixbuf = p.createPixbufFromData(imgData)
+		} else {
+			p.logger.Debug("image-data below size threshold, skipping",
+				"data_size", dataSize,
+				"threshold", threshold.Bytes(),
+			)
+		}
+	}
+
+	// Fall back to image-path (file path) - always shown since explicit paths are intentional
+	if pixbuf == nil {
 		imagePath := p.notification.ImagePath()
 		if imagePath == "" {
 			return nil
@@ -638,39 +659,45 @@ func (p *Popup) buildImageContainer(pixbuf *gdkpixbuf.Pixbuf) gtk.Widgetter {
 	)
 
 	if !isCropped {
-		// No cropping needed - use gtk.Image which respects intrinsic size
+		// No cropping needed - use gtk.Picture for proper paintable sizing
 		texture := gdk.NewTextureForPixbuf(scaledPixbuf)
 		if texture == nil {
 			p.logger.Warn("failed to create texture from pixbuf")
 			return nil
 		}
-		image := gtk.NewImageFromPaintable(texture)
-		image.AddCSSClass("notification-image")
-		image.SetPixelSize(newHeight) // Use height as pixel size for proper scaling
+		picture := gtk.NewPictureForPaintable(texture)
+		picture.AddCSSClass("notification-image")
+		// Preserve aspect ratio, only scale down never up
+		picture.SetContentFit(gtk.ContentFitScaleDown)
+		picture.SetCanShrink(false)
+		// Set explicit size to prevent container from adding extra space
+		picture.SetSizeRequest(newWidth, newHeight)
 		// Prevent expansion when container resizes
-		image.SetHExpand(false)
-		image.SetVExpand(false)
-		image.SetHAlign(gtk.AlignCenter)
-		image.SetVAlign(gtk.AlignStart)
-		return image
+		picture.SetHExpand(false)
+		picture.SetVExpand(false)
+		picture.SetHAlign(gtk.AlignCenter)
+		picture.SetVAlign(gtk.AlignStart)
+		return picture
 	}
 
 	// Crop from bottom (keep top portion of the image)
 	croppedPixbuf := scaledPixbuf.NewSubpixbuf(0, 0, newWidth, imageMaxHeight)
 	if croppedPixbuf == nil {
-		// Fallback to uncropped - use gtk.Image
+		// Fallback to uncropped - use gtk.Picture with explicit sizing
 		texture := gdk.NewTextureForPixbuf(scaledPixbuf)
 		if texture == nil {
 			return nil
 		}
-		image := gtk.NewImageFromPaintable(texture)
-		image.AddCSSClass("notification-image")
-		image.SetPixelSize(newHeight)
-		image.SetHExpand(false)
-		image.SetVExpand(false)
-		image.SetHAlign(gtk.AlignCenter)
-		image.SetVAlign(gtk.AlignStart)
-		return image
+		picture := gtk.NewPictureForPaintable(texture)
+		picture.AddCSSClass("notification-image")
+		picture.SetContentFit(gtk.ContentFitScaleDown)
+		picture.SetCanShrink(false)
+		picture.SetSizeRequest(newWidth, newHeight)
+		picture.SetHExpand(false)
+		picture.SetVExpand(false)
+		picture.SetHAlign(gtk.AlignCenter)
+		picture.SetVAlign(gtk.AlignStart)
+		return picture
 	}
 
 	// Create the cropped image widget using texture and gtk.Picture
@@ -681,6 +708,7 @@ func (p *Popup) buildImageContainer(pixbuf *gdkpixbuf.Pixbuf) gtk.Widgetter {
 	}
 	picture := gtk.NewPictureForPaintable(texture)
 	picture.AddCSSClass("notification-image")
+	picture.SetContentFit(gtk.ContentFitScaleDown)
 	picture.SetCanShrink(false)
 	picture.SetSizeRequest(newWidth, imageMaxHeight)
 	// Prevent expansion when container resizes
@@ -694,13 +722,19 @@ func (p *Popup) buildImageContainer(pixbuf *gdkpixbuf.Pixbuf) gtk.Widgetter {
 	overlay.AddCSSClass("notification-image-container")
 	overlay.AddCSSClass("cropped")
 	overlay.SetChild(picture)
+	// Constrain overlay to match picture size - prevents extra space below
+	overlay.SetSizeRequest(newWidth, imageMaxHeight)
+	overlay.SetHExpand(false)
+	overlay.SetVExpand(false)
+	overlay.SetHAlign(gtk.AlignCenter)
+	overlay.SetVAlign(gtk.AlignStart)
 
-	// Add gradient overlay for fade effect at the bottom (~10px)
+	// Add gradient overlay for fade effect at the bottom
 	gradientOverlay := gtk.NewBox(gtk.OrientationVertical, 0)
 	gradientOverlay.AddCSSClass("notification-image-fade")
 	gradientOverlay.SetVAlign(gtk.AlignEnd)
 	gradientOverlay.SetHExpand(true)       // Fill width
-	gradientOverlay.SetSizeRequest(-1, 10) // Gradient height
+	gradientOverlay.SetSizeRequest(-1, 24) // Gradient height - visible fade indicator
 	overlay.AddOverlay(gradientOverlay)
 
 	return overlay
