@@ -7,6 +7,7 @@ import (
 	"io"
 	"net/http"
 	"os"
+	"path/filepath"
 	"sort"
 	"strings"
 	"time"
@@ -89,6 +90,23 @@ func NewOpenRouterClient(model string, webSearch, useCache bool, config *Config,
 		Verbose:   verbose,
 		Config:    config,
 	}, nil
+}
+
+// saveDebugResponse saves a failed API response to a debug file for investigation.
+func saveDebugResponse(prefix, content string) string {
+	debugDir := ".debug"
+	if err := os.MkdirAll(debugDir, 0755); err != nil {
+		return ""
+	}
+
+	filename := fmt.Sprintf("%s-%d.json", prefix, time.Now().Unix())
+	path := filepath.Join(debugDir, filename)
+
+	if err := os.WriteFile(path, []byte(content), 0644); err != nil {
+		return ""
+	}
+
+	return path
 }
 
 // ChatRequest represents an OpenRouter API request.
@@ -331,6 +349,9 @@ func (c *OpenRouterClient) ClassifyIcons(glyphNames []string, useCache bool) (*C
 
 	var result ClassifyResult
 	if err := json.Unmarshal([]byte(content), &result); err != nil {
+		// Save full response to debug file
+		debugPath := saveDebugResponse("classify-error", content)
+
 		// Show truncated content for debugging
 		preview := content
 		if len(preview) > 500 {
@@ -338,6 +359,21 @@ func (c *OpenRouterClient) ClassifyIcons(glyphNames []string, useCache bool) (*C
 		}
 		fmt.Fprintf(os.Stderr, "\n[ERROR] Failed to parse API response:\n%s\n", preview)
 		fmt.Fprintf(os.Stderr, "[ERROR] Response length: %d bytes\n", len(content))
+		if debugPath != "" {
+			fmt.Fprintf(os.Stderr, "[ERROR] Full response saved to: %s\n", debugPath)
+		}
+
+		// Check for common issues
+		if len(content) < 100 {
+			fmt.Fprintf(os.Stderr, "[ERROR] Response is suspiciously short - API may have truncated output\n")
+		}
+		if !strings.HasPrefix(strings.TrimSpace(content), "{") {
+			fmt.Fprintf(os.Stderr, "[ERROR] Response does not start with '{' - may not be JSON\n")
+		}
+		if !strings.HasSuffix(strings.TrimSpace(content), "}") {
+			fmt.Fprintf(os.Stderr, "[ERROR] Response does not end with '}' - JSON appears truncated\n")
+		}
+
 		return nil, fmt.Errorf("parse classification result: %w", err)
 	}
 
@@ -397,6 +433,9 @@ func (c *OpenRouterClient) GenerateAppNames(icons []struct{ Name, Type string },
 
 	var result AppGenResult
 	if err := json.Unmarshal([]byte(content), &result); err != nil {
+		// Save full response to debug file
+		debugPath := saveDebugResponse("appgen-error", content)
+
 		// Show truncated content for debugging
 		preview := content
 		if len(preview) > 500 {
@@ -404,6 +443,21 @@ func (c *OpenRouterClient) GenerateAppNames(icons []struct{ Name, Type string },
 		}
 		fmt.Fprintf(os.Stderr, "\n[ERROR] Failed to parse API response:\n%s\n", preview)
 		fmt.Fprintf(os.Stderr, "[ERROR] Response length: %d bytes\n", len(content))
+		if debugPath != "" {
+			fmt.Fprintf(os.Stderr, "[ERROR] Full response saved to: %s\n", debugPath)
+		}
+
+		// Check for common issues
+		if len(content) < 100 {
+			fmt.Fprintf(os.Stderr, "[ERROR] Response is suspiciously short - API may have truncated output\n")
+		}
+		if !strings.HasPrefix(strings.TrimSpace(content), "{") {
+			fmt.Fprintf(os.Stderr, "[ERROR] Response does not start with '{' - may not be JSON\n")
+		}
+		if !strings.HasSuffix(strings.TrimSpace(content), "}") {
+			fmt.Fprintf(os.Stderr, "[ERROR] Response does not end with '}' - JSON appears truncated\n")
+		}
+
 		return nil, fmt.Errorf("parse app generation result: %w", err)
 	}
 
