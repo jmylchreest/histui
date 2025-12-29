@@ -224,7 +224,7 @@ tasks:
 
   # Package testing
   test:pkgbuild:
-    desc: Test PKGBUILD generation and source package build
+    desc: Test PKGBUILD by building actual package from current source
     vars:
       # Convert VERSION to valid pkgver (remove 'v' prefix, replace - with .)
       PKGVER:
@@ -237,15 +237,15 @@ tasks:
         echo "Testing PKGBUILD with version {{.PKGVER}}"
         echo "Working directory: ${TMPDIR}"
 
-        # Create source tarball from current repo (excluding .git for smaller size)
+        # Create source tarball from current repo
         mkdir -p "${SRCDIR}"
         git archive --format=tar HEAD | tar -x -C "${SRCDIR}"
 
-        # Create the tarball
+        # Create tarball for PKGBUILD source
         cd "${TMPDIR}"
         tar czf "histui-{{.PKGVER}}.tar.gz" "histui-{{.PKGVER}}"
 
-        # Copy and modify PKGBUILD
+        # Copy and modify PKGBUILD from template
         cp "{{.ROOT_DIR}}/contrib/arch/histui/PKGBUILD" "${TMPDIR}/PKGBUILD"
 
         # Update pkgver
@@ -261,29 +261,45 @@ tasks:
         echo "=== Generated PKGBUILD ==="
         cat "${TMPDIR}/PKGBUILD"
         echo ""
-        echo "=== Building source package ==="
+        echo "=== Building package ==="
         cd "${TMPDIR}"
-        makepkg --source -f
+        makepkg -f
 
         echo ""
-        echo "=== Success! ==="
-        ls -la "${TMPDIR}"/*.src.tar.gz 2>/dev/null || true
+        echo "=== Success! Built package: ==="
+        PKG=$(ls "${TMPDIR}"/*.pkg.tar.* 2>/dev/null | head -1)
+        if [ -n "$PKG" ]; then
+          ls -lh "$PKG"
+          echo ""
+          echo "=== Package contents: ==="
+          bsdtar -tf "$PKG"
+        else
+          echo "No package found"
+        fi
 
         # Cleanup
         rm -rf "${TMPDIR}"
+        echo ""
         echo "Cleaned up ${TMPDIR}"
 
   # Contrib tools
   generate:icons:
-    desc: Generate icon aliases and download Nerd Font symbols (auto-generates AI KB if OPENROUTER_API_KEY is set)
+    desc: Generate icon aliases from existing KB files and download Nerd Font symbols
     dir: contrib/generate-icon-aliases
     cmds:
       - go build -o generate-icon-aliases .
-      - |
-        EXTRA_FLAGS=""
-        if [ -n "$OPENROUTER_API_KEY" ]; then
-          echo "OPENROUTER_API_KEY detected - enabling AI knowledge base generation"
-          EXTRA_FLAGS="-generate-kb"
-        fi
-        ./generate-icon-aliases -fetch -verbose $EXTRA_FLAGS -output ../../internal/icon/aliases_default.toml -font-output ../../internal/icon/fonts/SymbolsNerdFont-Regular.ttf
+      - ./generate-icon-aliases -fetch -verbose -output ../../internal/icon/aliases_default.toml -font-output ../../internal/icon/fonts/SymbolsNerdFont-Regular.ttf
       - echo "Updated internal/icon/aliases_default.toml and fonts/SymbolsNerdFont-Regular.ttf"
+
+  generate:icons:ai:
+    desc: Regenerate AI knowledge base (requires OPENROUTER_API_KEY)
+    dir: contrib/generate-icon-aliases
+    cmds:
+      - |
+        if [ -z "$OPENROUTER_API_KEY" ]; then
+          echo "Error: OPENROUTER_API_KEY not set"
+          exit 1
+        fi
+      - go build -o generate-icon-aliases .
+      - ./generate-icon-aliases -generate-kb -no-cache -verbose
+      - echo "Regenerated kb-ai.json - run 'task generate:icons' to update aliases"

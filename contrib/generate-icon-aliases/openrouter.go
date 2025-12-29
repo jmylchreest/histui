@@ -46,6 +46,10 @@ type OpenRouterClient struct {
 	UseCache  bool    // Enable caching of API responses
 	Verbose   bool
 	Config    *Config // Configuration with prompts
+
+	// Cache tracking
+	cacheHits   int
+	apiCalls    int
 }
 
 // NewOpenRouterClient creates a new client from environment variables and config.
@@ -272,14 +276,15 @@ func (c *OpenRouterClient) ClassifyIcons(glyphNames []string, useCache bool) (*C
 		if cached, ok := loadCache("classify", cacheKey, c.Model); ok {
 			var result ClassifyResult
 			if err := json.Unmarshal([]byte(cached), &result); err == nil {
-				if c.Verbose {
-					fmt.Printf("    (using cached classification)\n")
-				}
+				c.cacheHits++
+				fmt.Printf("    [CACHE HIT] classification batch\n")
 				return &result, nil
 			}
 		}
 	}
 
+	c.apiCalls++
+	fmt.Printf("    [API CALL] classification batch\n")
 	prompt, err := c.Config.RenderClassifyPrompt(glyphNames)
 	if err != nil {
 		return nil, fmt.Errorf("render classify prompt: %w", err)
@@ -325,14 +330,15 @@ func (c *OpenRouterClient) GenerateAppNames(icons []struct{ Name, Type string },
 		if cached, ok := loadCache("appgen", cacheKey, c.Model); ok {
 			var result AppGenResult
 			if err := json.Unmarshal([]byte(cached), &result); err == nil {
-				if c.Verbose {
-					fmt.Printf("    (using cached app generation)\n")
-				}
+				c.cacheHits++
+				fmt.Printf("    [CACHE HIT] app generation batch\n")
 				return &result, nil
 			}
 		}
 	}
 
+	c.apiCalls++
+	fmt.Printf("    [API CALL] app generation batch\n")
 	var iconList []string
 	for _, icon := range icons {
 		iconList = append(iconList, fmt.Sprintf("- %s (%s)", icon.Name, icon.Type))
@@ -530,6 +536,18 @@ func (c *OpenRouterClient) GenerateKnowledgeBase(glyphs map[string]GlyphInfo) (*
 		// Rate limiting between batches
 		if i+appGenBatch < len(classified) {
 			time.Sleep(500 * time.Millisecond)
+		}
+	}
+
+	// Print cache summary
+	total := c.cacheHits + c.apiCalls
+	if total > 0 {
+		if c.apiCalls == 0 {
+			fmt.Printf("\n*** ALL %d requests served from cache - no API calls made ***\n", c.cacheHits)
+			fmt.Println("*** Use --no-cache to force fresh API calls ***")
+		} else {
+			fmt.Printf("\nCache: %d hits, %d API calls (%.0f%% cache hit rate)\n",
+				c.cacheHits, c.apiCalls, float64(c.cacheHits)/float64(total)*100)
 		}
 	}
 
