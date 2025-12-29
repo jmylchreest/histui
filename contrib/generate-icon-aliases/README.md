@@ -29,6 +29,47 @@ go run . --fetch --output ../../internal/icon/aliases_default.toml --verbose
 | `--output PATH` | Output TOML file path (default: `icon-aliases.toml`) |
 | `--font-output PATH` | Output path for Nerd Font symbols TTF (optional) |
 | `--verbose` | Show detailed matching information |
+| `--generate-kb` | Generate AI knowledge base using OpenRouter API |
+| `--default-file PATH` | Path to default knowledge base file |
+| `--ai-file PATH` | Path to AI knowledge base file |
+| `--adjustments-file PATH` | Path to final adjustments file |
+
+## Knowledge Base Files
+
+The generator merges multiple sources with priority: AI > default, then applies final adjustments.
+
+| File | Format | Description |
+|------|--------|-------------|
+| `kb-default.json` | JSON | Manual/default icon mappings (fallback) |
+| `kb-ai.json` | JSON | AI-generated mappings (from `--generate-kb`) |
+| `kb-final-adjustments.json` | JSON | Final adjustments applied after merging |
+
+### Final Adjustments (kb-final-adjustments.json)
+
+Use this file to fix known AI errors like incorrect icon associations:
+
+```json
+{
+  "delete_icons": ["signal"],
+  "move_apps": {
+    "message": {
+      "apps": ["signal", "signal-desktop", "org.signal.Signal"],
+      "from_icons": []
+    }
+  },
+  "set_glyph": {
+    "message": "md-message_text"
+  }
+}
+```
+
+| Field | Description |
+|-------|-------------|
+| `delete_icons` | Array of icon names to remove entirely |
+| `move_apps` | Move apps from source icons to target icon |
+| `move_apps.*.apps` | App names to move |
+| `move_apps.*.from_icons` | Icons to remove from (empty = all icons) |
+| `set_glyph` | Force specific glyph for an icon |
 
 ## Icon Categories
 

@@ -1067,6 +1067,11 @@
           "id": "gitlab",
           "confidence": 1.0,
           "source": "package"
+        },
+        {
+          "id": "org.gitlab.desktop",
+          "confidence": 0.95,
+          "source": "flatpak"
         }
       ]
     },
@@ -1078,6 +1083,11 @@
           "id": "bitbucket",
           "confidence": 1.0,
           "source": "package"
+        },
+        {
+          "id": "com.atlassian.Bitbucket",
+          "confidence": 0.95,
+          "source": "flatpak"
         }
       ]
     },

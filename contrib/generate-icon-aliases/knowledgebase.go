@@ -5,15 +5,14 @@ import (
 	"fmt"
 	"os"
 	"sort"
-
-	"github.com/BurntSushi/toml"
+	"strings"
 )
 
 const (
-	kbDefaultFile  = "kb-default.json"
-	kbAIFile       = "kb-ai.json"
-	kbOverridesFile = "kb-overrides.toml"
-	minConfidence  = 0.3 // Minimum confidence to include an app
+	kbDefaultFile     = "kb-default.json"
+	kbAIFile          = "kb-ai.json"
+	kbAdjustmentsFile = "kb-final-adjustments.json"
+	minConfidence     = 0.6 // Minimum confidence to include an app (filters out AI errors)
 )
 
 // KnowledgeBase represents the AI-generated knowledge base.
@@ -38,16 +37,21 @@ type KBApp struct {
 	Source     string  `json:"source"` // "package", "desktop", "flatpak", "snap", "inferred"
 }
 
-// Overrides represents user-defined overrides.
-type Overrides struct {
-	// Icons maps icon name to list of app names (replaces AI/manual list entirely)
-	Icons map[string][]string `toml:"icons"`
-	// Additions maps icon name to additional app names (merged with existing)
-	Additions map[string][]string `toml:"additions"`
-	// Exclusions maps icon name to app names to exclude
-	Exclusions map[string][]string `toml:"exclusions"`
-	// GlyphOverrides maps icon name to specific glyph (overrides auto-match)
-	GlyphOverrides map[string]string `toml:"glyph_overrides"`
+// FinalAdjustments represents final adjustments applied after all KB merging.
+// These fix known issues like AI incorrectly mapping "signal" to cellular signal icons.
+type FinalAdjustments struct {
+	// DeleteIcons is a list of icon names to remove entirely from output
+	DeleteIcons []string `json:"delete_icons"`
+	// MoveApps moves app names from source icons to target icons
+	MoveApps map[string]MoveAppsEntry `json:"move_apps"`
+	// SetGlyph forces a specific glyph for an icon
+	SetGlyph map[string]string `json:"set_glyph"`
+}
+
+// MoveAppsEntry defines apps to move to a target icon
+type MoveAppsEntry struct {
+	Apps      []string `json:"apps"`       // App names to add to target
+	FromIcons []string `json:"from_icons"` // Icon names to remove these apps from
 }
 
 // MergedIcon represents the final merged icon mapping.
@@ -92,27 +96,212 @@ func SaveKnowledgeBase(kb *KnowledgeBase, path string) error {
 	return nil
 }
 
-// LoadOverrides loads user-defined overrides if the file exists.
-func LoadOverrides(path string) (*Overrides, error) {
+// LoadFinalAdjustments loads final adjustments from JSON file.
+func LoadFinalAdjustments(path string) (*FinalAdjustments, error) {
 	data, err := os.ReadFile(path)
 	if err != nil {
 		if os.IsNotExist(err) {
 			return nil, nil // Not an error, just doesn't exist
 		}
-		return nil, fmt.Errorf("read overrides: %w", err)
+		return nil, fmt.Errorf("read adjustments: %w", err)
 	}
 
-	var overrides Overrides
-	if _, err := toml.Decode(string(data), &overrides); err != nil {
-		return nil, fmt.Errorf("parse overrides: %w", err)
+	var adj FinalAdjustments
+	if err := json.Unmarshal(data, &adj); err != nil {
+		return nil, fmt.Errorf("parse adjustments: %w", err)
 	}
 
-	return &overrides, nil
+	return &adj, nil
 }
 
-// MergeIconSources merges icons from all sources with priority: override > AI > default.
+// ApplyFinalAdjustments applies final adjustments to merged icons.
+// This is called after all KB merging to fix known issues.
+func ApplyFinalAdjustments(merged map[string]*MergedIcon, adj *FinalAdjustments, verbose bool) {
+	if adj == nil {
+		return
+	}
+
+	// Step 1: Move apps from source icons to target icons
+	for targetIcon, entry := range adj.MoveApps {
+		// Collect apps to move
+		appsToAdd := make([]string, len(entry.Apps))
+		copy(appsToAdd, entry.Apps)
+
+		// Check if from_icons is empty or contains "*" (means remove from ALL icons)
+		removeFromAll := len(entry.FromIcons) == 0
+		for _, s := range entry.FromIcons {
+			if s == "*" {
+				removeFromAll = true
+				break
+			}
+		}
+
+		if removeFromAll {
+			// Remove apps from ALL icons except the target
+			for iconName, icon := range merged {
+				if iconName == targetIcon {
+					continue
+				}
+				originalLen := len(icon.Apps)
+				icon.Apps = excludeFrom(icon.Apps, entry.Apps)
+				if verbose && len(icon.Apps) < originalLen {
+					fmt.Printf("  Adjusted: removed %v from %s\n", entry.Apps, iconName)
+				}
+			}
+		} else {
+			// Remove apps from specified source icons only
+			for _, sourceIcon := range entry.FromIcons {
+				if source, ok := merged[sourceIcon]; ok {
+					source.Apps = excludeFrom(source.Apps, entry.Apps)
+					if verbose {
+						fmt.Printf("  Adjusted: removed %v from %s\n", entry.Apps, sourceIcon)
+					}
+				}
+			}
+		}
+
+		// Add apps to target icon
+		if target, ok := merged[targetIcon]; ok {
+			target.Apps = mergeApps(target.Apps, appsToAdd)
+			target.Source = target.Source + "+adjusted"
+			if verbose {
+				fmt.Printf("  Adjusted: added %v to %s\n", appsToAdd, targetIcon)
+			}
+		} else {
+			// Create new target icon if it doesn't exist
+			merged[targetIcon] = &MergedIcon{
+				Name:   targetIcon,
+				Type:   "app",
+				Apps:   dedupe(appsToAdd),
+				Source: "adjusted",
+			}
+			if verbose {
+				fmt.Printf("  Adjusted: created %s with %v\n", targetIcon, appsToAdd)
+			}
+		}
+	}
+
+	// Step 2: Apply glyph overrides
+	for iconName, glyphName := range adj.SetGlyph {
+		if icon, ok := merged[iconName]; ok {
+			icon.Glyph = glyphName
+			if verbose {
+				fmt.Printf("  Adjusted: set glyph %s -> %s\n", iconName, glyphName)
+			}
+		}
+	}
+
+	// Step 3: Delete icons (after moving apps)
+	for _, iconName := range adj.DeleteIcons {
+		if _, ok := merged[iconName]; ok {
+			delete(merged, iconName)
+			if verbose {
+				fmt.Printf("  Adjusted: deleted icon %s\n", iconName)
+			}
+		}
+	}
+}
+
+// appAssignment tracks which icon an app is assigned to during deduplication.
+type appAssignment struct {
+	iconName   string
+	confidence float64
+	isDefault  bool // default KB has priority over AI
+}
+
+// DeduplicateApps ensures each app only appears under one icon.
+// Priority: default KB > AI KB, then by confidence within each tier.
+func DeduplicateApps(merged map[string]*MergedIcon, defaultKB, aiKB *KnowledgeBase, verbose bool) {
+	// Build a map of app -> best assignment
+	bestAssignment := make(map[string]appAssignment)
+
+	// First pass: determine best icon for each app
+	for iconName, icon := range merged {
+		for _, app := range icon.Apps {
+			appLower := strings.ToLower(app)
+
+			// Determine if this app comes from default KB for this icon
+			isDefault := false
+			confidence := icon.Confidence
+
+			if defaultKB != nil {
+				if kbIcon, ok := defaultKB.Icons[iconName]; ok {
+					for _, kbApp := range kbIcon.Apps {
+						if strings.ToLower(kbApp.ID) == appLower {
+							isDefault = true
+							confidence = kbApp.Confidence
+							break
+						}
+					}
+				}
+			}
+
+			// If not from default, get AI confidence for this specific app
+			if !isDefault && aiKB != nil {
+				if kbIcon, ok := aiKB.Icons[iconName]; ok {
+					for _, kbApp := range kbIcon.Apps {
+						if strings.ToLower(kbApp.ID) == appLower {
+							confidence = kbApp.Confidence
+							break
+						}
+					}
+				}
+			}
+
+			current, exists := bestAssignment[appLower]
+			if !exists {
+				bestAssignment[appLower] = appAssignment{
+					iconName:   iconName,
+					confidence: confidence,
+					isDefault:  isDefault,
+				}
+			} else {
+				// Compare: default beats AI, then higher confidence wins
+				shouldReplace := false
+				if isDefault && !current.isDefault {
+					shouldReplace = true
+				} else if isDefault == current.isDefault && confidence > current.confidence {
+					shouldReplace = true
+				}
+				if shouldReplace {
+					bestAssignment[appLower] = appAssignment{
+						iconName:   iconName,
+						confidence: confidence,
+						isDefault:  isDefault,
+					}
+				}
+			}
+		}
+	}
+
+	// Second pass: remove apps that should be assigned to a different icon
+	removedCount := 0
+	for iconName, icon := range merged {
+		var filteredApps []string
+		for _, app := range icon.Apps {
+			appLower := strings.ToLower(app)
+			if best, ok := bestAssignment[appLower]; ok && best.iconName == iconName {
+				filteredApps = append(filteredApps, app)
+			} else {
+				removedCount++
+				if verbose {
+					fmt.Printf("  Dedup: %s removed from %s (assigned to %s)\n",
+						app, iconName, bestAssignment[appLower].iconName)
+				}
+			}
+		}
+		icon.Apps = filteredApps
+	}
+
+	if verbose && removedCount > 0 {
+		fmt.Printf("Deduplication: removed %d duplicate app assignments\n", removedCount)
+	}
+}
+
+// MergeIconSources merges icons from all sources with priority: AI > default.
+// Final adjustments are applied separately via ApplyFinalAdjustments.
 // Returns a map of icon name -> MergedIcon.
-func MergeIconSources(defaultKB, aiKB *KnowledgeBase, overrides *Overrides, verbose bool) map[string]*MergedIcon {
+func MergeIconSources(defaultKB, aiKB *KnowledgeBase, verbose bool) map[string]*MergedIcon {
 	result := make(map[string]*MergedIcon)
 
 	// Step 1: Start with default KB (lowest priority)
@@ -133,7 +322,7 @@ func MergeIconSources(defaultKB, aiKB *KnowledgeBase, overrides *Overrides, verb
 		}
 	}
 
-	// Step 2: Layer AI knowledge base (medium priority)
+	// Step 2: Layer AI knowledge base (higher priority)
 	if aiKB != nil {
 		for iconName, kbIcon := range aiKB.Icons {
 			apps := extractApps(kbIcon, minConfidence)
@@ -165,72 +354,21 @@ func MergeIconSources(defaultKB, aiKB *KnowledgeBase, overrides *Overrides, verb
 		}
 	}
 
-	// Step 3: Apply overrides (highest priority)
-	if overrides != nil {
-		// Full replacements
-		for iconName, apps := range overrides.Icons {
-			if existing, ok := result[iconName]; ok {
-				existing.Apps = dedupe(apps)
-				existing.Source = "override"
-			} else {
-				result[iconName] = &MergedIcon{
-					Name:   iconName,
-					Type:   "app",
-					Apps:   dedupe(apps),
-					Source: "override",
-				}
-			}
-		}
-
-		// Additions (merge with existing)
-		for iconName, apps := range overrides.Additions {
-			if existing, ok := result[iconName]; ok {
-				existing.Apps = mergeApps(existing.Apps, apps)
-				if existing.Source != "override" {
-					existing.Source = existing.Source + "+override"
-				}
-			} else {
-				result[iconName] = &MergedIcon{
-					Name:   iconName,
-					Type:   "app",
-					Apps:   dedupe(apps),
-					Source: "override",
-				}
-			}
-		}
-
-		// Exclusions (remove specific apps)
-		for iconName, excludeApps := range overrides.Exclusions {
-			if existing, ok := result[iconName]; ok {
-				existing.Apps = excludeFrom(existing.Apps, excludeApps)
-			}
-		}
-
-		// Glyph overrides
-		for iconName, glyph := range overrides.GlyphOverrides {
-			if existing, ok := result[iconName]; ok {
-				existing.Glyph = glyph
-			}
-		}
-	}
-
 	if verbose {
 		// Print merge stats
-		var defaultCount, aiCount, overrideCount, mixedCount int
+		var defaultCount, aiCount, mixedCount int
 		for _, icon := range result {
 			switch icon.Source {
 			case "default":
 				defaultCount++
 			case "ai":
 				aiCount++
-			case "override":
-				overrideCount++
 			default:
 				mixedCount++
 			}
 		}
-		fmt.Printf("Merge stats: default=%d, ai=%d, override=%d, mixed=%d\n",
-			defaultCount, aiCount, overrideCount, mixedCount)
+		fmt.Printf("Merge stats: default=%d, ai=%d, mixed=%d\n",
+			defaultCount, aiCount, mixedCount)
 	}
 
 	return result
@@ -406,29 +544,4 @@ func replaceHyphensWithUnderscores(s string) string {
 		}
 	}
 	return string(result)
-}
-
-// WriteExampleOverrides writes an example overrides file.
-func WriteExampleOverrides(path string) error {
-	example := `# Icon Aliases Overrides
-# This file allows you to customize icon mappings.
-# Priority: overrides > AI knowledge base > manual mappings
-
-# Full replacements - completely replace the app list for an icon
-[icons]
-# discord = ["my-custom-discord-client"]
-
-# Additions - add apps to existing mappings
-[additions]
-# email = ["my-email-client", "another-mailer"]
-
-# Exclusions - remove specific apps from mappings
-[exclusions]
-# email = ["thunderbird"]  # Don't map thunderbird to email icon
-
-# Glyph overrides - force a specific Nerd Font glyph
-[glyph_overrides]
-# discord = "fa-discord"  # Use Font Awesome instead of Material Design
-`
-	return os.WriteFile(path, []byte(example), 0644)
 }

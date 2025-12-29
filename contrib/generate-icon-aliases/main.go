@@ -62,167 +62,6 @@ type AppMapping struct {
 	Confidence string   // "exact", "likely", "possible"
 }
 
-// iconEntry defines a single icon to app names mapping.
-// Using a slice allows duplicate icon keys that get merged at init time.
-type iconEntry struct {
-	Icon string
-	Apps []string
-}
-
-// knownAppIconEntries defines icon mappings. Duplicate icon keys are merged
-// automatically at init time with a warning logged.
-var knownAppIconEntries = []iconEntry{
-	// Messaging & Social
-	{"discord", []string{"discord", "discord-canary", "discord-ptb", "vesktop", "webcord", "armcord", "betterdiscord"}},
-	{"slack", []string{"slack", "slack-desktop", "slack-wayland"}},
-	{"telegram", []string{"telegram", "telegram-desktop", "telegramdesktop", "org.telegram.desktop", "64gram", "kotatogram"}},
-	{"whatsapp", []string{"whatsapp", "whatsapp-desktop", "zapzap", "whatsapp-for-linux", "whatsie", "elecwhat"}},
-	{"message", []string{"signal", "signal-desktop", "signal-desktop-beta"}},       // Signal messenger
-	{"message", []string{"element", "element-desktop", "fractal", "nheko", "neochat", "org.kde.neochat", "fluffychat"}}, // Matrix clients
-	{"skype", []string{"skype", "skypeforlinux", "skype-electron"}},
-	{"facebook", []string{"facebook", "caprine", "messenger", "facebookmessenger"}},
-	{"twitter", []string{"twitter", "cawbird", "tweetdeck"}},
-	{"mastodon", []string{"mastodon", "tootle", "whalebird", "sengi", "hyperspace"}},
-	{"reddit", []string{"reddit", "giara"}},
-	{"linkedin", []string{"linkedin"}},
-	{"wechat", []string{"wechat", "electronic-wechat", "wechat-uos"}},
-
-	// Browsers
-	{"firefox", []string{"firefox", "firefox-esr", "firefox-developer-edition", "firefox-nightly", "librewolf", "floorp", "waterfox", "org.mozilla.firefox"}},
-	{"chrome", []string{"google-chrome", "google-chrome-stable", "google-chrome-beta", "google-chrome-unstable", "chromium", "chromium-browser", "ungoogled-chromium"}},
-	{"microsoft-edge", []string{"microsoft-edge", "microsoft-edge-stable", "microsoft-edge-beta", "microsoft-edge-dev"}},
-	{"brave", []string{"brave", "brave-browser", "brave-browser-stable"}},
-	{"opera", []string{"opera", "opera-stable", "opera-beta", "opera-developer"}},
-	{"vivaldi", []string{"vivaldi", "vivaldi-stable", "vivaldi-snapshot"}},
-	{"tor-browser", []string{"tor-browser", "torbrowser-launcher"}},
-	{"epiphany", []string{"epiphany", "org.gnome.Epiphany", "gnome-web"}},
-	{"qutebrowser", []string{"qutebrowser"}},
-	{"min", []string{"min-browser", "min"}},
-	{"safari", []string{"safari"}}, // rare on Linux but included
-
-	// Email
-	{"email", []string{"thunderbird", "thunderbird-daily", "thunderbird-beta", "evolution", "evolution-mail", "geary", "org.gnome.Geary", "mailspring", "tutanota", "protonmail-bridge", "kmail", "org.kde.kmail2", "claws-mail", "sylpheed", "mutt", "neomutt", "aerc"}},
-	{"gmail", []string{"gmail", "gmail-desktop"}},
-	{"outlook", []string{"outlook"}},
-
-	// Media Players
-	{"spotify", []string{"spotify", "spotify-client", "spotifyd", "spot", "psst"}},
-	{"youtube", []string{"youtube", "freetube", "gtk-youtube-viewer", "minitube", "youtube-music"}},
-	{"vlc", []string{"vlc", "org.videolan.VLC", "vlc-player"}},
-	{"music", []string{"rhythmbox", "lollypop", "org.gnome.Lollypop", "elisa", "org.kde.elisa", "gnome-music", "org.gnome.Music", "clementine", "strawberry", "audacious", "quodlibet", "deadbeef", "cmus", "mpd", "ncmpcpp"}},
-	{"video", []string{"mpv", "io.mpv.Mpv", "celluloid", "io.github.celluloid_player.Celluloid", "totem", "org.gnome.Totem", "gnome-videos", "haruna", "org.kde.haruna", "smplayer", "mplayer"}},
-	{"podcast", []string{"gnome-podcasts", "org.gnome.Podcasts", "vocal", "gpodder"}},
-
-	// Development
-	{"visual-studio-code", []string{"code", "code-oss", "vscodium", "code-insiders", "codium", "visual-studio-code"}},
-	{"git", []string{"git", "gitg", "gitk", "git-gui", "lazygit", "tig"}},
-	{"github", []string{"github", "github-desktop", "gittyup"}},
-	{"gitlab", []string{"gitlab"}},
-	{"bitbucket", []string{"bitbucket"}},
-	{"docker", []string{"docker", "docker-desktop", "podman", "podman-desktop"}},
-	{"kubernetes", []string{"kubernetes", "kubectl", "k9s", "lens"}},
-	{"database", []string{"dbeaver", "mysql-workbench", "pgadmin4", "mongodb-compass", "beekeeper-studio"}},
-	{"terminal", []string{"gnome-terminal", "org.gnome.Terminal", "konsole", "org.kde.konsole", "kitty", "alacritty", "wezterm", "foot", "tilix", "terminator", "xfce4-terminal", "lxterminal", "xterm", "urxvt", "st", "hyper", "tabby", "contour", "rio", "ghostty"}},
-	{"vim", []string{"vim", "neovim", "nvim", "gvim"}},
-	{"emacs", []string{"emacs", "emacs-gtk", "doom-emacs", "spacemacs"}},
-
-	// IDEs
-	{"intellij", []string{"idea", "intellij-idea", "intellij-idea-ultimate", "intellij-idea-community", "jetbrains-idea"}},
-	{"pycharm", []string{"pycharm", "pycharm-professional", "pycharm-community", "jetbrains-pycharm"}},
-	{"webstorm", []string{"webstorm", "jetbrains-webstorm"}},
-	{"goland", []string{"goland", "jetbrains-goland"}},
-	{"clion", []string{"clion", "jetbrains-clion"}},
-	{"rider", []string{"rider", "jetbrains-rider"}},
-	{"android-studio", []string{"android-studio"}},
-	{"sublime-text", []string{"sublime-text", "sublime_text", "subl"}},
-	{"atom", []string{"atom"}},
-
-	// File Managers
-	{"folder", []string{"nautilus", "org.gnome.Nautilus", "org.gnome.Files", "nemo", "thunar", "dolphin", "org.kde.dolphin", "pcmanfm", "pcmanfm-qt", "spacefm", "ranger", "lf", "nnn", "vifm", "mc", "doublecmd"}},
-
-	// Office & Productivity
-	{"libreoffice", []string{"libreoffice", "libreoffice-writer", "libreoffice-calc", "libreoffice-impress", "libreoffice-draw", "libreoffice-base"}},
-	{"onlyoffice", []string{"onlyoffice", "onlyoffice-desktopeditors"}},
-	{"office", []string{"wps-office", "freeoffice"}},
-	{"note", []string{"obsidian", "logseq", "notion", "notion-app", "joplin", "standard-notes", "simplenote", "zettlr", "marktext", "typora", "ghostwriter"}},
-	{"calendar", []string{"gnome-calendar", "org.gnome.Calendar", "korganizer"}},
-
-	// Graphics & Design
-	{"image", []string{"gimp", "org.gimp.GIMP", "inkscape", "org.inkscape.Inkscape", "krita", "org.kde.krita", "blender", "darktable", "rawtherapee", "digikam", "shotwell", "eog", "org.gnome.eog", "gthumb", "org.gnome.gThumb", "gwenview", "org.kde.gwenview", "feh", "sxiv", "imv", "nomacs"}},
-
-	// System & Utilities
-	{"cog", []string{"gnome-control-center", "gnome-settings", "systemsettings", "org.kde.systemsettings", "xfce4-settings-manager", "lxappearance"}},
-	{"lock", []string{"gnome-keyring", "keepassxc", "org.keepassxc.KeePassXC", "bitwarden", "1password"}},
-	{"security-shield", []string{"firewall", "gufw", "firewalld"}},
-	{"package", []string{"gnome-software", "org.gnome.Software", "discover", "org.kde.discover", "pamac", "octopi", "synaptic", "gdebi"}},
-	{"update", []string{"software-update", "gnome-software", "update-manager"}},
-	{"backup", []string{"deja-dup", "org.gnome.DejaDup", "timeshift", "borgbackup", "restic", "vorta"}},
-
-	// Gaming
-	{"steam", []string{"steam", "steam-runtime", "steam-native"}},
-	{"gamepad", []string{"lutris", "heroic", "heroic-games-launcher", "bottles", "protonup-qt", "gamehub"}},
-
-	// Cloud & Sync
-	{"cloud", []string{"nextcloud", "owncloud", "dropbox", "insync", "megasync", "pcloud"}},
-	{"google-drive", []string{"google-drive-ocamlfuse", "grive", "insync"}},
-
-	// Network
-	{"wifi", []string{"nm-applet", "network-manager-applet", "connman", "wicd"}},
-	{"bluetooth", []string{"blueman", "blueman-manager", "blueberry", "gnome-bluetooth"}},
-	{"vpn", []string{"openvpn", "wireguard", "protonvpn", "mullvad-vpn", "nordvpn"}},
-
-	// Communication & Conferencing
-	{"video-account", []string{"zoom", "zoom-client", "teams", "microsoft-teams", "webex", "jitsi", "jitsi-meet"}},
-
-	// Torrent & Download
-	{"download", []string{"transmission", "transmission-gtk", "transmission-qt", "qbittorrent", "deluge", "aria2", "uget", "jdownloader"}},
-
-	// Screenshot & Recording
-	{"monitor-screenshot", []string{"flameshot", "gnome-screenshot", "org.gnome.Screenshot", "spectacle", "org.kde.spectacle", "shutter", "scrot", "maim"}},
-	{"video-vintage", []string{"obs", "obs-studio", "com.obsproject.Studio", "simplescreenrecorder", "kazam", "peek"}},
-
-	// Virtualization
-	{"desktop-classic", []string{"virt-manager", "gnome-boxes", "org.gnome.Boxes", "virtualbox", "vmware-workstation"}},
-}
-
-// knownAppIcons is the merged map built from knownAppIconEntries at init time.
-var knownAppIcons map[string][]string
-
-func init() {
-	knownAppIcons = make(map[string][]string)
-	for _, entry := range knownAppIconEntries {
-		if existing, ok := knownAppIcons[entry.Icon]; ok {
-			// Merge duplicate entries with a warning
-			fmt.Fprintf(os.Stderr, "WARNING: merging duplicate icon key %q (%d + %d apps)\n",
-				entry.Icon, len(existing), len(entry.Apps))
-			knownAppIcons[entry.Icon] = append(existing, entry.Apps...)
-		} else {
-			knownAppIcons[entry.Icon] = entry.Apps
-		}
-	}
-}
-
-// additionalAppNames maps extra Linux app names that don't directly match icon names
-var additionalAppNames = map[string]string{
-	// Format: "linux-app-name": "icon-key-from-knownAppIcons"
-	"org.telegram.desktop":     "telegram",
-	"com.discordapp.Discord":   "discord",
-	"com.slack.Slack":          "slack",
-	"com.spotify.Client":       "spotify",
-	"org.mozilla.firefox":      "firefox",
-	"com.google.Chrome":        "chrome",
-	"com.brave.Browser":        "brave",
-	"org.videolan.VLC":         "vlc",
-	"io.mpv.Mpv":               "video",
-	"com.visualstudio.code":    "visual-studio-code",
-	"com.jetbrains.IntelliJ-IDEA-Ultimate": "intellij",
-	"org.keepassxc.KeePassXC":  "lock",
-	"com.valvesoftware.Steam":  "steam",
-	"com.obsproject.Studio":    "video-vintage",
-	"md.obsidian.Obsidian":     "note",
-	"com.bitwarden.desktop":    "lock",
-}
-
 // explicitIconOverrides maps icon keys to specific glyph names when the auto-match fails or is wrong
 var explicitIconOverrides = map[string]string{
 	"tor-browser":        "linux-tor",              // Use Linux Tor icon instead of fuzzy match
@@ -250,9 +89,8 @@ func main() {
 	clearCacheFlag := flag.Bool("clear-cache", false, "Clear the API response cache before generating")
 	defaultFileFlag := flag.String("default-file", kbDefaultFile, "Path to default knowledge base file")
 	aiFileFlag := flag.String("ai-file", kbAIFile, "Path to AI knowledge base file")
-	overridesFileFlag := flag.String("overrides-file", kbOverridesFile, "Path to overrides file")
+	adjustmentsFileFlag := flag.String("adjustments-file", kbAdjustmentsFile, "Path to final adjustments file")
 	configFileFlag := flag.String("config", configFile, "Path to config file")
-	writeExampleOverridesFlag := flag.Bool("write-example-overrides", false, "Write an example overrides file and exit")
 	writeExampleConfigFlag := flag.Bool("write-example-config", false, "Write an example config file and exit")
 
 	flag.Parse()
@@ -261,15 +99,6 @@ func main() {
 	iconPreference = *preferFlag
 
 	// Handle example file generation
-	if *writeExampleOverridesFlag {
-		if err := WriteExampleOverrides(*overridesFileFlag); err != nil {
-			fmt.Fprintf(os.Stderr, "Error writing example overrides: %v\n", err)
-			os.Exit(1)
-		}
-		fmt.Printf("Wrote example overrides to %s\n", *overridesFileFlag)
-		return
-	}
-
 	if *writeExampleConfigFlag {
 		examplePath := "config.example.toml"
 		if err := WriteDefaultConfig(examplePath); err != nil {
@@ -369,27 +198,42 @@ func main() {
 		fmt.Printf("Loaded AI KB (%d icons, generated %s)\n", len(aiKB.Icons), aiKB.GeneratedAt)
 	}
 
-	// Load overrides (if exists)
-	overrides, err := LoadOverrides(*overridesFileFlag)
+	// Load final adjustments (if exists)
+	adjustments, err := LoadFinalAdjustments(*adjustmentsFileFlag)
 	if err != nil {
-		fmt.Fprintf(os.Stderr, "Warning: error loading overrides: %v\n", err)
-	} else if overrides != nil {
-		iconCount := len(overrides.Icons) + len(overrides.Additions)
-		fmt.Printf("Loaded overrides (%d icon entries)\n", iconCount)
+		fmt.Fprintf(os.Stderr, "Warning: error loading adjustments: %v\n", err)
+	} else if adjustments != nil {
+		fmt.Printf("Loaded final adjustments (%d deletions, %d moves, %d glyph overrides)\n",
+			len(adjustments.DeleteIcons), len(adjustments.MoveApps), len(adjustments.SetGlyph))
 	}
 
 	// Merge and generate mappings
 	var mappings []AppMapping
 
-	if defaultKB != nil || aiKB != nil || overrides != nil {
-		// Merge all sources: override > AI > default
-		fmt.Println("Using merged icon sources (override > AI > default)")
-		merged := MergeIconSources(defaultKB, aiKB, overrides, *verboseFlag)
+	if defaultKB != nil || aiKB != nil {
+		// Merge all sources: AI > default, then apply final adjustments
+		fmt.Println("Using merged icon sources (AI > default)")
+		merged := MergeIconSources(defaultKB, aiKB, *verboseFlag)
+
+		// Deduplicate: ensure each app only maps to one icon (best match wins)
+		fmt.Println("Deduplicating app assignments...")
+		DeduplicateApps(merged, defaultKB, aiKB, *verboseFlag)
+
+		// Apply final adjustments (fixes known issues like Signal -> signal_3g)
+		if adjustments != nil {
+			fmt.Println("Applying final adjustments...")
+			ApplyFinalAdjustments(merged, adjustments, *verboseFlag)
+		}
+
 		mappings = ConvertMergedToAppMapping(merged, appGlyphs, *verboseFlag)
 	} else {
-		// Fallback: use hardcoded knownAppIcons (legacy)
-		fmt.Println("Using legacy hardcoded mappings (no KB files found)")
-		mappings = generateMappings(appGlyphs, *verboseFlag)
+		// No KB files found - this shouldn't happen in normal usage
+		fmt.Fprintf(os.Stderr, "Error: No knowledge base files found.\n")
+		fmt.Fprintf(os.Stderr, "Expected at least one of:\n")
+		fmt.Fprintf(os.Stderr, "  - %s (default mappings)\n", *defaultFileFlag)
+		fmt.Fprintf(os.Stderr, "  - %s (AI-generated mappings)\n", *aiFileFlag)
+		fmt.Fprintf(os.Stderr, "\nRun with --generate-kb to create the AI knowledge base.\n")
+		os.Exit(1)
 	}
 
 	fmt.Printf("Generated %d app mappings\n", len(mappings))
@@ -514,97 +358,6 @@ func filterAppGlyphs(glyphs map[string]GlyphInfo, filter FilterConfig) map[strin
 	}
 
 	return result
-}
-
-func generateMappings(appGlyphs map[string]GlyphInfo, verbose bool) []AppMapping {
-	var mappings []AppMapping
-
-	// Create a reverse lookup: keyword -> glyph names
-	keywordGlyphs := make(map[string][]string)
-	for glyphName := range appGlyphs {
-		// Extract the icon name part (after prefix)
-		parts := strings.SplitN(glyphName, "-", 3)
-		if len(parts) < 3 {
-			continue
-		}
-		iconName := parts[2] // e.g., "discord" from "nf-md-discord"
-		keywordGlyphs[iconName] = append(keywordGlyphs[iconName], glyphName)
-	}
-
-	// For each known app icon, find matching glyphs
-	for iconKey, appNames := range knownAppIcons {
-		// Look for matching glyphs
-		var bestMatch string
-		var bestGlyph GlyphInfo
-
-		// First check for explicit overrides
-		if override, ok := explicitIconOverrides[iconKey]; ok {
-			if glyph, ok := appGlyphs[override]; ok {
-				bestMatch = override
-				bestGlyph = glyph
-			} else if verbose {
-				fmt.Printf("  WARNING: explicit override %q not found in glyphs\n", override)
-			}
-		}
-
-		// If no override, try auto-matching
-		if bestMatch == "" {
-			// Use configured prefix order (--prefer flag)
-			prefixes := getPrefixOrder()
-
-			for _, prefix := range prefixes {
-				testName := prefix + iconKey
-				if glyph, ok := appGlyphs[testName]; ok {
-					bestMatch = testName
-					bestGlyph = glyph
-					break
-				}
-				// Try with underscores instead of hyphens
-				testName = prefix + strings.ReplaceAll(iconKey, "-", "_")
-				if glyph, ok := appGlyphs[testName]; ok {
-					bestMatch = testName
-					bestGlyph = glyph
-					break
-				}
-			}
-		}
-
-		if bestMatch == "" {
-			// Try fuzzy match on first word
-			firstWord := strings.Split(iconKey, "-")[0]
-			for glyphName, glyph := range appGlyphs {
-				if strings.Contains(strings.ToLower(glyphName), firstWord) {
-					bestMatch = glyphName
-					bestGlyph = glyph
-					break
-				}
-			}
-		}
-
-		if bestMatch != "" {
-			mapping := AppMapping{
-				AppNames:   appNames,
-				IconName:   bestMatch,
-				GlyphCode:  bestGlyph.Code,
-				GlyphChar:  bestGlyph.Char,
-				Confidence: "exact",
-			}
-			mappings = append(mappings, mapping)
-
-			if verbose {
-				fmt.Printf("  %s -> %s (U+%s)\n", iconKey, bestMatch, strings.ToUpper(bestGlyph.Code))
-			}
-		} else if verbose {
-			fmt.Printf("  %s -> NO MATCH\n", iconKey)
-		}
-	}
-
-	// Sort by icon name for consistent output
-	sort.Slice(mappings, func(i, j int) bool {
-		return mappings[i].IconName < mappings[j].IconName
-	})
-
-	return mappings
 }
 
 func writeTOML(path string, mappings []AppMapping) error {
