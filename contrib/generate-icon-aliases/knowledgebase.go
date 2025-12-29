@@ -245,11 +245,11 @@ func ApplyFinalAdjustments(merged map[string]*MergedIcon, adj *FinalAdjustments,
 type appAssignment struct {
 	iconName   string
 	confidence float64
-	isDefault  bool // default KB has priority over AI
+	isAI       bool // AI KB takes priority over default (default is seed data)
 }
 
 // DeduplicateApps ensures each app only appears under one icon.
-// Priority: default KB > AI KB, then by confidence within each tier.
+// Priority: AI KB > default KB (AI augments/overrides seed data), then by confidence.
 func DeduplicateApps(merged map[string]*MergedIcon, defaultKB, aiKB *KnowledgeBase, verbose bool) {
 	// Build a map of app -> best assignment
 	bestAssignment := make(map[string]appAssignment)
@@ -259,15 +259,15 @@ func DeduplicateApps(merged map[string]*MergedIcon, defaultKB, aiKB *KnowledgeBa
 		for _, app := range icon.Apps {
 			appLower := strings.ToLower(app)
 
-			// Determine if this app comes from default KB for this icon
-			isDefault := false
+			// Determine if this app comes from AI KB for this icon (AI takes priority)
+			isAI := false
 			confidence := icon.Confidence
 
-			if defaultKB != nil {
-				if kbIcon, ok := defaultKB.Icons[iconName]; ok {
+			if aiKB != nil {
+				if kbIcon, ok := aiKB.Icons[iconName]; ok {
 					for _, kbApp := range kbIcon.Apps {
 						if strings.ToLower(kbApp.ID) == appLower {
-							isDefault = true
+							isAI = true
 							confidence = kbApp.Confidence
 							break
 						}
@@ -275,9 +275,9 @@ func DeduplicateApps(merged map[string]*MergedIcon, defaultKB, aiKB *KnowledgeBa
 				}
 			}
 
-			// If not from default, get AI confidence for this specific app
-			if !isDefault && aiKB != nil {
-				if kbIcon, ok := aiKB.Icons[iconName]; ok {
+			// If not from AI, get default KB confidence for this specific app
+			if !isAI && defaultKB != nil {
+				if kbIcon, ok := defaultKB.Icons[iconName]; ok {
 					for _, kbApp := range kbIcon.Apps {
 						if strings.ToLower(kbApp.ID) == appLower {
 							confidence = kbApp.Confidence
@@ -292,21 +292,21 @@ func DeduplicateApps(merged map[string]*MergedIcon, defaultKB, aiKB *KnowledgeBa
 				bestAssignment[appLower] = appAssignment{
 					iconName:   iconName,
 					confidence: confidence,
-					isDefault:  isDefault,
+					isAI:       isAI,
 				}
 			} else {
-				// Compare: default beats AI, then higher confidence wins
+				// Compare: AI beats default (AI augments seed data), then higher confidence wins
 				shouldReplace := false
-				if isDefault && !current.isDefault {
+				if isAI && !current.isAI {
 					shouldReplace = true
-				} else if isDefault == current.isDefault && confidence > current.confidence {
+				} else if isAI == current.isAI && confidence > current.confidence {
 					shouldReplace = true
 				}
 				if shouldReplace {
 					bestAssignment[appLower] = appAssignment{
 						iconName:   iconName,
 						confidence: confidence,
-						isDefault:  isDefault,
+						isAI:       isAI,
 					}
 				}
 			}
