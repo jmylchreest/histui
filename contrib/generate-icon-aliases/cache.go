@@ -11,7 +11,7 @@ import (
 	"strings"
 )
 
-const cacheDir = ".cache"
+const cacheBaseDir = ".cache"
 
 // CacheEntry represents a cached API response.
 type CacheEntry struct {
@@ -20,9 +20,22 @@ type CacheEntry struct {
 	Content string `json:"content"`
 }
 
-// ensureCacheDir creates the cache directory if it doesn't exist.
-func ensureCacheDir() error {
-	return os.MkdirAll(cacheDir, 0755)
+// sanitizeModelForPath converts a model string to a safe directory name.
+// e.g., "anthropic/claude-sonnet-4:online" -> "anthropic_claude-sonnet-4_online"
+func sanitizeModelForPath(model string) string {
+	s := strings.ReplaceAll(model, "/", "_")
+	s = strings.ReplaceAll(s, ":", "_")
+	return s
+}
+
+// getCacheDir returns the cache directory for a specific model.
+func getCacheDir(model string) string {
+	return filepath.Join(cacheBaseDir, sanitizeModelForPath(model))
+}
+
+// ensureCacheDir creates the cache directory for a model if it doesn't exist.
+func ensureCacheDir(model string) error {
+	return os.MkdirAll(getCacheDir(model), 0755)
 }
 
 // hashStrings creates a deterministic hash from a list of strings.
@@ -40,14 +53,14 @@ func hashStrings(items []string) string {
 	return hex.EncodeToString(h.Sum(nil))[:16] // First 16 chars is enough
 }
 
-// getCachePath returns the cache file path for a given type and hash.
-func getCachePath(cacheType, hash string) string {
-	return filepath.Join(cacheDir, fmt.Sprintf("%s-%s.json", cacheType, hash))
+// getCachePath returns the cache file path for a given type, hash, and model.
+func getCachePath(cacheType, hash, model string) string {
+	return filepath.Join(getCacheDir(model), fmt.Sprintf("%s-%s.json", cacheType, hash))
 }
 
-// loadCache loads a cached response if it exists and matches the model.
+// loadCache loads a cached response if it exists for the given model.
 func loadCache(cacheType, hash, model string) (string, bool) {
-	path := getCachePath(cacheType, hash)
+	path := getCachePath(cacheType, hash, model)
 
 	data, err := os.ReadFile(path)
 	if err != nil {
@@ -59,20 +72,17 @@ func loadCache(cacheType, hash, model string) (string, bool) {
 		return "", false
 	}
 
-	// Verify hash and model match
+	// Verify hash matches
 	if entry.Hash != hash {
 		return "", false
 	}
 
-	// Model mismatch is OK - we still use the cache but note it
-	// (user might want to regenerate with different model later)
-
 	return entry.Content, true
 }
 
-// saveCache saves a response to cache.
+// saveCache saves a response to cache for the given model.
 func saveCache(cacheType, hash, model, content string) error {
-	if err := ensureCacheDir(); err != nil {
+	if err := ensureCacheDir(model); err != nil {
 		return err
 	}
 
@@ -87,7 +97,7 @@ func saveCache(cacheType, hash, model, content string) error {
 		return err
 	}
 
-	return os.WriteFile(getCachePath(cacheType, hash), data, 0644)
+	return os.WriteFile(getCachePath(cacheType, hash, model), data, 0644)
 }
 
 // ClassifyCacheKey generates a cache key for classification requests.
@@ -104,42 +114,52 @@ func AppGenCacheKey(icons []struct{ Name, Type string }) string {
 	return hashStrings(items)
 }
 
-// ClearCache removes all cached files.
+// ClearCache removes all cached files for all models.
 func ClearCache() error {
-	entries, err := os.ReadDir(cacheDir)
-	if err != nil {
-		if os.IsNotExist(err) {
-			return nil
-		}
-		return err
-	}
-
-	for _, entry := range entries {
-		if strings.HasSuffix(entry.Name(), ".json") {
-			os.Remove(filepath.Join(cacheDir, entry.Name()))
-		}
-	}
-	return nil
+	return os.RemoveAll(cacheBaseDir)
 }
 
-// CacheStats returns cache statistics.
-func CacheStats() (classifyCount, appGenCount int, totalSize int64) {
-	entries, err := os.ReadDir(cacheDir)
-	if err != nil {
-		return 0, 0, 0
-	}
+// ClearCacheForModel removes all cached files for a specific model.
+func ClearCacheForModel(model string) error {
+	return os.RemoveAll(getCacheDir(model))
+}
 
-	for _, entry := range entries {
-		if strings.HasPrefix(entry.Name(), "classify-") {
+// CacheStats returns cache statistics across all models.
+func CacheStats() (classifyCount, appGenCount int, totalSize int64) {
+	// Walk all model subdirectories
+	_ = filepath.Walk(cacheBaseDir, func(path string, info os.FileInfo, err error) error {
+		if err != nil {
+			return nil // ignore errors
+		}
+		if info.IsDir() {
+			return nil
+		}
+		if !strings.HasSuffix(info.Name(), ".json") {
+			return nil
+		}
+
+		if strings.HasPrefix(info.Name(), "classify-") {
 			classifyCount++
-		} else if strings.HasPrefix(entry.Name(), "appgen-") {
+		} else if strings.HasPrefix(info.Name(), "appgen-") {
 			appGenCount++
 		}
+		totalSize += info.Size()
+		return nil
+	})
+	return
+}
 
-		info, err := entry.Info()
-		if err == nil {
-			totalSize += info.Size()
+// ListCachedModels returns a list of models that have cached data.
+func ListCachedModels() []string {
+	var models []string
+	entries, err := os.ReadDir(cacheBaseDir)
+	if err != nil {
+		return models
+	}
+	for _, entry := range entries {
+		if entry.IsDir() {
+			models = append(models, entry.Name())
 		}
 	}
-	return
+	return models
 }
