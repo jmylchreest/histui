@@ -386,9 +386,85 @@ A user wants to change the notification theme without restarting histuid.
 </node>
 ```
 
+## Graceful Degradation
+
+### D-Bus Not Available
+
+histui must work without D-Bus (containers, minimal systems, SSH sessions):
+
+| Feature | With D-Bus | Without D-Bus |
+|---------|------------|---------------|
+| Read history | Full | Full (SQLite only) |
+| Active indicators | Yes | No (column hidden) |
+| Dismiss popup | Yes | No-op (mark dismissed locally) |
+| Real-time updates | Yes | No (manual refresh) |
+| DnD control | Yes | No (warning shown) |
+| Replay notification | Yes | No |
+| Theme switching | Yes | No |
+
+**Implementation**: Detect D-Bus availability at startup. If unavailable, disable D-Bus-dependent features and show notice in status bar.
+
+### Stale History Detection
+
+histui should detect when history may be stale:
+
+**Notification Daemon Detection**:
+```go
+// Check who owns org.freedesktop.Notifications
+owner := dbus.GetNameOwner("org.freedesktop.Notifications")
+if owner == "" {
+    // No notification daemon running
+    status = "No daemon"
+} else {
+    // Get process name via /org/freedesktop/DBus GetConnectionUnixProcessID
+    pid := dbus.GetConnectionUnixProcessID(owner)
+    processName := readProcessName(pid)  // /proc/{pid}/comm
+    if processName != "histuid" {
+        status = fmt.Sprintf("Using %s (stale)", processName)
+    }
+}
+```
+
+**Status Indicators** (TUI status bar / CLI status):
+
+| State | Indicator | Meaning |
+|-------|-----------|---------|
+| histuid running | `[histuid]` | Live - receiving notifications |
+| histuid + monitor | `[histuid+mon]` | Live - also forwarding to another daemon |
+| Other daemon | `[dunst] STALE` | History not updating |
+| No daemon | `[--] STALE` | No notification daemon running |
+| D-Bus unavailable | `[offline]` | D-Bus not available |
+
+**histui status output**:
+```
+Notification Daemon: histuid (pid 12345)
+D-Bus Interface:     org.freedesktop.histui.Daemon available
+History:             Live (1,234 notifications)
+DnD:                 Off
+Active Popups:       2
+```
+
+vs stale:
+```
+Notification Daemon: dunst (pid 12345)
+                     WARNING: histuid is not the active daemon
+                     History may be stale - run histuid or use monitor mode
+History:             Stale (1,234 notifications, last update 2h ago)
+```
+
+### Monitor Mode Awareness
+
+When histuid runs in monitor mode (`histuid --monitor`), it forwards to another daemon but still captures history. Detection:
+
+1. Check if `org.freedesktop.histui.Daemon` is available (histuid running)
+2. Check if histuid's config has `monitor_mode = true`
+3. Status: `[histuid+dunst]` - histuid capturing, dunst displaying
+
 ## Open Questions
 
 1. Should we support D-Bus activation (auto-start histuid when called)?
 2. Should GetNotification return full binary data (images) or just metadata?
 3. Should we add batch operations for all single-item methods?
 4. Should theme changes apply to existing popups or only new ones?
+5. Should stale history show "last notification received" timestamp?
+6. Should histui offer to start histuid if not running?
