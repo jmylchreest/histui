@@ -92,8 +92,28 @@ func NewOpenRouterClient(model string, webSearch, useCache bool, config *Config,
 	}, nil
 }
 
+// APIDebugInfo captures request/response details for debugging.
+type APIDebugInfo struct {
+	Timestamp         string            `json:"timestamp"`
+	Model             string            `json:"model"`
+	RequestURL        string            `json:"request_url"`
+	RequestHeaders    map[string]string `json:"request_headers"`
+	RequestBody       json.RawMessage   `json:"request_body"`
+	StatusCode        int               `json:"status_code"`
+	StatusText        string            `json:"status_text"`
+	ResponseHeaders   map[string]string `json:"response_headers"`
+	ResponseBody      string            `json:"response_body"`
+	ResponseBodyLen   int               `json:"response_body_len"`
+	ContentLength     int64             `json:"content_length"`      // From Content-Length header (-1 if not set)
+	TransferEncoding  []string          `json:"transfer_encoding"`   // chunked, etc.
+	ConnectionClosed  bool              `json:"connection_closed"`   // Was Connection: close sent?
+	Duration          string            `json:"duration"`
+	ReadError         string            `json:"read_error,omitempty"`
+	Error             string            `json:"error,omitempty"`
+}
+
 // saveDebugResponse saves a failed API response to a debug file for investigation.
-func saveDebugResponse(prefix, content string) string {
+func saveDebugResponse(prefix string, info *APIDebugInfo) string {
 	debugDir := ".debug"
 	if err := os.MkdirAll(debugDir, 0755); err != nil {
 		return ""
@@ -102,7 +122,12 @@ func saveDebugResponse(prefix, content string) string {
 	filename := fmt.Sprintf("%s-%d.json", prefix, time.Now().Unix())
 	path := filepath.Join(debugDir, filename)
 
-	if err := os.WriteFile(path, []byte(content), 0644); err != nil {
+	data, err := json.MarshalIndent(info, "", "  ")
+	if err != nil {
+		return ""
+	}
+
+	if err := os.WriteFile(path, data, 0644); err != nil {
 		return ""
 	}
 
@@ -170,15 +195,18 @@ type AppGenResult struct {
 }
 
 // call makes a request to the OpenRouter API.
-func (c *OpenRouterClient) call(req ChatRequest) (string, error) {
+// Returns content, debug info, and error.
+func (c *OpenRouterClient) call(req ChatRequest) (string, *APIDebugInfo, error) {
+	start := time.Now()
+
 	reqBody, err := json.Marshal(req)
 	if err != nil {
-		return "", fmt.Errorf("marshal request: %w", err)
+		return "", nil, fmt.Errorf("marshal request: %w", err)
 	}
 
 	httpReq, err := http.NewRequest("POST", openRouterURL, bytes.NewReader(reqBody))
 	if err != nil {
-		return "", fmt.Errorf("create request: %w", err)
+		return "", nil, fmt.Errorf("create request: %w", err)
 	}
 
 	httpReq.Header.Set("Content-Type", "application/json")
@@ -186,17 +214,52 @@ func (c *OpenRouterClient) call(req ChatRequest) (string, error) {
 	httpReq.Header.Set("HTTP-Referer", "https://github.com/jmylchreest/histui")
 	httpReq.Header.Set("X-Title", "histui icon-aliases generator")
 
+	// Build debug info (mask API key)
+	debugInfo := &APIDebugInfo{
+		Timestamp:  start.UTC().Format(time.RFC3339),
+		Model:      c.Model,
+		RequestURL: openRouterURL,
+		RequestHeaders: map[string]string{
+			"Content-Type":  "application/json",
+			"Authorization": "Bearer [REDACTED]",
+			"HTTP-Referer":  httpReq.Header.Get("HTTP-Referer"),
+			"X-Title":       httpReq.Header.Get("X-Title"),
+		},
+		RequestBody: reqBody,
+	}
+
 	timeout := time.Duration(c.Config.OpenRouter.RequestTimeout) * time.Second
 	client := &http.Client{Timeout: timeout}
 	resp, err := client.Do(httpReq)
 	if err != nil {
-		return "", fmt.Errorf("API call failed: %w", err)
+		debugInfo.Duration = time.Since(start).String()
+		debugInfo.Error = err.Error()
+		return "", debugInfo, fmt.Errorf("API call failed: %w", err)
 	}
 	defer resp.Body.Close()
 
+	// Capture connection-level details before reading body
+	debugInfo.StatusCode = resp.StatusCode
+	debugInfo.StatusText = resp.Status
+	debugInfo.ContentLength = resp.ContentLength
+	debugInfo.TransferEncoding = resp.TransferEncoding
+	debugInfo.ConnectionClosed = resp.Close
+
+	// Capture response headers
+	debugInfo.ResponseHeaders = make(map[string]string)
+	for key, values := range resp.Header {
+		debugInfo.ResponseHeaders[key] = strings.Join(values, ", ")
+	}
+
 	body, err := io.ReadAll(resp.Body)
+	debugInfo.Duration = time.Since(start).String()
+	debugInfo.ResponseBodyLen = len(body)
+	debugInfo.ResponseBody = string(body)
+
 	if err != nil {
-		return "", fmt.Errorf("read response: %w", err)
+		debugInfo.ReadError = err.Error()
+		debugInfo.Error = fmt.Sprintf("read body error: %v", err)
+		return "", debugInfo, fmt.Errorf("read response: %w", err)
 	}
 
 	if resp.StatusCode != http.StatusOK {
@@ -206,7 +269,8 @@ func (c *OpenRouterClient) call(req ChatRequest) (string, error) {
 			bodyStr = bodyStr[:1000] + "... [truncated]"
 		}
 		fmt.Fprintf(os.Stderr, "\n[ERROR] API returned HTTP %d:\n%s\n", resp.StatusCode, bodyStr)
-		return "", fmt.Errorf("API error (HTTP %d)", resp.StatusCode)
+		debugInfo.Error = fmt.Sprintf("HTTP %d", resp.StatusCode)
+		return "", debugInfo, fmt.Errorf("API error (HTTP %d)", resp.StatusCode)
 	}
 
 	var chatResp ChatResponse
@@ -217,21 +281,24 @@ func (c *OpenRouterClient) call(req ChatRequest) (string, error) {
 			bodyStr = bodyStr[:500] + "... [truncated]"
 		}
 		fmt.Fprintf(os.Stderr, "\n[ERROR] Failed to parse API response:\n%s\n", bodyStr)
-		return "", fmt.Errorf("parse response: %w", err)
+		debugInfo.Error = fmt.Sprintf("JSON parse error: %v", err)
+		return "", debugInfo, fmt.Errorf("parse response: %w", err)
 	}
 
 	if chatResp.Error != nil {
 		fmt.Fprintf(os.Stderr, "\n[ERROR] API error: %s\n", chatResp.Error.Message)
-		return "", fmt.Errorf("API error: %s", chatResp.Error.Message)
+		debugInfo.Error = chatResp.Error.Message
+		return "", debugInfo, fmt.Errorf("API error: %s", chatResp.Error.Message)
 	}
 
 	if len(chatResp.Choices) == 0 {
 		fmt.Fprintf(os.Stderr, "\n[ERROR] API returned no response choices\n")
 		fmt.Fprintf(os.Stderr, "[ERROR] Full response: %s\n", string(body))
-		return "", fmt.Errorf("no response choices")
+		debugInfo.Error = "no response choices"
+		return "", debugInfo, fmt.Errorf("no response choices")
 	}
 
-	return chatResp.Choices[0].Message.Content, nil
+	return chatResp.Choices[0].Message.Content, debugInfo, nil
 }
 
 // classifyIconsSchema returns the JSON schema for icon classification.
@@ -335,8 +402,14 @@ func (c *OpenRouterClient) ClassifyIcons(glyphNames []string, useCache bool) (*C
 		Temperature: 0.1,
 	}
 
-	content, err := c.call(req)
+	content, debugInfo, err := c.call(req)
 	if err != nil {
+		if debugInfo != nil {
+			debugPath := saveDebugResponse("classify-error", debugInfo)
+			if debugPath != "" {
+				fmt.Fprintf(os.Stderr, "[ERROR] Debug info saved to: %s\n", debugPath)
+			}
+		}
 		return nil, err
 	}
 
@@ -349,8 +422,9 @@ func (c *OpenRouterClient) ClassifyIcons(glyphNames []string, useCache bool) (*C
 
 	var result ClassifyResult
 	if err := json.Unmarshal([]byte(content), &result); err != nil {
-		// Save full response to debug file
-		debugPath := saveDebugResponse("classify-error", content)
+		// Save full debug info including headers
+		debugInfo.Error = fmt.Sprintf("JSON unmarshal error: %v", err)
+		debugPath := saveDebugResponse("classify-parse-error", debugInfo)
 
 		// Show truncated content for debugging
 		preview := content
@@ -360,7 +434,7 @@ func (c *OpenRouterClient) ClassifyIcons(glyphNames []string, useCache bool) (*C
 		fmt.Fprintf(os.Stderr, "\n[ERROR] Failed to parse API response:\n%s\n", preview)
 		fmt.Fprintf(os.Stderr, "[ERROR] Response length: %d bytes\n", len(content))
 		if debugPath != "" {
-			fmt.Fprintf(os.Stderr, "[ERROR] Full response saved to: %s\n", debugPath)
+			fmt.Fprintf(os.Stderr, "[ERROR] Full debug info saved to: %s\n", debugPath)
 		}
 
 		// Check for common issues
@@ -419,8 +493,14 @@ func (c *OpenRouterClient) GenerateAppNames(icons []struct{ Name, Type string },
 		Temperature: 0.2,
 	}
 
-	content, err := c.call(req)
+	content, debugInfo, err := c.call(req)
 	if err != nil {
+		if debugInfo != nil {
+			debugPath := saveDebugResponse("appgen-error", debugInfo)
+			if debugPath != "" {
+				fmt.Fprintf(os.Stderr, "[ERROR] Debug info saved to: %s\n", debugPath)
+			}
+		}
 		return nil, err
 	}
 
@@ -433,8 +513,9 @@ func (c *OpenRouterClient) GenerateAppNames(icons []struct{ Name, Type string },
 
 	var result AppGenResult
 	if err := json.Unmarshal([]byte(content), &result); err != nil {
-		// Save full response to debug file
-		debugPath := saveDebugResponse("appgen-error", content)
+		// Save full debug info including headers
+		debugInfo.Error = fmt.Sprintf("JSON unmarshal error: %v", err)
+		debugPath := saveDebugResponse("appgen-parse-error", debugInfo)
 
 		// Show truncated content for debugging
 		preview := content
@@ -444,7 +525,7 @@ func (c *OpenRouterClient) GenerateAppNames(icons []struct{ Name, Type string },
 		fmt.Fprintf(os.Stderr, "\n[ERROR] Failed to parse API response:\n%s\n", preview)
 		fmt.Fprintf(os.Stderr, "[ERROR] Response length: %d bytes\n", len(content))
 		if debugPath != "" {
-			fmt.Fprintf(os.Stderr, "[ERROR] Full response saved to: %s\n", debugPath)
+			fmt.Fprintf(os.Stderr, "[ERROR] Full debug info saved to: %s\n", debugPath)
 		}
 
 		// Check for common issues
