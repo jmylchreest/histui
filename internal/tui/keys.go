@@ -14,21 +14,29 @@ type KeyMap struct {
 	Home     key.Binding
 	End      key.Binding
 
+	// Stack navigation
+	NextStack key.Binding
+	PrevStack key.Binding
+
 	// Actions
-	Enter           key.Binding
-	Back            key.Binding
-	Copy            key.Binding
-	CopySummary     key.Binding
-	CopyAllJSON     key.Binding
-	CopyAllYAML     key.Binding
-	Dismiss         key.Binding
-	DismissAll      key.Binding
-	HardDelete      key.Binding
-	Search          key.Binding
-	Refresh         key.Binding
-	ToggleDismissed key.Binding
-	Preview         key.Binding
-	Replay          key.Binding
+	Enter     key.Binding
+	Back      key.Binding
+	Yank      key.Binding // Copy body
+	YankAll   key.Binding // Copy all as JSON
+	YankImage key.Binding // Copy image to clipboard
+	Dismiss   key.Binding
+	Delete    key.Binding
+	Search    key.Binding
+	Refresh   key.Binding
+	Filter    key.Binding // Open filter submenu
+	Preview   key.Binding
+	Replay    key.Binding
+
+	// Quick filters (1-4)
+	FilterAll         key.Binding
+	FilterActive      key.Binding
+	FilterUndismissed key.Binding
+	FilterDismissed   key.Binding
 
 	// Global
 	Quit key.Binding
@@ -44,9 +52,10 @@ func (k KeyMap) ShortHelp() []key.Binding {
 func (k KeyMap) FullHelp() [][]key.Binding {
 	return [][]key.Binding{
 		{k.Up, k.Down, k.PageUp, k.PageDown},
-		{k.Enter, k.Back, k.Copy, k.CopySummary},
-		{k.Search, k.Refresh, k.Dismiss, k.DismissAll, k.HardDelete},
-		{k.ToggleDismissed, k.Preview, k.Replay, k.Help, k.Quit},
+		{k.Enter, k.Back, k.Yank, k.YankAll},
+		{k.Search, k.Filter, k.Refresh, k.Dismiss, k.Delete},
+		{k.FilterAll, k.FilterActive, k.FilterUndismissed, k.FilterDismissed},
+		{k.Preview, k.Replay, k.Help, k.Quit},
 	}
 }
 
@@ -77,6 +86,14 @@ func DefaultKeyMap() KeyMap {
 			key.WithKeys("end", "G"),
 			key.WithHelp("end/G", "go to bottom"),
 		),
+		NextStack: key.NewBinding(
+			key.WithKeys("tab"),
+			key.WithHelp("tab", "next in stack"),
+		),
+		PrevStack: key.NewBinding(
+			key.WithKeys("shift+tab"),
+			key.WithHelp("S-tab", "prev in stack"),
+		),
 		Enter: key.NewBinding(
 			key.WithKeys("enter"),
 			key.WithHelp("enter", "view details"),
@@ -85,33 +102,25 @@ func DefaultKeyMap() KeyMap {
 			key.WithKeys("esc", "backspace"),
 			key.WithHelp("esc", "back"),
 		),
-		Copy: key.NewBinding(
-			key.WithKeys("c"),
-			key.WithHelp("c", "copy body"),
+		Yank: key.NewBinding(
+			key.WithKeys("y"),
+			key.WithHelp("y", "copy body"),
 		),
-		CopySummary: key.NewBinding(
-			key.WithKeys("s"),
-			key.WithHelp("s", "copy summary"),
+		YankAll: key.NewBinding(
+			key.WithKeys("Y"),
+			key.WithHelp("Y", "copy all as JSON"),
 		),
-		CopyAllJSON: key.NewBinding(
-			key.WithKeys("C"),
-			key.WithHelp("C", "copy all as JSON"),
-		),
-		CopyAllYAML: key.NewBinding(
-			key.WithKeys("alt+c"),
-			key.WithHelp("alt+c", "copy all as YAML"),
+		YankImage: key.NewBinding(
+			key.WithKeys("i"),
+			key.WithHelp("i", "copy image"),
 		),
 		Dismiss: key.NewBinding(
 			key.WithKeys("d"),
-			key.WithHelp("d", "dismiss"),
+			key.WithHelp("d", "dismiss/restore"),
 		),
-		DismissAll: key.NewBinding(
-			key.WithKeys("alt+d"),
-			key.WithHelp("alt+d", "dismiss all visible"),
-		),
-		HardDelete: key.NewBinding(
-			key.WithKeys("D"),
-			key.WithHelp("D", "delete permanently"),
+		Delete: key.NewBinding(
+			key.WithKeys("x"),
+			key.WithHelp("x", "delete permanently"),
 		),
 		Search: key.NewBinding(
 			key.WithKeys("/"),
@@ -121,9 +130,9 @@ func DefaultKeyMap() KeyMap {
 			key.WithKeys("r"),
 			key.WithHelp("r", "refresh"),
 		),
-		ToggleDismissed: key.NewBinding(
-			key.WithKeys("a"),
-			key.WithHelp("a", "toggle dismissed"),
+		Filter: key.NewBinding(
+			key.WithKeys("f"),
+			key.WithHelp("f", "filter menu"),
 		),
 		Preview: key.NewBinding(
 			key.WithKeys("p"),
@@ -133,9 +142,25 @@ func DefaultKeyMap() KeyMap {
 			key.WithKeys("R"),
 			key.WithHelp("R", "replay"),
 		),
+		FilterAll: key.NewBinding(
+			key.WithKeys("1"),
+			key.WithHelp("1", "all"),
+		),
+		FilterActive: key.NewBinding(
+			key.WithKeys("2"),
+			key.WithHelp("2", "active"),
+		),
+		FilterUndismissed: key.NewBinding(
+			key.WithKeys("3"),
+			key.WithHelp("3", "undismissed"),
+		),
+		FilterDismissed: key.NewBinding(
+			key.WithKeys("4"),
+			key.WithHelp("4", "dismissed"),
+		),
 		Quit: key.NewBinding(
 			key.WithKeys("q", "ctrl+c"),
-			key.WithHelp("q", "quit"),
+			key.WithHelp("q", "quit/back"),
 		),
 		Help: key.NewBinding(
 			key.WithKeys("?"),

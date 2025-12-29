@@ -21,13 +21,13 @@ import (
 	"github.com/charmbracelet/bubbles/viewport"
 	tea "github.com/charmbracelet/bubbletea"
 	"github.com/charmbracelet/lipgloss"
-	"gopkg.in/yaml.v3"
 
 	"github.com/jmylchreest/histui/internal/adapter/input"
 	"github.com/jmylchreest/histui/internal/config"
 	"github.com/jmylchreest/histui/internal/core"
 	"github.com/jmylchreest/histui/internal/db"
 	"github.com/jmylchreest/histui/internal/dbus"
+	"github.com/jmylchreest/histui/internal/icon"
 	"github.com/jmylchreest/histui/internal/model"
 )
 
@@ -39,13 +39,26 @@ const (
 	ModeDetail
 	ModeSearch
 	ModeHelp
+	ModeFilter // Filter submenu
+)
+
+// FilterMode represents the current filter view.
+type FilterMode int
+
+const (
+	FilterAll FilterMode = iota
+	FilterActive
+	FilterUndismissed
+	FilterDismissed
 )
 
 // Model is the main TUI model.
 type Model struct {
 	// Configuration
-	cfg *config.Config
-	db  *db.DB
+	cfg          *config.Config
+	db           *db.DB
+	daemon       *dbus.DaemonClient // D-Bus client for histuid communication
+	iconResolver *icon.Resolver     // Icon resolver for NerdFont symbols
 
 	// Current mode
 	mode Mode
@@ -60,12 +73,27 @@ type Model struct {
 	notifications []model.Notification
 	selected      *model.Notification
 	searchQuery   string
-	showDismissed bool
+	filterMode    FilterMode // Current filter view (All, Active, Undismissed, Dismissed)
 	width         int
 	height        int
 	ready         bool
 	helpPage      int  // 0 = keybindings, 1 = filter reference
 	previewActive bool // Show preview panel overlay
+
+	// Stack navigation (for Tab cycling through stacked notifications)
+	stackedNotifications []model.Notification // Current stack being viewed
+	stackIndex           int                  // Current position in stack
+
+	// Detail view image navigation
+	detailImages     []imageSource // All available images for current notification
+	detailImageIndex int           // Current image being displayed (0-based)
+
+	// Active popup tracking (histui IDs of notifications with active popups)
+	activeIDs    map[string]bool
+	daemonStatus string // e.g., "[histuid]", "[dunst] STALE", "[offline]"
+
+	// Stack tag counts (stack_tag -> count of notifications with that tag)
+	stackTagCounts map[string]int
 
 	// Key bindings
 	keys KeyMap
@@ -73,12 +101,18 @@ type Model struct {
 	// Status message
 	statusMsg string
 	statusErr bool
+
+	// Toast overlay (brief popup notification)
+	toastMsg     string
+	toastVisible bool
 }
 
 // notificationItem wraps a notification for the list component.
 type notificationItem struct {
 	notification model.Notification
 	index        int
+	isActive     bool // true if notification has an active popup
+	stackCount   int  // number of notifications with same stack_tag (0 if not stacked)
 }
 
 func (i notificationItem) Title() string {
@@ -86,14 +120,29 @@ func (i notificationItem) Title() string {
 }
 
 func (i notificationItem) Description() string {
-	return fmt.Sprintf("[%s] %s - %s",
+	stackInfo := ""
+	if i.stackCount > 1 {
+		stackInfo = fmt.Sprintf(" (x%d)", i.stackCount)
+	}
+	return fmt.Sprintf("[%s] %s%s - %s",
 		i.notification.AppName,
 		i.notification.RelativeTime(),
+		stackInfo,
 		i.notification.BodyTruncated(50))
 }
 
 func (i notificationItem) FilterValue() string {
 	return i.notification.Summary + " " + i.notification.Body + " " + i.notification.AppName
+}
+
+// imageSource represents an image that can be displayed in the detail view.
+type imageSource struct {
+	label    string // Display label (e.g., "image-path", "embedded", "icon")
+	path     string // File path (if applicable)
+	data     []byte // Raw image data (if applicable)
+	hintKey  string // Original hint key (for image-path hints)
+	fromDB   bool   // Whether loaded from database
+	imageRef string // Database image ref (if fromDB)
 }
 
 // notificationDelegate is a custom list delegate for styling notifications.
@@ -119,6 +168,7 @@ func (d notificationDelegate) Render(w io.Writer, m list.Model, index int, item 
 	// Check if this item is selected
 	isSelected := index == m.Index()
 	isDismissed := ni.notification.IsDismissed()
+	isCritical := ni.notification.Urgency == model.UrgencyCritical
 
 	// Get item width from the list
 	itemWidth := m.Width() - d.Styles.NormalTitle.GetHorizontalPadding()
@@ -139,6 +189,17 @@ func (d notificationDelegate) Render(w io.Writer, m list.Model, index int, item 
 			descStyle = d.Styles.NormalDesc.
 				Foreground(lipgloss.Color("8"))
 		}
+	} else if isCritical {
+		// Critical: red title
+		if isSelected {
+			titleStyle = d.Styles.SelectedTitle.
+				Foreground(lipgloss.Color("9")) // bright red
+			descStyle = d.Styles.SelectedDesc
+		} else {
+			titleStyle = d.Styles.NormalTitle.
+				Foreground(lipgloss.Color("9")) // bright red
+			descStyle = d.Styles.NormalDesc
+		}
 	} else {
 		// Normal: use default delegate styles
 		if isSelected {
@@ -150,38 +211,42 @@ func (d notificationDelegate) Render(w io.Writer, m list.Model, index int, item 
 		}
 	}
 
-	// Status indicator in left margin (2 chars: status + space)
-	// Priority: D (dismissed) > R (replayed) > space
-	statusIndicator := "  " // default: empty margin
-	if isDismissed {
-		statusIndicator = "D "
+	// Status indicator in left margin (3 chars: status + 2 spaces)
+	// Priority: A (active popup) > D (dismissed) > R (replayed) > 3 spaces
+	statusIndicator := "   " // default: empty 3-char margin
+	if ni.isActive {
+		statusIndicator = "A  "
+	} else if isDismissed {
+		statusIndicator = "D  "
 	} else if ni.notification.IsReplayed() {
-		statusIndicator = "R "
+		statusIndicator = "R  "
 	}
 	statusStyle := lipgloss.NewStyle().Foreground(lipgloss.Color("8"))
 
-	// Build title
-	title := ni.Title()
+	// Build title - strip pango/HTML markup for plain text display
+	title := stripPangoMarkup(ni.Title())
 
-	// Truncate if needed (account for status margin)
-	effectiveWidth := itemWidth - 2 // subtract margin width
-	if effectiveWidth > 0 && len(title) > effectiveWidth {
-		title = title[:effectiveWidth-1] + "…"
+	// Truncate if needed (account for 3-char status margin)
+	// Use visual width for proper Unicode handling
+	effectiveWidth := itemWidth - 3 // subtract margin width
+	if effectiveWidth > 0 && lipgloss.Width(title) > effectiveWidth {
+		title = truncateString(title, effectiveWidth-1) + "…"
 	}
 
-	desc := ni.Description()
-	if effectiveWidth > 0 && len(desc) > effectiveWidth {
-		desc = desc[:effectiveWidth-1] + "…"
+	// Build description - strip pango/HTML markup for plain text display
+	desc := stripPangoMarkup(ni.Description())
+	if effectiveWidth > 0 && lipgloss.Width(desc) > effectiveWidth {
+		desc = truncateString(desc, effectiveWidth-1) + "…"
 	}
 
 	// Render with status margin on left
 	_, _ = fmt.Fprint(w, statusStyle.Render(statusIndicator)+titleStyle.Render(title))
 	_, _ = fmt.Fprint(w, "\n")
-	_, _ = fmt.Fprint(w, "  "+descStyle.Render(desc)) // align desc with title
+	_, _ = fmt.Fprint(w, "   "+descStyle.Render(desc)) // align desc with title (3-char margin)
 }
 
 // New creates a new TUI model.
-func New(cfg *config.Config, database *db.DB) Model {
+func New(cfg *config.Config, database *db.DB, daemonClient *dbus.DaemonClient, iconRes *icon.Resolver) Model {
 	// Initialize components with custom delegate for styling
 	delegate := newNotificationDelegate()
 	l := list.New(nil, delegate, 0, 0)
@@ -191,10 +256,10 @@ func New(cfg *config.Config, database *db.DB) Model {
 	l.SetFilteringEnabled(true)
 	l.DisableQuitKeybindings()
 
-	// Hide the empty status bar message to prevent duplicate "no items" display
-	// The list shows both StatusEmpty in the status bar and NoItems in the content area
-	// We keep NoItems (centered in content) and hide StatusEmpty (in status bar)
+	// Hide empty state messages - the (0 matches) count in search mode is sufficient,
+	// and in list mode an empty list is self-explanatory
 	l.Styles.StatusEmpty = lipgloss.NewStyle()
+	l.Styles.NoItems = lipgloss.NewStyle()
 
 	searchInput := textinput.New()
 	searchInput.Placeholder = "Search or filter (e.g., app=discord)..."
@@ -207,20 +272,35 @@ func New(cfg *config.Config, database *db.DB) Model {
 	m := Model{
 		cfg:           cfg,
 		db:            database,
+		daemon:        daemonClient,
+		iconResolver:  iconRes,
 		mode:          ModeList,
 		list:          l,
 		searchInput:   searchInput,
 		help:          h,
 		keys:          keys,
-		previewActive: true, // Enable preview by default
+		filterMode:    FilterUndismissed, // Default to showing undismissed only
+		previewActive: true,              // Enable preview by default
+		ready:         true,              // Start ready - size will be updated when WindowSizeMsg arrives
+		width:         80,                // Default width
+		height:        24,                // Default height
 	}
+
+	// Set initial size so list is usable immediately
+	l.SetSize(80, 22)
 
 	return m
 }
 
 // Init initializes the TUI.
 func (m Model) Init() tea.Cmd {
-	return tea.Batch(m.loadNotifications, startFileWatcher())
+	return tea.Batch(
+		m.loadNotifications,
+		startFileWatcher(),
+		startDBusWatcher(),
+		fetchActiveIDs(),
+		fetchDaemonStatus(),
+	)
 }
 
 // loadNotifications fetches notifications from the database.
@@ -296,6 +376,50 @@ func (m Model) Update(msg tea.Msg) (tea.Model, tea.Cmd) {
 		// Restart the watcher for the next change
 		return m, startFileWatcher()
 
+	case dbusSignalMsg:
+		switch msg.signalType {
+		case "displayed":
+			// Add to active IDs
+			if m.activeIDs == nil {
+				m.activeIDs = make(map[string]bool)
+			}
+			m.activeIDs[msg.histuiID] = true
+			m.list.SetItems(m.buildListItems())
+		case "dismissed":
+			// Remove from active IDs
+			if m.activeIDs != nil {
+				delete(m.activeIDs, msg.histuiID)
+			}
+			m.list.SetItems(m.buildListItems())
+		case "dnd_changed":
+			// Could update a DnD indicator in status bar
+			// For now, just refresh the list to update styling if needed
+			m.list.SetItems(m.buildListItems())
+		case "config_changed":
+			// Refresh the list
+			m.notifications = m.fetchNotifications()
+			m.list.SetItems(m.buildListItems())
+		}
+		// Restart the D-Bus watcher
+		return m, startDBusWatcher()
+
+	case dbusRetryMsg:
+		// Retry D-Bus watcher connection and also refresh daemon status
+		return m, tea.Batch(startDBusWatcher(), fetchDaemonStatus())
+
+	case activeIDsMsg:
+		// Update the active IDs map
+		m.activeIDs = make(map[string]bool)
+		for _, id := range msg.ids {
+			m.activeIDs[id] = true
+		}
+		m.list.SetItems(m.buildListItems())
+		return m, nil
+
+	case daemonStatusMsg:
+		m.daemonStatus = msg.status
+		return m, nil
+
 	case statusMsg:
 		m.statusMsg = msg.text
 		m.statusErr = msg.isErr
@@ -308,6 +432,18 @@ func (m Model) Update(msg tea.Msg) (tea.Model, tea.Cmd) {
 		m.statusErr = false
 		return m, nil
 
+	case toastMsg:
+		m.toastMsg = msg.text
+		m.toastVisible = true
+		return m, tea.Tick(1500*time.Millisecond, func(t time.Time) tea.Msg {
+			return clearToastMsg{}
+		})
+
+	case clearToastMsg:
+		m.toastVisible = false
+		m.toastMsg = ""
+		return m, nil
+
 	case copyResultMsg:
 		if msg.err != nil {
 			return m, func() tea.Msg {
@@ -315,7 +451,7 @@ func (m Model) Update(msg tea.Msg) (tea.Model, tea.Cmd) {
 			}
 		}
 		return m, func() tea.Msg {
-			return statusMsg{text: "Copied to clipboard", isErr: false}
+			return toastMsg{text: "Copied to clipboard"}
 		}
 
 	case replayResultMsg:
@@ -358,6 +494,12 @@ type statusMsg struct {
 
 type clearStatusMsg struct{}
 
+type toastMsg struct {
+	text string
+}
+
+type clearToastMsg struct{}
+
 type copyResultMsg struct {
 	err error
 }
@@ -373,11 +515,8 @@ func (m Model) handleKey(msg tea.KeyMsg) (tea.Model, tea.Cmd) {
 		return m.handleSearchKey(msg)
 	}
 
-	// Global keys (not in search mode)
-	switch {
-	case key.Matches(msg, m.keys.Quit):
-		return m, tea.Quit
-	case key.Matches(msg, m.keys.Help):
+	// Help toggle is global (except in search mode)
+	if key.Matches(msg, m.keys.Help) {
 		if m.mode == ModeHelp {
 			m.mode = ModeList
 		} else {
@@ -389,11 +528,21 @@ func (m Model) handleKey(msg tea.KeyMsg) (tea.Model, tea.Cmd) {
 	// Mode-specific keys
 	switch m.mode {
 	case ModeList:
+		// Only quit from list mode
+		if key.Matches(msg, m.keys.Quit) {
+			return m, tea.Quit
+		}
 		return m.handleListKey(msg)
+
 	case ModeDetail:
+		// q in detail mode goes back to list (handled in handleDetailKey)
 		return m.handleDetailKey(msg)
+
+	case ModeFilter:
+		return m.handleFilterKey(msg)
+
 	case ModeHelp:
-		if key.Matches(msg, m.keys.Back) {
+		if key.Matches(msg, m.keys.Back) || key.Matches(msg, m.keys.Quit) {
 			m.mode = ModeList
 			m.helpPage = 0
 		}
@@ -423,28 +572,60 @@ func (m Model) handleListKey(msg tea.KeyMsg) (tea.Model, tea.Cmd) {
 	}
 
 	switch {
+	// Quick filters (1-4)
+	case key.Matches(msg, m.keys.FilterAll):
+		m.filterMode = FilterAll
+		m.list.SetItems(m.buildListItems())
+		return m, func() tea.Msg {
+			return statusMsg{text: "Filter: All notifications", isErr: false}
+		}
+
+	case key.Matches(msg, m.keys.FilterActive):
+		m.filterMode = FilterActive
+		m.list.SetItems(m.buildListItems())
+		return m, func() tea.Msg {
+			return statusMsg{text: "Filter: Active only", isErr: false}
+		}
+
+	case key.Matches(msg, m.keys.FilterUndismissed):
+		m.filterMode = FilterUndismissed
+		m.list.SetItems(m.buildListItems())
+		return m, func() tea.Msg {
+			return statusMsg{text: "Filter: Undismissed", isErr: false}
+		}
+
+	case key.Matches(msg, m.keys.FilterDismissed):
+		m.filterMode = FilterDismissed
+		m.list.SetItems(m.buildListItems())
+		return m, func() tea.Msg {
+			return statusMsg{text: "Filter: Dismissed only", isErr: false}
+		}
+
+	case key.Matches(msg, m.keys.Filter):
+		m.mode = ModeFilter
+		return m, nil
+
 	case key.Matches(msg, m.keys.Enter):
 		if item, ok := m.list.SelectedItem().(notificationItem); ok {
 			m.selected = &item.notification
 			m.mode = ModeDetail
 			m.viewport.SetContent(m.renderDetail(item.notification))
 			m.viewport.GotoTop()
+			// Load stacked notifications for Tab cycling
+			m.loadStackedNotifications(item)
+			// Load images for Left/Right cycling
+			m.detailImages = m.collectImages(item.notification)
+			m.detailImageIndex = 0
 		}
 		return m, nil
 
-	case key.Matches(msg, m.keys.Copy):
+	case key.Matches(msg, m.keys.Yank):
 		if item, ok := m.list.SelectedItem().(notificationItem); ok {
 			return m, m.copyToClipboard(item.notification.Body)
 		}
 		return m, nil
 
-	case key.Matches(msg, m.keys.CopySummary):
-		if item, ok := m.list.SelectedItem().(notificationItem); ok {
-			return m, m.copyToClipboard(item.notification.Summary)
-		}
-		return m, nil
-
-	case key.Matches(msg, m.keys.CopyAllJSON):
+	case key.Matches(msg, m.keys.YankAll):
 		// Get currently visible notifications
 		items := m.list.Items()
 		notifications := make([]model.Notification, 0, len(items))
@@ -461,22 +642,16 @@ func (m Model) handleListKey(msg tea.KeyMsg) (tea.Model, tea.Cmd) {
 		}
 		return m, m.copyToClipboard(string(data))
 
-	case key.Matches(msg, m.keys.CopyAllYAML):
-		// Get currently visible notifications
-		items := m.list.Items()
-		notifications := make([]model.Notification, 0, len(items))
-		for _, item := range items {
-			if ni, ok := item.(notificationItem); ok {
-				notifications = append(notifications, ni.notification)
+	case key.Matches(msg, m.keys.YankImage):
+		if item, ok := m.list.SelectedItem().(notificationItem); ok {
+			if !hasImageWithDB(item.notification, m.db) {
+				return m, func() tea.Msg {
+					return statusMsg{text: "No image available", isErr: true}
+				}
 			}
+			return m, m.copyImageToClipboard(item.notification)
 		}
-		data, err := yaml.Marshal(notifications)
-		if err != nil {
-			return m, func() tea.Msg {
-				return statusMsg{text: "Failed to marshal YAML: " + err.Error(), isErr: true}
-			}
-		}
-		return m, m.copyToClipboard(string(data))
+		return m, nil
 
 	case key.Matches(msg, m.keys.Dismiss):
 		if item, ok := m.list.SelectedItem().(notificationItem); ok {
@@ -492,10 +667,16 @@ func (m Model) handleListKey(msg tea.KeyMsg) (tea.Model, tea.Cmd) {
 						return statusMsg{text: "Notification restored", isErr: false}
 					}
 				}
-				// Dismiss
+				// Dismiss in database
 				_ = m.db.DismissNotification(item.notification.HistuiID)
 				m.notifications = m.fetchNotifications()
 				m.list.SetItems(m.buildListItems())
+
+				// Also close the popup if it's active
+				if item.isActive && m.daemon != nil {
+					_, _ = m.daemon.CloseNotification(item.notification.HistuiID)
+				}
+
 				return m, func() tea.Msg {
 					return statusMsg{text: "Notification dismissed", isErr: false}
 				}
@@ -503,54 +684,25 @@ func (m Model) handleListKey(msg tea.KeyMsg) (tea.Model, tea.Cmd) {
 		}
 		return m, nil
 
-	case key.Matches(msg, m.keys.DismissAll):
-		if m.db != nil {
-			// Get all currently visible (filtered) items
-			items := m.list.Items()
-			dismissedCount := 0
-			for _, item := range items {
-				if ni, ok := item.(notificationItem); ok {
-					if !ni.notification.IsDismissed() {
-						_ = m.db.DismissNotification(ni.notification.HistuiID)
-						dismissedCount++
-					}
-				}
-			}
-			if dismissedCount > 0 {
-				m.notifications = m.fetchNotifications()
-				m.list.SetItems(m.buildListItems())
-				return m, func() tea.Msg {
-					return statusMsg{text: fmt.Sprintf("Dismissed %d notification(s)", dismissedCount), isErr: false}
-				}
-			}
-			return m, func() tea.Msg {
-				return statusMsg{text: "No notifications to dismiss", isErr: false}
-			}
-		}
-		return m, nil
-
-	case key.Matches(msg, m.keys.HardDelete):
+	case key.Matches(msg, m.keys.Delete):
 		if item, ok := m.list.SelectedItem().(notificationItem); ok {
 			if m.db != nil {
+				// Close the popup first if it's active
+				if item.isActive && m.daemon != nil {
+					_, _ = m.daemon.CloseNotification(item.notification.HistuiID)
+				}
+
 				_ = m.db.DeleteNotification(item.notification.HistuiID)
 				m.notifications = m.fetchNotifications()
 				m.list.SetItems(m.buildListItems())
+
+				return m, func() tea.Msg {
+					return statusMsg{text: "Notification deleted permanently", isErr: false}
+				}
 			}
 		}
 		return m, func() tea.Msg {
 			return statusMsg{text: "Notification deleted permanently", isErr: false}
-		}
-
-	case key.Matches(msg, m.keys.ToggleDismissed):
-		m.showDismissed = !m.showDismissed
-		m.list.SetItems(m.buildListItems())
-		if m.showDismissed {
-			return m, func() tea.Msg {
-				return statusMsg{text: "Showing all notifications", isErr: false}
-			}
-		}
-		return m, func() tea.Msg {
-			return statusMsg{text: "Hiding dismissed notifications", isErr: false}
 		}
 
 	case key.Matches(msg, m.keys.Preview):
@@ -574,6 +726,15 @@ func (m Model) handleListKey(msg tea.KeyMsg) (tea.Model, tea.Cmd) {
 			return m, m.replayNotification(item.notification)
 		}
 		return m, nil
+
+	case key.Matches(msg, m.keys.NextStack), key.Matches(msg, m.keys.PrevStack):
+		// Tab cycling through stacked items in list view
+		if item, ok := m.list.SelectedItem().(notificationItem); ok {
+			if item.stackCount > 1 {
+				return m.cycleStack(msg)
+			}
+		}
+		return m, nil
 	}
 
 	// Pass to list
@@ -582,23 +743,105 @@ func (m Model) handleListKey(msg tea.KeyMsg) (tea.Model, tea.Cmd) {
 	return m, cmd
 }
 
+// loadStackedNotifications loads notifications for Tab cycling.
+func (m *Model) loadStackedNotifications(item notificationItem) {
+	m.stackedNotifications = nil
+	m.stackIndex = 0
+
+	if item.stackCount <= 1 || m.db == nil {
+		return
+	}
+
+	n := item.notification
+	if n.Extensions == nil || n.Extensions.StackTag == "" {
+		return
+	}
+
+	stacked, err := m.db.GetByStackTag(n.Extensions.StackTag)
+	if err != nil || len(stacked) <= 1 {
+		return
+	}
+
+	m.stackedNotifications = stacked
+
+	// Find current position in stack
+	for i, sn := range stacked {
+		if sn.HistuiID == n.HistuiID {
+			m.stackIndex = i
+			break
+		}
+	}
+}
+
+// cycleStack cycles through stacked notifications.
+func (m Model) cycleStack(msg tea.KeyMsg) (tea.Model, tea.Cmd) {
+	if len(m.stackedNotifications) <= 1 {
+		return m, nil
+	}
+
+	if key.Matches(msg, m.keys.NextStack) {
+		m.stackIndex = (m.stackIndex + 1) % len(m.stackedNotifications)
+	} else {
+		m.stackIndex--
+		if m.stackIndex < 0 {
+			m.stackIndex = len(m.stackedNotifications) - 1
+		}
+	}
+
+	// Find and select the notification in the list
+	targetID := m.stackedNotifications[m.stackIndex].HistuiID
+	for i, item := range m.list.Items() {
+		if ni, ok := item.(notificationItem); ok {
+			if ni.notification.HistuiID == targetID {
+				m.list.Select(i)
+				break
+			}
+		}
+	}
+
+	return m, func() tea.Msg {
+		return statusMsg{
+			text:  fmt.Sprintf("Stack %d/%d", m.stackIndex+1, len(m.stackedNotifications)),
+			isErr: false,
+		}
+	}
+}
+
 // handleDetailKey handles keys in detail mode.
 func (m Model) handleDetailKey(msg tea.KeyMsg) (tea.Model, tea.Cmd) {
 	switch {
-	case key.Matches(msg, m.keys.Back):
+	case key.Matches(msg, m.keys.Back), key.Matches(msg, m.keys.Quit):
+		// Both esc and q go back to list from detail view
 		m.mode = ModeList
 		m.selected = nil
 		return m, nil
 
-	case key.Matches(msg, m.keys.Copy):
+	case key.Matches(msg, m.keys.Yank):
 		if m.selected != nil {
 			return m, m.copyToClipboard(m.selected.Body)
 		}
 		return m, nil
 
-	case key.Matches(msg, m.keys.CopySummary):
+	case key.Matches(msg, m.keys.YankAll):
 		if m.selected != nil {
-			return m, m.copyToClipboard(m.selected.Summary)
+			data, err := json.MarshalIndent(m.selected, "", "  ")
+			if err != nil {
+				return m, func() tea.Msg {
+					return statusMsg{text: "Failed to marshal JSON: " + err.Error(), isErr: true}
+				}
+			}
+			return m, m.copyToClipboard(string(data))
+		}
+		return m, nil
+
+	case key.Matches(msg, m.keys.YankImage):
+		if m.selected != nil {
+			if !hasImageWithDB(*m.selected, m.db) {
+				return m, func() tea.Msg {
+					return statusMsg{text: "No image available", isErr: true}
+				}
+			}
+			return m, m.copyImageToClipboard(*m.selected)
 		}
 		return m, nil
 
@@ -611,12 +854,155 @@ func (m Model) handleDetailKey(msg tea.KeyMsg) (tea.Model, tea.Cmd) {
 		m.mode = ModeSearch
 		m.searchInput.Focus()
 		return m, textinput.Blink
+
+	case key.Matches(msg, m.keys.NextStack), key.Matches(msg, m.keys.PrevStack):
+		// Tab cycling in detail view
+		if len(m.stackedNotifications) > 1 {
+			return m.cycleStackInDetail(msg)
+		}
+		return m, nil
+	}
+
+	// Handle Left/Right for image cycling (check raw key since not in KeyMap)
+	switch msg.String() {
+	case "left", "h":
+		if len(m.detailImages) > 1 {
+			m.detailImageIndex--
+			if m.detailImageIndex < 0 {
+				m.detailImageIndex = len(m.detailImages) - 1
+			}
+			return m, func() tea.Msg {
+				return statusMsg{
+					text:  fmt.Sprintf("Image %d/%d: %s", m.detailImageIndex+1, len(m.detailImages), m.detailImages[m.detailImageIndex].label),
+					isErr: false,
+				}
+			}
+		}
+	case "right", "l":
+		if len(m.detailImages) > 1 {
+			m.detailImageIndex = (m.detailImageIndex + 1) % len(m.detailImages)
+			return m, func() tea.Msg {
+				return statusMsg{
+					text:  fmt.Sprintf("Image %d/%d: %s", m.detailImageIndex+1, len(m.detailImages), m.detailImages[m.detailImageIndex].label),
+					isErr: false,
+				}
+			}
+		}
 	}
 
 	// Pass to viewport
 	var cmd tea.Cmd
 	m.viewport, cmd = m.viewport.Update(msg)
 	return m, cmd
+}
+
+// cycleStackInDetail cycles through stacked notifications while in detail view.
+func (m Model) cycleStackInDetail(msg tea.KeyMsg) (tea.Model, tea.Cmd) {
+	if len(m.stackedNotifications) <= 1 {
+		return m, nil
+	}
+
+	if key.Matches(msg, m.keys.NextStack) {
+		m.stackIndex = (m.stackIndex + 1) % len(m.stackedNotifications)
+	} else {
+		m.stackIndex--
+		if m.stackIndex < 0 {
+			m.stackIndex = len(m.stackedNotifications) - 1
+		}
+	}
+
+	// Update the detail view with the new notification
+	n := m.stackedNotifications[m.stackIndex]
+	m.selected = &n
+	m.viewport.SetContent(m.renderDetail(n))
+	m.viewport.GotoTop()
+
+	// Reload images for the new notification
+	m.detailImages = m.collectImages(n)
+	m.detailImageIndex = 0
+
+	return m, func() tea.Msg {
+		return statusMsg{
+			text:  fmt.Sprintf("Stack %d/%d", m.stackIndex+1, len(m.stackedNotifications)),
+			isErr: false,
+		}
+	}
+}
+
+// handleFilterKey handles keys in filter submenu mode.
+func (m Model) handleFilterKey(msg tea.KeyMsg) (tea.Model, tea.Cmd) {
+	switch {
+	case key.Matches(msg, m.keys.Back), key.Matches(msg, m.keys.Quit):
+		m.mode = ModeList
+		return m, nil
+
+	case key.Matches(msg, m.keys.FilterAll):
+		m.filterMode = FilterAll
+		m.mode = ModeList
+		m.list.SetItems(m.buildListItems())
+		return m, func() tea.Msg {
+			return statusMsg{text: "Filter: All notifications", isErr: false}
+		}
+
+	case key.Matches(msg, m.keys.FilterActive):
+		m.filterMode = FilterActive
+		m.mode = ModeList
+		m.list.SetItems(m.buildListItems())
+		return m, func() tea.Msg {
+			return statusMsg{text: "Filter: Active only", isErr: false}
+		}
+
+	case key.Matches(msg, m.keys.FilterUndismissed):
+		m.filterMode = FilterUndismissed
+		m.mode = ModeList
+		m.list.SetItems(m.buildListItems())
+		return m, func() tea.Msg {
+			return statusMsg{text: "Filter: Undismissed", isErr: false}
+		}
+
+	case key.Matches(msg, m.keys.FilterDismissed):
+		m.filterMode = FilterDismissed
+		m.mode = ModeList
+		m.list.SetItems(m.buildListItems())
+		return m, func() tea.Msg {
+			return statusMsg{text: "Filter: Dismissed only", isErr: false}
+		}
+
+	// Also allow single letter shortcuts in filter mode
+	default:
+		switch msg.String() {
+		case "a":
+			m.filterMode = FilterAll
+			m.mode = ModeList
+			m.list.SetItems(m.buildListItems())
+			return m, func() tea.Msg {
+				return statusMsg{text: "Filter: All notifications", isErr: false}
+			}
+		case "v": // "visible" / active
+			m.filterMode = FilterActive
+			m.mode = ModeList
+			m.list.SetItems(m.buildListItems())
+			return m, func() tea.Msg {
+				return statusMsg{text: "Filter: Active only", isErr: false}
+			}
+		case "u":
+			m.filterMode = FilterUndismissed
+			m.mode = ModeList
+			m.list.SetItems(m.buildListItems())
+			return m, func() tea.Msg {
+				return statusMsg{text: "Filter: Undismissed", isErr: false}
+			}
+		case "d":
+			m.filterMode = FilterDismissed
+			m.mode = ModeList
+			m.list.SetItems(m.buildListItems())
+			return m, func() tea.Msg {
+				return statusMsg{text: "Filter: Dismissed only", isErr: false}
+			}
+		}
+	}
+
+	return m, nil
 }
 
 // handleSearchKey handles keys in search mode.
@@ -639,6 +1025,9 @@ func (m Model) handleSearchKey(msg tea.KeyMsg) (tea.Model, tea.Cmd) {
 			m.searchInput.Blur()
 			m.viewport.SetContent(m.renderDetail(item.notification))
 			m.viewport.GotoTop()
+			// Load images for Left/Right cycling
+			m.detailImages = m.collectImages(item.notification)
+			m.detailImageIndex = 0
 		}
 		return m, nil
 
@@ -673,14 +1062,36 @@ func (m Model) fetchNotifications() []model.Notification {
 }
 
 // buildListItems creates list items from current notifications.
-func (m Model) buildListItems() []list.Item {
+func (m *Model) buildListItems() []list.Item {
 	notifications := m.notifications
 
-	// Filter out dismissed unless showDismissed is true
-	if !m.showDismissed {
+	// Apply filter mode
+	switch m.filterMode {
+	case FilterAll:
+		// Show everything
+	case FilterActive:
+		// Only show notifications with active popups
+		var visible []model.Notification
+		for _, n := range notifications {
+			if m.activeIDs != nil && m.activeIDs[n.HistuiID] {
+				visible = append(visible, n)
+			}
+		}
+		notifications = visible
+	case FilterUndismissed:
+		// Only show non-dismissed
 		var visible []model.Notification
 		for _, n := range notifications {
 			if !n.IsDismissed() {
+				visible = append(visible, n)
+			}
+		}
+		notifications = visible
+	case FilterDismissed:
+		// Only show dismissed
+		var visible []model.Notification
+		for _, n := range notifications {
+			if n.IsDismissed() {
 				visible = append(visible, n)
 			}
 		}
@@ -711,9 +1122,21 @@ func (m Model) buildListItems() []list.Item {
 		}
 	}
 
+	// Refresh stack tag counts if we have a database
+	if m.db != nil {
+		if counts, err := m.db.GetStackTagCounts(); err == nil {
+			m.stackTagCounts = counts
+		}
+	}
+
 	items := make([]list.Item, len(notifications))
 	for i, n := range notifications {
-		items[i] = notificationItem{notification: n, index: i}
+		isActive := m.activeIDs != nil && m.activeIDs[n.HistuiID]
+		stackCount := 0
+		if n.Extensions != nil && n.Extensions.StackTag != "" && m.stackTagCounts != nil {
+			stackCount = m.stackTagCounts[n.Extensions.StackTag]
+		}
+		items[i] = notificationItem{notification: n, index: i, isActive: isActive, stackCount: stackCount}
 	}
 	return items
 }
@@ -759,9 +1182,8 @@ func (m Model) renderDetail(n model.Notification) string {
 	labelStyle := lipgloss.NewStyle().
 		Foreground(lipgloss.Color("8"))
 
+	// Build header/metadata section
 	s += headerStyle.Render(n.Summary) + "\n\n"
-
-	// Metadata
 	s += labelStyle.Render("App: ") + n.AppName + "\n"
 	s += labelStyle.Render("Time: ") + n.RelativeTime() + "\n"
 	s += labelStyle.Render("Urgency: ") + n.UrgencyName + "\n"
@@ -812,11 +1234,32 @@ func (m Model) renderDetail(n model.Notification) string {
 		}
 	}
 
+	// Stacked Notifications - show other notifications with the same stack_tag
+	if n.Extensions != nil && n.Extensions.StackTag != "" && m.db != nil {
+		if m.stackTagCounts != nil && m.stackTagCounts[n.Extensions.StackTag] > 1 {
+			stackedNotifications, err := m.db.GetByStackTag(n.Extensions.StackTag)
+			if err == nil && len(stackedNotifications) > 1 {
+				stackStyle := lipgloss.NewStyle().
+					Foreground(lipgloss.Color("11"))
+				s += "\n" + labelStyle.Render(fmt.Sprintf("Stacked Notifications (%d):", len(stackedNotifications))) + "\n"
+				for _, sn := range stackedNotifications {
+					marker := "  "
+					if sn.HistuiID == n.HistuiID {
+						marker = "> "
+					}
+					timestamp := sn.TimestampTime().Format("2006-01-02 15:04:05")
+					s += fmt.Sprintf("%s%s  %s\n", marker, stackStyle.Render(sn.HistuiID[:8]+"..."), timestamp)
+				}
+			}
+		}
+	}
+
 	return s
 }
 
 // renderPreviewPanel renders the floating preview panel for the selected notification.
-func (m Model) renderPreviewPanel(n model.Notification) string {
+func (m Model) renderPreviewPanel(item notificationItem) string {
+	n := item.notification
 	// Panel dimensions
 	const imgCols = 10
 	const imgRows = 5
@@ -846,30 +1289,41 @@ func (m Model) renderPreviewPanel(n model.Notification) string {
 	dimStyle := lipgloss.NewStyle().
 		Foreground(lipgloss.Color("8"))
 
-	// Build image column (left side)
-	imageStr := m.renderPreviewImage(n)
+	// Build image column (left side) - only if we have an icon
+	imageStr := m.renderPreviewIcon(n)
+	hasIcon := imageStr != ""
 
-	// Build text column (right side) - start 1 row down to align with image
+	// Adjust text width based on whether we have an icon
+	textWidth := headerTextWidth
+	if !hasIcon {
+		textWidth = panelContentWidth
+	}
+
+	// Build text column - start 1 row down to align with image (if present)
 	var textLines []string
-	textLines = append(textLines, "") // empty first row
+	if hasIcon {
+		textLines = append(textLines, "") // empty first row for icon alignment
+	}
 
 	// Title (truncated to fit)
 	title := n.Summary
-	if len(title) > headerTextWidth {
-		title = title[:headerTextWidth-3] + "..."
+	if len(title) > textWidth {
+		title = title[:textWidth-3] + "..."
 	}
 	textLines = append(textLines, headerStyle.Render(title))
 
 	// App and time
 	meta := n.AppName + " " + dimStyle.Render("|") + " " + n.RelativeTime()
-	if len(meta) > headerTextWidth {
-		meta = meta[:headerTextWidth-3] + "..."
+	if len(meta) > textWidth {
+		meta = meta[:textWidth-3] + "..."
 	}
 	textLines = append(textLines, labelStyle.Render(meta))
 
-	// Pad text to match image height if needed
-	for len(textLines) < imgRows {
-		textLines = append(textLines, strings.Repeat(" ", headerTextWidth))
+	// Pad text to match image height if icon present
+	if hasIcon {
+		for len(textLines) < imgRows {
+			textLines = append(textLines, strings.Repeat(" ", textWidth))
+		}
 	}
 
 	// Extract URLs from pango markup before stripping
@@ -890,8 +1344,13 @@ func (m Model) renderPreviewPanel(n model.Notification) string {
 
 	textContent := strings.Join(textLines, "\n")
 
-	// Join image and text side by side
-	content := lipgloss.JoinHorizontal(lipgloss.Top, imageStr, "  ", textContent)
+	// Join image and text side by side (or just text if no icon)
+	var content string
+	if hasIcon {
+		content = lipgloss.JoinHorizontal(lipgloss.Top, imageStr, "  ", textContent)
+	} else {
+		content = textContent
+	}
 
 	// Add body below if present (with blank line separator)
 	if len(bodyLines) > 0 {
@@ -916,44 +1375,71 @@ func (m Model) renderPreviewPanel(n model.Notification) string {
 		}
 	}
 
+	// Add stacked notifications section if this is part of a stack
+	if item.stackCount > 1 && m.db != nil && n.Extensions != nil && n.Extensions.StackTag != "" {
+		stackedNotifications, err := m.db.GetByStackTag(n.Extensions.StackTag)
+		if err == nil && len(stackedNotifications) > 1 {
+			stackHeaderStyle := lipgloss.NewStyle().
+				Bold(true).
+				Foreground(lipgloss.Color("8"))
+			stackItemStyle := lipgloss.NewStyle().
+				Foreground(lipgloss.Color("7")).
+				MaxWidth(panelContentWidth)
+			dimStyle := lipgloss.NewStyle().
+				Foreground(lipgloss.Color("8"))
+
+			content = content + "\n\n" + stackHeaderStyle.Render(fmt.Sprintf("Stack (%d):", len(stackedNotifications)))
+			for _, sn := range stackedNotifications {
+				// Mark current notification
+				prefix := "  "
+				if sn.HistuiID == n.HistuiID {
+					prefix = "> "
+				}
+				// Format: > 5m ago - summary truncated
+				stackLine := prefix + dimStyle.Render(sn.RelativeTime()) + " " + sn.Summary
+				if len(stackLine) > panelContentWidth {
+					stackLine = stackLine[:panelContentWidth-3] + "..."
+				}
+				content = content + "\n" + stackItemStyle.Render(stackLine)
+			}
+		}
+	}
+
 	return borderStyle.Render(content)
 }
 
-// renderPreviewImage renders the notification image or a placeholder.
-// Uses Halfblocks protocol which renders as ANSI text characters that
-// BubbleTea can properly manage during redraws.
-func (m Model) renderPreviewImage(n model.Notification) string {
-	// Terminal image dimensions: 10 cols x 5 rows
-	// termimg Width/Height are in pixels, not character cells
-	// For halfblocks: each char is ~2 pixels wide and 2 pixels tall
-	const imgCols = 10
-	const imgRows = 5
-	const imgPixelWidth = imgCols * 2  // 20 pixels for 10 character columns
-	const imgPixelHeight = imgRows * 2 // 10 pixels for 5 character rows
+// renderImageFromSource renders an image from an imageSource using halfblocks.
+// Uses a larger size than preview (30x15 chars for more detail).
+// Returns empty string if no image is available.
+func (m Model) renderImageFromSource(src imageSource, histuiID string) string {
+	// Terminal image dimensions: 30 cols x 15 rows for detail view
+	const imgCols = 30
+	const imgRows = 15
+	const imgPixelWidth = imgCols * 2
+	const imgPixelHeight = imgRows * 2
 
 	var img *termimg.Image
 	var err error
 
-	// Try IconPath first
-	if n.IconPath != "" {
-		img, err = termimg.Open(n.IconPath)
-	}
-
-	// Fall back to ImageData if available
-	if (err != nil || img == nil) && n.Extensions != nil && len(n.Extensions.ImageData) > 0 {
-		img, err = termimg.From(bytes.NewReader(n.Extensions.ImageData))
+	// Load image based on source type
+	if src.path != "" {
+		img, err = termimg.Open(src.path)
+	} else if len(src.data) > 0 {
+		img, err = termimg.From(bytes.NewReader(src.data))
+	} else if src.fromDB && m.db != nil {
+		if data, loadErr := m.db.LoadImage(histuiID, src.imageRef); loadErr == nil && len(data) > 0 {
+			img, err = termimg.From(bytes.NewReader(data))
+		}
 	}
 
 	if err == nil && img != nil {
-		// Use ScaleFill to ensure image fills the target size (scales up small images)
 		rendered, renderErr := img.
 			Protocol(termimg.Halfblocks).
 			Width(imgPixelWidth).
 			Height(imgPixelHeight).
-			Scale(termimg.ScaleFill).
+			Scale(termimg.ScaleFit). // Preserve aspect ratio, fit within bounds
 			Render()
 		if renderErr == nil && rendered != "" {
-			// Normalize output to exactly imgRows lines for consistent spacing
 			lines := strings.Split(strings.TrimSuffix(rendered, "\n"), "\n")
 			if len(lines) > imgRows {
 				lines = lines[:imgRows]
@@ -962,31 +1448,225 @@ func (m Model) renderPreviewImage(n model.Notification) string {
 		}
 	}
 
-	// Fallback: render placeholder
-	return renderImagePlaceholder()
+	return ""
 }
 
-// renderImagePlaceholder renders a square placeholder using block characters.
-// Matches the 10 cols x 5 rows dimensions of rendered images.
-// Uses full blocks on top/bottom to align with how termimg halfblocks render.
-func renderImagePlaceholder() string {
-	// Use dim block characters to create a placeholder that matches halfblock rendering
-	// 10 cols x 5 rows with a face pattern
-	dimStyle := lipgloss.NewStyle().Foreground(lipgloss.Color("8"))
-
-	lines := []string{
-		"██████████",
-		"█▀      ▀█",
-		"█  ▀▄▄▀  █",
-		"█▄      ▄█",
-		"██████████",
+// renderDetailImagePanel renders a floating panel with the current image for the detail view.
+// Shows the image in a bordered box similar to the preview panel.
+// Displays navigation info when multiple images are available.
+func (m Model) renderDetailImagePanel(n model.Notification) string {
+	// Use collected images from model
+	if len(m.detailImages) == 0 {
+		return ""
 	}
 
-	result := make([]string, len(lines))
-	for i, line := range lines {
-		result[i] = dimStyle.Render(line)
+	// Get current image
+	idx := m.detailImageIndex
+	if idx < 0 || idx >= len(m.detailImages) {
+		idx = 0
 	}
-	return strings.Join(result, "\n")
+	src := m.detailImages[idx]
+
+	// Render the image
+	imageStr := m.renderImageFromSource(src, n.HistuiID)
+	if imageStr == "" {
+		return ""
+	}
+
+	// Panel styles
+	borderStyle := lipgloss.NewStyle().
+		Border(lipgloss.RoundedBorder()).
+		BorderForeground(lipgloss.Color("10")).
+		Padding(0, 1)
+
+	titleStyle := lipgloss.NewStyle().
+		Bold(true).
+		Foreground(lipgloss.Color("12"))
+
+	dimStyle := lipgloss.NewStyle().
+		Foreground(lipgloss.Color("8"))
+
+	// Build title with navigation info
+	title := src.label
+	if len(m.detailImages) > 1 {
+		title = fmt.Sprintf("%s (%d/%d)", src.label, idx+1, len(m.detailImages))
+	}
+
+	// Build content
+	content := titleStyle.Render(title)
+	if len(m.detailImages) > 1 {
+		content += " " + dimStyle.Render("←/→ cycle")
+	}
+	content += "\n\n" + imageStr
+
+	// Add image list if multiple images
+	if len(m.detailImages) > 1 {
+		content += "\n"
+		for i, img := range m.detailImages {
+			marker := "  "
+			style := dimStyle
+			if i == idx {
+				marker = "> "
+				style = lipgloss.NewStyle().Foreground(lipgloss.Color("10"))
+			}
+			label := img.label
+			if img.path != "" {
+				// Show shortened path
+				parts := strings.Split(img.path, "/")
+				if len(parts) > 0 {
+					label = parts[len(parts)-1]
+					if len(label) > 20 {
+						label = label[:17] + "..."
+					}
+				}
+			}
+			content += "\n" + marker + style.Render(label)
+		}
+	}
+
+	return borderStyle.Render(content)
+}
+
+// collectImages gathers all available image sources for a notification.
+// Returns images in priority order: image-path hints, embedded ImageData, IconPath, database images.
+func (m Model) collectImages(n model.Notification) []imageSource {
+	var images []imageSource
+
+	// 1. Check OriginalHints for image-path hints (these are file paths)
+	if n.OriginalHints != nil {
+		// Look for image-path hints (can be multiple with different keys)
+		imageHintKeys := []string{"image-path", "image_path"}
+		for _, key := range imageHintKeys {
+			if val, ok := n.OriginalHints[key]; ok {
+				if path, isStr := val.(string); isStr && path != "" {
+					// Verify file exists
+					if _, err := os.Stat(path); err == nil {
+						images = append(images, imageSource{
+							label:   "image-path",
+							path:    path,
+							hintKey: key,
+						})
+					}
+				}
+			}
+		}
+	}
+
+	// 2. Check embedded ImageData in Extensions
+	if n.Extensions != nil && len(n.Extensions.ImageData) > 0 {
+		images = append(images, imageSource{
+			label: "embedded",
+			data:  n.Extensions.ImageData,
+		})
+	}
+
+	// 3. Check IconPath (file path to icon)
+	if n.IconPath != "" {
+		if _, err := os.Stat(n.IconPath); err == nil {
+			images = append(images, imageSource{
+				label: "icon",
+				path:  n.IconPath,
+			})
+		}
+	}
+
+	// 4. Check database for stored images
+	if m.db != nil {
+		// Check for "image" ref
+		if has, _ := m.db.HasImage(n.HistuiID, db.ImageRefImage); has {
+			images = append(images, imageSource{
+				label:    "stored-image",
+				fromDB:   true,
+				imageRef: db.ImageRefImage,
+			})
+		}
+		// Check for "icon" ref (if not already added from IconPath)
+		if has, _ := m.db.HasImage(n.HistuiID, db.ImageRefIcon); has {
+			// Only add if we don't already have an icon path
+			hasIconPath := false
+			for _, img := range images {
+				if img.label == "icon" {
+					hasIconPath = true
+					break
+				}
+			}
+			if !hasIconPath {
+				images = append(images, imageSource{
+					label:    "stored-icon",
+					fromDB:   true,
+					imageRef: db.ImageRefIcon,
+				})
+			}
+		}
+	}
+
+	return images
+}
+
+// renderPreviewIcon renders the notification icon as a NerdFont symbol using halfblocks.
+// This shows the app icon that matches what histuid displays in popups.
+// Returns empty string if no icon can be rendered.
+func (m Model) renderPreviewIcon(n model.Notification) string {
+	// Dimensions for the icon (matches image placeholder)
+	const iconCols = 10
+	const iconRows = 5
+
+	// Get the NerdFont symbol for this notification
+	symbol := ""
+
+	if m.iconResolver != nil {
+		// Try app name first
+		appName := strings.ToLower(n.AppName)
+		symbol = m.iconResolver.GetNerdSymbol(appName)
+
+		// Try resolved icon name
+		if symbol == "" {
+			resolved := m.iconResolver.Resolve(appName)
+			if resolved != appName {
+				symbol = m.iconResolver.GetNerdSymbol(resolved)
+			}
+		}
+
+		// Try category
+		if symbol == "" && n.Category != "" {
+			symbol = m.iconResolver.GetNerdSymbolForCategory(n.Category)
+		}
+
+	}
+
+	// Fall back to urgency-based symbol (like histuid does)
+	if symbol == "" {
+		symbol = icon.FallbackNerdSymbolForUrgency(n.Urgency)
+	}
+
+	if symbol == "" {
+		return ""
+	}
+
+	// Try to render as halfblocks image
+	rendered := renderNerdSymbolToHalfblocks(symbol, iconCols, iconRows)
+	if rendered != "" {
+		return rendered
+	}
+
+	// Fallback: render as text in a simple box
+	iconStyle := lipgloss.NewStyle().
+		Foreground(lipgloss.Color("12")).
+		Bold(true)
+
+	dimStyle := lipgloss.NewStyle().
+		Foreground(lipgloss.Color("8"))
+
+	lines := make([]string, iconRows)
+	border := strings.Repeat("─", iconCols-2)
+
+	lines[0] = dimStyle.Render("╭" + border + "╮")
+	lines[1] = dimStyle.Render("│") + strings.Repeat(" ", (iconCols-4)/2) + iconStyle.Render(symbol) + strings.Repeat(" ", (iconCols-4)/2) + dimStyle.Render("│")
+	lines[2] = dimStyle.Render("│") + strings.Repeat(" ", iconCols-2) + dimStyle.Render("│")
+	lines[3] = dimStyle.Render("│") + strings.Repeat(" ", iconCols-2) + dimStyle.Render("│")
+	lines[4] = dimStyle.Render("╰" + border + "╯")
+
+	return strings.Join(lines, "\n")
 }
 
 // wrapText wraps text to the specified width.
@@ -1056,6 +1736,49 @@ func (m Model) copyToClipboard(text string) tea.Cmd {
 	}
 }
 
+// copyImageToClipboard copies the notification's image to the system clipboard.
+func (m Model) copyImageToClipboard(n model.Notification) tea.Cmd {
+	// Capture database reference for the closure
+	database := m.db
+
+	return func() tea.Msg {
+		// Try IconPath first
+		if n.IconPath != "" {
+			err := copyImageFromPath(n.IconPath)
+			if err == nil {
+				return copyResultMsg{err: nil}
+			}
+		}
+
+		// Try embedded ImageData in Extensions
+		if n.Extensions != nil && len(n.Extensions.ImageData) > 0 {
+			mimeType := "image/png"
+			if len(n.Extensions.ImageData) >= 3 &&
+				n.Extensions.ImageData[0] == 0xFF &&
+				n.Extensions.ImageData[1] == 0xD8 &&
+				n.Extensions.ImageData[2] == 0xFF {
+				mimeType = "image/jpeg"
+			}
+			err := copyImage(n.Extensions.ImageData, mimeType)
+			return copyResultMsg{err: err}
+		}
+
+		// Try loading from database
+		if database != nil {
+			if data, err := database.LoadImage(n.HistuiID, db.ImageRefImage); err == nil && len(data) > 0 {
+				mimeType := "image/png"
+				if len(data) >= 3 && data[0] == 0xFF && data[1] == 0xD8 && data[2] == 0xFF {
+					mimeType = "image/jpeg"
+				}
+				err := copyImage(data, mimeType)
+				return copyResultMsg{err: err}
+			}
+		}
+
+		return copyResultMsg{err: fmt.Errorf("no image available")}
+	}
+}
+
 // replayNotification sends the notification to the D-Bus daemon.
 func (m Model) replayNotification(n model.Notification) tea.Cmd {
 	return func() tea.Msg {
@@ -1077,18 +1800,28 @@ func (m Model) View() string {
 		return "Initializing..."
 	}
 
+	var view string
 	switch m.mode {
 	case ModeList:
-		return m.viewList()
+		view = m.viewList()
 	case ModeDetail:
-		return m.viewDetail()
+		view = m.viewDetail()
 	case ModeSearch:
-		return m.viewSearch()
+		view = m.viewSearch()
 	case ModeHelp:
-		return m.viewHelp()
+		view = m.viewHelp()
+	case ModeFilter:
+		view = m.viewFilter()
 	default:
-		return ""
+		view = ""
 	}
+
+	// Apply toast overlay if visible
+	if m.toastVisible {
+		view = m.renderToast(view)
+	}
+
+	return view
 }
 
 func (m Model) viewList() string {
@@ -1110,7 +1843,7 @@ func (m Model) viewList() string {
 	// Overlay preview panel if active
 	if m.previewActive {
 		if item, ok := m.list.SelectedItem().(notificationItem); ok {
-			panel := m.renderPreviewPanel(item.notification)
+			panel := m.renderPreviewPanel(item)
 			// Place panel in top-right corner
 			s = m.overlayPanel(s, panel)
 		}
@@ -1180,6 +1913,62 @@ func truncateToWidth(s string, width int) string {
 	return style.Render(s)
 }
 
+// renderToast renders a centered toast overlay on top of the base content.
+func (m Model) renderToast(base string) string {
+	if !m.toastVisible || m.toastMsg == "" {
+		return base
+	}
+
+	// Toast styling - rounded border, green background hint
+	toastStyle := lipgloss.NewStyle().
+		Border(lipgloss.RoundedBorder()).
+		BorderForeground(lipgloss.Color("10")).
+		Foreground(lipgloss.Color("15")).
+		Background(lipgloss.Color("22")).
+		Padding(0, 2).
+		Bold(true)
+
+	toast := toastStyle.Render(m.toastMsg)
+	toastWidth := lipgloss.Width(toast)
+	toastHeight := lipgloss.Height(toast)
+
+	// Calculate center position
+	baseLines := strings.Split(base, "\n")
+	centerRow := len(baseLines)/2 - toastHeight/2
+	centerCol := (m.width - toastWidth) / 2
+
+	if centerRow < 0 {
+		centerRow = 0
+	}
+	if centerCol < 0 {
+		centerCol = 0
+	}
+
+	// Overlay toast onto base
+	toastLines := strings.Split(toast, "\n")
+	for i, toastLine := range toastLines {
+		row := centerRow + i
+		if row >= len(baseLines) {
+			break
+		}
+
+		baseLine := baseLines[row]
+		baseLineWidth := lipgloss.Width(baseLine)
+
+		var newLine string
+		if centerCol <= baseLineWidth {
+			newLine = truncateToWidth(baseLine, centerCol)
+		} else {
+			newLine = baseLine + strings.Repeat(" ", centerCol-baseLineWidth)
+		}
+		newLine += toastLine
+
+		baseLines[row] = newLine
+	}
+
+	return strings.Join(baseLines, "\n")
+}
+
 func (m Model) viewDetail() string {
 	headerStyle := lipgloss.NewStyle().
 		Bold(true).
@@ -1187,7 +1976,17 @@ func (m Model) viewDetail() string {
 
 	header := headerStyle.Render("Notification Detail")
 
-	return header + "\n" + m.viewport.View() + "\n" + m.buildKeybindBar(m.width, "detail")
+	s := header + "\n" + m.viewport.View() + "\n" + m.buildKeybindBar(m.width, "detail")
+
+	// Overlay image panel if we have collected images
+	if m.selected != nil && len(m.detailImages) > 0 {
+		imagePanel := m.renderDetailImagePanel(*m.selected)
+		if imagePanel != "" {
+			s = m.overlayPanel(s, imagePanel)
+		}
+	}
+
+	return s
 }
 
 func (m Model) viewSearch() string {
@@ -1203,10 +2002,49 @@ func (m Model) viewSearch() string {
 	// Overlay preview panel if active
 	if m.previewActive {
 		if item, ok := m.list.SelectedItem().(notificationItem); ok {
-			panel := m.renderPreviewPanel(item.notification)
+			panel := m.renderPreviewPanel(item)
 			s = m.overlayPanel(s, panel)
 		}
 	}
+
+	return s
+}
+
+func (m Model) viewFilter() string {
+	titleStyle := lipgloss.NewStyle().
+		Bold(true).
+		Foreground(lipgloss.Color("12"))
+
+	keyStyle := lipgloss.NewStyle().
+		Foreground(lipgloss.Color("10"))
+
+	descStyle := lipgloss.NewStyle().
+		Foreground(lipgloss.Color("7"))
+
+	dimStyle := lipgloss.NewStyle().
+		Foreground(lipgloss.Color("8"))
+
+	// Current filter indicator
+	currentLabel := ""
+	switch m.filterMode {
+	case FilterAll:
+		currentLabel = "All"
+	case FilterActive:
+		currentLabel = "Active"
+	case FilterUndismissed:
+		currentLabel = "Undismissed"
+	case FilterDismissed:
+		currentLabel = "Dismissed"
+	}
+
+	s := titleStyle.Render("Filter Menu") + dimStyle.Render(fmt.Sprintf(" (current: %s)", currentLabel)) + "\n\n"
+
+	s += keyStyle.Render("  1") + "/" + keyStyle.Render("a") + "  " + descStyle.Render("All notifications") + "\n"
+	s += keyStyle.Render("  2") + "/" + keyStyle.Render("v") + "  " + descStyle.Render("Active (visible popups)") + "\n"
+	s += keyStyle.Render("  3") + "/" + keyStyle.Render("u") + "  " + descStyle.Render("Undismissed") + "\n"
+	s += keyStyle.Render("  4") + "/" + keyStyle.Render("d") + "  " + descStyle.Render("Dismissed") + "\n"
+
+	s += "\n" + dimStyle.Render("Press a key to select, esc to cancel")
 
 	return s
 }
@@ -1238,28 +2076,34 @@ func (m Model) viewHelpKeybindings() string {
 	s += keyStyle.Render("  j/k, ↑/↓") + "     Move up/down\n"
 	s += keyStyle.Render("  g/G") + "          Go to top/bottom\n"
 	s += keyStyle.Render("  pgup/pgdn") + "    Page up/down\n"
+	s += keyStyle.Render("  Tab/S-Tab") + "    Cycle stacked items\n"
 	s += "\n"
 
 	s += sectionStyle.Render("Actions") + "\n"
 	s += keyStyle.Render("  enter") + "        View details\n"
 	s += keyStyle.Render("  p") + "            Preview panel\n"
-	s += keyStyle.Render("  c") + "            Copy body\n"
-	s += keyStyle.Render("  s") + "            Copy summary\n"
-	s += keyStyle.Render("  C") + "            Copy all as JSON\n"
-	s += keyStyle.Render("  alt+c") + "        Copy all as YAML\n"
+	s += keyStyle.Render("  y") + "            Copy (yank) body\n"
+	s += keyStyle.Render("  Y") + "            Copy all as JSON\n"
+	s += keyStyle.Render("  i") + "            Copy image\n"
 	s += keyStyle.Render("  d") + "            Dismiss/undismiss\n"
-	s += keyStyle.Render("  alt+d") + "        Dismiss all visible\n"
-	s += keyStyle.Render("  D") + "            Delete permanently\n"
-	s += keyStyle.Render("  a") + "            Toggle dismissed\n"
-	s += keyStyle.Render("  /") + "            Search/filter\n"
-	s += keyStyle.Render("  r") + "            Refresh\n"
+	s += keyStyle.Render("  x") + "            Delete permanently\n"
 	s += keyStyle.Render("  R") + "            Replay notification\n"
+	s += "\n"
+
+	s += sectionStyle.Render("Filters") + "\n"
+	s += keyStyle.Render("  f") + "            Filter menu\n"
+	s += keyStyle.Render("  1") + "            All notifications\n"
+	s += keyStyle.Render("  2") + "            Active (visible)\n"
+	s += keyStyle.Render("  3") + "            Undismissed\n"
+	s += keyStyle.Render("  4") + "            Dismissed\n"
+	s += keyStyle.Render("  /") + "            Search/filter\n"
 	s += "\n"
 
 	s += sectionStyle.Render("General") + "\n"
 	s += keyStyle.Render("  ?") + "            This help\n"
+	s += keyStyle.Render("  r") + "            Refresh\n"
 	s += keyStyle.Render("  esc") + "          Back\n"
-	s += keyStyle.Render("  q") + "            Quit\n"
+	s += keyStyle.Render("  q") + "            Quit (back in detail)\n"
 
 	s += "\n" + dimStyle.Render("←/→ or h/l: switch pages  ?/esc: close")
 
@@ -1353,6 +2197,27 @@ func equalFoldAt(s string, start int, substr string) bool {
 	return true
 }
 
+// truncateString truncates a string to the specified visual width.
+// Properly handles Unicode characters by iterating runes.
+func truncateString(s string, maxWidth int) string {
+	if maxWidth <= 0 {
+		return ""
+	}
+	width := 0
+	for i, r := range s {
+		runeWidth := 1
+		// East Asian wide characters take 2 columns
+		if r > 0x1100 {
+			runeWidth = 2
+		}
+		if width+runeWidth > maxWidth {
+			return s[:i]
+		}
+		width += runeWidth
+	}
+	return s
+}
+
 // keybind represents a single keybind with priority for the status bar.
 type keybind struct {
 	key      string
@@ -1365,6 +2230,30 @@ type keybind struct {
 func (m Model) buildKeybindBar(width int, mode string) string {
 	style := lipgloss.NewStyle().Foreground(lipgloss.Color("8"))
 	keyStyle := lipgloss.NewStyle().Foreground(lipgloss.Color("10"))
+	statusStyle := lipgloss.NewStyle().Foreground(lipgloss.Color("6"))     // cyan for status
+	connectedStyle := lipgloss.NewStyle().Foreground(lipgloss.Color("10")) // green for connected
+	disconnStyle := lipgloss.NewStyle().Foreground(lipgloss.Color("8"))    // dim for disconnected
+
+	// Build daemon status prefix with connection indicator
+	var prefix string
+	if m.daemonStatus != "" {
+		// Show connection status: ● (connected) or ○ (disconnected)
+		connIndicator := disconnStyle.Render("○")
+		if m.daemon != nil && m.daemon.IsAvailable() {
+			connIndicator = connectedStyle.Render("●")
+		}
+		prefix = connIndicator + " " + statusStyle.Render(m.daemonStatus) + "  "
+	}
+
+	// Check if current selection has an image (including database-stored images)
+	var currentHasImage bool
+	if mode == "list" {
+		if item, ok := m.list.SelectedItem().(notificationItem); ok {
+			currentHasImage = hasImageWithDB(item.notification, m.db)
+		}
+	} else if mode == "detail" && m.selected != nil {
+		currentHasImage = hasImageWithDB(*m.selected, m.db)
+	}
 
 	var binds []keybind
 
@@ -1377,24 +2266,37 @@ func (m Model) buildKeybindBar(width int, mode string) string {
 			{"p", "preview", 3},
 			{"?", "help", 4},
 			{"/", "search", 5},
-			{"d", "dismiss", 6},
-			{"alt+d", "dismiss all", 7},
-			{"a", "all", 8},
-			{"c", "copy", 9},
-			{"s", "summary", 10},
-			{"R", "replay", 11},
-			{"D", "delete", 12},
-			{"r", "refresh", 13},
+			{"f", "filter", 6},
+			{"1-4", "quick filter", 7},
+			{"d", "dismiss", 8},
+			{"y", "copy", 9},
 		}
+		if currentHasImage {
+			binds = append(binds, keybind{"i", "image", 10})
+		}
+		binds = append(binds,
+			keybind{"R", "replay", 11},
+			keybind{"x", "delete", 12},
+			keybind{"r", "refresh", 13},
+		)
 	case "detail":
 		binds = []keybind{
-			{"q", "quit", 1},
-			{"esc", "back", 2},
-			{"/", "search", 3},
-			{"c", "copy body", 4},
-			{"s", "copy summary", 5},
-			{"j/k", "scroll", 6},
+			{"q/esc", "back", 1},
+			{"/", "search", 2},
+			{"y", "copy body", 3},
+			{"Y", "copy JSON", 4},
 		}
+		if currentHasImage {
+			binds = append(binds, keybind{"i", "copy image", 5})
+		}
+		// Show image navigation if multiple images
+		if len(m.detailImages) > 1 {
+			binds = append(binds, keybind{"←/→", "images", 6})
+		}
+		binds = append(binds,
+			keybind{"Tab", "stack", 7},
+			keybind{"j/k", "scroll", 8},
+		)
 	case "search":
 		binds = []keybind{
 			{"enter", "view", 1},
@@ -1405,13 +2307,14 @@ func (m Model) buildKeybindBar(width int, mode string) string {
 
 	// Build the bar, adding keybinds until we run out of space
 	const separator = "  "
+	prefixLen := len(stripANSI(prefix))
 	result := ""
 	for _, b := range binds {
 		item := keyStyle.Render(b.key) + " " + b.desc
 		plainItem := b.key + " " + b.desc
-		testLen := len(result) + len(separator) + len(plainItem)
+		testLen := prefixLen + len(result) + len(separator) + len(plainItem)
 		if result != "" {
-			testLen = len(stripANSI(result)) + len(separator) + len(plainItem)
+			testLen = prefixLen + len(stripANSI(result)) + len(separator) + len(plainItem)
 		}
 
 		if width > 0 && testLen > width {
@@ -1423,7 +2326,7 @@ func (m Model) buildKeybindBar(width int, mode string) string {
 		result += item
 	}
 
-	return style.Render(result)
+	return prefix + style.Render(result)
 }
 
 // stripANSI removes ANSI escape codes for length calculation.
@@ -1468,9 +2371,21 @@ func Run(opts RunOptions) error {
 		}
 	}
 
-	m := New(opts.Config, database)
+	// Create D-Bus client for daemon communication (gracefully handles unavailable daemon)
+	daemonClient := dbus.NewDaemonClient(nil)
+
+	// Create icon resolver for NerdFont symbols (gracefully handles errors)
+	iconResolver, _ := icon.NewResolverWithAliases()
+
+	m := New(opts.Config, database, daemonClient, iconResolver)
 	p := tea.NewProgram(m, tea.WithAltScreen())
 
 	_, err := p.Run()
+
+	// Clean up D-Bus client
+	if daemonClient != nil {
+		_ = daemonClient.Close()
+	}
+
 	return err
 }
