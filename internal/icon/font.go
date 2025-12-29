@@ -9,7 +9,6 @@ package icon
 import "C"
 
 import (
-	"embed"
 	"io/fs"
 	"os"
 	"path/filepath"
@@ -17,12 +16,6 @@ import (
 	"sync"
 	"unsafe"
 )
-
-// EmbeddedFonts contains all bundled font files.
-// Add fonts to the internal/icon/fonts/ directory to include them.
-//
-//go:embed fonts
-var EmbeddedFonts embed.FS
 
 var (
 	fontInitOnce sync.Once
