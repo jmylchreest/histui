@@ -182,19 +182,34 @@ func (c *OpenRouterClient) call(req ChatRequest) (string, error) {
 	}
 
 	if resp.StatusCode != http.StatusOK {
-		return "", fmt.Errorf("API error (HTTP %d): %s", resp.StatusCode, string(body))
+		// Show truncated body for debugging
+		bodyStr := string(body)
+		if len(bodyStr) > 1000 {
+			bodyStr = bodyStr[:1000] + "... [truncated]"
+		}
+		fmt.Fprintf(os.Stderr, "\n[ERROR] API returned HTTP %d:\n%s\n", resp.StatusCode, bodyStr)
+		return "", fmt.Errorf("API error (HTTP %d)", resp.StatusCode)
 	}
 
 	var chatResp ChatResponse
 	if err := json.Unmarshal(body, &chatResp); err != nil {
+		// Show truncated body for debugging
+		bodyStr := string(body)
+		if len(bodyStr) > 500 {
+			bodyStr = bodyStr[:500] + "... [truncated]"
+		}
+		fmt.Fprintf(os.Stderr, "\n[ERROR] Failed to parse API response:\n%s\n", bodyStr)
 		return "", fmt.Errorf("parse response: %w", err)
 	}
 
 	if chatResp.Error != nil {
+		fmt.Fprintf(os.Stderr, "\n[ERROR] API error: %s\n", chatResp.Error.Message)
 		return "", fmt.Errorf("API error: %s", chatResp.Error.Message)
 	}
 
 	if len(chatResp.Choices) == 0 {
+		fmt.Fprintf(os.Stderr, "\n[ERROR] API returned no response choices\n")
+		fmt.Fprintf(os.Stderr, "[ERROR] Full response: %s\n", string(body))
 		return "", fmt.Errorf("no response choices")
 	}
 
@@ -316,6 +331,13 @@ func (c *OpenRouterClient) ClassifyIcons(glyphNames []string, useCache bool) (*C
 
 	var result ClassifyResult
 	if err := json.Unmarshal([]byte(content), &result); err != nil {
+		// Show truncated content for debugging
+		preview := content
+		if len(preview) > 500 {
+			preview = preview[:500] + "... [truncated]"
+		}
+		fmt.Fprintf(os.Stderr, "\n[ERROR] Failed to parse API response:\n%s\n", preview)
+		fmt.Fprintf(os.Stderr, "[ERROR] Response length: %d bytes\n", len(content))
 		return nil, fmt.Errorf("parse classification result: %w", err)
 	}
 
@@ -375,6 +397,13 @@ func (c *OpenRouterClient) GenerateAppNames(icons []struct{ Name, Type string },
 
 	var result AppGenResult
 	if err := json.Unmarshal([]byte(content), &result); err != nil {
+		// Show truncated content for debugging
+		preview := content
+		if len(preview) > 500 {
+			preview = preview[:500] + "... [truncated]"
+		}
+		fmt.Fprintf(os.Stderr, "\n[ERROR] Failed to parse API response:\n%s\n", preview)
+		fmt.Fprintf(os.Stderr, "[ERROR] Response length: %d bytes\n", len(content))
 		return nil, fmt.Errorf("parse app generation result: %w", err)
 	}
 
