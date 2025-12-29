@@ -17,6 +17,11 @@ on:
         required: false
         default: "5"
         type: string
+      use_cache:
+        description: "Use Go build cache (disable if you suspect cache issues)"
+        required: false
+        default: true
+        type: boolean
 
 # Cancel in-progress runs for the same ref
 concurrency:
@@ -119,9 +124,21 @@ jobs:
       - name: Configure Git safe directory
         run: git config --global --add safe.directory "$GITHUB_WORKSPACE"
 
-      - name: Run tests (pure Go packages)
+      - name: Cache Go build
+        if: inputs.use_cache != false
+        uses: actions/cache@v4
+        with:
+          path: |
+            /root/.cache/go-build
+            /root/go/pkg/mod
+          key: ${{ runner.os }}-${{ runner.arch }}-go-${{ hashFiles('go.sum') }}-${{ github.run_number }}
+          restore-keys: |
+            ${{ runner.os }}-${{ runner.arch }}-go-${{ hashFiles('go.sum') }}-
+            ${{ runner.os }}-${{ runner.arch }}-go-
+
+      - name: Run tests (pure Go packages with race detector)
         run: |
-          go test -v -timeout 60s \
+          go test -race -v -timeout 60s \
             ./internal/model/... \
             ./internal/core/... \
             ./internal/config/... \
@@ -131,9 +148,9 @@ jobs:
             ./internal/db/... \
             ./internal/adapter/...
 
-      - name: Run tests (CGO packages)
+      - name: Run tests (CGO packages with race detector)
         run: |
-          go test -v -timeout 60s \
+          go test -race -v -timeout 60s \
             ./internal/theme/... \
             ./internal/layout/...
 
