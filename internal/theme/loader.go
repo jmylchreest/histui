@@ -362,7 +362,7 @@ func (l *Loader) generateFontCSS(fontFamily string, fontSize int) string {
 	}
 
 	var css string
-	css = ":root {\n"
+	css = "* {\n"
 	if fontFamily != "" {
 		css += fmt.Sprintf("    --histui-font-family: %q;\n", fontFamily)
 	}

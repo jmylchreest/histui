@@ -203,16 +203,16 @@ func ProcessImports(css string, baseDir string, seen map[string]bool) string {
 // Supports multiple formats:
 //   - "default.css" → embedded theme "default"
 //   - "default/theme.css" → embedded theme "default"
-//   - "_base.css" → embedded partial "_base.css"
+//   - "animations.css" → embedded partial "animations.css"
+//   - "_animations.css" → embedded partial "animations.css" (legacy)
 func resolveEmbeddedImport(importPath string) (string, bool) {
 	baseName := filepath.Base(importPath)
 	dirName := filepath.Dir(importPath)
 
-	// Check for embedded partial (files starting with underscore)
-	if strings.HasPrefix(baseName, "_") {
-		if embeddedCSS, found := GetEmbeddedPartial(baseName); found {
-			return embeddedCSS, true
-		}
+	// Check for embedded partial (animations.css, _animations.css, etc.)
+	// GetEmbeddedPartial handles both with and without underscore prefix
+	if embeddedCSS, found := GetEmbeddedPartial(baseName); found {
+		return embeddedCSS, true
 	}
 
 	// Try "themename/theme.css" or "themename/themename.css" format

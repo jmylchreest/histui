@@ -11,7 +11,7 @@
  * FONT CONFIGURATION
  * ============================================================================= */
 
-:root {
+* {
     --histui-font-family: monospace;
     --histui-font-size: 13px;
 }

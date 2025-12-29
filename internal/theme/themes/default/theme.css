@@ -89,7 +89,7 @@
  *   --histui-font-size      - Base font size (default: 14px)
  *
  * Override in your theme:
- *   :root {
+ *   * {
  *       --histui-font-family: "Ubuntu";
  *       --histui-font-size: 16px;
  *   }
@@ -97,11 +97,14 @@
  * Or via CLI: histuid --font "Ubuntu" --font-size 16
  */
 
+/* Import shared effects library (animations + gradients) */
+@import "effects.css";
+
 /* =============================================================================
  * FONT CONFIGURATION - Override these via config or CLI
  * ============================================================================= */
 
-:root {
+* {
     --histui-font-family: inherit;
     --histui-font-size: 14px;
 }
@@ -263,16 +266,21 @@ window {
     border-radius: 0;
 }
 
-/* Fade gradient overlay when image is cropped */
+/* Fade gradient overlay when image is cropped
+ * Indicates content continues below. Uses gradient-fade-bottom pattern from effects.css.
+ * Themes can customize this gradient or use .gradient-fade-bottom class directly.
+ */
 .notification-image-fade {
     background-image: linear-gradient(
         to bottom,
         alpha(@window_bg_color, 0.0) 0%,
-        alpha(@window_bg_color, 0.7) 60%,
+        alpha(@window_bg_color, 0.5) 40%,
+        alpha(@window_bg_color, 0.85) 70%,
         @window_bg_color 100%
     );
     border-bottom-left-radius: 6px;
     border-bottom-right-radius: 6px;
+    min-height: 24px;
 }
 
 /* =============================================================================
@@ -332,27 +340,16 @@ window {
     /* Uses default styling */
 }
 
-/* Critical urgency - emphasized with muted danger background */
+/* Critical urgency - emphasized with muted danger background and pulsing glow */
 .notification-popup.urgency-critical {
     background-color: color-mix(in srgb, @error_color 8%, @window_bg_color);
     border-color: @error_color;
     border-width: 2px;
-    box-shadow: 0 4px 16px alpha(@error_color, 0.2);
+    animation: border-glow-error 2s ease-in-out infinite;
 }
 
 .notification-popup.urgency-critical .notification-summary {
     color: @error_color;
-    animation: critical-pulse 2s ease-in-out infinite;
-}
-
-/* Pulsing glow animation for critical notifications */
-@keyframes critical-pulse {
-    0%, 100% {
-        text-shadow: 0 0 4px alpha(@error_color, 0.4);
-    }
-    50% {
-        text-shadow: 0 0 12px alpha(@error_color, 0.8), 0 0 20px alpha(@error_color, 0.4);
-    }
 }
 
 /* =============================================================================

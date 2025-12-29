@@ -1,0 +1,1180 @@
+/* histui Effects Library
+ * =============================================================================
+ * Reusable CSS effects for notification themes including animations and gradients.
+ * Import into your theme with: @import "effects.css";
+ *
+ * Usage: Apply effect classes to elements or use @keyframes/gradients directly.
+ *
+ * GTK4 CSS Animation Support:
+ *   - text-shadow, box-shadow (glow effects)
+ *   - opacity (fade effects)
+ *   - background-color, border-color (color transitions)
+ *   - border-width (pulse borders)
+ *
+ * GTK4 CSS Limitations:
+ *   - No transform animations (rotate, scale, translate)
+ *   - No ::before/::after pseudo-elements
+ *   - No gradient position animations
+ *   - No CSS filters (blur, hue-rotate)
+ *
+ * =============================================================================
+ * TABLE OF CONTENTS
+ * =============================================================================
+ *
+ * 1. GRADIENTS
+ *    - Fade gradients (vertical/horizontal)
+ *    - Overlay gradients (for cropped content indication)
+ *
+ * 2. PULSE & GLOW EFFECTS
+ *    - pulse-glow-* (text glow animations)
+ *    - border-glow-* (border highlight animations)
+ *
+ * 3. SHIMMER & SPARKLE EFFECTS
+ *    - shimmer-* (flickering light effects)
+ *    - sparkle-* (multi-point glitter effects)
+ *
+ * 4. SHADOW EFFECTS
+ *    - shadow-breathe (expanding/contracting shadow)
+ *    - shadow-float (floating effect via shadow)
+ *    - shadow-dramatic (intense shadow pulses)
+ *
+ * 5. ATTENTION EFFECTS
+ *    - attention-* (urgent attention-grabbing animations)
+ *
+ * 6. BORDER ANIMATIONS
+ *    - border-pulse-* (pulsing border effects)
+ *
+ * 7. UTILITY CLASSES
+ *    - Ready-to-use animation classes
+ *
+ * =============================================================================
+ */
+
+
+/* =============================================================================
+ * 1. GRADIENTS
+ * =============================================================================
+ * Static gradient effects for fades, overlays, and visual indicators.
+ * These use background-image with linear-gradient.
+ */
+
+/* --- Vertical Fade Gradients --- */
+
+/* Fade to background - indicates cropped/truncated content */
+.gradient-fade-bottom {
+    background-image: linear-gradient(
+        to bottom,
+        alpha(@window_bg_color, 0.0) 0%,
+        alpha(@window_bg_color, 0.5) 40%,
+        alpha(@window_bg_color, 0.85) 70%,
+        @window_bg_color 100%
+    );
+}
+
+.gradient-fade-top {
+    background-image: linear-gradient(
+        to top,
+        alpha(@window_bg_color, 0.0) 0%,
+        alpha(@window_bg_color, 0.5) 40%,
+        alpha(@window_bg_color, 0.85) 70%,
+        @window_bg_color 100%
+    );
+}
+
+/* Subtle fade - less aggressive for light overlays */
+.gradient-fade-bottom-subtle {
+    background-image: linear-gradient(
+        to bottom,
+        alpha(@window_bg_color, 0.0) 0%,
+        alpha(@window_bg_color, 0.3) 50%,
+        alpha(@window_bg_color, 0.6) 100%
+    );
+}
+
+.gradient-fade-top-subtle {
+    background-image: linear-gradient(
+        to top,
+        alpha(@window_bg_color, 0.0) 0%,
+        alpha(@window_bg_color, 0.3) 50%,
+        alpha(@window_bg_color, 0.6) 100%
+    );
+}
+
+/* --- Horizontal Fade Gradients --- */
+
+.gradient-fade-right {
+    background-image: linear-gradient(
+        to right,
+        alpha(@window_bg_color, 0.0) 0%,
+        alpha(@window_bg_color, 0.5) 40%,
+        alpha(@window_bg_color, 0.85) 70%,
+        @window_bg_color 100%
+    );
+}
+
+.gradient-fade-left {
+    background-image: linear-gradient(
+        to left,
+        alpha(@window_bg_color, 0.0) 0%,
+        alpha(@window_bg_color, 0.5) 40%,
+        alpha(@window_bg_color, 0.85) 70%,
+        @window_bg_color 100%
+    );
+}
+
+/* --- Dark Overlay Gradients --- */
+
+/* For darkening content (e.g., text overlay on images) */
+.gradient-darken-bottom {
+    background-image: linear-gradient(
+        to bottom,
+        alpha(black, 0.0) 0%,
+        alpha(black, 0.4) 60%,
+        alpha(black, 0.7) 100%
+    );
+}
+
+.gradient-darken-top {
+    background-image: linear-gradient(
+        to top,
+        alpha(black, 0.0) 0%,
+        alpha(black, 0.4) 60%,
+        alpha(black, 0.7) 100%
+    );
+}
+
+/* --- Accent Color Gradients --- */
+
+.gradient-accent-bottom {
+    background-image: linear-gradient(
+        to bottom,
+        alpha(@accent_color, 0.0) 0%,
+        alpha(@accent_color, 0.3) 50%,
+        alpha(@accent_color, 0.5) 100%
+    );
+}
+
+.gradient-error-bottom {
+    background-image: linear-gradient(
+        to bottom,
+        alpha(@error_color, 0.0) 0%,
+        alpha(@error_color, 0.3) 50%,
+        alpha(@error_color, 0.5) 100%
+    );
+}
+
+
+/* =============================================================================
+ * 2. PULSE & GLOW EFFECTS
+ * =============================================================================
+ * Pulsing glow animations for text and elements. Use text-shadow for text
+ * elements and box-shadow for containers/images.
+ */
+
+/* --- Text Glow Animations --- */
+
+/* Subtle pulse - gentle, unobtrusive */
+@keyframes pulse-glow-subtle {
+    0%, 100% {
+        text-shadow: 0 0 2px alpha(currentColor, 0.2);
+    }
+    50% {
+        text-shadow: 0 0 6px alpha(currentColor, 0.4);
+    }
+}
+
+/* Normal pulse - balanced visibility */
+@keyframes pulse-glow {
+    0%, 100% {
+        text-shadow: 0 0 4px alpha(currentColor, 0.3);
+    }
+    50% {
+        text-shadow: 0 0 12px alpha(currentColor, 0.6);
+    }
+}
+
+/* Intense pulse - high visibility for critical elements */
+@keyframes pulse-glow-intense {
+    0%, 100% {
+        text-shadow: 0 0 4px alpha(currentColor, 0.4);
+    }
+    50% {
+        text-shadow:
+            0 0 12px alpha(currentColor, 0.8),
+            0 0 24px alpha(currentColor, 0.4);
+    }
+}
+
+/* Fast pulse - urgent feel */
+@keyframes pulse-glow-fast {
+    0%, 100% {
+        text-shadow: 0 0 4px alpha(currentColor, 0.3);
+    }
+    50% {
+        text-shadow: 0 0 10px alpha(currentColor, 0.7);
+    }
+}
+
+/* Slow pulse - ambient background effect */
+@keyframes pulse-glow-slow {
+    0%, 100% {
+        text-shadow: 0 0 4px alpha(currentColor, 0.2);
+    }
+    50% {
+        text-shadow: 0 0 16px alpha(currentColor, 0.5);
+    }
+}
+
+/* --- Border Glow Animations --- */
+
+/* Border glow for containers using box-shadow */
+@keyframes border-glow {
+    0%, 100% {
+        box-shadow:
+            0 0 0 1px alpha(currentColor, 0.3),
+            0 0 8px alpha(currentColor, 0.2);
+    }
+    50% {
+        box-shadow:
+            0 0 0 1px alpha(currentColor, 0.5),
+            0 0 16px alpha(currentColor, 0.4);
+    }
+}
+
+@keyframes border-glow-intense {
+    0%, 100% {
+        box-shadow:
+            0 0 0 2px alpha(currentColor, 0.4),
+            0 0 12px alpha(currentColor, 0.3);
+    }
+    50% {
+        box-shadow:
+            0 0 0 2px alpha(currentColor, 0.7),
+            0 0 24px alpha(currentColor, 0.5),
+            0 0 40px alpha(currentColor, 0.2);
+    }
+}
+
+/* Ring glow - expanding ring effect */
+@keyframes ring-glow {
+    0%, 100% {
+        box-shadow:
+            0 0 0 1px alpha(currentColor, 0.6),
+            0 0 0 4px alpha(currentColor, 0.0);
+    }
+    50% {
+        box-shadow:
+            0 0 0 1px alpha(currentColor, 0.8),
+            0 0 0 6px alpha(currentColor, 0.3);
+    }
+}
+
+
+/* =============================================================================
+ * 2. SHIMMER & SPARKLE EFFECTS
+ * =============================================================================
+ * Flickering and multi-point light effects simulating sparkle/glitter.
+ * Since GTK4 doesn't support gradient animations or pseudo-elements,
+ * we approximate sparkle with multi-shadow flickering patterns.
+ */
+
+/* --- Shimmer Effects --- */
+
+/* Basic shimmer - gentle flickering */
+@keyframes shimmer {
+    0%, 100% {
+        text-shadow: 0 0 4px alpha(currentColor, 0.4);
+    }
+    25% {
+        text-shadow: 0 0 8px alpha(currentColor, 0.6);
+    }
+    50% {
+        text-shadow: 0 0 4px alpha(currentColor, 0.3);
+    }
+    75% {
+        text-shadow: 0 0 10px alpha(currentColor, 0.7);
+    }
+}
+
+/* Fast shimmer - rapid flickering for attention */
+@keyframes shimmer-fast {
+    0%, 100% {
+        text-shadow: 0 0 6px alpha(currentColor, 0.5);
+    }
+    33% {
+        text-shadow: 0 0 2px alpha(currentColor, 0.3);
+    }
+    66% {
+        text-shadow: 0 0 10px alpha(currentColor, 0.8);
+    }
+}
+
+/* --- Sparkle Effects --- */
+
+/* Sparkle - simulates glitter with multi-point shadows
+ * Uses offset shadows that pulse at different phases */
+@keyframes sparkle {
+    0%, 100% {
+        text-shadow:
+            -2px -2px 3px alpha(currentColor, 0.0),
+            2px -1px 3px alpha(currentColor, 0.5),
+            0px 2px 3px alpha(currentColor, 0.2),
+            0 0 4px alpha(currentColor, 0.3);
+    }
+    25% {
+        text-shadow:
+            -2px -2px 3px alpha(currentColor, 0.4),
+            2px -1px 3px alpha(currentColor, 0.0),
+            0px 2px 3px alpha(currentColor, 0.5),
+            0 0 6px alpha(currentColor, 0.4);
+    }
+    50% {
+        text-shadow:
+            -2px -2px 3px alpha(currentColor, 0.3),
+            2px -1px 3px alpha(currentColor, 0.2),
+            0px 2px 3px alpha(currentColor, 0.0),
+            0 0 8px alpha(currentColor, 0.5);
+    }
+    75% {
+        text-shadow:
+            -2px -2px 3px alpha(currentColor, 0.0),
+            2px -1px 3px alpha(currentColor, 0.4),
+            0px 2px 3px alpha(currentColor, 0.3),
+            0 0 5px alpha(currentColor, 0.35);
+    }
+}
+
+/* Intense sparkle - more prominent glitter effect */
+@keyframes sparkle-intense {
+    0%, 100% {
+        text-shadow:
+            -3px -3px 4px alpha(currentColor, 0.0),
+            3px -2px 4px alpha(currentColor, 0.7),
+            -1px 3px 4px alpha(currentColor, 0.2),
+            2px 2px 4px alpha(currentColor, 0.4),
+            0 0 6px alpha(currentColor, 0.4);
+    }
+    25% {
+        text-shadow:
+            -3px -3px 4px alpha(currentColor, 0.6),
+            3px -2px 4px alpha(currentColor, 0.0),
+            -1px 3px 4px alpha(currentColor, 0.5),
+            2px 2px 4px alpha(currentColor, 0.2),
+            0 0 10px alpha(currentColor, 0.5);
+    }
+    50% {
+        text-shadow:
+            -3px -3px 4px alpha(currentColor, 0.3),
+            3px -2px 4px alpha(currentColor, 0.3),
+            -1px 3px 4px alpha(currentColor, 0.0),
+            2px 2px 4px alpha(currentColor, 0.7),
+            0 0 8px alpha(currentColor, 0.45);
+    }
+    75% {
+        text-shadow:
+            -3px -3px 4px alpha(currentColor, 0.1),
+            3px -2px 4px alpha(currentColor, 0.5),
+            -1px 3px 4px alpha(currentColor, 0.4),
+            2px 2px 4px alpha(currentColor, 0.0),
+            0 0 7px alpha(currentColor, 0.4);
+    }
+}
+
+/* Box sparkle - for containers and images */
+@keyframes box-sparkle {
+    0%, 100% {
+        box-shadow:
+            -4px -4px 6px alpha(currentColor, 0.0),
+            4px -3px 6px alpha(currentColor, 0.4),
+            -2px 4px 6px alpha(currentColor, 0.15),
+            3px 3px 6px alpha(currentColor, 0.25),
+            0 0 8px alpha(currentColor, 0.3);
+    }
+    25% {
+        box-shadow:
+            -4px -4px 6px alpha(currentColor, 0.35),
+            4px -3px 6px alpha(currentColor, 0.0),
+            -2px 4px 6px alpha(currentColor, 0.4),
+            3px 3px 6px alpha(currentColor, 0.1),
+            0 0 12px alpha(currentColor, 0.35);
+    }
+    50% {
+        box-shadow:
+            -4px -4px 6px alpha(currentColor, 0.2),
+            4px -3px 6px alpha(currentColor, 0.2),
+            -2px 4px 6px alpha(currentColor, 0.0),
+            3px 3px 6px alpha(currentColor, 0.45),
+            0 0 10px alpha(currentColor, 0.32);
+    }
+    75% {
+        box-shadow:
+            -4px -4px 6px alpha(currentColor, 0.05),
+            4px -3px 6px alpha(currentColor, 0.3),
+            -2px 4px 6px alpha(currentColor, 0.3),
+            3px 3px 6px alpha(currentColor, 0.0),
+            0 0 9px alpha(currentColor, 0.3);
+    }
+}
+
+
+/* =============================================================================
+ * 3. SHADOW EFFECTS
+ * =============================================================================
+ * Dynamic shadow animations for depth and emphasis.
+ *
+ * To customize shadow intensity in your theme, copy the @keyframes and adjust:
+ *   - Opacity: the last value in alpha(black, X) - higher = darker shadow
+ *   - Blur: the 3rd value (e.g., 20px) - higher = softer/larger spread
+ *   - Y-offset: the 2nd value (e.g., 8px) - higher = shadow further below
+ *
+ * Example customization:
+ *   @keyframes shadow-breathe {
+ *       0%, 100% { box-shadow: 0 6px 24px alpha(black, 0.5); }
+ *       50% { box-shadow: 0 12px 48px alpha(black, 0.7); }
+ *   }
+ */
+
+/* Shadow breathe - expanding and contracting shadow */
+@keyframes shadow-breathe {
+    0%, 100% {
+        box-shadow:
+            0 2px 4px alpha(black, 0.5),
+            0 4px 8px alpha(black, 0.4),
+            0 8px 16px alpha(black, 0.3);
+    }
+    50% {
+        box-shadow:
+            0 4px 6px alpha(black, 0.6),
+            0 8px 12px alpha(black, 0.5),
+            0 16px 24px alpha(black, 0.35);
+    }
+}
+
+/* Shadow breathe with color */
+@keyframes shadow-breathe-color {
+    0%, 100% {
+        box-shadow:
+            0 2px 4px alpha(currentColor, 0.4),
+            0 4px 8px alpha(currentColor, 0.3),
+            0 8px 16px alpha(currentColor, 0.2);
+    }
+    50% {
+        box-shadow:
+            0 4px 6px alpha(currentColor, 0.5),
+            0 8px 12px alpha(currentColor, 0.4),
+            0 16px 24px alpha(currentColor, 0.25);
+    }
+}
+
+/* Shadow float - simulates element lifting */
+@keyframes shadow-float {
+    0%, 100% {
+        box-shadow:
+            0 2px 4px alpha(black, 0.5),
+            0 4px 8px alpha(black, 0.35);
+    }
+    50% {
+        box-shadow:
+            0 4px 6px alpha(black, 0.6),
+            0 10px 16px alpha(black, 0.45),
+            0 20px 30px alpha(black, 0.25);
+    }
+}
+
+/* Shadow dramatic - intense shadow pulses with outer glow */
+@keyframes shadow-dramatic {
+    0%, 100% {
+        box-shadow:
+            0 2px 4px alpha(black, 0.6),
+            0 6px 10px alpha(black, 0.45),
+            0 0 8px alpha(white, 0.05);
+    }
+    50% {
+        box-shadow:
+            0 4px 6px alpha(black, 0.7),
+            0 12px 16px alpha(black, 0.5),
+            0 0 20px alpha(white, 0.15),
+            0 0 30px alpha(white, 0.08);
+    }
+}
+
+/* Drop shadow animation - shadow drops down */
+@keyframes shadow-drop {
+    0%, 100% {
+        box-shadow:
+            0 1px 2px alpha(black, 0.6),
+            0 2px 4px alpha(black, 0.4);
+    }
+    50% {
+        box-shadow:
+            0 4px 6px alpha(black, 0.7),
+            0 10px 14px alpha(black, 0.5),
+            0 18px 24px alpha(black, 0.3);
+    }
+}
+
+/* Inner glow - inset shadow effect */
+@keyframes inner-glow {
+    0%, 100% {
+        box-shadow:
+            inset 0 0 4px alpha(currentColor, 0.2),
+            inset 0 0 8px alpha(currentColor, 0.15);
+    }
+    50% {
+        box-shadow:
+            inset 0 0 8px alpha(currentColor, 0.4),
+            inset 0 0 16px alpha(currentColor, 0.25);
+    }
+}
+
+/* --- Text Shadow Animations --- */
+/* These use text-shadow for applying to text elements.
+ * Key for visibility: use multiple stacked shadows, tight blur, high opacity.
+ * Large blur spreads shadow thin = invisible. Keep blur 4-12px for density.
+ */
+
+/* Text shadow breathe - pulsing drop shadow */
+@keyframes text-shadow-breathe {
+    0%, 100% {
+        text-shadow:
+            0 2px 2px alpha(black, 0.9),
+            0 4px 4px alpha(black, 0.6),
+            0 6px 8px alpha(black, 0.4);
+    }
+    50% {
+        text-shadow:
+            0 3px 2px alpha(black, 0.95),
+            0 6px 6px alpha(black, 0.7),
+            0 10px 12px alpha(black, 0.5);
+    }
+}
+
+/* Text shadow float - text lifts with shadow staying below */
+@keyframes text-shadow-float {
+    0%, 100% {
+        text-shadow:
+            0 2px 2px alpha(black, 0.8),
+            0 4px 6px alpha(black, 0.5);
+    }
+    50% {
+        text-shadow:
+            0 4px 3px alpha(black, 0.9),
+            0 8px 8px alpha(black, 0.6),
+            0 12px 12px alpha(black, 0.4);
+    }
+}
+
+/* Text shadow dramatic - intense with outer glow */
+@keyframes text-shadow-dramatic {
+    0%, 100% {
+        text-shadow:
+            0 2px 2px alpha(black, 0.9),
+            0 4px 6px alpha(black, 0.6),
+            0 0 4px alpha(white, 0.1);
+    }
+    50% {
+        text-shadow:
+            0 4px 3px alpha(black, 0.95),
+            0 8px 8px alpha(black, 0.7),
+            0 0 12px alpha(white, 0.3),
+            0 0 20px alpha(white, 0.15);
+    }
+}
+
+/* --- Intense Shadow Variants --- */
+/* Extra dramatic versions - more layers, higher opacity */
+
+/* Shadow breathe intense - very prominent stacked shadows */
+@keyframes shadow-breathe-intense {
+    0%, 100% {
+        box-shadow:
+            0 2px 3px alpha(black, 0.7),
+            0 4px 6px alpha(black, 0.6),
+            0 8px 12px alpha(black, 0.5),
+            0 16px 24px alpha(black, 0.35);
+    }
+    50% {
+        box-shadow:
+            0 4px 5px alpha(black, 0.8),
+            0 8px 10px alpha(black, 0.65),
+            0 16px 20px alpha(black, 0.5),
+            0 28px 36px alpha(black, 0.35);
+    }
+}
+
+/* Shadow float intense - dramatic lift with depth */
+@keyframes shadow-float-intense {
+    0%, 100% {
+        box-shadow:
+            0 2px 4px alpha(black, 0.7),
+            0 6px 10px alpha(black, 0.5),
+            0 12px 18px alpha(black, 0.3);
+    }
+    50% {
+        box-shadow:
+            0 6px 8px alpha(black, 0.75),
+            0 16px 20px alpha(black, 0.55),
+            0 32px 40px alpha(black, 0.35),
+            0 48px 56px alpha(black, 0.2);
+    }
+}
+
+/* Shadow dramatic intense - maximum visibility with glow */
+@keyframes shadow-dramatic-intense {
+    0%, 100% {
+        box-shadow:
+            0 2px 4px alpha(black, 0.8),
+            0 6px 10px alpha(black, 0.6),
+            0 12px 18px alpha(black, 0.4),
+            0 0 10px alpha(white, 0.1);
+    }
+    50% {
+        box-shadow:
+            0 4px 6px alpha(black, 0.85),
+            0 12px 16px alpha(black, 0.65),
+            0 24px 30px alpha(black, 0.45),
+            0 0 25px alpha(white, 0.25),
+            0 0 40px alpha(white, 0.12);
+    }
+}
+
+
+/* =============================================================================
+ * 4. ATTENTION EFFECTS
+ * =============================================================================
+ * High-visibility animations for urgent notifications.
+ */
+
+/* Attention pulse - combines glow and shadow */
+@keyframes attention-pulse {
+    0%, 100% {
+        box-shadow:
+            0 0 0 2px alpha(currentColor, 0.3),
+            0 4px 12px alpha(black, 0.2);
+    }
+    50% {
+        box-shadow:
+            0 0 0 4px alpha(currentColor, 0.5),
+            0 0 20px alpha(currentColor, 0.3),
+            0 6px 16px alpha(black, 0.25);
+    }
+}
+
+/* Attention flash - quick bright flashes */
+@keyframes attention-flash {
+    0%, 90%, 100% {
+        box-shadow:
+            0 0 0 1px alpha(currentColor, 0.4),
+            0 0 8px alpha(currentColor, 0.2);
+    }
+    95% {
+        box-shadow:
+            0 0 0 3px alpha(currentColor, 0.8),
+            0 0 24px alpha(currentColor, 0.6);
+    }
+}
+
+/* Heartbeat - two quick pulses then pause */
+@keyframes heartbeat {
+    0%, 100% {
+        box-shadow: 0 0 0 0 alpha(currentColor, 0.4);
+    }
+    14% {
+        box-shadow: 0 0 0 6px alpha(currentColor, 0.0);
+    }
+    28% {
+        box-shadow: 0 0 0 0 alpha(currentColor, 0.4);
+    }
+    42% {
+        box-shadow: 0 0 0 8px alpha(currentColor, 0.0);
+    }
+}
+
+/* Text heartbeat */
+@keyframes text-heartbeat {
+    0%, 100% {
+        text-shadow: 0 0 0 alpha(currentColor, 0.4);
+    }
+    14% {
+        text-shadow: 0 0 8px alpha(currentColor, 0.0);
+    }
+    28% {
+        text-shadow: 0 0 0 alpha(currentColor, 0.4);
+    }
+    42% {
+        text-shadow: 0 0 12px alpha(currentColor, 0.0);
+    }
+}
+
+/* Urgent - rapid, intense pulsing */
+@keyframes urgent {
+    0%, 100% {
+        box-shadow:
+            0 0 0 2px alpha(currentColor, 0.5),
+            0 0 10px alpha(currentColor, 0.3);
+    }
+    50% {
+        box-shadow:
+            0 0 0 4px alpha(currentColor, 0.8),
+            0 0 30px alpha(currentColor, 0.5);
+    }
+}
+
+/* Text urgent */
+@keyframes text-urgent {
+    0%, 100% {
+        text-shadow:
+            0 0 4px alpha(currentColor, 0.5);
+    }
+    50% {
+        text-shadow:
+            0 0 16px alpha(currentColor, 0.8),
+            0 0 28px alpha(currentColor, 0.4);
+    }
+}
+
+
+/* =============================================================================
+ * 5. BORDER ANIMATIONS
+ * =============================================================================
+ * Pulsing and glowing border effects.
+ */
+
+/* Border pulse - border width animation */
+@keyframes border-pulse {
+    0%, 100% {
+        border-width: 1px;
+        border-color: alpha(currentColor, 0.4);
+    }
+    50% {
+        border-width: 2px;
+        border-color: alpha(currentColor, 0.7);
+    }
+}
+
+/* Border color pulse - only color changes */
+@keyframes border-color-pulse {
+    0%, 100% {
+        border-color: alpha(currentColor, 0.3);
+    }
+    50% {
+        border-color: alpha(currentColor, 0.8);
+    }
+}
+
+/* Border fade - subtle border visibility pulse */
+@keyframes border-fade {
+    0%, 100% {
+        border-color: alpha(currentColor, 0.2);
+    }
+    50% {
+        border-color: alpha(currentColor, 0.5);
+    }
+}
+
+
+/* =============================================================================
+ * 6. UTILITY CLASSES
+ * =============================================================================
+ * Ready-to-use animation classes. Apply directly to elements.
+ * Uses CSS custom property --anim-color for color (defaults to currentColor).
+ *
+ * Example usage in your theme:
+ *   .notification-summary { animation: sparkle 2s ease-in-out infinite; }
+ *   .notification-icon { animation: box-sparkle 3s ease-in-out infinite; }
+ */
+
+/* --- Pulse Classes --- */
+
+.anim-pulse-subtle {
+    animation: pulse-glow-subtle 3s ease-in-out infinite;
+}
+
+.anim-pulse {
+    animation: pulse-glow 2s ease-in-out infinite;
+}
+
+.anim-pulse-intense {
+    animation: pulse-glow-intense 2s ease-in-out infinite;
+}
+
+.anim-pulse-fast {
+    animation: pulse-glow-fast 0.8s ease-in-out infinite;
+}
+
+.anim-pulse-slow {
+    animation: pulse-glow-slow 4s ease-in-out infinite;
+}
+
+/* --- Glow Classes --- */
+
+.anim-border-glow {
+    animation: border-glow 2s ease-in-out infinite;
+}
+
+.anim-border-glow-intense {
+    animation: border-glow-intense 2s ease-in-out infinite;
+}
+
+.anim-ring-glow {
+    animation: ring-glow 1.5s ease-in-out infinite;
+}
+
+/* --- Shimmer & Sparkle Classes --- */
+
+.anim-shimmer {
+    animation: shimmer 2s linear infinite;
+}
+
+.anim-shimmer-fast {
+    animation: shimmer-fast 0.8s linear infinite;
+}
+
+.anim-sparkle {
+    animation: sparkle 2.5s ease-in-out infinite;
+}
+
+.anim-sparkle-intense {
+    animation: sparkle-intense 2s ease-in-out infinite;
+}
+
+.anim-box-sparkle {
+    animation: box-sparkle 3s ease-in-out infinite;
+}
+
+/* --- Shadow Classes --- */
+
+.anim-shadow-breathe {
+    animation: shadow-breathe 3s ease-in-out infinite;
+}
+
+.anim-shadow-breathe-color {
+    animation: shadow-breathe-color 3s ease-in-out infinite;
+}
+
+.anim-shadow-float {
+    animation: shadow-float 2s ease-in-out infinite;
+}
+
+.anim-shadow-dramatic {
+    animation: shadow-dramatic 2s ease-in-out infinite;
+}
+
+.anim-shadow-drop {
+    animation: shadow-drop 2s ease-in-out infinite;
+}
+
+.anim-inner-glow {
+    animation: inner-glow 2s ease-in-out infinite;
+}
+
+/* --- Text Shadow Classes --- */
+
+.anim-text-shadow-breathe {
+    animation: text-shadow-breathe 3s ease-in-out infinite;
+}
+
+.anim-text-shadow-float {
+    animation: text-shadow-float 2s ease-in-out infinite;
+}
+
+.anim-text-shadow-dramatic {
+    animation: text-shadow-dramatic 2s ease-in-out infinite;
+}
+
+/* --- Intense Shadow Classes --- */
+
+.anim-shadow-breathe-intense {
+    animation: shadow-breathe-intense 3s ease-in-out infinite;
+}
+
+.anim-shadow-float-intense {
+    animation: shadow-float-intense 2s ease-in-out infinite;
+}
+
+.anim-shadow-dramatic-intense {
+    animation: shadow-dramatic-intense 2s ease-in-out infinite;
+}
+
+/* --- Attention Classes --- */
+
+.anim-attention {
+    animation: attention-pulse 1.5s ease-in-out infinite;
+}
+
+.anim-attention-flash {
+    animation: attention-flash 2s ease-in-out infinite;
+}
+
+.anim-heartbeat {
+    animation: heartbeat 1.5s ease-in-out infinite;
+}
+
+.anim-text-heartbeat {
+    animation: text-heartbeat 1.5s ease-in-out infinite;
+}
+
+.anim-urgent {
+    animation: urgent 0.6s ease-in-out infinite;
+}
+
+.anim-text-urgent {
+    animation: text-urgent 0.6s ease-in-out infinite;
+}
+
+/* --- Border Classes --- */
+
+.anim-border-pulse {
+    animation: border-pulse 2s ease-in-out infinite;
+}
+
+.anim-border-color-pulse {
+    animation: border-color-pulse 2s ease-in-out infinite;
+}
+
+.anim-border-fade {
+    animation: border-fade 3s ease-in-out infinite;
+}
+
+
+/* =============================================================================
+ * COLOR VARIANT KEYFRAMES
+ * =============================================================================
+ * Pre-defined animations using common theme colors.
+ * These use @-variables from libadwaita/GTK.
+ */
+
+/* --- Error/Critical Color Animations --- */
+
+@keyframes pulse-error {
+    0%, 100% {
+        text-shadow:
+            0 0 4px alpha(@error_color, 0.6),
+            0 0 8px alpha(@error_color, 0.3);
+    }
+    50% {
+        text-shadow:
+            0 0 6px alpha(@error_color, 0.9),
+            0 0 12px alpha(@error_color, 0.6),
+            0 0 18px alpha(@error_color, 0.3);
+    }
+}
+
+@keyframes border-glow-error {
+    0%, 100% {
+        box-shadow:
+            0 0 0 2px alpha(@error_color, 0.5),
+            0 0 6px alpha(@error_color, 0.3),
+            0 0 12px alpha(@error_color, 0.15);
+    }
+    50% {
+        box-shadow:
+            0 0 0 2px alpha(@error_color, 0.8),
+            0 0 10px alpha(@error_color, 0.5),
+            0 0 20px alpha(@error_color, 0.25);
+    }
+}
+
+@keyframes sparkle-error {
+    0%, 100% {
+        text-shadow:
+            -2px -2px 2px alpha(@error_color, 0.0),
+            2px -1px 2px alpha(@error_color, 0.6),
+            0px 2px 2px alpha(@error_color, 0.3),
+            0 0 6px alpha(@error_color, 0.4);
+    }
+    25% {
+        text-shadow:
+            -2px -2px 2px alpha(@error_color, 0.5),
+            2px -1px 2px alpha(@error_color, 0.0),
+            0px 2px 2px alpha(@error_color, 0.6),
+            0 0 8px alpha(@error_color, 0.5);
+    }
+    50% {
+        text-shadow:
+            -2px -2px 2px alpha(@error_color, 0.4),
+            2px -1px 2px alpha(@error_color, 0.3),
+            0px 2px 2px alpha(@error_color, 0.0),
+            0 0 10px alpha(@error_color, 0.6);
+    }
+    75% {
+        text-shadow:
+            -2px -2px 2px alpha(@error_color, 0.0),
+            2px -1px 2px alpha(@error_color, 0.5),
+            0px 2px 2px alpha(@error_color, 0.4),
+            0 0 7px alpha(@error_color, 0.45);
+    }
+}
+
+/* --- Warning Color Animations --- */
+
+@keyframes pulse-warning {
+    0%, 100% {
+        text-shadow:
+            0 0 4px alpha(@warning_color, 0.6),
+            0 0 8px alpha(@warning_color, 0.3);
+    }
+    50% {
+        text-shadow:
+            0 0 6px alpha(@warning_color, 0.9),
+            0 0 12px alpha(@warning_color, 0.6),
+            0 0 18px alpha(@warning_color, 0.3);
+    }
+}
+
+@keyframes border-glow-warning {
+    0%, 100% {
+        box-shadow:
+            0 0 0 2px alpha(@warning_color, 0.5),
+            0 0 6px alpha(@warning_color, 0.3),
+            0 0 12px alpha(@warning_color, 0.15);
+    }
+    50% {
+        box-shadow:
+            0 0 0 2px alpha(@warning_color, 0.8),
+            0 0 10px alpha(@warning_color, 0.5),
+            0 0 20px alpha(@warning_color, 0.25);
+    }
+}
+
+/* --- Success Color Animations --- */
+
+@keyframes pulse-success {
+    0%, 100% {
+        text-shadow:
+            0 0 4px alpha(@success_color, 0.6),
+            0 0 8px alpha(@success_color, 0.3);
+    }
+    50% {
+        text-shadow:
+            0 0 6px alpha(@success_color, 0.9),
+            0 0 12px alpha(@success_color, 0.6),
+            0 0 18px alpha(@success_color, 0.3);
+    }
+}
+
+@keyframes border-glow-success {
+    0%, 100% {
+        box-shadow:
+            0 0 0 2px alpha(@success_color, 0.5),
+            0 0 6px alpha(@success_color, 0.3),
+            0 0 12px alpha(@success_color, 0.15);
+    }
+    50% {
+        box-shadow:
+            0 0 0 2px alpha(@success_color, 0.8),
+            0 0 10px alpha(@success_color, 0.5),
+            0 0 20px alpha(@success_color, 0.25);
+    }
+}
+
+/* --- Accent Color Animations --- */
+
+@keyframes pulse-accent {
+    0%, 100% {
+        text-shadow:
+            0 0 4px alpha(@accent_color, 0.6),
+            0 0 8px alpha(@accent_color, 0.3);
+    }
+    50% {
+        text-shadow:
+            0 0 6px alpha(@accent_color, 0.9),
+            0 0 12px alpha(@accent_color, 0.6),
+            0 0 18px alpha(@accent_color, 0.3);
+    }
+}
+
+@keyframes border-glow-accent {
+    0%, 100% {
+        box-shadow:
+            0 0 0 2px alpha(@accent_color, 0.5),
+            0 0 6px alpha(@accent_color, 0.3),
+            0 0 12px alpha(@accent_color, 0.15);
+    }
+    50% {
+        box-shadow:
+            0 0 0 2px alpha(@accent_color, 0.8),
+            0 0 10px alpha(@accent_color, 0.5),
+            0 0 20px alpha(@accent_color, 0.25);
+    }
+}
+
+@keyframes sparkle-accent {
+    0%, 100% {
+        text-shadow:
+            -2px -2px 2px alpha(@accent_color, 0.0),
+            2px -1px 2px alpha(@accent_color, 0.6),
+            0px 2px 2px alpha(@accent_color, 0.3),
+            0 0 6px alpha(@accent_color, 0.4);
+    }
+    25% {
+        text-shadow:
+            -2px -2px 2px alpha(@accent_color, 0.5),
+            2px -1px 2px alpha(@accent_color, 0.0),
+            0px 2px 2px alpha(@accent_color, 0.6),
+            0 0 8px alpha(@accent_color, 0.5);
+    }
+    50% {
+        text-shadow:
+            -2px -2px 2px alpha(@accent_color, 0.4),
+            2px -1px 2px alpha(@accent_color, 0.3),
+            0px 2px 2px alpha(@accent_color, 0.0),
+            0 0 10px alpha(@accent_color, 0.6);
+    }
+    75% {
+        text-shadow:
+            -2px -2px 2px alpha(@accent_color, 0.0),
+            2px -1px 2px alpha(@accent_color, 0.5),
+            0px 2px 2px alpha(@accent_color, 0.4),
+            0 0 7px alpha(@accent_color, 0.45);
+    }
+}
+
+
+/* =============================================================================
+ * COLOR VARIANT UTILITY CLASSES
+ * ============================================================================= */
+
+/* Error variants */
+.anim-pulse-error {
+    animation: pulse-error 2s ease-in-out infinite;
+}
+
+.anim-border-glow-error {
+    animation: border-glow-error 2s ease-in-out infinite;
+}
+
+.anim-sparkle-error {
+    animation: sparkle-error 2.5s ease-in-out infinite;
+}
+
+/* Warning variants */
+.anim-pulse-warning {
+    animation: pulse-warning 2s ease-in-out infinite;
+}
+
+.anim-border-glow-warning {
+    animation: border-glow-warning 2s ease-in-out infinite;
+}
+
+/* Success variants */
+.anim-pulse-success {
+    animation: pulse-success 2s ease-in-out infinite;
+}
+
+.anim-border-glow-success {
+    animation: border-glow-success 2s ease-in-out infinite;
+}
+
+/* Accent variants */
+.anim-pulse-accent {
+    animation: pulse-accent 2s ease-in-out infinite;
+}
+
+.anim-border-glow-accent {
+    animation: border-glow-accent 2s ease-in-out infinite;
+}
+
+.anim-sparkle-accent {
+    animation: sparkle-accent 2.5s ease-in-out infinite;
+}

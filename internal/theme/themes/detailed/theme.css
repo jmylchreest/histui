@@ -89,7 +89,7 @@
  *   --histui-font-size      - Base font size (default: 14px)
  *
  * Override in your theme:
- *   :root {
+ *   * {
  *       --histui-font-family: "Ubuntu";
  *       --histui-font-size: 16px;
  *   }
@@ -97,11 +97,14 @@
  * Or via CLI: histuid --font "Ubuntu" --font-size 16
  */
 
+/* Import shared animations library */
+@import "effects.css";
+
 /* =============================================================================
  * FONT CONFIGURATION - Override these via config or CLI
  * ============================================================================= */
 
-:root {
+* {
     --histui-font-family: inherit;
     --histui-font-size: 14px;
 }
@@ -347,17 +350,7 @@ window {
 
 .notification-popup.urgency-critical .notification-summary {
     color: @error_color;
-    animation: critical-pulse 2s ease-in-out infinite;
-}
-
-/* Pulsing glow animation for critical notifications */
-@keyframes critical-pulse {
-    0%, 100% {
-        text-shadow: 0 0 4px alpha(@error_color, 0.4);
-    }
-    50% {
-        text-shadow: 0 0 12px alpha(@error_color, 0.8), 0 0 20px alpha(@error_color, 0.4);
-    }
+    animation: pulse-error 2s ease-in-out infinite;
 }
 
 /* =============================================================================

@@ -42,13 +42,13 @@ func GetEmbeddedTheme(name string) (string, bool) {
 	return "", false
 }
 
-// GetEmbeddedPartial retrieves a bundled partial (files starting with _).
+// GetEmbeddedPartial retrieves a bundled partial CSS file.
 // Returns the CSS content and whether it was found.
+// Partials are standalone CSS files in the themes directory (e.g., animations.css).
 func GetEmbeddedPartial(name string) (string, bool) {
-	// Ensure name starts with underscore
-	if !strings.HasPrefix(name, "_") {
-		name = "_" + name
-	}
+	// Strip leading underscore if present (legacy partial naming)
+	name = strings.TrimPrefix(name, "_")
+
 	// Ensure it has .css extension
 	if !strings.HasSuffix(name, ".css") {
 		name = name + ".css"

@@ -11,7 +11,7 @@
  * FONT CONFIGURATION
  * ============================================================================= */
 
-:root {
+* {
     --histui-font-family: inherit;
     --histui-font-size: 12px;
 }

@@ -9,6 +9,8 @@ import (
 
 	"github.com/pelletier/go-toml/v2"
 	"gopkg.in/yaml.v3"
+
+	"github.com/jmylchreest/histui/internal/types"
 )
 
 // Manifest represents a theme's configuration and assets.
@@ -54,31 +56,11 @@ type SoundConfig struct {
 	RepeatDelay Duration `toml:"repeat_delay" yaml:"repeat_delay" json:"repeat_delay"`
 }
 
-// Duration is a time.Duration that supports TOML/YAML/JSON string parsing.
-type Duration time.Duration
+// Duration is a type alias for types.Duration (supports TOML/YAML/JSON string parsing).
+type Duration = types.Duration
 
 // DefaultRepeatDelay is the default delay between sound repeats.
 const DefaultRepeatDelay = 10 * time.Second
-
-// UnmarshalText parses duration from string (e.g., "10s", "1m", "500ms").
-func (d *Duration) UnmarshalText(text []byte) error {
-	duration, err := time.ParseDuration(string(text))
-	if err != nil {
-		return err
-	}
-	*d = Duration(duration)
-	return nil
-}
-
-// MarshalText converts duration to string.
-func (d Duration) MarshalText() ([]byte, error) {
-	return []byte(time.Duration(d).String()), nil
-}
-
-// Duration returns the underlying time.Duration.
-func (d Duration) Duration() time.Duration {
-	return time.Duration(d)
-}
 
 // GetRepeatDelay returns the repeat delay, using DefaultRepeatDelay if not set.
 func (s *SoundConfig) GetRepeatDelay() time.Duration {

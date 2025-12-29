@@ -22,8 +22,8 @@ window {
  * CATPPUCCIN COLOR TOKENS
  * ============================================================================= */
 
-/* Latte (light mode) - applied to :root */
-:root {
+/* Latte (light mode) - applied to all elements */
+* {
     /* Font configuration - serif for a classic look */
     --histui-font-family: "Noto Serif", "DejaVu Serif", "Liberation Serif", Georgia, serif;
     --histui-font-size: 14px;
