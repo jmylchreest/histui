@@ -12,7 +12,7 @@ import (
 	"github.com/spf13/cobra"
 
 	"github.com/jmylchreest/histui/internal/adapter/input"
-	"github.com/jmylchreest/histui/internal/ipc"
+	"github.com/jmylchreest/histui/internal/dbus"
 )
 
 var statusOpts struct {
@@ -84,11 +84,11 @@ func runStatus(cmd *cobra.Command, args []string) error {
 	ctx, cancel := context.WithTimeout(context.Background(), 10*time.Second)
 	defer cancel()
 
-	// Load DnD state via IPC
+	// Load DnD state via D-Bus
 	dndEnabled := false
-	if client, err := ipc.NewClient(); err == nil {
-		dndEnabled, _ = client.GetDnD()
-	}
+	client := dbus.NewDaemonClient(nil)
+	dndEnabled, _ = client.GetDnD()
+	_ = client.Close()
 
 	// Detect which daemon to use
 	source := statusOpts.source

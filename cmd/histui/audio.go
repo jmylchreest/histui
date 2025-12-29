@@ -6,7 +6,7 @@ import (
 
 	"github.com/spf13/cobra"
 
-	"github.com/jmylchreest/histui/internal/ipc"
+	"github.com/jmylchreest/histui/internal/dbus"
 )
 
 var audioOpts struct {
@@ -43,13 +43,8 @@ func init() {
 }
 
 func audioStopRun(cmd *cobra.Command, args []string) error {
-	client, err := ipc.NewClient()
-	if err != nil {
-		if !audioOpts.quiet {
-			fmt.Fprintf(os.Stderr, "Failed to create IPC client: %v\n", err)
-		}
-		return err
-	}
+	client := dbus.NewDaemonClient(nil)
+	defer func() { _ = client.Close() }()
 
 	if err := client.StopAudio(); err != nil {
 		if !audioOpts.quiet {
@@ -59,7 +54,7 @@ func audioStopRun(cmd *cobra.Command, args []string) error {
 	}
 
 	if !audioOpts.quiet {
-		if client.IsRunning() {
+		if client.IsAvailable() {
 			fmt.Println("Audio stop requested")
 		} else {
 			fmt.Println("Audio stop requested (daemon not running)")

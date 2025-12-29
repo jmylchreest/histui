@@ -7,20 +7,21 @@ import (
 	"github.com/jmylchreest/histui/internal/display"
 )
 
-// IPCHandler implements ipc.Handler for histuid.
-type IPCHandler struct {
+// DaemonHandler implements dbus.DaemonHandler for histuid.
+// It handles D-Bus daemon control requests.
+type DaemonHandler struct {
 	dndManager     *db.DnDManager
 	audioManager   *audio.Manager
 	displayManager *display.Manager
 }
 
-// NewIPCHandler creates a new IPC handler.
-func NewIPCHandler(
+// NewDaemonHandler creates a new daemon handler.
+func NewDaemonHandler(
 	dndManager *db.DnDManager,
 	audioManager *audio.Manager,
 	displayManager *display.Manager,
-) *IPCHandler {
-	return &IPCHandler{
+) *DaemonHandler {
+	return &DaemonHandler{
 		dndManager:     dndManager,
 		audioManager:   audioManager,
 		displayManager: displayManager,
@@ -28,7 +29,7 @@ func NewIPCHandler(
 }
 
 // SetDnD sets the Do Not Disturb state.
-func (h *IPCHandler) SetDnD(enabled bool) error {
+func (h *DaemonHandler) SetDnD(enabled bool) error {
 	if h.dndManager == nil {
 		return nil
 	}
@@ -36,7 +37,7 @@ func (h *IPCHandler) SetDnD(enabled bool) error {
 }
 
 // GetDnD returns the current DnD state.
-func (h *IPCHandler) GetDnD() bool {
+func (h *DaemonHandler) GetDnD() bool {
 	if h.dndManager == nil {
 		return false
 	}
@@ -44,24 +45,40 @@ func (h *IPCHandler) GetDnD() bool {
 }
 
 // StopAudio stops any currently playing notification sound.
-func (h *IPCHandler) StopAudio() {
+func (h *DaemonHandler) StopAudio() {
 	if h.audioManager != nil {
 		h.audioManager.StopPlayback()
 	}
 }
 
-// ClosePopup closes a popup by histui ID. Returns true if closed.
-func (h *IPCHandler) ClosePopup(histuiID string) bool {
+// CloseNotification closes a notification popup by histui ID. Returns true if closed.
+func (h *DaemonHandler) CloseNotification(histuiID string) bool {
 	if h.displayManager == nil {
 		return false
 	}
 	return h.displayManager.CloseByHistuiID(histuiID, dbus.CloseReasonDismissed)
 }
 
-// CloseAllPopups closes all active popups. Returns count closed.
-func (h *IPCHandler) CloseAllPopups() int {
+// CloseAllNotifications closes all active notification popups. Returns count closed.
+func (h *DaemonHandler) CloseAllNotifications() int {
 	if h.displayManager == nil {
 		return 0
 	}
 	return h.displayManager.CloseAll(dbus.CloseReasonDismissed)
+}
+
+// GetActiveNotifications returns histui IDs of all active/queued notification popups.
+func (h *DaemonHandler) GetActiveNotifications() []string {
+	if h.displayManager == nil {
+		return []string{}
+	}
+	return h.displayManager.GetActiveHistuiIDs()
+}
+
+// IsNotificationActive checks if a notification has an active or queued popup.
+func (h *DaemonHandler) IsNotificationActive(histuiID string) bool {
+	if h.displayManager == nil {
+		return false
+	}
+	return h.displayManager.IsNotificationActive(histuiID)
 }

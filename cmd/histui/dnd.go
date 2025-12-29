@@ -6,7 +6,7 @@ import (
 
 	"github.com/spf13/cobra"
 
-	"github.com/jmylchreest/histui/internal/ipc"
+	"github.com/jmylchreest/histui/internal/dbus"
 )
 
 var dndOpts struct {
@@ -27,7 +27,7 @@ Use 'histui dnd on' to enable DnD mode.
 Use 'histui dnd off' to disable DnD mode.
 Use 'histui dnd toggle' to toggle DnD mode.
 
-Note: DnD commands communicate with the running histuid daemon via IPC.
+Note: DnD commands communicate with the running histuid daemon via D-Bus.
 If the daemon is not running, these commands have no effect.`,
 	RunE: func(cmd *cobra.Command, args []string) error {
 		// Default to showing status
@@ -85,13 +85,8 @@ func init() {
 }
 
 func dndOnRun(cmd *cobra.Command, args []string) error {
-	client, err := ipc.NewClient()
-	if err != nil {
-		if !dndOpts.quiet {
-			fmt.Fprintf(os.Stderr, "Failed to create IPC client: %v\n", err)
-		}
-		return err
-	}
+	client := dbus.NewDaemonClient(nil)
+	defer func() { _ = client.Close() }()
 
 	if err := client.SetDnD(true); err != nil {
 		if !dndOpts.quiet {
@@ -101,7 +96,7 @@ func dndOnRun(cmd *cobra.Command, args []string) error {
 	}
 
 	if !dndOpts.quiet {
-		if client.IsRunning() {
+		if client.IsAvailable() {
 			fmt.Println("Do Not Disturb: enabled")
 		} else {
 			fmt.Println("Do Not Disturb: enabled (daemon not running)")
@@ -114,13 +109,8 @@ func dndOnRun(cmd *cobra.Command, args []string) error {
 }
 
 func dndOffRun(cmd *cobra.Command, args []string) error {
-	client, err := ipc.NewClient()
-	if err != nil {
-		if !dndOpts.quiet {
-			fmt.Fprintf(os.Stderr, "Failed to create IPC client: %v\n", err)
-		}
-		return err
-	}
+	client := dbus.NewDaemonClient(nil)
+	defer func() { _ = client.Close() }()
 
 	if err := client.SetDnD(false); err != nil {
 		if !dndOpts.quiet {
@@ -130,7 +120,7 @@ func dndOffRun(cmd *cobra.Command, args []string) error {
 	}
 
 	if !dndOpts.quiet {
-		if client.IsRunning() {
+		if client.IsAvailable() {
 			fmt.Println("Do Not Disturb: disabled")
 		} else {
 			fmt.Println("Do Not Disturb: disabled (daemon not running)")
@@ -142,13 +132,8 @@ func dndOffRun(cmd *cobra.Command, args []string) error {
 }
 
 func dndToggleRun(cmd *cobra.Command, args []string) error {
-	client, err := ipc.NewClient()
-	if err != nil {
-		if !dndOpts.quiet {
-			fmt.Fprintf(os.Stderr, "Failed to create IPC client: %v\n", err)
-		}
-		return err
-	}
+	client := dbus.NewDaemonClient(nil)
+	defer func() { _ = client.Close() }()
 
 	newEnabled, err := client.ToggleDnD()
 	if err != nil {
@@ -164,7 +149,7 @@ func dndToggleRun(cmd *cobra.Command, args []string) error {
 		} else {
 			fmt.Println("Do Not Disturb: disabled")
 		}
-		if !client.IsRunning() {
+		if !client.IsAvailable() {
 			fmt.Println("  (daemon not running)")
 		}
 	}
@@ -177,13 +162,8 @@ func dndToggleRun(cmd *cobra.Command, args []string) error {
 }
 
 func dndStatusRun(cmd *cobra.Command, args []string) error {
-	client, err := ipc.NewClient()
-	if err != nil {
-		if !dndOpts.quiet {
-			fmt.Fprintf(os.Stderr, "Failed to create IPC client: %v\n", err)
-		}
-		return err
-	}
+	client := dbus.NewDaemonClient(nil)
+	defer func() { _ = client.Close() }()
 
 	enabled, err := client.GetDnD()
 	if err != nil {
@@ -199,7 +179,7 @@ func dndStatusRun(cmd *cobra.Command, args []string) error {
 		} else {
 			fmt.Println("Do Not Disturb: disabled")
 		}
-		if !client.IsRunning() {
+		if !client.IsAvailable() {
 			fmt.Println("  (daemon not running)")
 		}
 	}
