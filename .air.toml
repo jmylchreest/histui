@@ -1,0 +1,50 @@
+# Air configuration for histuid live reload
+# https://github.com/air-verse/air
+
+root = "."
+tmp_dir = "tmp"
+
+[build]
+# Build command with ccache and fast compilation flags
+cmd = "CGO_ENABLED=1 CGO_CFLAGS='-O0' CC='ccache gcc' go build -ldflags '-X main.version=dev' -o ./tmp/histuid ./cmd/histuid"
+# Binary to run
+bin = "./tmp/histuid"
+# Watch these directories
+include_dir = ["cmd/histuid", "internal"]
+# Watch these extensions
+include_ext = ["go", "toml", "css", "xml"]
+# Exclude directories
+exclude_dir = ["tmp", "dist", "docs", "contrib", "vendor", ".git"]
+# Exclude files
+exclude_file = []
+# Exclude regex patterns
+exclude_regex = ["_test\\.go$"]
+# Delay before rebuilding (ms)
+delay = 500
+# Stop running old binary before building new one
+stop_on_error = true
+# Send interrupt signal before killing
+send_interrupt = true
+# Delay after interrupt before kill (ms)
+kill_delay = 500
+# Rerun binary when it exits
+rerun = false
+# Arguments to pass to binary
+args_bin = []
+
+[log]
+# Show log time
+time = true
+# Only show main log (not watcher events)
+main_only = false
+
+[color]
+# Colorize log output
+main = "magenta"
+watcher = "cyan"
+build = "yellow"
+runner = "green"
+
+[misc]
+# Delete tmp directory on exit
+clean_on_exit = true

@@ -64,6 +64,18 @@ tasks:
     desc: Build histuid daemon to dist/ (requires GTK4)
     env:
       CGO_ENABLED: '1'
+      CC: 'ccache gcc'
+      CGO_CFLAGS: '-O2'
+    cmds:
+      - mkdir -p dist/
+      - go build -ldflags "{{.LDFLAGS}}" -o dist/histuid ./cmd/histuid
+
+  dist:histuid:fast:
+    desc: Build histuid daemon with fast compilation (no optimization)
+    env:
+      CGO_ENABLED: '1'
+      CC: 'ccache gcc'
+      CGO_CFLAGS: '-O0'
     cmds:
       - mkdir -p dist/
       - go build -ldflags "{{.LDFLAGS}}" -o dist/histuid ./cmd/histuid
@@ -89,17 +101,57 @@ tasks:
 
   install:histuid:
     desc: Install histuid daemon only to GOPATH/bin (requires GTK4)
+    env:
+      CGO_ENABLED: '1'
+      CC: 'ccache gcc'
+      CGO_CFLAGS: '-O2'
     cmds:
-      - CGO_ENABLED=1 go install -ldflags "{{.LDFLAGS}}" ./cmd/histuid
+      - go install -ldflags "{{.LDFLAGS}}" ./cmd/histuid
+
+  # Development
+  run:
+    desc: Run histuid with live reload (requires air)
+    deps:
+      - run:check-air
+    cmds:
+      - air
+
+  run:once:
+    desc: Build and run histuid once (no live reload)
+    deps:
+      - dist:histuid:fast
+    cmds:
+      - ./dist/histuid
+
+  run:check-air:
+    desc: Check if air is installed
+    silent: true
+    cmds:
+      - |
+        if ! command -v air >/dev/null 2>&1; then
+          echo "air is not installed. Install with: go install github.com/air-verse/air@latest"
+          exit 1
+        fi
 
   # Code quality
   test:
     desc: Run all tests
+    env:
+      CC: 'ccache gcc'
+      CGO_CFLAGS: '-O0'
     cmds:
       - go test -v -timeout 60s ./...
 
-  test-race:
-    desc: Run tests with race detector (skips CGO packages which are slow)
+  test:race:
+    desc: Run all tests with race detector (uses ccache for faster CGO builds)
+    env:
+      CC: 'ccache gcc'
+      CGO_CFLAGS: '-O0'
+    cmds:
+      - go test -race -v -timeout 60s ./...
+
+  test:race:pure:
+    desc: Run tests with race detector (pure Go packages only, no CGO)
     cmds:
       - go test -race -v -timeout 60s ./internal/model/... ./internal/core/... ./internal/config/... ./internal/dbus/... ./internal/icon/... ./internal/tui/... ./internal/db/... ./internal/adapter/...
 
@@ -169,6 +221,57 @@ tasks:
     dir: docs
     cmds:
       - npm install
+
+  # Package testing
+  test:pkgbuild:
+    desc: Test PKGBUILD generation and source package build
+    vars:
+      # Convert VERSION to valid pkgver (remove 'v' prefix, replace - with .)
+      PKGVER:
+        sh: echo "{{.VERSION}}" | sed 's/^v//' | sed 's/-/./g'
+    cmds:
+      - |
+        set -e
+        TMPDIR=$(mktemp -d)
+        SRCDIR="${TMPDIR}/histui-{{.PKGVER}}"
+        echo "Testing PKGBUILD with version {{.PKGVER}}"
+        echo "Working directory: ${TMPDIR}"
+
+        # Create source tarball from current repo (excluding .git for smaller size)
+        mkdir -p "${SRCDIR}"
+        git archive --format=tar HEAD | tar -x -C "${SRCDIR}"
+
+        # Create the tarball
+        cd "${TMPDIR}"
+        tar czf "histui-{{.PKGVER}}.tar.gz" "histui-{{.PKGVER}}"
+
+        # Copy and modify PKGBUILD
+        cp "{{.ROOT_DIR}}/contrib/arch/histui/PKGBUILD" "${TMPDIR}/PKGBUILD"
+
+        # Update pkgver
+        sed -i "s/^pkgver=.*/pkgver={{.PKGVER}}/" "${TMPDIR}/PKGBUILD"
+
+        # Update source to use local tarball
+        sed -i 's|source=.*|source=("histui-{{.PKGVER}}.tar.gz")|' "${TMPDIR}/PKGBUILD"
+
+        # Skip checksum validation for local testing
+        sed -i "s/^sha256sums=.*/sha256sums=('SKIP')/" "${TMPDIR}/PKGBUILD"
+
+        echo ""
+        echo "=== Generated PKGBUILD ==="
+        cat "${TMPDIR}/PKGBUILD"
+        echo ""
+        echo "=== Building source package ==="
+        cd "${TMPDIR}"
+        makepkg --source -f
+
+        echo ""
+        echo "=== Success! ==="
+        ls -la "${TMPDIR}"/*.src.tar.gz 2>/dev/null || true
+
+        # Cleanup
+        rm -rf "${TMPDIR}"
+        echo "Cleaned up ${TMPDIR}"
 
   # Contrib tools
   generate:icons:
