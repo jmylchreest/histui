@@ -461,6 +461,11 @@ func writeTOML(path string, mappings []AppMapping) error {
 			continue
 		}
 
+		// Sort mappings within category by icon name for deterministic output
+		sort.Slice(ms, func(i, j int) bool {
+			return ms[i].IconName < ms[j].IconName
+		})
+
 		fmt.Fprintf(f, "\n# %s\n", titles[cat])
 		for _, m := range ms {
 			// Extract the base icon name for the target (e.g., "discord" from "md-discord")
@@ -470,7 +475,12 @@ func writeTOML(path string, mappings []AppMapping) error {
 				targetIcon = m.IconName[idx+1:] // e.g., "discord" from "md-discord"
 			}
 
-			for _, appName := range m.AppNames {
+			// Sort app names for deterministic output
+			sortedApps := make([]string, len(m.AppNames))
+			copy(sortedApps, m.AppNames)
+			sort.Strings(sortedApps)
+
+			for _, appName := range sortedApps {
 				// Normalize app name to lowercase for consistency
 				normalizedApp := strings.ToLower(appName)
 

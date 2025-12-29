@@ -284,22 +284,9 @@ tasks:
 
   # Contrib tools
   generate:icons:
-    desc: Generate icon aliases from existing KB files and download Nerd Font symbols
+    desc: Generate icon aliases and download Nerd Font symbols (use --generate-kb to regenerate AI KB)
     dir: contrib/generate-icon-aliases
     cmds:
       - go build -o generate-icon-aliases .
-      - ./generate-icon-aliases -fetch -verbose -output ../../internal/icon/aliases_default.toml -font-output ../../internal/icon/fonts/SymbolsNerdFont-Regular.ttf
+      - ./generate-icon-aliases -fetch -verbose {{.CLI_ARGS}} -output ../../internal/icon/aliases_default.toml -font-output ../../internal/icon/fonts/SymbolsNerdFont-Regular.ttf
       - echo "Updated internal/icon/aliases_default.toml and fonts/SymbolsNerdFont-Regular.ttf"
-
-  generate:icons:ai:
-    desc: Regenerate AI knowledge base (requires OPENROUTER_API_KEY)
-    dir: contrib/generate-icon-aliases
-    cmds:
-      - |
-        if [ -z "$OPENROUTER_API_KEY" ]; then
-          echo "Error: OPENROUTER_API_KEY not set"
-          exit 1
-        fi
-      - go build -o generate-icon-aliases .
-      - ./generate-icon-aliases -generate-kb -no-cache -verbose
-      - echo "Regenerated kb-ai.json - run 'task generate:icons' to update aliases"

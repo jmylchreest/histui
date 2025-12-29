@@ -82,14 +82,53 @@ func LoadKnowledgeBase(path string) (*KnowledgeBase, error) {
 	return &kb, nil
 }
 
-// SaveKnowledgeBase saves the knowledge base to a file.
+// SaveKnowledgeBase saves the knowledge base to a file with sorted keys.
 func SaveKnowledgeBase(kb *KnowledgeBase, path string) error {
-	data, err := json.MarshalIndent(kb, "", "  ")
-	if err != nil {
-		return fmt.Errorf("marshal KB: %w", err)
+	// Sort icon names for deterministic output
+	iconNames := make([]string, 0, len(kb.Icons))
+	for name := range kb.Icons {
+		iconNames = append(iconNames, name)
+	}
+	sort.Strings(iconNames)
+
+	// Build ordered JSON manually for deterministic output
+	var buf strings.Builder
+	buf.WriteString("{\n")
+	buf.WriteString(fmt.Sprintf("  \"version\": %d,\n", kb.Version))
+	buf.WriteString(fmt.Sprintf("  \"generated_at\": %q,\n", kb.GeneratedAt))
+	buf.WriteString(fmt.Sprintf("  \"model\": %q,\n", kb.Model))
+	buf.WriteString("  \"icons\": {\n")
+
+	for i, name := range iconNames {
+		icon := kb.Icons[name]
+
+		// Sort apps by ID for deterministic output
+		sortedApps := make([]KBApp, len(icon.Apps))
+		copy(sortedApps, icon.Apps)
+		sort.Slice(sortedApps, func(a, b int) bool {
+			return sortedApps[a].ID < sortedApps[b].ID
+		})
+
+		appsJSON, err := json.Marshal(sortedApps)
+		if err != nil {
+			return fmt.Errorf("marshal apps for %s: %w", name, err)
+		}
+
+		buf.WriteString(fmt.Sprintf("    %q: {\n", name))
+		buf.WriteString(fmt.Sprintf("      \"type\": %q,\n", icon.Type))
+		buf.WriteString(fmt.Sprintf("      \"glyph\": %q,\n", icon.Glyph))
+		buf.WriteString(fmt.Sprintf("      \"apps\": %s\n", appsJSON))
+		if i < len(iconNames)-1 {
+			buf.WriteString("    },\n")
+		} else {
+			buf.WriteString("    }\n")
+		}
 	}
 
-	if err := os.WriteFile(path, data, 0644); err != nil {
+	buf.WriteString("  }\n")
+	buf.WriteString("}\n")
+
+	if err := os.WriteFile(path, []byte(buf.String()), 0644); err != nil {
 		return fmt.Errorf("write KB: %w", err)
 	}
 
