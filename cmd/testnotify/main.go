@@ -13,6 +13,11 @@ import (
 	_ "embed"
 	"flag"
 	"fmt"
+	"image"
+	"image/color"
+	"image/gif"
+	"image/jpeg"
+	"image/png"
 	"log"
 	"math/rand"
 	"os"
@@ -43,13 +48,76 @@ func randomDelay() {
 	time.Sleep(time.Duration(ms) * time.Millisecond)
 }
 
+// testType defines a test type with its description.
+type testType struct {
+	name        string
+	description string
+}
+
+// getTestTypes returns all available test types with descriptions.
+func getTestTypes() []testType {
+	return []testType{
+		{"all", "Run all tests (8 phases)"},
+		{"minimal", "No icon, no image (tests fallback)"},
+		{"simple", "Icon name only (vesktop -> discord)"},
+		{"url", "Notification with clickable URL"},
+		{"image", "Notification with app icon"},
+		{"imagedata", "Medium image-data (~64KB)"},
+		{"imagedata-small", "Small image-data below 100 KiB threshold"},
+		{"imagedata-large", "Large image-data above 100 KiB threshold"},
+		{"tallimage", "Tall image (tests cropping)"},
+		{"imagepath", "image-path hint (PNG/JPEG/GIF file)"},
+		{"icon-and-imagedata", "Both app_icon AND image-data"},
+		{"icon-and-imagepath", "Both app_icon AND image-path"},
+		{"image-sizes", "All 10 sizes (tests 100 KiB threshold)"},
+		{"progress", "Progress bar with stack tag"},
+		{"stacktag", "Stack tag updates (replaces in place)"},
+		{"progressupdate", "Progress via replaces_id"},
+		{"actions", "Action buttons (prev/play/next)"},
+		{"signal", "Signal-style with View action"},
+		{"low", "Low urgency notification"},
+		{"critical", "Critical urgency notification"},
+		{"html", "HTML formatting (bold/italic/underline)"},
+		{"long", "Long body text (tests wrapping)"},
+		{"stack", "Burst of N notifications (use --stack N)"},
+		{"duplicates", "Identical notifications (test stacking)"},
+		{"kitty", "Kitty terminal style notification"},
+		{"apps", "All 38 mock app notifications"},
+	}
+}
+
+// printTestTypes prints all available test types in a formatted table.
+func printTestTypes() {
+	types := getTestTypes()
+
+	// Find max name length for alignment
+	maxLen := 0
+	for _, t := range types {
+		if len(t.name) > maxLen {
+			maxLen = len(t.name)
+		}
+	}
+
+	fmt.Println("Available test types:")
+	fmt.Println()
+	for _, t := range types {
+		fmt.Printf("  %-*s  %s\n", maxLen, t.name, t.description)
+	}
+}
+
 func main() {
 	clearFlag := flag.Bool("clear", false, "Clear all notifications before sending")
-	typeFlag := flag.String("type", "all", "Type of notification to send (all, simple, url, image, imagedata, tallimage, progress, stacktag, progressupdate, actions, signal, low, critical, html, long, stack, duplicates, apps)")
+	typeFlag := flag.String("type", "all", "Type of notification to send (use --list-types to see all)")
+	listTypesFlag := flag.Bool("list-types", false, "List all available test types")
 	stackCount := flag.Int("stack", 5, "Number of notifications for stack test")
 	screenshotFlag := flag.Bool("screenshot", false, "Take screenshot after sending notifications")
 	screenshotDir := flag.String("screenshot-dir", "/tmp/histui-test", "Directory to save screenshots")
 	flag.Parse()
+
+	if *listTypesFlag {
+		printTestTypes()
+		return
+	}
 
 	conn, err := dbus.SessionBus()
 	if err != nil {
@@ -64,6 +132,8 @@ func main() {
 	switch *typeFlag {
 	case "all":
 		runAllTests(conn)
+	case "minimal":
+		sendMinimal(conn)
 	case "simple":
 		sendSimple(conn)
 	case "url":
@@ -72,6 +142,10 @@ func main() {
 		sendWithImage(conn)
 	case "imagedata":
 		sendWithImageData(conn)
+	case "imagedata-small":
+		sendWithSmallImageData(conn)
+	case "imagedata-large":
+		sendWithLargeImageData(conn)
 	case "tallimage":
 		sendWithTallImage(conn)
 	case "progress":
@@ -98,6 +172,12 @@ func main() {
 		sendProgressUpdating(conn)
 	case "imagepath":
 		sendWithImagePath(conn)
+	case "icon-and-imagedata":
+		sendIconAndImageData(conn)
+	case "icon-and-imagepath":
+		sendIconAndImagePath(conn)
+	case "image-sizes":
+		sendImageSizeTest(conn)
 	case "kitty":
 		sendKittyStyle(conn)
 	case "apps":
@@ -246,100 +326,420 @@ type ImageDataStruct struct {
 	Data          []byte
 }
 
-func sendWithImageData(conn *dbus.Conn) {
-	fmt.Println("[TEST] Sending notification with embedded image-data...")
+// TestImageSize defines standard test image sizes with their purpose.
+type TestImageSize struct {
+	Name        string
+	Width       int32
+	Height      int32
+	DataSize    int // Approximate RGBA size in bytes
+	Description string
+}
 
-	// Create a 32x32 red square image (RGBA)
-	width, height := int32(32), int32(32)
-	hasAlpha := true
-	bitsPerSample := int32(8)
+// Test image sizes - designed to test the 100 KiB threshold
+var testImageSizes = []TestImageSize{
+	{"tiny", 32, 32, 4096, "~4 KB - well below threshold"},
+	{"small", 64, 64, 16384, "~16 KB - typical profile pic"},
+	{"medium", 128, 128, 65536, "~64 KB - below threshold"},
+	{"threshold", 160, 160, 102400, "~100 KiB - exactly at threshold"},
+	{"above", 200, 200, 160000, "~156 KB - above threshold"},
+	{"large", 300, 300, 360000, "~351 KB - album art size"},
+	{"xlarge", 500, 500, 1000000, "~977 KB - large content"},
+	{"hd", 400, 225, 360000, "~351 KB - 16:9 aspect"},
+	{"tall", 200, 600, 480000, "~469 KB - tall/portrait"},
+	{"wide", 600, 200, 480000, "~469 KB - wide/banner"},
+}
+
+// PatternType defines different image patterns for testing.
+type PatternType int
+
+const (
+	PatternSolid PatternType = iota
+	PatternHorizontalStripes
+	PatternVerticalStripes
+	PatternDiagonalStripes
+	PatternCheckerboard
+	PatternGradientH
+	PatternGradientV
+	PatternGradientDiag
+	PatternCircle
+	PatternNoise
+	PatternBorder
+	PatternGrid
+)
+
+// Color represents an RGBA color.
+type Color struct {
+	R, G, B, A byte
+}
+
+// Predefined color palettes for testing
+var (
+	// Dark colors
+	colorBlack      = Color{20, 20, 20, 255}
+	colorDarkGray   = Color{50, 50, 50, 255}
+	colorDarkBlue   = Color{30, 40, 80, 255}
+	colorDarkGreen  = Color{30, 60, 40, 255}
+	colorDarkRed    = Color{80, 30, 30, 255}
+	colorDarkPurple = Color{60, 30, 80, 255}
+
+	// Light colors
+	colorWhite      = Color{240, 240, 240, 255}
+	colorLightGray  = Color{200, 200, 200, 255}
+	colorLightBlue  = Color{180, 200, 240, 255}
+	colorLightGreen = Color{180, 230, 190, 255}
+	colorLightPink  = Color{240, 200, 210, 255}
+	colorCream      = Color{255, 250, 240, 255}
+
+	// Vibrant colors
+	colorRed     = Color{220, 60, 60, 255}
+	colorOrange  = Color{240, 150, 50, 255}
+	colorYellow  = Color{240, 220, 60, 255}
+	colorGreen   = Color{60, 180, 80, 255}
+	colorCyan    = Color{60, 200, 220, 255}
+	colorBlue    = Color{60, 100, 220, 255}
+	colorPurple  = Color{150, 80, 200, 255}
+	colorMagenta = Color{220, 80, 180, 255}
+
+	// All colors for random selection
+	allColors = []Color{
+		colorBlack, colorDarkGray, colorDarkBlue, colorDarkGreen, colorDarkRed, colorDarkPurple,
+		colorWhite, colorLightGray, colorLightBlue, colorLightGreen, colorLightPink, colorCream,
+		colorRed, colorOrange, colorYellow, colorGreen, colorCyan, colorBlue, colorPurple, colorMagenta,
+	}
+
+	darkColors = []Color{
+		colorBlack, colorDarkGray, colorDarkBlue, colorDarkGreen, colorDarkRed, colorDarkPurple,
+	}
+
+	lightColors = []Color{
+		colorWhite, colorLightGray, colorLightBlue, colorLightGreen, colorLightPink, colorCream,
+	}
+
+	vibrantColors = []Color{
+		colorRed, colorOrange, colorYellow, colorGreen, colorCyan, colorBlue, colorPurple, colorMagenta,
+	}
+)
+
+// generateTestImage creates a test image with the specified size and pattern.
+func generateTestImage(width, height int32, pattern PatternType, colors []Color) ImageDataStruct {
 	channels := int32(4) // RGBA
 	rowstride := width * channels
-
-	// Create red pixel data
 	pixels := make([]byte, height*rowstride)
+
+	// Pick colors for the pattern
+	if len(colors) == 0 {
+		colors = []Color{colorBlue, colorWhite}
+	}
+	c1 := colors[0]
+	c2 := colorWhite
+	if len(colors) > 1 {
+		c2 = colors[1]
+	}
+
 	for y := int32(0); y < height; y++ {
 		for x := int32(0); x < width; x++ {
 			offset := y*rowstride + x*channels
-			pixels[offset] = 255   // R
-			pixels[offset+1] = 50  // G
-			pixels[offset+2] = 50  // B
-			pixels[offset+3] = 255 // A
+			var c Color
+
+			switch pattern {
+			case PatternSolid:
+				c = c1
+
+			case PatternHorizontalStripes:
+				stripeWidth := height / 8
+				if stripeWidth < 4 {
+					stripeWidth = 4
+				}
+				if (y/stripeWidth)%2 == 0 {
+					c = c1
+				} else {
+					c = c2
+				}
+
+			case PatternVerticalStripes:
+				stripeWidth := width / 8
+				if stripeWidth < 4 {
+					stripeWidth = 4
+				}
+				if (x/stripeWidth)%2 == 0 {
+					c = c1
+				} else {
+					c = c2
+				}
+
+			case PatternDiagonalStripes:
+				stripeWidth := (width + height) / 16
+				if stripeWidth < 4 {
+					stripeWidth = 4
+				}
+				if ((x+y)/stripeWidth)%2 == 0 {
+					c = c1
+				} else {
+					c = c2
+				}
+
+			case PatternCheckerboard:
+				cellSize := width / 8
+				if cellSize < 4 {
+					cellSize = 4
+				}
+				if ((x/cellSize)+(y/cellSize))%2 == 0 {
+					c = c1
+				} else {
+					c = c2
+				}
+
+			case PatternGradientH:
+				ratio := float32(x) / float32(width)
+				c = blendColors(c1, c2, ratio)
+
+			case PatternGradientV:
+				ratio := float32(y) / float32(height)
+				c = blendColors(c1, c2, ratio)
+
+			case PatternGradientDiag:
+				ratio := (float32(x)/float32(width) + float32(y)/float32(height)) / 2
+				c = blendColors(c1, c2, ratio)
+
+			case PatternCircle:
+				centerX := float32(width) / 2
+				centerY := float32(height) / 2
+				radius := float32(min(width, height)) / 2.2
+				dx := float32(x) - centerX
+				dy := float32(y) - centerY
+				if dx*dx+dy*dy <= radius*radius {
+					c = c1
+				} else {
+					c = c2
+				}
+
+			case PatternNoise:
+				// Deterministic "noise" based on position
+				hash := (x*7919 + y*6271) % 256
+				if hash < 128 {
+					c = c1
+				} else {
+					c = c2
+				}
+
+			case PatternBorder:
+				borderWidth := min(width, height) / 10
+				if borderWidth < 2 {
+					borderWidth = 2
+				}
+				if x < borderWidth || x >= width-borderWidth || y < borderWidth || y >= height-borderWidth {
+					c = c1
+				} else {
+					c = c2
+				}
+
+			case PatternGrid:
+				lineWidth := int32(2)
+				cellSize := width / 6
+				if cellSize < 8 {
+					cellSize = 8
+				}
+				if x%cellSize < lineWidth || y%cellSize < lineWidth {
+					c = c1
+				} else {
+					c = c2
+				}
+
+			default:
+				c = c1
+			}
+
+			pixels[offset] = c.R
+			pixels[offset+1] = c.G
+			pixels[offset+2] = c.B
+			pixels[offset+3] = c.A
 		}
 	}
 
-	// Create the image-data struct: (iiibiiay)
-	// godbus will automatically marshal this struct with the correct D-Bus signature
-	imageData := ImageDataStruct{
+	return ImageDataStruct{
 		Width:         width,
 		Height:        height,
 		Rowstride:     rowstride,
-		HasAlpha:      hasAlpha,
-		BitsPerSample: bitsPerSample,
+		HasAlpha:      true,
+		BitsPerSample: 8,
 		Channels:      channels,
 		Data:          pixels,
 	}
+}
+
+// blendColors linearly interpolates between two colors.
+func blendColors(c1, c2 Color, ratio float32) Color {
+	return Color{
+		R: byte(float32(c1.R)*(1-ratio) + float32(c2.R)*ratio),
+		G: byte(float32(c1.G)*(1-ratio) + float32(c2.G)*ratio),
+		B: byte(float32(c1.B)*(1-ratio) + float32(c2.B)*ratio),
+		A: 255,
+	}
+}
+
+// randomColor returns a random color from the given palette.
+func randomColor(palette []Color) Color {
+	return palette[rand.Intn(len(palette))]
+}
+
+// randomPattern returns a random pattern type.
+func randomPattern() PatternType {
+	patterns := []PatternType{
+		PatternSolid, PatternHorizontalStripes, PatternVerticalStripes,
+		PatternDiagonalStripes, PatternCheckerboard, PatternGradientH,
+		PatternGradientV, PatternGradientDiag, PatternCircle, PatternNoise,
+		PatternBorder, PatternGrid,
+	}
+	return patterns[rand.Intn(len(patterns))]
+}
+
+// patternName returns a human-readable name for a pattern.
+func patternName(p PatternType) string {
+	names := []string{
+		"solid", "h-stripes", "v-stripes", "diag-stripes", "checkerboard",
+		"gradient-h", "gradient-v", "gradient-diag", "circle", "noise",
+		"border", "grid",
+	}
+	if int(p) < len(names) {
+		return names[p]
+	}
+	return "unknown"
+}
+
+// generateRandomTestImage creates a unique random test image.
+func generateRandomTestImage(size TestImageSize) (ImageDataStruct, string) {
+	pattern := randomPattern()
+
+	// Pick two contrasting colors
+	var colors []Color
+	switch rand.Intn(4) {
+	case 0: // Dark theme
+		colors = []Color{randomColor(darkColors), randomColor(lightColors)}
+	case 1: // Light theme
+		colors = []Color{randomColor(lightColors), randomColor(darkColors)}
+	case 2: // Vibrant
+		colors = []Color{randomColor(vibrantColors), randomColor(vibrantColors)}
+	case 3: // Mixed
+		colors = []Color{randomColor(allColors), randomColor(allColors)}
+	}
+
+	img := generateTestImage(size.Width, size.Height, pattern, colors)
+	desc := fmt.Sprintf("%s %dx%d %s", patternName(pattern), size.Width, size.Height, size.Description)
+	return img, desc
+}
+
+// ImageFormat represents supported image file formats.
+type ImageFormat int
+
+const (
+	FormatPNG ImageFormat = iota
+	FormatJPEG
+	FormatGIF
+)
+
+// imageFormatInfo contains format details.
+type imageFormatInfo struct {
+	name      string
+	extension string
+}
+
+var imageFormats = []imageFormatInfo{
+	{name: "PNG", extension: ".png"},
+	{name: "JPEG", extension: ".jpg"},
+	{name: "GIF", extension: ".gif"},
+}
+
+// randomImageFormat returns a random image format.
+func randomImageFormat() ImageFormat {
+	return ImageFormat(rand.Intn(len(imageFormats)))
+}
+
+// imageDataToImage converts our ImageDataStruct to Go's image.Image.
+func imageDataToImage(data ImageDataStruct) image.Image {
+	img := image.NewRGBA(image.Rect(0, 0, int(data.Width), int(data.Height)))
+	for y := int32(0); y < data.Height; y++ {
+		for x := int32(0); x < data.Width; x++ {
+			offset := y*data.Rowstride + x*data.Channels
+			r := data.Data[offset]
+			g := data.Data[offset+1]
+			b := data.Data[offset+2]
+			a := data.Data[offset+3]
+			img.SetRGBA(int(x), int(y), color.RGBA{R: r, G: g, B: b, A: a})
+		}
+	}
+	return img
+}
+
+// writeImageFile writes an image to a file in the specified format.
+// Returns the file path and format name.
+func writeImageFile(data ImageDataStruct, format ImageFormat) (string, string, error) {
+	info := imageFormats[format]
+	filePath := filepath.Join(os.TempDir(), fmt.Sprintf("histui-test-%d%s", time.Now().UnixNano(), info.extension))
+
+	f, err := os.Create(filePath)
+	if err != nil {
+		return "", "", err
+	}
+	defer func() { _ = f.Close() }()
+
+	img := imageDataToImage(data)
+
+	switch format {
+	case FormatPNG:
+		err = png.Encode(f, img)
+	case FormatJPEG:
+		err = jpeg.Encode(f, img, &jpeg.Options{Quality: 90})
+	case FormatGIF:
+		err = gif.Encode(f, img, nil)
+	default:
+		err = png.Encode(f, img)
+	}
+
+	if err != nil {
+		_ = os.Remove(filePath)
+		return "", "", err
+	}
+
+	return filePath, info.name, nil
+}
+
+// writeRandomImageFile creates a random test image and writes it to a file in a random format.
+func writeRandomImageFile(size TestImageSize) (string, string, error) {
+	imageData, _ := generateRandomTestImage(size)
+	format := randomImageFormat()
+	return writeImageFile(imageData, format)
+}
+
+func sendWithImageData(conn *dbus.Conn) {
+	fmt.Println("[TEST] Sending notification with embedded image-data...")
+
+	// Use the new generator for a medium-sized image with random pattern
+	size := testImageSizes[2] // medium: 128x128
+	imageData, desc := generateRandomTestImage(size)
 
 	hints := map[string]dbus.Variant{
 		"image-data": dbus.MakeVariant(imageData),
 	}
 
 	notify(conn, "Image Data Test", "Embedded Image",
-		"[TEST] Raw pixel data embedded (32x32 red square).",
+		fmt.Sprintf("[TEST] %s (%d bytes)", desc, len(imageData.Data)),
 		"", hints, 15000)
 	randomDelay()
 }
 
 func sendWithTallImage(conn *dbus.Conn) {
-	fmt.Println("[TEST] Sending notification with tall image (tests shrink + cropping + gradient)...")
+	fmt.Println("[TEST] Sending notification with tall image (tests shrink + cropping)...")
 
-	// Create a large tall image (400x800) with a gradient from blue to green
-	// This will trigger both shrinking to fit width and cropping with fade gradient
-	width, height := int32(400), int32(800)
-	hasAlpha := true
-	bitsPerSample := int32(8)
-	channels := int32(4) // RGBA
-	rowstride := width * channels
-
-	// Create 45-degree diagonal striped pattern (makes fade overlay more visible)
-	pixels := make([]byte, height*rowstride)
-	for y := int32(0); y < height; y++ {
-		for x := int32(0); x < width; x++ {
-			// Diagonal stripes at 45 degrees, alternating every 20 pixels
-			isLightStripe := ((x+y)/20)%2 == 0
-			var r, g, b byte
-			if isLightStripe {
-				// Light cyan stripe
-				r, g, b = 100, 200, 255
-			} else {
-				// Dark blue stripe
-				r, g, b = 50, 100, 200
-			}
-
-			offset := y*rowstride + x*channels
-			pixels[offset] = r
-			pixels[offset+1] = g
-			pixels[offset+2] = b
-			pixels[offset+3] = 255
-		}
-	}
-
-	imageData := ImageDataStruct{
-		Width:         width,
-		Height:        height,
-		Rowstride:     rowstride,
-		HasAlpha:      hasAlpha,
-		BitsPerSample: bitsPerSample,
-		Channels:      channels,
-		Data:          pixels,
-	}
+	// Use the tall size from our test sizes
+	size := testImageSizes[8] // tall: 200x600
+	imageData := generateTestImage(size.Width, size.Height, PatternDiagonalStripes, []Color{colorCyan, colorDarkBlue})
 
 	hints := map[string]dbus.Variant{
 		"image-data": dbus.MakeVariant(imageData),
 	}
 
 	notify(conn, "Tall Image Test", "Cropped Image",
-		"[TEST] Tall image cropped with fade gradient at bottom.",
+		fmt.Sprintf("[TEST] Tall image %dx%d (%d bytes) - tests cropping with fade", size.Width, size.Height, len(imageData.Data)),
 		"", hints, 15000)
 	randomDelay()
 }
@@ -348,21 +748,25 @@ func sendWithProgress(conn *dbus.Conn) {
 	fmt.Println("[TEST] Sending progress notification with stack tag updates...")
 
 	// Use stack tag so progress updates replace each other
+	// Stack tag includes filename AND timestamp for uniqueness per download session
+	filename := "ubuntu-24.04.iso"
+	stackTag := fmt.Sprintf("qbittorrent:download:%s:%d", filename, time.Now().Unix())
+
 	steps := []struct {
 		percent int32
 		body    string
 	}{
-		{10, "[TEST] ubuntu-24.04.iso - 10%"},
-		{35, "[TEST] ubuntu-24.04.iso - 35%"},
-		{60, "[TEST] ubuntu-24.04.iso - 60%"},
-		{85, "[TEST] ubuntu-24.04.iso - 85%"},
-		{100, "[TEST] ubuntu-24.04.iso - Complete!"},
+		{10, "[TEST] " + filename + " - 10%"},
+		{35, "[TEST] " + filename + " - 35%"},
+		{60, "[TEST] " + filename + " - 60%"},
+		{85, "[TEST] " + filename + " - 85%"},
+		{100, "[TEST] " + filename + " - Complete!"},
 	}
 
 	for _, step := range steps {
 		hints := map[string]dbus.Variant{
 			"value":             dbus.MakeVariant(step.percent),
-			"x-dunst-stack-tag": dbus.MakeVariant("download-progress"),
+			"x-dunst-stack-tag": dbus.MakeVariant(stackTag),
 		}
 		notify(conn, "qbittorrent", "Downloading File", step.body, "qbittorrent", hints, 15000)
 		fmt.Printf("  -> Progress: %d%%\n", step.percent)
@@ -427,40 +831,22 @@ func sendStack(conn *dbus.Conn, count int) {
 	for i := 1; i <= count; i++ {
 		var hints map[string]dbus.Variant
 
-		// Include a large image on every 3rd notification to test image cropping in stack
+		// Include a random image on every 3rd notification
 		if i%3 == 0 {
-			// Create a tall image (400x600) that will be cropped
-			width, height := 400, 600
-			rowstride := width * 3
-			pixels := make([]byte, rowstride*height)
-
-			// Create gradient pattern
-			for y := 0; y < height; y++ {
-				for x := 0; x < width; x++ {
-					offset := y*rowstride + x*3
-					pixels[offset] = byte((x * 255) / width)    // R: horizontal gradient
-					pixels[offset+1] = byte((y * 255) / height) // G: vertical gradient
-					pixels[offset+2] = byte(128)                // B: constant
-				}
-			}
+			// Pick a random size that's above threshold so it shows
+			sizes := []TestImageSize{testImageSizes[4], testImageSizes[5], testImageSizes[7]} // above, large, hd
+			size := sizes[rand.Intn(len(sizes))]
+			imageData, desc := generateRandomTestImage(size)
 
 			hints = map[string]dbus.Variant{
-				"image-data": dbus.MakeVariant(ImageDataStruct{
-					Width:         int32(width),
-					Height:        int32(height),
-					Rowstride:     int32(rowstride),
-					HasAlpha:      false,
-					BitsPerSample: 8,
-					Channels:      3,
-					Data:          pixels,
-				}),
+				"image-data": dbus.MakeVariant(imageData),
 			}
 			notify(conn, "Stack Test", fmt.Sprintf("Notification %d of %d (with image)", i, count),
-				"This notification includes a large image that should be cropped.",
+				fmt.Sprintf("[TEST] %s", desc),
 				"", hints, 10000)
 		} else {
 			notify(conn, "Stack Test", fmt.Sprintf("Notification %d of %d", i, count),
-				fmt.Sprintf("This is notification number %d in the stack.", i),
+				fmt.Sprintf("[TEST] Notification number %d in the stack.", i),
 				"", nil, 10000)
 		}
 		time.Sleep(100 * time.Millisecond)
@@ -513,91 +899,55 @@ func sendKittyStyle(conn *dbus.Conn) {
 func sendWithImagePath(conn *dbus.Conn) {
 	fmt.Println("[TEST] Sending notification with image-path hint (file-based image)...")
 
-	// Create a 300x400 test image with a gradient from purple to orange
-	width, height := 300, 400
-	pixels := make([]byte, width*height*4)
-	for y := 0; y < height; y++ {
-		ratio := float32(y) / float32(height)
-		r := byte(128 + int(127*ratio)) // 128 -> 255
-		g := byte(50)                   // constant
-		b := byte(200 - int(150*ratio)) // 200 -> 50
-		for x := 0; x < width; x++ {
-			offset := (y*width + x) * 4
-			pixels[offset] = r
-			pixels[offset+1] = g
-			pixels[offset+2] = b
-			pixels[offset+3] = 255 // alpha
-		}
-	}
-
-	// Create temporary PNG file
-	tmpFile := filepath.Join(os.TempDir(), fmt.Sprintf("histui-test-%d.png", time.Now().UnixNano()))
-	f, err := os.Create(tmpFile)
+	// Use a size above threshold and random format
+	size := testImageSizes[5] // large: 300x300
+	filePath, formatName, err := writeRandomImageFile(size)
 	if err != nil {
-		log.Printf("Failed to create temp file: %v", err)
+		log.Printf("Failed to create image file: %v", err)
 		return
 	}
-
-	// Write raw PNG (simple approach using BMP-like header for testing)
-	// Actually we need to use proper PNG encoding
-	// For simplicity, let's write a PPM file instead (simpler format) then convert
-	// But actually GdkPixbuf can load various formats. Let's write a simple PPM file.
-	ppmFile := filepath.Join(os.TempDir(), fmt.Sprintf("histui-test-%d.ppm", time.Now().UnixNano()))
-	pf, err := os.Create(ppmFile)
-	if err != nil {
-		log.Printf("Failed to create PPM file: %v", err)
-		_ = f.Close()
-		return
-	}
-
-	// Write PPM header (P6 format - binary RGB)
-	_, _ = fmt.Fprintf(pf, "P6\n%d %d\n255\n", width, height)
-	// Write RGB data (skip alpha)
-	for y := 0; y < height; y++ {
-		for x := 0; x < width; x++ {
-			offset := (y*width + x) * 4
-			_, _ = pf.Write([]byte{pixels[offset], pixels[offset+1], pixels[offset+2]})
-		}
-	}
-	_ = pf.Close()
-	_ = f.Close()
 
 	hints := map[string]dbus.Variant{
-		"image-path": dbus.MakeVariant(ppmFile),
+		"image-path": dbus.MakeVariant(filePath),
 	}
 
-	notify(conn, "Image Path Test", "File-Based Image",
-		"This notification uses image-path hint to load from a PPM file.",
-		"", hints, 5000)
+	notify(conn, "Image Path Test", fmt.Sprintf("File-Based Image (%s)", formatName),
+		fmt.Sprintf("[TEST] image-path hint loading %s file. Always shown (explicit paths are intentional).", formatName),
+		"", hints, 10000)
 
 	// Give notification daemon time to read the file, then clean up
 	time.Sleep(delay)
-	_ = os.Remove(ppmFile)
-	_ = os.Remove(tmpFile)
+	_ = os.Remove(filePath)
+	randomDelay()
 }
 
 // sendStackTagProgress sends progress updates using stack tag (dunst-compatible).
 // This tests the x-dunst-stack-tag hint - notifications with the same tag replace each other.
 // No need to track IDs - just use the same tag!
+// The stack tag includes filename AND timestamp for uniqueness per download session.
 func sendStackTagProgress(conn *dbus.Conn) {
 	fmt.Println("[TEST] Sending stack tag progress updates (like dunstify -h string:x-dunst-stack-tag:download)...")
+
+	// Simulate downloading a file - stack tag includes filename and timestamp for uniqueness
+	filename := "ubuntu-24.04.iso"
+	stackTag := fmt.Sprintf("qbittorrent:download:%s:%d", filename, time.Now().Unix())
 
 	// Send progress updates with the same stack tag
 	steps := []struct {
 		percent int32
 		body    string
 	}{
-		{0, "[TEST] large-file.tar.gz - Starting..."},
-		{25, "[TEST] large-file.tar.gz - 25%"},
-		{50, "[TEST] large-file.tar.gz - 50%"},
-		{75, "[TEST] large-file.tar.gz - 75%"},
-		{100, "[TEST] large-file.tar.gz - Complete!"},
+		{0, "[TEST] " + filename + " - Starting..."},
+		{25, "[TEST] " + filename + " - 25%"},
+		{50, "[TEST] " + filename + " - 50%"},
+		{75, "[TEST] " + filename + " - 75%"},
+		{100, "[TEST] " + filename + " - Complete!"},
 	}
 
 	for _, step := range steps {
 		hints := map[string]dbus.Variant{
 			"value":             dbus.MakeVariant(step.percent),
-			"x-dunst-stack-tag": dbus.MakeVariant("download-test"),
+			"x-dunst-stack-tag": dbus.MakeVariant(stackTag),
 		}
 		notify(conn, "qbittorrent", "Downloading File", step.body, "qbittorrent", hints, 5000)
 		fmt.Printf("  -> Progress: %d%%\n", step.percent)
@@ -691,38 +1041,97 @@ func sendDuplicates(conn *dbus.Conn) {
 }
 
 func runAllTests(conn *dbus.Conn) {
-	fmt.Println("[TEST] Starting notification tests...")
+	fmt.Println("[TEST] Starting comprehensive notification tests...")
 	fmt.Println()
+	fmt.Println("=== Phase 1: Basic variations (icon types) ===")
 
-	// Low urgency first (5 second timeout - should expire early)
-	sendLowUrgency(conn)
+	// 1. Minimal - no icon, no image (tests fallback)
+	sendMinimal(conn)
 
-	// Normal urgency notifications (15 second timeout)
+	// 2. Simple - icon name only
 	sendSimple(conn)
-	sendWithURL(conn)
-	sendWithImage(conn)
-	sendWithImageData(conn)
+
+	// 3. Icon as file path (kitty style)
+	sendKittyStyle(conn)
+
+	fmt.Println()
+	fmt.Println("=== Phase 2: Image handling (image-data vs image-path) ===")
+
+	// 4. Small image-data (below threshold - should NOT show in body)
+	sendWithSmallImageData(conn)
+
+	// 5. Large image-data (above threshold - should show in body)
+	sendWithLargeImageData(conn)
+
+	// 6. image-path hint (always shown)
+	sendWithImagePath(conn)
+
+	// 7. Tall image (tests cropping)
 	sendWithTallImage(conn)
 
-	// Critical urgency (30 second timeout - stays visible longer)
+	fmt.Println()
+	fmt.Println("=== Phase 3: Combined icon + image ===")
+
+	// 8. Both app_icon AND image-data (icon in header, image in body)
+	sendIconAndImageData(conn)
+
+	// 9. Both app_icon AND image-path
+	sendIconAndImagePath(conn)
+
+	fmt.Println()
+	fmt.Println("=== Phase 4: Urgency levels ===")
+
+	// 10. Low urgency (quick timeout)
+	sendLowUrgency(conn)
+
+	// 11. Critical urgency (long timeout, different styling)
 	sendCriticalUrgency(conn)
 
-	// Progress with stack tag (tests in-place updates)
-	sendWithProgress(conn)
+	fmt.Println()
+	fmt.Println("=== Phase 5: Content formatting ===")
 
-	// More normal urgency
-	sendLongBody(conn)
+	// 12. URL in body
+	sendWithURL(conn)
+
+	// 13. HTML formatting
 	sendHTMLFormatted(conn)
-	sendSignalStyle(conn) // Test View action button
 
-	// Duplicate stacking test
+	// 14. Long body text (tests truncation/wrapping)
+	sendLongBody(conn)
+
+	fmt.Println()
+	fmt.Println("=== Phase 6: Interactive features ===")
+
+	// 15. Actions (buttons)
+	sendWithActions(conn)
+
+	// 16. Signal-style with View action
+	sendSignalStyle(conn)
+
+	fmt.Println()
+	fmt.Println("=== Phase 7: Stacking and updates ===")
+
+	// 17. Duplicate stacking (same content)
 	sendDuplicates(conn)
 
-	// Random sample of apps
-	sendRandomAppSample(conn, 5)
+	// 18. Progress with stack tag (updates in place)
+	sendStackTagProgress(conn)
+
+	fmt.Println()
+	fmt.Println("=== Phase 8: App variety ===")
+
+	// 19. Random sample of different apps
+	sendRandomAppSample(conn, 3)
 
 	fmt.Println()
 	fmt.Println("[OK] All test notifications sent!")
+	fmt.Println()
+	fmt.Println("Test summary:")
+	fmt.Println("  - Minimal (no icon/image): should use fallback symbol")
+	fmt.Println("  - Small image-data (~16KB): should NOT appear in body (below 100 KiB)")
+	fmt.Println("  - Large image-data (~351KB): SHOULD appear in body (above 100 KiB)")
+	fmt.Println("  - Icon + image-data: icon in header, image in body")
+	fmt.Println("  - image-path: always shown (explicit file paths are intentional)")
 }
 
 // appNotification defines a mock notification from an app.
@@ -828,5 +1237,138 @@ func sendAppNotifications(conn *dbus.Conn) {
 		notify(conn, app.appName, app.summary, app.body, app.icon, hints, 5000)
 		time.Sleep(100 * time.Millisecond)
 	}
+	randomDelay()
+}
+
+// sendMinimal sends a completely bare notification with no icon and no image.
+// This tests the fallback behavior when no visual elements are provided.
+func sendMinimal(conn *dbus.Conn) {
+	fmt.Println("[TEST] Sending minimal notification (no icon, no image)...")
+	notify(conn, "Minimal Test", "Plain Notification",
+		"[TEST] This notification has no app_icon and no image hints.",
+		"", nil, 10000)
+	randomDelay()
+}
+
+// sendWithSmallImageData sends a notification with image-data below the 100 KiB threshold.
+// With the default image_data_preview_size=100KiB, this should NOT be displayed in the body.
+// This simulates profile pictures from messaging apps like Signal/Discord.
+func sendWithSmallImageData(conn *dbus.Conn) {
+	fmt.Println("[TEST] Sending notification with SMALL image-data (below 100 KiB threshold)...")
+
+	// Use "small" size: 64x64 = ~16 KB - well below threshold
+	size := testImageSizes[1] // small: 64x64
+	imageData := generateTestImage(size.Width, size.Height, PatternCircle, []Color{colorBlue, colorLightGray})
+
+	hints := map[string]dbus.Variant{
+		"image-data": dbus.MakeVariant(imageData),
+	}
+
+	dataSize := len(imageData.Data)
+	notify(conn, "signal-desktop", "Alice",
+		fmt.Sprintf("[TEST] Small image %dx%d (%d bytes, ~%d KB). Should NOT appear in body.", size.Width, size.Height, dataSize, dataSize/1024),
+		"signal-desktop", hints, 15000)
+	randomDelay()
+}
+
+// sendWithLargeImageData sends a notification with image-data above the 100 KiB threshold.
+// With the default image_data_preview_size=100KiB, this SHOULD be displayed in the body.
+// This simulates album art from music players like Spotify.
+func sendWithLargeImageData(conn *dbus.Conn) {
+	fmt.Println("[TEST] Sending notification with LARGE image-data (above 100 KiB threshold)...")
+
+	// Use "large" size: 300x300 = ~351 KB - well above threshold
+	size := testImageSizes[5] // large: 300x300
+	imageData := generateTestImage(size.Width, size.Height, PatternGradientDiag, []Color{colorPurple, colorOrange})
+
+	hints := map[string]dbus.Variant{
+		"image-data": dbus.MakeVariant(imageData),
+	}
+
+	dataSize := len(imageData.Data)
+	notify(conn, "spotify", "Now Playing",
+		fmt.Sprintf("[TEST] Large image %dx%d (%d bytes, ~%d KB). SHOULD appear in body.", size.Width, size.Height, dataSize, dataSize/1024),
+		"spotify", hints, 15000)
+	randomDelay()
+}
+
+// sendIconAndImageData sends a notification with BOTH app_icon AND image-data.
+// This tests that app_icon appears in the header/sidebar and image-data in the body.
+// The icon and image should appear in different places per freedesktop spec.
+func sendIconAndImageData(conn *dbus.Conn) {
+	fmt.Println("[TEST] Sending notification with BOTH app_icon AND image-data...")
+
+	// Use "above" size: 200x200 = ~156 KB - above threshold so it shows
+	size := testImageSizes[4] // above: 200x200
+	imageData := generateTestImage(size.Width, size.Height, PatternCheckerboard, []Color{colorGreen, colorDarkGreen})
+
+	hints := map[string]dbus.Variant{
+		"image-data": dbus.MakeVariant(imageData),
+	}
+
+	// app_icon = "firefox" (icon name, looked up from theme)
+	// image-data = checkered pattern (displayed in body)
+	notify(conn, "firefox", "Download Complete",
+		fmt.Sprintf("[TEST] app_icon=firefox, image-data=%dx%d checkerboard (%d bytes)", size.Width, size.Height, len(imageData.Data)),
+		"firefox", hints, 15000)
+	randomDelay()
+}
+
+// sendImageSizeTest sends notifications with all different image sizes to test the threshold.
+func sendImageSizeTest(conn *dbus.Conn) {
+	fmt.Println("[TEST] Sending notifications with all image sizes (testing 100 KiB threshold)...")
+	fmt.Println()
+
+	for i, size := range testImageSizes {
+		imageData, desc := generateRandomTestImage(size)
+		dataSize := len(imageData.Data)
+
+		// Determine if this should be shown based on 100 KiB threshold
+		shouldShow := dataSize >= 102400
+		expectation := "should NOT appear"
+		if shouldShow {
+			expectation = "SHOULD appear"
+		}
+
+		hints := map[string]dbus.Variant{
+			"image-data": dbus.MakeVariant(imageData),
+		}
+
+		summary := fmt.Sprintf("Size Test %d: %s", i+1, size.Name)
+		body := fmt.Sprintf("[TEST] %s\n%d bytes - %s in body", desc, dataSize, expectation)
+
+		notify(conn, "Size Test", summary, body, "", hints, 10000)
+		fmt.Printf("  -> %s: %d bytes (%s)\n", size.Name, dataSize, expectation)
+		time.Sleep(300 * time.Millisecond)
+	}
+	randomDelay()
+}
+
+// sendIconAndImagePath sends a notification with BOTH app_icon AND image-path hint.
+// This tests that app_icon appears in the header/sidebar and image-path in the body.
+func sendIconAndImagePath(conn *dbus.Conn) {
+	fmt.Println("[TEST] Sending notification with BOTH app_icon AND image-path...")
+
+	// Use a size above threshold and random format
+	size := testImageSizes[4] // above: 200x200
+	filePath, formatName, err := writeRandomImageFile(size)
+	if err != nil {
+		log.Printf("Failed to create image file: %v", err)
+		return
+	}
+
+	hints := map[string]dbus.Variant{
+		"image-path": dbus.MakeVariant(filePath),
+	}
+
+	// app_icon = "thunderbird" (icon name)
+	// image-path = random pattern image file (displayed in body)
+	notify(conn, "thunderbird", "New Email",
+		fmt.Sprintf("[TEST] app_icon=thunderbird (header icon), image-path=%s %dx%d (body image).", formatName, size.Width, size.Height),
+		"thunderbird", hints, 15000)
+
+	// Clean up after daemon has time to read the file
+	time.Sleep(delay)
+	_ = os.Remove(filePath)
 	randomDelay()
 }
