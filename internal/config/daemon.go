@@ -12,6 +12,8 @@ import (
 	"github.com/go-viper/mapstructure/v2"
 	"github.com/spf13/pflag"
 	"github.com/spf13/viper"
+
+	"github.com/jmylchreest/histui/internal/types"
 )
 
 // ParseLogLevel converts a log level string to slog.Level.
@@ -32,55 +34,26 @@ func ParseLogLevel(level string) slog.Level {
 	}
 }
 
-// Duration is a time.Duration that can be unmarshaled from human-readable strings.
-// Supports formats like "5s", "10s", "1m", "1h30m", or integer milliseconds for backwards compatibility.
-//
-// Special values for timeout configuration:
-//   - "0" or "0s" = honor the client's requested timeout
-//   - "-1", "-1s", or "never" = notification never expires
-//   - positive value (e.g., "10s") = override with this timeout
-type Duration time.Duration
+// Type aliases for shared types from internal/types package.
+// See internal/types/types.go for documentation.
+type (
+	Duration = types.Duration
+	ByteSize = types.ByteSize
+)
 
-// UnmarshalText implements encoding.TextUnmarshaler for TOML parsing.
-func (d *Duration) UnmarshalText(text []byte) error {
-	s := strings.TrimSpace(string(text))
-
-	// Handle "never" as alias for -1 (never expire)
-	if strings.EqualFold(s, "never") {
-		*d = Duration(-1 * time.Millisecond)
-		return nil
-	}
-
-	// Try parsing as duration string first (e.g., "5s", "1m", "1h30m", "-1s")
-	if dur, err := time.ParseDuration(s); err == nil {
-		*d = Duration(dur)
-		return nil
-	}
-
-	// Try parsing as integer (milliseconds) for backwards compatibility
-	var ms int64
-	if _, err := fmt.Sscanf(s, "%d", &ms); err == nil {
-		*d = Duration(time.Duration(ms) * time.Millisecond)
-		return nil
-	}
-
-	return fmt.Errorf("invalid duration %q: must be like '5s', '1m', '1h30m', 'never', or milliseconds", s)
-}
-
-// MarshalText implements encoding.TextMarshaler for TOML output.
-func (d Duration) MarshalText() ([]byte, error) {
-	return []byte(time.Duration(d).String()), nil
-}
-
-// Milliseconds returns the duration in milliseconds.
-func (d Duration) Milliseconds() int {
-	return int(time.Duration(d).Milliseconds())
-}
-
-// Duration returns the underlying time.Duration.
-func (d Duration) Duration() time.Duration {
-	return time.Duration(d)
-}
+// Byte size constants (re-exported from types package)
+const (
+	// IEC binary units (base 1024)
+	KiB = types.KiB
+	MiB = types.MiB
+	GiB = types.GiB
+	TiB = types.TiB
+	// SI decimal units (base 1000)
+	KB = types.KB
+	MB = types.MB
+	GB = types.GB
+	TB = types.TB
+)
 
 // DaemonConfig is the configuration for histuid.
 // Loaded from ~/.config/histui/histuid.toml
@@ -107,12 +80,13 @@ type HistoryConfig struct {
 // Note: Sizing (width, height) is controlled by layout templates.
 // Note: Opacity/translucency is controlled by CSS themes.
 type DisplayConfig struct {
-	Position   string `toml:"position" mapstructure:"position"`       // "top-right", "top-left", etc.
-	OffsetX    int    `toml:"offset_x" mapstructure:"offset_x"`       // Pixels from screen edge
-	OffsetY    int    `toml:"offset_y" mapstructure:"offset_y"`       // Pixels from screen edge
-	MaxVisible int    `toml:"max_visible" mapstructure:"max_visible"` // Maximum simultaneous popups
-	Monitor    int    `toml:"monitor" mapstructure:"monitor"`         // 0 = all, 1+ = specific monitor
-	NewOnTop   bool   `toml:"new_on_top" mapstructure:"new_on_top"`   // If true, new notifications appear at top of stack
+	Position             string   `toml:"position" mapstructure:"position"`                               // "top-right", "top-left", etc.
+	OffsetX              int      `toml:"offset_x" mapstructure:"offset_x"`                               // Pixels from screen edge
+	OffsetY              int      `toml:"offset_y" mapstructure:"offset_y"`                               // Pixels from screen edge
+	MaxVisible           int      `toml:"max_visible" mapstructure:"max_visible"`                         // Maximum simultaneous popups
+	Monitor              int      `toml:"monitor" mapstructure:"monitor"`                                 // 0 = all, 1+ = specific monitor
+	NewOnTop             bool     `toml:"new_on_top" mapstructure:"new_on_top"`                           // If true, new notifications appear at top of stack
+	ImageDataPreviewSize ByteSize `toml:"image_data_preview_size" mapstructure:"image_data_preview_size"` // Control image-data display: -1/never, 0/always, or min size like "100 KiB"
 }
 
 // TimeoutConfig contains timeout settings per urgency level.
@@ -225,6 +199,7 @@ func setDefaults(v *viper.Viper) {
 	v.SetDefault("display.max_visible", 5)
 	v.SetDefault("display.monitor", 0)
 	v.SetDefault("display.new_on_top", false)
+	v.SetDefault("display.image_data_preview_size", "100 KiB") // Filter profile pics (<128x128), show album art
 
 	// Timeout defaults (as strings for Duration parsing)
 	// "0" = honor client, "-1" or "never" = never expire, positive = override
@@ -312,15 +287,49 @@ func stringToDurationHookFunc() mapstructure.DecodeHookFunc {
 	}
 }
 
+// stringToByteSizeHookFunc returns a mapstructure decode hook for ByteSize.
+func stringToByteSizeHookFunc() mapstructure.DecodeHookFunc {
+	return func(f reflect.Type, t reflect.Type, data interface{}) (interface{}, error) {
+		if t != reflect.TypeOf(ByteSize(0)) {
+			return data, nil
+		}
+
+		switch v := data.(type) {
+		case string:
+			var b ByteSize
+			if err := b.UnmarshalText([]byte(v)); err != nil {
+				return nil, err
+			}
+			return b, nil
+		case int, int64:
+			// Integer bytes
+			var bytes int64
+			switch val := v.(type) {
+			case int:
+				bytes = int64(val)
+			case int64:
+				bytes = val
+			}
+			return ByteSize(bytes), nil
+		case float64:
+			// Float bytes (from JSON/TOML number)
+			return ByteSize(int64(v)), nil
+		default:
+			return data, nil
+		}
+	}
+}
+
 // DefaultDaemonConfig returns a new DaemonConfig with default values.
 func DefaultDaemonConfig() *DaemonConfig {
 	return &DaemonConfig{
 		Display: DisplayConfig{
-			Position:   string(PositionTopRight),
-			OffsetX:    10,
-			OffsetY:    10,
-			MaxVisible: 5,
-			Monitor:    0,
+			Position:             string(PositionTopRight),
+			OffsetX:              10,
+			OffsetY:              10,
+			MaxVisible:           5,
+			Monitor:              0,
+			ImageDataPreviewSize: 100 * KiB, // filters profile pics, shows album art
 		},
 		Timeouts: TimeoutConfig{
 			Low:      Duration(0),                     // Honor client
@@ -446,11 +455,12 @@ func LoadDaemonConfigWithViper(v *viper.Viper) (*DaemonConfig, error) {
 		}
 	}
 
-	// Unmarshal with custom decode hook for Duration
+	// Unmarshal with custom decode hooks for Duration and ByteSize
 	var cfg DaemonConfig
 	decoderConfig := func(dc *mapstructure.DecoderConfig) {
 		dc.DecodeHook = mapstructure.ComposeDecodeHookFunc(
 			stringToDurationHookFunc(),
+			stringToByteSizeHookFunc(),
 			mapstructure.StringToTimeDurationHookFunc(),
 		)
 		dc.TagName = "mapstructure"
