@@ -1,97 +1,102 @@
 {
   "version": 1,
-  "generated_at": "2025-12-29T22:26:11Z",
+  "generated_at": "2025-12-29T22:49:49Z",
   "model": "xiaomi/mimo-v2-flash:free:online",
   "icons": {
+    "account": {
+      "type": "category",
+      "glyph": "md-badge_account_alert_outline",
+      "apps": [{"id":"gnome-control-center","confidence":0.9,"source":"package"},{"id":"gnome-system-monitor","confidence":0.8,"source":"package"},{"id":"org.gnome.Settings","confidence":0.9,"source":"flatpak"},{"id":"org.gnome.SystemMonitor","confidence":0.8,"source":"flatpak"},{"id":"org.kde.systemsettings","confidence":0.9,"source":"flatpak"},{"id":"systemsettings","confidence":0.9,"source":"package"}]
+    },
     "airplane": {
       "type": "category",
       "glyph": "md-airplane_settings",
-      "apps": [{"id":"gnome-settings-daemon","confidence":0.9,"source":"package"},{"id":"network-manager-applet","confidence":0.9,"source":"package"}]
+      "apps": [{"id":"gnome-settings-daemon","confidence":0.8,"source":"package"},{"id":"modem-manager-gui","confidence":0.8,"source":"package"},{"id":"network-manager-applet","confidence":0.8,"source":"package"}]
+    },
+    "alert": {
+      "type": "category",
+      "glyph": "md-alert_rhombus_outline",
+      "apps": [{"id":"apport-gtk","confidence":0.9,"source":"package"},{"id":"gnome-abrt","confidence":0.9,"source":"package"},{"id":"gnome-system-monitor","confidence":0.8,"source":"package"},{"id":"org.gnome.Abrt","confidence":0.9,"source":"flatpak"},{"id":"org.gnome.SystemMonitor","confidence":0.8,"source":"flatpak"}]
     },
     "android": {
       "type": "app",
       "glyph": "md-android_messages",
-      "apps": [{"id":"adb","confidence":0.9,"source":"package"},{"id":"kdeconnect","confidence":0.8,"source":"package"},{"id":"scrcpy","confidence":0.9,"source":"package"}]
+      "apps": [{"id":"android-sdk","confidence":0.9,"source":"package"},{"id":"android-tools","confidence":0.9,"source":"package"},{"id":"scrcpy","confidence":0.9,"source":"package"}]
     },
     "archive": {
       "type": "category",
-      "glyph": "md-archive_sync_outline",
-      "apps": [{"id":"ark","confidence":0.9,"source":"package"},{"id":"file-roller","confidence":0.9,"source":"package"},{"id":"org.gnome.FileRoller","confidence":0.9,"source":"flatpak"},{"id":"org.kde.ark","confidence":0.9,"source":"flatpak"},{"id":"org.peazip.PeaZip","confidence":0.7,"source":"flatpak"},{"id":"peazip","confidence":0.7,"source":"package"},{"id":"xarchiver","confidence":0.6,"source":"package"}]
+      "glyph": "md-folder_zip_outline",
+      "apps": [{"id":"ark","confidence":0.9,"source":"package"},{"id":"engrampa","confidence":0.8,"source":"package"},{"id":"file-roller","confidence":0.9,"source":"package"},{"id":"org.gnome.FileRoller","confidence":0.85,"source":"flatpak"}]
     },
     "atom": {
       "type": "category",
       "glyph": "md-atom_variant",
-      "apps": [{"id":"atom","confidence":1,"source":"package"},{"id":"io.atom.Atom","confidence":1,"source":"flatpak"}]
+      "apps": [{"id":"atom","confidence":0.8,"source":"package"},{"id":"github-atom","confidence":0.8,"source":"package"}]
     },
     "attachment": {
       "type": "category",
       "glyph": "md-paperclip_lock",
-      "apps": [{"id":"geary","confidence":0.8,"source":"package"},{"id":"org.gnome.Evolution","confidence":0.8,"source":"package"},{"id":"thunderbird","confidence":0.8,"source":"package"}]
+      "apps": [{"id":"geary","confidence":0.8,"source":"package"},{"id":"org.gnome.Evolution","confidence":0.85,"source":"package"},{"id":"thunderbird","confidence":0.9,"source":"package"}]
     },
     "audio": {
       "type": "category",
       "glyph": "seti-audio",
-      "apps": [{"id":"audacious","confidence":0.9,"source":"package"},{"id":"mpv","confidence":0.8,"source":"package"},{"id":"org.gnome.Music","confidence":0.9,"source":"desktop-file"},{"id":"org.gnome.Rhythmbox","confidence":0.9,"source":"flatpak"},{"id":"org.kde.elisa","confidence":0.9,"source":"desktop-file"},{"id":"org.mpv.MPV","confidence":0.8,"source":"flatpak"},{"id":"org.strawberrymusicplayer.strawberry","confidence":0.9,"source":"flatpak"},{"id":"org.videolan.VLC","confidence":0.9,"source":"flatpak"},{"id":"rhythmbox","confidence":0.9,"source":"package"},{"id":"vlc","confidence":0.9,"source":"package"}]
+      "apps": [{"id":"org.gnome.VolumeControl","confidence":0.9,"source":"category"},{"id":"org.kde.plasma.volume","confidence":0.9,"source":"category"},{"id":"pavucontrol","confidence":0.9,"source":"package"}]
     },
     "aws": {
       "type": "app",
       "glyph": "dev-amazonwebservices",
-      "apps": [{"id":"amazon-ecr-credential-helper","confidence":0.7,"source":"package"},{"id":"aws-cli","confidence":0.9,"source":"package"},{"id":"awscli2","confidence":0.9,"source":"package"}]
-    },
-    "barcode": {
-      "type": "category",
-      "glyph": "md-barcode_scan",
-      "apps": [{"id":"gscan2pdf","confidence":0.7,"source":"package"},{"id":"zbar","confidence":0.8,"source":"package"}]
+      "apps": [{"id":"amazon-ecr-credential-helper","confidence":0.8,"source":"package"},{"id":"aws-cli","confidence":0.9,"source":"package"},{"id":"awscli2","confidence":0.9,"source":"package"}]
     },
     "battery": {
       "type": "category",
-      "glyph": "md-microsoft_xbox_controller_battery_unknown",
-      "apps": [{"id":"gnome-control-center","confidence":0.9,"source":"package"},{"id":"mate-power-manager","confidence":0.9,"source":"package"},{"id":"systemsettings","confidence":0.9,"source":"package"},{"id":"xfce4-power-manager-settings","confidence":0.9,"source":"package"}]
+      "glyph": "md-car_battery",
+      "apps": [{"id":"gnome-power-statistics","confidence":0.95,"source":"package"},{"id":"laptop-mode-tools","confidence":0.8,"source":"package"},{"id":"org.gnome.PowerStats","confidence":0.95,"source":"flatpak"},{"id":"upower","confidence":0.9,"source":"package"},{"id":"xfce4-power-manager","confidence":0.95,"source":"package"}]
     },
     "beaker": {
       "type": "category",
       "glyph": "md-beaker_alert_outline",
-      "apps": [{"id":"gnome-recipes","confidence":0.6,"source":"package"}]
+      "apps": [{"id":"gnome-usage","confidence":0.8,"source":"package"},{"id":"laboratory","confidence":0.7,"source":"package"},{"id":"org.gnome.Usage","confidence":0.8,"source":"flatpak"}]
     },
     "bell": {
       "type": "category",
       "glyph": "md-bell_sleep_outline",
-      "apps": [{"id":"dunst","confidence":0.9,"source":"package"},{"id":"mako","confidence":0.9,"source":"package"},{"id":"notification-daemon","confidence":0.9,"source":"package"},{"id":"org.kde.plasma.workspace","confidence":0.9,"source":"package"},{"id":"xfce4-notifyd","confidence":0.9,"source":"package"}]
+      "apps": [{"id":"deadd-notification-center","confidence":0.7,"source":"package"},{"id":"dunst","confidence":0.8,"source":"package"},{"id":"gnome-shell","confidence":0.9,"source":"package"},{"id":"mako","confidence":0.8,"source":"package"},{"id":"org.gnome.Shell","confidence":0.9,"source":"desktop-file"},{"id":"plasmashell","confidence":0.9,"source":"package"},{"id":"xfce4-notifyd","confidence":0.8,"source":"package"}]
     },
     "bitbucket": {
       "type": "app",
       "glyph": "md-bitbucket",
-      "apps": [{"id":"bitbucket","confidence":0.5,"source":"package"},{"id":"git","confidence":0.8,"source":"package"}]
+      "apps": [{"id":"atlassian-bitbucket-server","confidence":0.7,"source":"package"},{"id":"bitbucket-cli","confidence":0.7,"source":"package"}]
     },
     "bluetooth": {
       "type": "category",
       "glyph": "md-bluetooth_transfer",
-      "apps": [{"id":"blueberry","confidence":0.9,"source":"package"},{"id":"blueman","confidence":0.9,"source":"package"},{"id":"bluez","confidence":0.9,"source":"package"}]
+      "apps": [{"id":"blueberry","confidence":0.95,"source":"package"},{"id":"blueman","confidence":0.95,"source":"package"},{"id":"bluetooth-manager","confidence":0.95,"source":"package"},{"id":"org.blueman.Blueman","confidence":0.95,"source":"flatpak"}]
     },
     "book": {
       "type": "category",
       "glyph": "md-book_sync_outline",
-      "apps": [{"id":"calibre","confidence":1,"source":"package"},{"id":"com.calibre_ebook.calibre","confidence":1,"source":"flatpak"},{"id":"com.github.johnfactotum.Foliate","confidence":0.9,"source":"flatpak"},{"id":"foliate","confidence":0.9,"source":"package"},{"id":"lbooks","confidence":0.7,"source":"package"}]
+      "apps": [{"id":"calibre","confidence":0.95,"source":"package"},{"id":"com.calibre_ebook.calibre","confidence":0.95,"source":"flatpak"},{"id":"gnome-books","confidence":0.9,"source":"package"},{"id":"org.gnome.Books","confidence":0.9,"source":"flatpak"}]
     },
     "bookmark": {
       "type": "category",
       "glyph": "md-bookmark_music_outline",
-      "apps": [{"id":"bookworm","confidence":0.8,"source":"package"},{"id":"foliate","confidence":0.8,"source":"package"}]
+      "apps": [{"id":"firefox","confidence":0.8,"source":"package"},{"id":"org.gnome.Epiphany","confidence":0.8,"source":"flatpak"},{"id":"org.mozilla.firefox","confidence":0.8,"source":"flatpak"}]
     },
     "briefcase": {
       "type": "category",
-      "glyph": "md-briefcase_clock_outline",
-      "apps": [{"id":"gnome-boxes","confidence":0.9,"source":"package"},{"id":"org.gnome.Boxes","confidence":0.9,"source":"flatpak"},{"id":"virt-manager","confidence":0.9,"source":"package"}]
+      "glyph": "md-briefcase_download_outline",
+      "apps": [{"id":"evolution","confidence":0.8,"source":"package"},{"id":"org.gnome.Evolution","confidence":0.8,"source":"flatpak"},{"id":"org.mozilla.Thunderbird","confidence":0.8,"source":"flatpak"},{"id":"thunderbird","confidence":0.8,"source":"package"}]
     },
     "browser": {
       "type": "category",
       "glyph": "cod-browser",
-      "apps": [{"id":"brave-browser","confidence":0.9,"source":"package"},{"id":"chromium","confidence":0.9,"source":"package"},{"id":"firefox","confidence":1,"source":"package"},{"id":"google-chrome","confidence":0.9,"source":"package"},{"id":"io.gitlab.librewolf.Librewolf","confidence":0.8,"source":"flatpak"},{"id":"librewolf","confidence":0.8,"source":"package"},{"id":"org.brave.Browser","confidence":0.9,"source":"flatpak"},{"id":"org.mozilla.firefox","confidence":1,"source":"flatpak"},{"id":"zen-browser","confidence":0.7,"source":"package"}]
+      "apps": [{"id":"brave-browser","confidence":0.95,"source":"package"},{"id":"chromium-browser","confidence":1,"source":"package"},{"id":"com.google.Chrome","confidence":0.95,"source":"flatpak"},{"id":"com.microsoft.Edge","confidence":0.9,"source":"flatpak"},{"id":"com.opera.Opera","confidence":0.9,"source":"flatpak"},{"id":"firefox","confidence":1,"source":"package"},{"id":"firefox-esr","confidence":0.9,"source":"package"},{"id":"google-chrome","confidence":1,"source":"package"},{"id":"io.github.librewolf.Librewolf","confidence":0.8,"source":"flatpak"},{"id":"io.github.zen_browser.zen","confidence":0.7,"source":"flatpak"},{"id":"librewolf","confidence":0.8,"source":"package"},{"id":"microsoft-edge","confidence":0.95,"source":"package"},{"id":"opera","confidence":0.95,"source":"package"},{"id":"org.gnome.Epiphany","confidence":0.9,"source":"flatpak"},{"id":"org.mozilla.firefox","confidence":1,"source":"flatpak"},{"id":"org.mozilla.firefox-nightly","confidence":0.8,"source":"flatpak"},{"id":"vivaldi-stable","confidence":0.95,"source":"package"}]
     },
     "browserstack": {
       "type": "app",
       "glyph": "dev-browserstack",
-      "apps": [{"id":"browserstack","confidence":0.5,"source":"package"}]
+      "apps": [{"id":"browserstack-cli","confidence":0.7,"source":"package"}]
     },
     "bus": {
       "type": "category",
@@ -101,187 +106,162 @@
     "calendar": {
       "type": "category",
       "glyph": "md-calendar_weekend_outline",
-      "apps": [{"id":"calcurse","confidence":0.6,"source":"package"},{"id":"gnome-calendar","confidence":0.9,"source":"package"},{"id":"korganizer","confidence":0.9,"source":"package"},{"id":"orage","confidence":0.7,"source":"package"},{"id":"org.gnome.Calendar","confidence":0.9,"source":"flatpak"},{"id":"org.kde.korganizer","confidence":0.9,"source":"flatpak"}]
+      "apps": [{"id":"evolution","confidence":0.9,"source":"package"},{"id":"gnome-calendar","confidence":0.9,"source":"package"},{"id":"korganizer","confidence":0.9,"source":"package"},{"id":"org.gnome.Calendar","confidence":0.9,"source":"flatpak"},{"id":"org.gnome.Evolution","confidence":0.9,"source":"flatpak"},{"id":"org.kde.korganizer","confidence":0.9,"source":"flatpak"},{"id":"org.mozilla.Thunderbird","confidence":0.8,"source":"flatpak"},{"id":"thunderbird","confidence":0.8,"source":"package"}]
     },
     "camera": {
       "type": "category",
       "glyph": "md-webcam_off",
-      "apps": [{"id":"cheese","confidence":0.9,"source":"package"},{"id":"guvcview","confidence":0.9,"source":"package"},{"id":"obs-studio","confidence":0.8,"source":"package"},{"id":"org.gnome.Cheese","confidence":0.9,"source":"flatpak"},{"id":"org.kde.kamoso","confidence":0.9,"source":"desktop-file"},{"id":"org.obsproject.Studio","confidence":0.8,"source":"flatpak"},{"id":"org.videolan.VLC","confidence":0.7,"source":"flatpak"},{"id":"vlc","confidence":0.7,"source":"package"}]
-    },
-    "car": {
-      "type": "category",
-      "glyph": "md-car_windshield_outline",
-      "apps": [{"id":"gnome-recipes","confidence":0.6,"source":"package"},{"id":"krecipes","confidence":0.6,"source":"package"}]
+      "apps": [{"id":"cheese","confidence":0.9,"source":"package"},{"id":"org.gnome.Snapshot","confidence":0.9,"source":"package"},{"id":"org.kde.kamera","confidence":0.9,"source":"package"}]
     },
     "card": {
       "type": "category",
       "glyph": "md-card_bulleted_settings_outline",
-      "apps": [{"id":"gnome-calculator","confidence":0.8,"source":"package"}]
+      "apps": [{"id":"gnome-contacts","confidence":0.9,"source":"package"},{"id":"kcontacts","confidence":0.9,"source":"package"},{"id":"org.gnome.Contacts","confidence":0.9,"source":"flatpak"}]
     },
     "cash": {
       "type": "category",
       "glyph": "md-cash_sync",
-      "apps": [{"id":"gnome-calculator","confidence":0.8,"source":"package"},{"id":"org.gnome.Calculator","confidence":0.8,"source":"flatpak"}]
+      "apps": [{"id":"gnome-calc","confidence":0.9,"source":"package"},{"id":"kcalc","confidence":0.9,"source":"package"},{"id":"org.gnome.Calculator","confidence":0.9,"source":"flatpak"}]
     },
     "cast": {
       "type": "category",
       "glyph": "md-cast_audio_variant",
-      "apps": [{"id":"gnome-network-displays","confidence":0.8,"source":"package"}]
-    },
-    "centercode": {
-      "type": "app",
-      "glyph": "fa-centercode",
-      "apps": [{"id":"centercode","confidence":0.5,"source":"package"}]
+      "apps": [{"id":"gnome-network-displays","confidence":0.95,"source":"package"},{"id":"org.gnome.NetworkDisplays","confidence":0.95,"source":"flatpak"},{"id":"org.videolan.VLC","confidence":0.8,"source":"flatpak"},{"id":"vlc","confidence":0.8,"source":"package"}]
     },
     "chart": {
       "type": "category",
       "glyph": "md-chart_sankey_variant",
-      "apps": [{"id":"gnome-system-monitor","confidence":0.9,"source":"package"},{"id":"htop","confidence":0.9,"source":"package"},{"id":"org.gnome.SystemMonitor","confidence":0.9,"source":"flatpak"}]
+      "apps": [{"id":"btop","confidence":0.9,"source":"package"},{"id":"gnome-system-monitor","confidence":0.9,"source":"package"},{"id":"htop","confidence":0.9,"source":"package"},{"id":"org.gnome.SystemMonitor","confidence":0.9,"source":"flatpak"}]
+    },
+    "chat": {
+      "type": "category",
+      "glyph": "md-chat_sleep_outline",
+      "apps": [{"id":"com.discordapp.Discord","confidence":0.9,"source":"flatpak"},{"id":"com.slack.Slack","confidence":0.9,"source":"flatpak"},{"id":"discord","confidence":0.9,"source":"package"},{"id":"org.telegram.desktop","confidence":0.9,"source":"flatpak"},{"id":"slack","confidence":0.9,"source":"package"},{"id":"telegram-desktop","confidence":0.9,"source":"package"}]
     },
     "chrome": {
       "type": "app",
       "glyph": "md-google_chrome",
-      "apps": [{"id":"brave-browser","confidence":0.8,"source":"package"},{"id":"chromium","confidence":0.9,"source":"package"},{"id":"google-chrome","confidence":1,"source":"package"},{"id":"microsoft-edge","confidence":0.8,"source":"package"},{"id":"vivaldi","confidence":0.8,"source":"package"}]
-    },
-    "chromecast": {
-      "type": "app",
-      "glyph": "fa-chromecast",
-      "apps": [{"id":"gnome-network-displays","confidence":0.8,"source":"package"}]
+      "apps": [{"id":"chromium","confidence":0.9,"source":"package"},{"id":"com.google.Chrome","confidence":0.95,"source":"flatpak"},{"id":"google-chrome","confidence":1,"source":"package"},{"id":"org.chromium.Chromium","confidence":0.85,"source":"flatpak"}]
     },
     "clipboard": {
       "type": "category",
       "glyph": "md-clipboard_text_clock_outline",
-      "apps": [{"id":"clipit","confidence":0.8,"source":"package"},{"id":"copyq","confidence":0.8,"source":"package"},{"id":"gnome-calculator","confidence":0.8,"source":"package"},{"id":"org.gnome.Calculator","confidence":0.8,"source":"flatpak"}]
+      "apps": [{"id":"copyq","confidence":0.9,"source":"package"},{"id":"gnome-calculator","confidence":0.8,"source":"package"},{"id":"org.gnome.Calculator","confidence":0.8,"source":"flatpak"},{"id":"xfce4-clipman","confidence":0.9,"source":"package"}]
     },
     "clock": {
       "type": "category",
       "glyph": "seti-clock",
-      "apps": [{"id":"gnome-clocks","confidence":0.9,"source":"package"},{"id":"kclock","confidence":0.9,"source":"package"},{"id":"orage","confidence":0.8,"source":"package"},{"id":"org.gnome.Calendar","confidence":0.8,"source":"desktop-file"},{"id":"org.gnome.Clocks","confidence":0.9,"source":"desktop-file"},{"id":"org.kde.kclock","confidence":0.9,"source":"desktop-file"},{"id":"org.kde.korganizer","confidence":0.8,"source":"desktop-file"}]
+      "apps": [{"id":"com.github.dainnil.kclock","confidence":1,"source":"flatpak"},{"id":"org.gnome.Clocks","confidence":1,"source":"package"},{"id":"org.kde.kclock","confidence":1,"source":"package"}]
     },
     "cloud": {
       "type": "category",
       "glyph": "md-cloud_tags",
-      "apps": [{"id":"com.dropbox.Client","confidence":0.9,"source":"flatpak"},{"id":"com.nextcloud.desktopclient.nextcloud","confidence":0.9,"source":"flatpak"},{"id":"dropbox","confidence":0.9,"source":"package"},{"id":"nextcloud-client","confidence":0.9,"source":"package"},{"id":"org.kde.kio-gdrive","confidence":0.7,"source":"package"},{"id":"syncthing-gtk","confidence":0.8,"source":"package"}]
+      "apps": [{"id":"com.dropbox.Client","confidence":0.9,"source":"flatpak"},{"id":"dropbox","confidence":0.9,"source":"package"},{"id":"nextcloud","confidence":0.9,"source":"package"},{"id":"org.gnome.Nautilus","confidence":0.8,"source":"desktop-file"},{"id":"org.kde.dolphin","confidence":0.8,"source":"desktop-file"},{"id":"org.nextcloud.NextcloudClient","confidence":0.9,"source":"flatpak"},{"id":"org.rclone.rclone","confidence":0.7,"source":"flatpak"},{"id":"rclone-browser","confidence":0.7,"source":"package"}]
     },
     "cloudflare": {
       "type": "app",
       "glyph": "dev-cloudflareworkers",
-      "apps": [{"id":"cloudflare-warp","confidence":0.9,"source":"package"},{"id":"cloudflared","confidence":0.9,"source":"package"}]
-    },
-    "cloudscale": {
-      "type": "app",
-      "glyph": "fa-cloudscale",
-      "apps": [{"id":"cloudscale","confidence":0.5,"source":"package"}]
-    },
-    "cloudsmith": {
-      "type": "app",
-      "glyph": "fa-cloudsmith",
-      "apps": [{"id":"cloudsmith","confidence":0.5,"source":"package"}]
-    },
-    "cloudversify": {
-      "type": "app",
-      "glyph": "fa-cloudversify",
-      "apps": [{"id":"cloudversify","confidence":0.5,"source":"package"}]
+      "apps": [{"id":"cloudflared","confidence":0.9,"source":"package"},{"id":"warp-cli","confidence":0.9,"source":"package"}]
     },
     "code": {
       "type": "category",
       "glyph": "md-code_tags_check",
-      "apps": [{"id":"atom","confidence":0.6,"source":"package"},{"id":"code","confidence":1,"source":"package"},{"id":"codium","confidence":0.9,"source":"package"},{"id":"com.todesktop.Cursor","confidence":0.8,"source":"flatpak"},{"id":"com.visualstudio.code","confidence":1,"source":"flatpak"},{"id":"com.windsurf.Windsurf","confidence":0.7,"source":"flatpak"},{"id":"cursor","confidence":0.8,"source":"package"},{"id":"dev.zed.Zed","confidence":0.9,"source":"flatpak"},{"id":"sublime-text","confidence":0.8,"source":"package"},{"id":"vscodium","confidence":0.9,"source":"package"},{"id":"windsurf","confidence":0.7,"source":"package"},{"id":"zed","confidence":0.9,"source":"package"}]
+      "apps": [{"id":"code","confidence":1,"source":"package"},{"id":"code-insiders","confidence":0.8,"source":"package"},{"id":"codium","confidence":0.9,"source":"package"},{"id":"com.todesktop.Cursor","confidence":0.8,"source":"flatpak"},{"id":"com.visualstudio.code","confidence":0.95,"source":"flatpak"},{"id":"com.vscodium.codium","confidence":0.9,"source":"flatpak"},{"id":"com.windsurf.Windsurf","confidence":0.8,"source":"flatpak"},{"id":"cursor","confidence":0.8,"source":"package"},{"id":"dev.zed.Zed","confidence":0.9,"source":"flatpak"},{"id":"org.gnome.gedit","confidence":0.6,"source":"flatpak"},{"id":"org.kde.kate","confidence":0.6,"source":"flatpak"},{"id":"windsurf","confidence":0.8,"source":"package"},{"id":"zed","confidence":0.9,"source":"package"}]
     },
     "codeac": {
       "type": "app",
       "glyph": "dev-codeac",
-      "apps": [{"id":"codeac","confidence":0.5,"source":"package"}]
+      "apps": [{"id":"codeac-cli","confidence":0.7,"source":"package"}]
     },
     "codeberg": {
       "type": "app",
       "glyph": "linux-codeberg",
-      "apps": [{"id":"codeberg","confidence":0.5,"source":"package"}]
+      "apps": [{"id":"codeberg-cli","confidence":0.7,"source":"package"}]
     },
     "codeclimate": {
       "type": "app",
       "glyph": "seti-code_climate",
-      "apps": [{"id":"gedit","confidence":0.6,"source":"package"},{"id":"gh","confidence":0.7,"source":"package"},{"id":"git","confidence":0.7,"source":"package"},{"id":"glab","confidence":0.7,"source":"package"},{"id":"org.gnome.gitg","confidence":0.7,"source":"desktop-file"},{"id":"org.kde.kate","confidence":0.6,"source":"desktop-file"}]
+      "apps": [{"id":"com.visualstudio.code","confidence":0.8,"source":"category"},{"id":"org.gnome.Builder","confidence":0.8,"source":"category"}]
     },
     "codecov": {
       "type": "app",
       "glyph": "dev-codecov",
-      "apps": [{"id":"codecov","confidence":0.5,"source":"package"}]
+      "apps": [{"id":"codecov-uploader","confidence":0.7,"source":"package"}]
     },
     "codeigniter": {
       "type": "app",
       "glyph": "dev-codeigniter",
-      "apps": [{"id":"codeigniter","confidence":0.5,"source":"package"}]
+      "apps": [{"id":"codeigniter4","confidence":0.7,"source":"package"}]
     },
     "codepen": {
       "type": "app",
       "glyph": "md-codepen",
-      "apps": [{"id":"codepen","confidence":0.5,"source":"package"}]
+      "apps": [{"id":"codepen-cli","confidence":0.7,"source":"package"}]
     },
     "comment": {
       "type": "category",
       "glyph": "md-comment_text_outline",
-      "apps": [{"id":"org.gnome.Evolution","confidence":0.8,"source":"package"},{"id":"org.gnome.Fractal","confidence":0.6,"source":"package"},{"id":"org.signal.Signal","confidence":0.6,"source":"package"},{"id":"org.telegram.desktop","confidence":0.6,"source":"package"},{"id":"thunderbird","confidence":0.8,"source":"package"}]
+      "apps": [{"id":"fractal","confidence":0.6,"source":"package"},{"id":"org.gnome.Evolution","confidence":0.8,"source":"package"},{"id":"pidgin","confidence":0.7,"source":"package"},{"id":"thunderbird","confidence":0.8,"source":"package"}]
     },
     "cookie": {
       "type": "category",
       "glyph": "md-cookie_settings_outline",
-      "apps": [{"id":"brave-browser","confidence":0.8,"source":"package"},{"id":"chromium","confidence":0.9,"source":"package"},{"id":"firefox","confidence":0.9,"source":"package"},{"id":"google-chrome","confidence":0.9,"source":"package"},{"id":"librewolf","confidence":0.7,"source":"package"},{"id":"org.mozilla.firefox","confidence":0.9,"source":"flatpak"},{"id":"vivaldi","confidence":0.8,"source":"package"},{"id":"zen-browser","confidence":0.7,"source":"package"}]
+      "apps": [{"id":"brave-browser","confidence":0.8,"source":"package"},{"id":"chromium","confidence":0.8,"source":"package"},{"id":"com.brave.Browser","confidence":0.85,"source":"flatpak"},{"id":"firefox","confidence":0.9,"source":"package"},{"id":"google-chrome","confidence":0.9,"source":"package"},{"id":"org.mozilla.firefox","confidence":0.9,"source":"package"}]
     },
     "cpu": {
       "type": "category",
       "glyph": "md-cpu_64_bit",
-      "apps": [{"id":"btop","confidence":0.8,"source":"package"},{"id":"gnome-system-monitor","confidence":0.9,"source":"package"},{"id":"htop","confidence":0.8,"source":"package"},{"id":"lxtask","confidence":0.8,"source":"package"},{"id":"org.kde.ksysguard","confidence":0.9,"source":"package"}]
+      "apps": [{"id":"btop","confidence":0.8,"source":"package"},{"id":"com.github.stsdc.monitor","confidence":0.7,"source":"flatpak"},{"id":"gnome-system-monitor","confidence":0.9,"source":"package"},{"id":"htop","confidence":0.8,"source":"package"},{"id":"ksysguard","confidence":0.9,"source":"package"}]
     },
     "credit_card": {
       "type": "category",
       "glyph": "md-credit_card_sync_outline",
-      "apps": [{"id":"atril","confidence":0.7,"source":"package"},{"id":"org.gnome.Documents","confidence":0.6,"source":"package"},{"id":"org.gnome.Evince","confidence":0.7,"source":"package"},{"id":"org.kde.okular","confidence":0.7,"source":"package"},{"id":"org.libreoffice.LibreOffice","confidence":0.7,"source":"package"}]
+      "apps": [{"id":"org.gnome.Epiphany","confidence":0.6,"source":"package"},{"id":"org.gnome.Notes","confidence":0.7,"source":"package"},{"id":"org.kde.knotes","confidence":0.7,"source":"package"},{"id":"org.mozilla.firefox","confidence":0.6,"source":"package"}]
     },
     "database": {
       "type": "category",
       "glyph": "md-database_sync_outline",
-      "apps": [{"id":"dbeaver","confidence":0.8,"source":"package"},{"id":"mysql-workbench","confidence":0.7,"source":"package"},{"id":"org.kde.kexi","confidence":0.7,"source":"package"},{"id":"pgadmin4","confidence":0.7,"source":"package"},{"id":"sqlitebrowser","confidence":0.7,"source":"package"}]
+      "apps": [{"id":"com.github.mariaclient","confidence":0.6,"source":"flatpak"},{"id":"dbeaver-ce","confidence":0.9,"source":"package"},{"id":"org.gnome.Nautilus","confidence":0.7,"source":"package"},{"id":"org.kde.dolphin","confidence":0.7,"source":"package"},{"id":"pgadmin4","confidence":0.8,"source":"package"}]
     },
     "delete": {
       "type": "category",
       "glyph": "md-delete_clock_outline",
-      "apps": [{"id":"org.gnome.Nautilus","confidence":0.8,"source":"package"},{"id":"org.gnome.Recipes","confidence":0.5,"source":"package"},{"id":"org.kde.dolphin","confidence":0.8,"source":"package"},{"id":"org.kde.krecipes","confidence":0.5,"source":"package"}]
+      "apps": [{"id":"caja","confidence":0.7,"source":"package"},{"id":"nemo","confidence":0.8,"source":"package"},{"id":"org.gnome.Nautilus","confidence":0.9,"source":"package"},{"id":"org.kde.dolphin","confidence":0.9,"source":"package"},{"id":"ranger","confidence":0.6,"source":"package"}]
     },
     "desktop": {
       "type": "category",
       "glyph": "md-remote_desktop",
-      "apps": [{"id":"cinnamon","confidence":0.9,"source":"package"},{"id":"mate-panel","confidence":0.9,"source":"package"},{"id":"org.gnome.Shell","confidence":0.9,"source":"package"},{"id":"plasmashell","confidence":0.9,"source":"package"},{"id":"xfce4-panel","confidence":0.9,"source":"package"}]
+      "apps": [{"id":"gnome-session","confidence":0.8,"source":"package"},{"id":"org.gnome.Shell","confidence":0.9,"source":"package"},{"id":"plasmashell","confidence":0.9,"source":"package"},{"id":"startplasma-x11","confidence":0.8,"source":"package"}]
     },
     "digitalocean": {
       "type": "app",
       "glyph": "md-digital_ocean",
-      "apps": [{"id":"digitalocean-agent","confidence":0.8,"source":"package"},{"id":"doctl","confidence":0.8,"source":"package"}]
+      "apps": [{"id":"digitalocean-agent","confidence":0.7,"source":"package"},{"id":"doctl","confidence":0.8,"source":"package"}]
     },
     "disc": {
       "type": "category",
       "glyph": "md-disc_alert",
-      "apps": [{"id":"brasero","confidence":0.8,"source":"package"},{"id":"deja-dup","confidence":0.7,"source":"package"},{"id":"k3b","confidence":0.8,"source":"package"},{"id":"xfburn","confidence":0.8,"source":"package"}]
+      "apps": [{"id":"brasero","confidence":0.8,"source":"package"},{"id":"deja-dup","confidence":0.7,"source":"package"},{"id":"k3b","confidence":0.8,"source":"package"},{"id":"xfburn","confidence":0.7,"source":"package"}]
     },
     "discord": {
       "type": "app",
       "glyph": "md-discord",
-      "apps": [{"id":"com.discordapp.Discord","confidence":0.95,"source":"flatpak"},{"id":"dev.vencord.Vesktop","confidence":0.7,"source":"flatpak"},{"id":"discord","confidence":1,"source":"package"},{"id":"discord-canary","confidence":0.85,"source":"package"},{"id":"discord-ptb","confidence":0.85,"source":"package"},{"id":"vesktop","confidence":0.7,"source":"package"},{"id":"webcord","confidence":0.6,"source":"package"}]
+      "apps": [{"id":"com.discordapp.Discord","confidence":0.95,"source":"flatpak"},{"id":"dev.vencord.Vesktop","confidence":0.7,"source":"flatpak"},{"id":"discord","confidence":1,"source":"package"},{"id":"discord-canary","confidence":0.85,"source":"package"},{"id":"vesktop","confidence":0.7,"source":"package"},{"id":"webcord","confidence":0.6,"source":"package"}]
     },
     "dishwasher": {
       "type": "category",
       "glyph": "md-dishwasher_alert",
-      "apps": [{"id":"org.gnome.Cheese","confidence":0.5,"source":"package"},{"id":"org.kde.kamera","confidence":0.5,"source":"package"}]
+      "apps": [{"id":"org.gnome.Calculator","confidence":0.6,"source":"package"},{"id":"org.kde.kcalc","confidence":0.6,"source":"package"}]
     },
     "disk": {
       "type": "category",
       "glyph": "fa-hard_drive",
-      "apps": [{"id":"gnome-disk-utility","confidence":0.9,"source":"package"},{"id":"gnome-disks","confidence":0.9,"source":"package"},{"id":"gparted","confidence":0.9,"source":"package"},{"id":"org.gnome.DiskUtility","confidence":0.9,"source":"flatpak"}]
+      "apps": [{"id":"gnome-disk-utility","confidence":0.95,"source":"package"},{"id":"gparted","confidence":0.95,"source":"package"},{"id":"org.gnome.DiskUtility","confidence":0.95,"source":"flatpak"},{"id":"org.kde.partitionmanager","confidence":0.9,"source":"flatpak"},{"id":"partitionmanager","confidence":0.9,"source":"package"}]
     },
     "docker": {
       "type": "app",
       "glyph": "seti-docker",
-      "apps": [{"id":"com.docker.docker","confidence":1,"source":"flatpak"},{"id":"docker","confidence":1,"source":"package"},{"id":"docker-buildx","confidence":0.9,"source":"package"},{"id":"docker-compose","confidence":0.9,"source":"package"},{"id":"docker-registry","confidence":0.9,"source":"package"},{"id":"org.podman.Podman","confidence":0.9,"source":"flatpak"},{"id":"podman","confidence":0.9,"source":"package"}]
+      "apps": [{"id":"docker","confidence":1,"source":"package"},{"id":"org.gnome.Docker","confidence":1,"source":"flatpak"}]
     },
     "door": {
       "type": "category",
@@ -296,77 +276,72 @@
     "download": {
       "type": "category",
       "glyph": "md-progress_download",
-      "apps": [{"id":"flameshot","confidence":0.6,"source":"package"},{"id":"org.gnome.Epiphany","confidence":0.7,"source":"package"},{"id":"org.gnome.Nautilus","confidence":0.8,"source":"package"},{"id":"org.kde.dolphin","confidence":0.8,"source":"package"},{"id":"org.kde.kget","confidence":0.7,"source":"package"},{"id":"transmission-gtk","confidence":0.7,"source":"package"}]
-    },
-    "draft2digital": {
-      "type": "app",
-      "glyph": "fa-draft2digital",
-      "apps": [{"id":"draft2digital","confidence":0.5,"source":"package"}]
+      "apps": [{"id":"org.gnome.Nautilus","confidence":0.9,"source":"package"},{"id":"org.kde.dolphin","confidence":0.9,"source":"package"},{"id":"org.qbittorrent.qBittorrent","confidence":0.8,"source":"flatpak"},{"id":"org.transmissionbt.Transmission","confidence":0.85,"source":"flatpak"},{"id":"transmission-gtk","confidence":0.8,"source":"package"}]
     },
     "dropbox": {
       "type": "app",
       "glyph": "md-dropbox",
-      "apps": [{"id":"com.dropbox.Client","confidence":0.9,"source":"flatpak"},{"id":"dropbox","confidence":0.9,"source":"package"}]
+      "apps": [{"id":"com.dropbox.Client","confidence":0.95,"source":"flatpak"},{"id":"dropbox","confidence":1,"source":"package"}]
     },
     "dumbbell": {
       "type": "category",
       "glyph": "md-dumbbell",
-      "apps": [{"id":"org.gnome.GnomeGames","confidence":0.7,"source":"package"},{"id":"org.kde.kguitar","confidence":0.6,"source":"package"}]
+      "apps": [{"id":"lutris","confidence":0.7,"source":"package"},{"id":"org.gnome.GnomeGames","confidence":0.7,"source":"package"}]
     },
     "edge": {
       "type": "app",
       "glyph": "md-microsoft_edge",
-      "apps": [{"id":"microsoft-edge","confidence":1,"source":"package"}]
+      "apps": [{"id":"com.microsoft.Edge","confidence":0.95,"source":"flatpak"},{"id":"microsoft-edge-dev","confidence":0.9,"source":"package"}]
     },
     "emacs": {
       "type": "app",
       "glyph": "dev-emacs",
-      "apps": [{"id":"doom-emacs","confidence":0.8,"source":"package"},{"id":"emacs","confidence":1,"source":"package"},{"id":"gnu.emacs","confidence":1,"source":"flatpak"},{"id":"spacemacs","confidence":0.8,"source":"package"}]
+      "apps": [{"id":"emacs","confidence":1,"source":"package"},{"id":"emacs-gtk","confidence":0.95,"source":"package"},{"id":"emacs-nativecomp","confidence":0.95,"source":"package"},{"id":"org.gnu.emacs","confidence":0.95,"source":"flatpak"}]
     },
     "email": {
       "type": "category",
       "glyph": "md-email_variant",
-      "apps": [{"id":"evolution","confidence":0.8,"source":"package"},{"id":"geary","confidence":0.8,"source":"package"},{"id":"org.gnome.Epiphany","confidence":0.5,"source":"package"},{"id":"org.gnome.Evolution","confidence":0.9,"source":"package"},{"id":"org.kde.kmail","confidence":0.8,"source":"package"},{"id":"org.mozilla.Thunderbird","confidence":0.9,"source":"flatpak"},{"id":"outlook","confidence":0.7,"source":"package"},{"id":"thunderbird","confidence":0.9,"source":"package"}]
+      "apps": [{"id":"geary","confidence":0.8,"source":"package"},{"id":"org.gnome.Evolution","confidence":0.9,"source":"package"},{"id":"org.kde.kmail","confidence":0.8,"source":"package"},{"id":"org.mozilla.Thunderbird","confidence":0.95,"source":"flatpak"},{"id":"protonmail-bridge","confidence":0.7,"source":"package"},{"id":"thunderbird","confidence":1,"source":"package"}]
     },
     "eye": {
       "type": "category",
       "glyph": "md-eye_settings_outline",
-      "apps": [{"id":"eog","confidence":0.8,"source":"package"},{"id":"gimp","confidence":0.7,"source":"package"},{"id":"org.gnome.Evince","confidence":0.8,"source":"package"},{"id":"org.kde.okular","confidence":0.8,"source":"package"}]
+      "apps": [{"id":"chromium","confidence":0.8,"source":"package"},{"id":"firefox","confidence":0.8,"source":"package"},{"id":"org.gnome.Epiphany","confidence":0.8,"source":"package"}]
     },
     "facebook": {
       "type": "app",
       "glyph": "md-facebook_workplace",
-      "apps": [{"id":"facebook-messenger","confidence":0.8,"source":"package"},{"id":"firefox","confidence":0.6,"source":"package"},{"id":"org.gnome.Epiphany","confidence":0.6,"source":"package"}]
+      "apps": [{"id":"com.facebook.Messenger","confidence":0.75,"source":"flatpak"},{"id":"facebook-messenger","confidence":0.8,"source":"package"},{"id":"firefox","confidence":0.6,"source":"package"}]
     },
     "fan": {
       "type": "category",
       "glyph": "md-fan_clock",
-      "apps": [{"id":"gnome-system-monitor","confidence":0.7,"source":"package"},{"id":"lm-sensors","confidence":0.7,"source":"package"},{"id":"psensor","confidence":0.7,"source":"package"}]
+      "apps": [{"id":"lm-sensors","confidence":0.7,"source":"package"},{"id":"org.gnome.Monitor","confidence":0.6,"source":"flatpak"},{"id":"psensor","confidence":0.8,"source":"package"}]
     },
     "file": {
       "type": "category",
       "glyph": "seti-new_file",
-      "apps": [{"id":"caja","confidence":0.9,"source":"package"},{"id":"nemo","confidence":0.9,"source":"package"},{"id":"org.gnome.Epiphany","confidence":0.5,"source":"desktop-file"},{"id":"org.gnome.Nautilus","confidence":0.9,"source":"desktop-file"},{"id":"org.kde.dolphin","confidence":0.9,"source":"desktop-file"},{"id":"org.kde.konqueror","confidence":0.5,"source":"desktop-file"},{"id":"org.xfce.thunar","confidence":0.9,"source":"desktop-file"}]
+      "apps": [{"id":"nemo","confidence":1,"source":"package"},{"id":"org.gnome.Nautilus","confidence":1,"source":"package"},{"id":"org.kde.dolphin","confidence":1,"source":"package"}]
     },
     "filezilla": {
       "type": "app",
       "glyph": "dev-filezilla",
-      "apps": [{"id":"filezilla","confidence":1,"source":"package"},{"id":"org.filezilla.Project","confidence":1,"source":"flatpak"}]
+      "apps": [{"id":"filezilla","confidence":1,"source":"package"},{"id":"org.filezilla.FileZilla","confidence":0.95,"source":"flatpak"}]
     },
     "filter": {
       "type": "category",
       "glyph": "md-filter_settings_outline",
-      "apps": [{"id":"darktable","confidence":0.7,"source":"package"},{"id":"gimp","confidence":0.7,"source":"package"},{"id":"org.kde.krita","confidence":0.7,"source":"package"},{"id":"rawtherapee","confidence":0.7,"source":"package"}]
+      "apps": [{"id":"org.gnome.Evolution","confidence":0.7,"source":"package"},{"id":"org.kde.kmail","confidence":0.7,"source":"package"},{"id":"thunderbird","confidence":0.7,"source":"package"}]
     },
     "fire": {
       "type": "category",
       "glyph": "md-fire_hydrant_alert",
-      "apps": [{"id":"firefox","confidence":0.9,"source":"package"},{"id":"librewolf","confidence":0.8,"source":"package"},{"id":"org.mozilla.firefox","confidence":0.9,"source":"flatpak"},{"id":"zen-browser","confidence":0.8,"source":"package"}]
+      "apps": [{"id":"firefox","confidence":1,"source":"package"},{"id":"io.gitlab.librewolf.Librewolf","confidence":0.85,"source":"flatpak"},{"id":"librewolf","confidence":0.8,"source":"package"},{"id":"org.mozilla.firefox","confidence":0.95,"source":"flatpak"}]
     },
     "firefox": {
       "type": "app",
       "glyph": "seti-firefox",
-      "apps": [{"id":"brave","confidence":0.6,"source":"package"},{"id":"chromium","confidence":0.6,"source":"package"},{"id":"firefox","confidence":1,"source":"package"},{"id":"firefox-esr","confidence":0.95,"source":"package"},{"id":"firefox-nightly","confidence":0.95,"source":"package"},{"id":"google-chrome","confidence":0.6,"source":"package"},{"id":"icecat","confidence":0.9,"source":"package"},{"id":"librewolf","confidence":0.9,"source":"package"},{"id":"org.gnome.Epiphany","confidence":0.6,"source":"desktop-file"},{"id":"org.gnu.gnuzilla","confidence":0.9,"source":"flatpak"},{"id":"org.mozilla.firefox","confidence":1,"source":"flatpak"},{"id":"org.mozilla.librewolf","confidence":0.9,"source":"flatpak"},{"id":"vivaldi","confidence":0.6,"source":"package"},{"id":"waterfox","confidence":0.9,"source":"package"}]
+      "apps": [{"id":"firefox","confidence":1,"source":"package"},{"id":"firefox-esr","confidence":0.95,"source":"package"},{"id":"librewolf","confidence":0.9,"source":"package"},{"id":"org.mozilla.firefox","confidence":1,"source":"flatpak"},{"id":"waterfox","confidence":0.9,"source":"package"}]
     },
     "flash": {
       "type": "category",
@@ -376,77 +351,97 @@
     "folder": {
       "type": "category",
       "glyph": "seti-git_folder",
-      "apps": [{"id":"caja","confidence":0.9,"source":"package"},{"id":"nemo","confidence":0.9,"source":"package"},{"id":"org.gnome.Epiphany","confidence":0.5,"source":"desktop-file"},{"id":"org.gnome.Nautilus","confidence":0.9,"source":"desktop-file"},{"id":"org.kde.dolphin","confidence":0.9,"source":"desktop-file"},{"id":"org.kde.konqueror","confidence":0.5,"source":"desktop-file"},{"id":"org.xfce.thunar","confidence":0.9,"source":"desktop-file"}]
+      "apps": [{"id":"nemo","confidence":1,"source":"package"},{"id":"org.gnome.Nautilus","confidence":1,"source":"package"},{"id":"org.kde.dolphin","confidence":1,"source":"package"},{"id":"thunar","confidence":1,"source":"package"}]
+    },
+    "form": {
+      "type": "category",
+      "glyph": "md-form_textbox_lock",
+      "apps": [{"id":"libreoffice","confidence":0.8,"source":"package"},{"id":"onlyoffice-desktopeditors","confidence":0.8,"source":"package"},{"id":"org.libreoffice.LibreOffice","confidence":0.85,"source":"flatpak"}]
     },
     "freecodecamp": {
       "type": "app",
       "glyph": "fa-free_code_camp",
-      "apps": [{"id":"freecodecamp","confidence":0.5,"source":"package"}]
+      "apps": [{"id":"freecodecamp","confidence":0.7,"source":"package"}]
     },
     "freedesktop": {
       "type": "app",
       "glyph": "linux-freedesktop",
-      "apps": [{"id":"xdg-desktop-portal","confidence":0.9,"source":"package"},{"id":"xdg-desktop-portal-gnome","confidence":0.9,"source":"package"}]
+      "apps": [{"id":"xdg-desktop-portal","confidence":0.95,"source":"package"},{"id":"xdg-desktop-portal-gnome","confidence":0.95,"source":"package"},{"id":"xdg-desktop-portal-kde","confidence":0.95,"source":"package"}]
+    },
+    "fridge": {
+      "type": "category",
+      "glyph": "md-fridge_variant_alert_outline",
+      "apps": [{"id":"org.gnome.Calculator","confidence":0.6,"source":"package"},{"id":"org.kde.kcalc","confidence":0.6,"source":"package"}]
+    },
+    "fuse": {
+      "type": "category",
+      "glyph": "md-fuse_alert",
+      "apps": [{"id":"org.gnome.Nautilus","confidence":0.7,"source":"package"},{"id":"udisks2","confidence":0.7,"source":"package"}]
     },
     "gamepad": {
       "type": "category",
       "glyph": "md-microsoft_xbox_controller_view",
-      "apps": [{"id":"com.valvesoftware.Steam","confidence":0.9,"source":"flatpak"},{"id":"heroic","confidence":0.7,"source":"package"},{"id":"lutris","confidence":0.8,"source":"package"},{"id":"org.prismlauncher.PrismLauncher","confidence":0.7,"source":"package"},{"id":"steam","confidence":0.9,"source":"package"}]
+      "apps": [{"id":"com.valvesoftware.Steam","confidence":0.95,"source":"flatpak"},{"id":"heroic","confidence":0.8,"source":"package"},{"id":"lutris","confidence":0.9,"source":"package"},{"id":"org.prismlauncher.PrismLauncher","confidence":0.8,"source":"flatpak"},{"id":"steam","confidence":1,"source":"package"}]
+    },
+    "garage": {
+      "type": "category",
+      "glyph": "md-garage_variant_lock",
+      "apps": [{"id":"org.gnome.Shell","confidence":0.6,"source":"package"},{"id":"plasmashell","confidence":0.6,"source":"package"}]
     },
     "gate": {
       "type": "category",
-      "glyph": "md-boom_gate_alert_outline",
-      "apps": [{"id":"gnome-recipes","confidence":0.6,"source":"package"}]
+      "glyph": "md-gate_alert",
+      "apps": [{"id":"org.gnome.Shell","confidence":0.6,"source":"package"},{"id":"plasmashell","confidence":0.6,"source":"package"}]
     },
     "git": {
       "type": "category",
       "glyph": "seti-git_ignore",
-      "apps": [{"id":"gh","confidence":0.8,"source":"package"},{"id":"giggle","confidence":0.8,"source":"package"},{"id":"git","confidence":1,"source":"package"},{"id":"git-cola","confidence":0.9,"source":"package"},{"id":"gitg","confidence":0.9,"source":"package"},{"id":"gitk","confidence":0.9,"source":"package"},{"id":"glab","confidence":0.8,"source":"package"},{"id":"lazygit","confidence":0.8,"source":"package"},{"id":"org.freedesktop.gitg","confidence":0.9,"source":"flatpak"},{"id":"org.gnome.gitg","confidence":0.9,"source":"desktop-file"},{"id":"org.kde.gitk","confidence":0.9,"source":"desktop-file"},{"id":"qgit","confidence":0.8,"source":"package"},{"id":"tig","confidence":0.8,"source":"package"}]
+      "apps": [{"id":"git-cola","confidence":0.9,"source":"package"},{"id":"gitkraken","confidence":0.9,"source":"package"},{"id":"org.gnome.gitg","confidence":0.9,"source":"package"},{"id":"org.kde.gitk","confidence":0.9,"source":"package"}]
     },
     "gitbook": {
       "type": "app",
       "glyph": "dev-gitbook",
-      "apps": [{"id":"gitbook","confidence":0.5,"source":"package"}]
+      "apps": [{"id":"gitbook-cli","confidence":0.7,"source":"package"}]
     },
     "gitea": {
       "type": "app",
       "glyph": "linux-gitea",
-      "apps": [{"id":"gitea","confidence":0.9,"source":"package"},{"id":"io.gitea.Client","confidence":0.9,"source":"flatpak"}]
+      "apps": [{"id":"gitea","confidence":0.9,"source":"package"},{"id":"org.gitea.Gitea","confidence":0.9,"source":"flatpak"}]
     },
     "github": {
       "type": "app",
       "glyph": "seti-github",
-      "apps": [{"id":"gh","confidence":1,"source":"package"},{"id":"git","confidence":0.8,"source":"package"},{"id":"git-cola","confidence":0.8,"source":"package"},{"id":"gitg","confidence":0.8,"source":"package"},{"id":"gitk","confidence":0.8,"source":"package"},{"id":"hub","confidence":1,"source":"package"},{"id":"lazygit","confidence":0.8,"source":"package"},{"id":"org.gnome.gitg","confidence":0.8,"source":"desktop-file"}]
+      "apps": [{"id":"github-desktop","confidence":1,"source":"package"},{"id":"io.github.shifucmd.github-desktop","confidence":1,"source":"flatpak"}]
     },
     "gitkraken": {
       "type": "app",
       "glyph": "fa-gitkraken",
-      "apps": [{"id":"com.axosoft.GitKraken","confidence":1,"source":"flatpak"},{"id":"gitkraken","confidence":1,"source":"package"}]
+      "apps": [{"id":"com.axosoft.GitKraken","confidence":0.95,"source":"flatpak"},{"id":"gitkraken","confidence":1,"source":"package"}]
     },
     "gitlab": {
       "type": "app",
       "glyph": "seti-gitlab",
-      "apps": [{"id":"git","confidence":0.8,"source":"package"},{"id":"git-cola","confidence":0.8,"source":"package"},{"id":"gitg","confidence":0.8,"source":"package"},{"id":"gitk","confidence":0.8,"source":"package"},{"id":"glab","confidence":1,"source":"package"},{"id":"lazygit","confidence":0.8,"source":"package"},{"id":"org.gnome.gitg","confidence":0.8,"source":"desktop-file"}]
+      "apps": [{"id":"gitlab","confidence":1,"source":"package"},{"id":"org.gitlab.desktop","confidence":1,"source":"flatpak"}]
     },
     "gitpod": {
       "type": "app",
       "glyph": "dev-gitpod",
-      "apps": [{"id":"gitpod","confidence":0.5,"source":"package"}]
+      "apps": [{"id":"gitpod-cli","confidence":0.7,"source":"package"}]
     },
     "gitter": {
       "type": "app",
       "glyph": "fa-gitter",
-      "apps": [{"id":"gitter","confidence":0.5,"source":"package"}]
+      "apps": [{"id":"gitter","confidence":0.8,"source":"package"}]
     },
     "gittip": {
       "type": "app",
       "glyph": "fa-gittip",
-      "apps": [{"id":"gittip","confidence":0.5,"source":"package"}]
+      "apps": [{"id":"gittip","confidence":0.7,"source":"package"}]
     },
     "gmail": {
       "type": "app",
       "glyph": "md-gmail",
-      "apps": [{"id":"geary","confidence":0.8,"source":"package"},{"id":"org.gnome.Epiphany","confidence":0.6,"source":"package"},{"id":"org.gnome.Evolution","confidence":0.8,"source":"package"},{"id":"thunderbird","confidence":0.8,"source":"package"}]
+      "apps": [{"id":"firefox","confidence":0.7,"source":"package"},{"id":"google-chrome","confidence":0.7,"source":"package"},{"id":"thunderbird","confidence":0.6,"source":"package"}]
     },
     "googlecloud": {
       "type": "app",
@@ -456,87 +451,87 @@
     "googledrive": {
       "type": "app",
       "glyph": "md-google_drive",
-      "apps": [{"id":"google-drive-file-stream","confidence":0.8,"source":"package"},{"id":"org.gnome.Nautilus","confidence":0.6,"source":"package"}]
+      "apps": [{"id":"google-drive-file-stream","confidence":0.8,"source":"package"},{"id":"insync","confidence":0.8,"source":"package"},{"id":"rclone","confidence":0.7,"source":"package"}]
     },
     "head": {
       "type": "category",
       "glyph": "md-head_sync_outline",
-      "apps": [{"id":"org.gnome.Calls","confidence":0.7,"source":"package"},{"id":"org.kde.kdeconnect","confidence":0.7,"source":"package"},{"id":"pavucontrol","confidence":0.7,"source":"package"}]
+      "apps": [{"id":"audacity","confidence":0.8,"source":"package"},{"id":"org.gnome.SoundRecorder","confidence":0.8,"source":"package"},{"id":"org.kde.kdenlive","confidence":0.7,"source":"flatpak"}]
     },
     "heart": {
       "type": "category",
       "glyph": "md-heart_settings_outline",
-      "apps": [{"id":"org.gnome.Recipes","confidence":0.6,"source":"package"},{"id":"org.kde.krecipes","confidence":0.6,"source":"package"}]
+      "apps": [{"id":"org.gnome.Shell","confidence":0.7,"source":"package"},{"id":"plasmashell","confidence":0.7,"source":"package"}]
     },
     "help": {
       "type": "category",
       "glyph": "md-help_network_outline",
-      "apps": [{"id":"gnome-help","confidence":0.9,"source":"package"},{"id":"khelpcenter","confidence":0.9,"source":"package"},{"id":"yelp","confidence":0.9,"source":"package"}]
+      "apps": [{"id":"khelpcenter","confidence":0.9,"source":"package"},{"id":"org.gnome.Yelp","confidence":0.85,"source":"flatpak"},{"id":"yelp","confidence":0.9,"source":"package"}]
     },
     "home": {
       "type": "category",
       "glyph": "md-home_lock_open",
-      "apps": [{"id":"org.gnome.Nautilus","confidence":0.8,"source":"package"},{"id":"org.kde.dolphin","confidence":0.8,"source":"package"},{"id":"org.xfce.thunar","confidence":0.8,"source":"package"}]
+      "apps": [{"id":"nemo","confidence":0.8,"source":"package"},{"id":"org.gnome.Nautilus","confidence":0.9,"source":"package"},{"id":"org.kde.dolphin","confidence":0.9,"source":"package"}]
     },
     "icloud": {
       "type": "app",
       "glyph": "md-apple_icloud",
-      "apps": [{"id":"icloud","confidence":0.5,"source":"package"}]
+      "apps": [{"id":"icloud-for-linux","confidence":0.7,"source":"package"}]
     },
     "id": {
       "type": "category",
       "glyph": "fa-drivers_license_o",
-      "apps": [{"id":"seahorse","confidence":0.8,"source":"package"}]
+      "apps": [{"id":"gnome-keyring","confidence":0.8,"source":"package"},{"id":"org.gnome.seahorse","confidence":0.8,"source":"flatpak"},{"id":"seahorse","confidence":0.8,"source":"package"}]
     },
     "image": {
       "type": "category",
       "glyph": "seti-image",
-      "apps": [{"id":"eog","confidence":0.9,"source":"package"},{"id":"gimp","confidence":0.8,"source":"package"},{"id":"gwenview","confidence":0.9,"source":"package"},{"id":"nomacs","confidence":0.9,"source":"package"},{"id":"org.gimp.GIMP","confidence":0.8,"source":"flatpak"},{"id":"org.gnome.Shotwell","confidence":0.8,"source":"flatpak"},{"id":"org.gnome.eog","confidence":0.9,"source":"desktop-file"},{"id":"org.kde.gwenview","confidence":0.9,"source":"desktop-file"},{"id":"org.nomacs.ImageLounge","confidence":0.9,"source":"flatpak"},{"id":"shotwell","confidence":0.8,"source":"package"}]
+      "apps": [{"id":"org.gnome.EyeOfGnome","confidence":0.9,"source":"package"},{"id":"org.gnome.eog","confidence":0.9,"source":"package"},{"id":"org.kde.gwenview","confidence":0.9,"source":"package"}]
     },
     "incognito": {
       "type": "category",
       "glyph": "md-incognito_off",
-      "apps": [{"id":"chromium","confidence":0.9,"source":"package"},{"id":"firefox","confidence":0.9,"source":"package"},{"id":"google-chrome","confidence":0.9,"source":"package"},{"id":"org.mozilla.firefox","confidence":0.9,"source":"flatpak"}]
+      "apps": [{"id":"chromium","confidence":0.8,"source":"package"},{"id":"firefox","confidence":0.9,"source":"package"},{"id":"google-chrome","confidence":0.9,"source":"package"}]
     },
     "kettle": {
       "type": "category",
       "glyph": "md-kettle_steam_outline",
-      "apps": [{"id":"org.gnome.Recipes","confidence":0.6,"source":"package"},{"id":"org.kde.krecipes","confidence":0.6,"source":"package"}]
+      "apps": [{"id":"org.gnome.Calculator","confidence":0.6,"source":"package"},{"id":"org.kde.kcalc","confidence":0.6,"source":"package"}]
     },
     "kettlebell": {
       "type": "category",
       "glyph": "md-kettlebell",
-      "apps": [{"id":"org.gnome.GnomeGames","confidence":0.6,"source":"package"}]
+      "apps": [{"id":"lutris","confidence":0.7,"source":"package"},{"id":"org.gnome.GnomeGames","confidence":0.7,"source":"package"}]
     },
     "key": {
       "type": "category",
       "glyph": "md-key_wireless",
-      "apps": [{"id":"kgpg","confidence":0.9,"source":"package"},{"id":"org.kde.kleopatra","confidence":0.9,"source":"package"},{"id":"seahorse","confidence":0.9,"source":"package"}]
+      "apps": [{"id":"kgpg","confidence":0.9,"source":"package"},{"id":"kleopatra","confidence":0.8,"source":"package"},{"id":"org.gnome.seahorse","confidence":0.85,"source":"flatpak"},{"id":"seahorse","confidence":0.9,"source":"package"}]
     },
     "keybase": {
       "type": "app",
       "glyph": "fa-keybase",
-      "apps": [{"id":"com.keybase.Keybase","confidence":1,"source":"flatpak"},{"id":"keybase","confidence":1,"source":"package"}]
+      "apps": [{"id":"io.keybase.Keybase","confidence":0.9,"source":"flatpak"},{"id":"keybase","confidence":0.9,"source":"package"}]
     },
     "keyboard": {
       "type": "category",
       "glyph": "md-keyboard_variant",
-      "apps": [{"id":"gnome-control-center","confidence":0.9,"source":"package"},{"id":"mate-control-center","confidence":0.9,"source":"package"},{"id":"org.gnome.Settings","confidence":0.9,"source":"package"},{"id":"systemsettings","confidence":0.9,"source":"package"}]
+      "apps": [{"id":"fcitx5-configtool","confidence":0.8,"source":"package"},{"id":"gnome-tweaks","confidence":0.9,"source":"package"},{"id":"onboard","confidence":0.8,"source":"package"},{"id":"systemsettings5","confidence":0.9,"source":"package"}]
     },
     "keycdn": {
       "type": "app",
       "glyph": "fa-keycdn",
-      "apps": [{"id":"keycdn","confidence":0.5,"source":"package"}]
+      "apps": [{"id":"keycdn-cli","confidence":0.7,"source":"package"}]
     },
     "kubernetes": {
       "type": "app",
       "glyph": "md-kubernetes",
-      "apps": [{"id":"k9s","confidence":0.8,"source":"package"},{"id":"kubernetes-client","confidence":0.9,"source":"package"},{"id":"lens","confidence":0.8,"source":"package"},{"id":"org.kubernetes.kubectl","confidence":0.9,"source":"package"}]
+      "apps": [{"id":"k9s","confidence":0.8,"source":"package"},{"id":"kubectl","confidence":1,"source":"package"},{"id":"lens","confidence":0.8,"source":"package"}]
     },
     "laptop": {
       "type": "category",
       "glyph": "md-laptop_off",
-      "apps": [{"id":"gnome-control-center","confidence":0.8,"source":"package"},{"id":"systemsettings","confidence":0.8,"source":"package"},{"id":"xfce4-power-manager-settings","confidence":0.8,"source":"package"}]
+      "apps": [{"id":"gnome-control-center","confidence":0.9,"source":"package"},{"id":"powertop","confidence":0.8,"source":"package"},{"id":"systemsettings5","confidence":0.9,"source":"package"}]
     },
     "lightbulb": {
       "type": "category",
@@ -546,102 +541,117 @@
     "link": {
       "type": "category",
       "glyph": "md-link_lock",
-      "apps": [{"id":"firefox","confidence":0.8,"source":"package"},{"id":"google-chrome","confidence":0.8,"source":"package"},{"id":"org.gnome.Epiphany","confidence":0.8,"source":"package"}]
+      "apps": [{"id":"chromium","confidence":0.8,"source":"package"},{"id":"firefox","confidence":0.8,"source":"package"},{"id":"org.gnome.Epiphany","confidence":0.8,"source":"package"}]
     },
     "linkedin": {
       "type": "app",
       "glyph": "md-linkedin",
-      "apps": [{"id":"firefox","confidence":0.7,"source":"package"},{"id":"org.gnome.Epiphany","confidence":0.7,"source":"package"}]
+      "apps": [{"id":"firefox","confidence":0.7,"source":"package"},{"id":"google-chrome","confidence":0.7,"source":"package"}]
     },
     "lock": {
       "type": "category",
       "glyph": "seti-lock",
-      "apps": [{"id":"caja","confidence":0.8,"source":"package"},{"id":"nemo","confidence":0.8,"source":"package"},{"id":"org.freedesktop.secrets","confidence":0.6,"source":"service"},{"id":"org.gnome.Epiphany","confidence":0.6,"source":"desktop-file"},{"id":"org.gnome.Nautilus","confidence":0.8,"source":"desktop-file"},{"id":"org.kde.dolphin","confidence":0.8,"source":"desktop-file"},{"id":"org.kde.konqueror","confidence":0.6,"source":"desktop-file"},{"id":"org.xfce.thunar","confidence":0.8,"source":"desktop-file"},{"id":"seahorse","confidence":0.6,"source":"package"}]
+      "apps": [{"id":"org.gnome.Screensaver","confidence":0.9,"source":"system"},{"id":"org.kde.plasma.screenlocker","confidence":0.9,"source":"system"}]
     },
     "locker": {
       "type": "category",
       "glyph": "md-locker_multiple",
-      "apps": [{"id":"gnome-control-center","confidence":0.8,"source":"package"},{"id":"systemsettings","confidence":0.8,"source":"package"}]
+      "apps": [{"id":"gnome-screensaver","confidence":0.9,"source":"package"},{"id":"kscreenlocker","confidence":0.9,"source":"package"},{"id":"light-locker","confidence":0.8,"source":"package"}]
+    },
+    "makefile": {
+      "type": "category",
+      "glyph": "seti-makefile",
+      "apps": [{"id":"org.gnome.Builder","confidence":0.8,"source":"category"},{"id":"org.kde.kate","confidence":0.8,"source":"category"}]
     },
     "map": {
       "type": "category",
       "glyph": "md-map_marker_alert_outline",
-      "apps": [{"id":"google-earth-pro","confidence":0.7,"source":"package"},{"id":"org.gnome.Maps","confidence":0.9,"source":"package"},{"id":"org.kde.kmap","confidence":0.8,"source":"package"}]
+      "apps": [{"id":"gnome-maps","confidence":0.85,"source":"flatpak"},{"id":"org.gnome.Maps","confidence":0.9,"source":"package"},{"id":"org.kde.kmap","confidence":0.8,"source":"package"}]
     },
     "mastodon": {
       "type": "app",
       "glyph": "md-mastodon",
-      "apps": [{"id":"fractal","confidence":0.8,"source":"package"},{"id":"toot","confidence":0.8,"source":"package"},{"id":"tuba","confidence":0.8,"source":"package"}]
+      "apps": [{"id":"dev.geopjr.Tuba","confidence":0.85,"source":"flatpak"},{"id":"firefox","confidence":0.6,"source":"package"},{"id":"tuba","confidence":0.8,"source":"package"}]
+    },
+    "media": {
+      "type": "category",
+      "glyph": "md-audio_video_off",
+      "apps": [{"id":"gnome-photos","confidence":0.9,"source":"package"},{"id":"org.gnome.Photos","confidence":0.9,"source":"flatpak"},{"id":"org.videolan.VLC","confidence":0.9,"source":"flatpak"},{"id":"vlc","confidence":0.9,"source":"package"}]
     },
     "megaphone": {
       "type": "category",
       "glyph": "cod-megaphone",
-      "apps": [{"id":"helvum","confidence":0.8,"source":"package"},{"id":"org.freedesktop.Helvum","confidence":0.8,"source":"flatpak"},{"id":"org.pulseaudio.pavucontrol","confidence":0.9,"source":"flatpak"},{"id":"pavucontrol","confidence":0.9,"source":"package"},{"id":"qpwgraph","confidence":0.8,"source":"package"}]
+      "apps": [{"id":"akregator","confidence":0.9,"source":"package"},{"id":"feedreader","confidence":0.9,"source":"package"},{"id":"org.gnome.FeedReader","confidence":0.9,"source":"flatpak"},{"id":"org.kde.akregator","confidence":0.9,"source":"flatpak"},{"id":"org.mozilla.Thunderbird","confidence":0.8,"source":"flatpak"},{"id":"thunderbird","confidence":0.8,"source":"package"}]
     },
     "memory": {
       "type": "category",
       "glyph": "md-memory",
-      "apps": [{"id":"btop","confidence":0.8,"source":"package"},{"id":"gnome-system-monitor","confidence":0.9,"source":"package"},{"id":"htop","confidence":0.8,"source":"package"},{"id":"org.kde.ksysguard","confidence":0.9,"source":"package"}]
+      "apps": [{"id":"btop","confidence":0.8,"source":"package"},{"id":"gnome-system-monitor","confidence":0.9,"source":"package"},{"id":"htop","confidence":0.8,"source":"package"},{"id":"ksysguard","confidence":0.9,"source":"package"}]
     },
     "message": {
       "type": "category",
       "glyph": "md-message_video",
-      "apps": [{"id":"discord","confidence":0.8,"source":"package"},{"id":"org.gnome.Fractal","confidence":0.8,"source":"package"},{"id":"org.telegram.desktop","confidence":0.8,"source":"package"},{"id":"signal-desktop","confidence":0.8,"source":"package"},{"id":"slack","confidence":0.7,"source":"package"},{"id":"teams","confidence":0.7,"source":"package"},{"id":"whatsapp-desktop","confidence":0.7,"source":"package"}]
+      "apps": [{"id":"com.discordapp.Discord","confidence":0.75,"source":"flatpak"},{"id":"discord","confidence":0.7,"source":"package"},{"id":"fractal","confidence":0.7,"source":"package"},{"id":"org.signal.Signal","confidence":0.85,"source":"flatpak"},{"id":"pidgin","confidence":0.8,"source":"package"},{"id":"signal-desktop","confidence":0.8,"source":"package"}]
+    },
+    "messenger": {
+      "type": "app",
+      "glyph": "md-facebook_messenger",
+      "apps": [{"id":"com.facebook.Messenger","confidence":0.75,"source":"flatpak"},{"id":"facebook-messenger","confidence":0.8,"source":"package"},{"id":"org.signal.Signal","confidence":0.75,"source":"flatpak"},{"id":"signal-desktop","confidence":0.7,"source":"package"}]
     },
     "microphone": {
       "type": "category",
       "glyph": "md-microphone_variant_off",
-      "apps": [{"id":"discord","confidence":0.8,"source":"package"},{"id":"org.gnome.Calls","confidence":0.8,"source":"package"},{"id":"org.kde.kmix","confidence":0.9,"source":"package"},{"id":"pavucontrol","confidence":0.9,"source":"package"}]
+      "apps": [{"id":"audacity","confidence":0.9,"source":"package"},{"id":"org.gnome.SoundRecorder","confidence":0.9,"source":"package"},{"id":"pavucontrol","confidence":0.8,"source":"package"}]
     },
     "mixcloud": {
       "type": "app",
       "glyph": "fa-mixcloud",
-      "apps": [{"id":"mixcloud","confidence":0.5,"source":"package"}]
+      "apps": [{"id":"mixcloud","confidence":0.7,"source":"package"}]
     },
     "mobile": {
       "type": "category",
       "glyph": "md-cellphone_wireless",
-      "apps": [{"id":"com.genymobile.scrcpy","confidence":0.9,"source":"flatpak"},{"id":"gnome-calls","confidence":0.8,"source":"package"},{"id":"kdeconnect","confidence":0.9,"source":"package"},{"id":"org.gnome.Calls","confidence":0.8,"source":"flatpak"},{"id":"org.kde.kdeconnect","confidence":0.9,"source":"flatpak"},{"id":"scrcpy","confidence":0.9,"source":"package"}]
+      "apps": [{"id":"gnome-network-displays","confidence":0.9,"source":"package"},{"id":"gsconnect","confidence":0.9,"source":"package"},{"id":"kdeconnect","confidence":0.9,"source":"package"},{"id":"org.gnome.Connections","confidence":0.8,"source":"flatpak"},{"id":"org.gnome.NetworkDisplays","confidence":0.9,"source":"flatpak"},{"id":"org.kde.kdeconnect","confidence":0.9,"source":"flatpak"},{"id":"virt-manager","confidence":0.8,"source":"package"}]
     },
     "monitor": {
       "type": "category",
       "glyph": "md-monitor_star",
-      "apps": [{"id":"arandr","confidence":0.8,"source":"package"},{"id":"gnome-control-center","confidence":0.9,"source":"package"},{"id":"nvidia-settings","confidence":0.8,"source":"package"},{"id":"systemsettings","confidence":0.9,"source":"package"}]
+      "apps": [{"id":"btop","confidence":0.8,"source":"package"},{"id":"gnome-system-monitor","confidence":0.9,"source":"package"},{"id":"htop","confidence":0.8,"source":"package"},{"id":"ksysguard","confidence":0.9,"source":"package"}]
     },
     "mouse": {
       "type": "category",
       "glyph": "md-mouse_bluetooth",
-      "apps": [{"id":"gnome-control-center","confidence":0.9,"source":"package"},{"id":"systemsettings","confidence":0.9,"source":"package"},{"id":"xfce4-mouse-settings","confidence":0.9,"source":"package"}]
+      "apps": [{"id":"gnome-tweaks","confidence":0.9,"source":"package"},{"id":"systemsettings5","confidence":0.9,"source":"package"}]
     },
     "movie": {
       "type": "category",
       "glyph": "md-movie_settings_outline",
-      "apps": [{"id":"celluloid","confidence":0.8,"source":"package"},{"id":"org.gnome.Totem","confidence":0.8,"source":"package"},{"id":"org.kde.kaffeine","confidence":0.8,"source":"package"},{"id":"totem","confidence":0.8,"source":"package"},{"id":"vlc","confidence":0.9,"source":"package"}]
+      "apps": [{"id":"mpv","confidence":0.8,"source":"package"},{"id":"org.kde.kdenlive","confidence":0.8,"source":"flatpak"},{"id":"org.videolan.VLC","confidence":0.9,"source":"flatpak"},{"id":"vlc","confidence":0.9,"source":"package"}]
     },
     "mpv": {
       "type": "app",
       "glyph": "linux-mpv",
-      "apps": [{"id":"io.mpv.Mpv","confidence":1,"source":"flatpak"},{"id":"mpv","confidence":1,"source":"package"}]
+      "apps": [{"id":"io.mpv.Mpv","confidence":0.95,"source":"flatpak"},{"id":"mpv","confidence":1,"source":"package"}]
     },
     "music": {
       "type": "category",
       "glyph": "md-playlist_music_outline",
-      "apps": [{"id":"audacious","confidence":0.8,"source":"package"},{"id":"celluloid","confidence":0.7,"source":"package"},{"id":"clementine","confidence":0.8,"source":"package"},{"id":"org.gnome.Lollypop","confidence":0.8,"source":"package"},{"id":"org.kde.elisa","confidence":0.8,"source":"package"},{"id":"rhythmbox","confidence":0.8,"source":"package"},{"id":"spotify","confidence":0.7,"source":"package"},{"id":"vlc","confidence":0.8,"source":"package"}]
+      "apps": [{"id":"com.spotify.Client","confidence":0.85,"source":"flatpak"},{"id":"org.gnome.Lollypop","confidence":0.8,"source":"package"},{"id":"org.kde.elisa","confidence":0.8,"source":"package"},{"id":"org.videolan.VLC","confidence":0.9,"source":"flatpak"},{"id":"spotify","confidence":0.8,"source":"package"},{"id":"vlc","confidence":0.9,"source":"package"}]
     },
     "neovim": {
       "type": "app",
       "glyph": "linux-neovim",
-      "apps": [{"id":"io.neovim.nvim","confidence":1,"source":"flatpak"},{"id":"neovim","confidence":1,"source":"package"},{"id":"nvim","confidence":1,"source":"package"}]
+      "apps": [{"id":"neovim","confidence":1,"source":"package"},{"id":"nvim","confidence":1,"source":"package"},{"id":"org.neovim.nvim","confidence":0.95,"source":"flatpak"}]
     },
     "network": {
       "type": "category",
       "glyph": "md-plus_network_outline",
-      "apps": [{"id":"kcm_networkmanagement","confidence":0.9,"source":"package"},{"id":"nm-connection-editor","confidence":0.9,"source":"package"},{"id":"nmtui","confidence":0.9,"source":"package"},{"id":"org.gnome.nm-applet","confidence":0.9,"source":"package"}]
+      "apps": [{"id":"connman-gtk","confidence":0.8,"source":"package"},{"id":"nm-connection-editor","confidence":0.9,"source":"package"},{"id":"nmtui","confidence":0.9,"source":"package"},{"id":"org.gnome.NetworkManager","confidence":0.85,"source":"flatpak"}]
     },
     "networkx": {
       "type": "app",
       "glyph": "dev-networkx",
-      "apps": [{"id":"networkx","confidence":0.5,"source":"package"}]
+      "apps": [{"id":"python-networkx","confidence":0.7,"source":"package"}]
     },
     "nodewebkit": {
       "type": "app",
@@ -651,107 +661,102 @@
     "note": {
       "type": "category",
       "glyph": "md-note_alert_outline",
-      "apps": [{"id":"gnome-notes","confidence":0.8,"source":"package"},{"id":"org.gnome.Notes","confidence":0.8,"source":"package"},{"id":"org.kde.knotes","confidence":0.8,"source":"package"},{"id":"xpad","confidence":0.8,"source":"package"}]
+      "apps": [{"id":"gnome-notes","confidence":0.85,"source":"flatpak"},{"id":"org.gnome.Notes","confidence":0.9,"source":"package"},{"id":"org.gnome.Recipes","confidence":0.7,"source":"flatpak"},{"id":"org.kde.knotes","confidence":0.9,"source":"package"}]
     },
     "notification": {
       "type": "category",
       "glyph": "md-notification_clear_all",
-      "apps": [{"id":"org.gnome.Shell","confidence":0.9,"source":"package"},{"id":"plasmashell","confidence":0.9,"source":"package"},{"id":"xfce4-notifyd","confidence":0.9,"source":"package"}]
+      "apps": [{"id":"dunst","confidence":0.8,"source":"package"},{"id":"gnome-shell","confidence":0.9,"source":"package"},{"id":"mako","confidence":0.8,"source":"package"},{"id":"plasmashell","confidence":0.9,"source":"package"}]
     },
     "office": {
       "type": "category",
       "glyph": "md-office_building_cog_outline",
-      "apps": [{"id":"abiword","confidence":0.8,"source":"package"},{"id":"gnumeric","confidence":0.8,"source":"package"},{"id":"onlyoffice-desktopeditors","confidence":0.8,"source":"package"},{"id":"org.libreoffice.LibreOffice","confidence":0.9,"source":"package"}]
+      "apps": [{"id":"libreoffice","confidence":1,"source":"package"},{"id":"onlyoffice-desktopeditors","confidence":0.9,"source":"package"},{"id":"org.libreoffice.LibreOffice","confidence":0.95,"source":"flatpak"},{"id":"org.onlyoffice.desktopeditors","confidence":0.85,"source":"flatpak"}]
     },
     "onedrive": {
       "type": "app",
       "glyph": "md-microsoft_onedrive",
-      "apps": [{"id":"grive2","confidence":0.8,"source":"package"},{"id":"onedrive","confidence":0.9,"source":"package"}]
+      "apps": [{"id":"onedrive","confidence":0.9,"source":"package"},{"id":"onedrive-abraunegg","confidence":0.85,"source":"package"}]
     },
     "opera": {
       "type": "app",
       "glyph": "md-opera",
-      "apps": [{"id":"opera","confidence":1,"source":"package"}]
+      "apps": [{"id":"com.opera.Opera","confidence":0.95,"source":"flatpak"},{"id":"opera","confidence":1,"source":"package"}]
     },
     "outlook": {
       "type": "app",
       "glyph": "md-microsoft_outlook",
-      "apps": [{"id":"outlook","confidence":0.9,"source":"package"},{"id":"thunderbird","confidence":0.8,"source":"package"}]
+      "apps": [{"id":"firefox","confidence":0.6,"source":"package"},{"id":"thunderbird","confidence":0.7,"source":"package"}]
     },
     "pen": {
       "type": "category",
       "glyph": "md-pen_lock",
-      "apps": [{"id":"libreoffice-writer","confidence":0.8,"source":"package"},{"id":"org.gnome.Documents","confidence":0.8,"source":"package"},{"id":"xournalpp","confidence":0.8,"source":"package"}]
+      "apps": [{"id":"libreoffice","confidence":0.8,"source":"package"},{"id":"org.gnome.Evince","confidence":0.8,"source":"package"}]
     },
     "pencil": {
       "type": "category",
       "glyph": "md-pencil_lock_outline",
-      "apps": [{"id":"libreoffice-writer","confidence":0.8,"source":"package"},{"id":"org.gnome.Documents","confidence":0.8,"source":"package"},{"id":"xournalpp","confidence":0.8,"source":"package"}]
+      "apps": [{"id":"libreoffice","confidence":0.8,"source":"package"},{"id":"org.gnome.Evince","confidence":0.8,"source":"package"},{"id":"xournalpp","confidence":0.8,"source":"package"}]
     },
     "phone": {
       "type": "category",
       "glyph": "md-phone_voip",
-      "apps": [{"id":"org.gnome.Calls","confidence":0.8,"source":"package"},{"id":"org.kde.kdeconnect","confidence":0.8,"source":"package"},{"id":"org.telegram.desktop","confidence":0.7,"source":"package"},{"id":"signal-desktop","confidence":0.7,"source":"package"},{"id":"whatsapp-desktop","confidence":0.6,"source":"package"}]
+      "apps": [{"id":"org.gnome.Calls","confidence":0.8,"source":"package"},{"id":"org.kde.phone","confidence":0.7,"source":"package"},{"id":"org.signal.Signal","confidence":0.85,"source":"flatpak"},{"id":"signal-desktop","confidence":0.8,"source":"package"},{"id":"whatsapp-desktop","confidence":0.7,"source":"package"}]
     },
     "photonengine": {
       "type": "app",
       "glyph": "dev-photonengine",
-      "apps": [{"id":"photon-engine","confidence":0.5,"source":"package"}]
+      "apps": [{"id":"photon-server-sdk","confidence":0.7,"source":"package"}]
     },
     "photoshop": {
       "type": "app",
       "glyph": "seti-photoshop",
-      "apps": [{"id":"darktable","confidence":0.8,"source":"package"},{"id":"gimp","confidence":0.9,"source":"package"},{"id":"inkscape","confidence":0.8,"source":"package"},{"id":"krita","confidence":0.9,"source":"package"},{"id":"org.darktable.Darktable","confidence":0.8,"source":"flatpak"},{"id":"org.gimp.GIMP","confidence":0.9,"source":"flatpak"},{"id":"org.inkscape.Inkscape","confidence":0.8,"source":"flatpak"},{"id":"org.kde.krita","confidence":0.9,"source":"flatpak"}]
+      "apps": [{"id":"com.adobe.Photoshop","confidence":0.9,"source":"flatpak"},{"id":"photoshop","confidence":0.8,"source":"package"}]
     },
     "picture_in_picture": {
       "type": "category",
       "glyph": "md-picture_in_picture_top_right_outline",
-      "apps": [{"id":"celluloid","confidence":0.8,"source":"package"},{"id":"org.gnome.Totem","confidence":0.8,"source":"package"},{"id":"vlc","confidence":0.8,"source":"package"}]
+      "apps": [{"id":"mpv","confidence":0.8,"source":"package"},{"id":"org.videolan.VLC","confidence":0.85,"source":"flatpak"},{"id":"vlc","confidence":0.9,"source":"package"}]
     },
     "play": {
       "type": "category",
       "glyph": "md-play_network_outline",
-      "apps": [{"id":"celluloid","confidence":0.8,"source":"package"},{"id":"org.kde.kaffeine","confidence":0.8,"source":"package"},{"id":"totem","confidence":0.8,"source":"package"},{"id":"vlc","confidence":0.9,"source":"package"}]
-    },
-    "plus": {
-      "type": "category",
-      "glyph": "md-plus_lock_open",
-      "apps": [{"id":"org.gnome.Nautilus","confidence":0.7,"source":"package"},{"id":"org.kde.dolphin","confidence":0.7,"source":"package"}]
+      "apps": [{"id":"audacious","confidence":0.8,"source":"package"},{"id":"org.gnome.Totem","confidence":0.8,"source":"package"},{"id":"org.videolan.VLC","confidence":0.85,"source":"flatpak"},{"id":"vlc","confidence":0.9,"source":"package"}]
     },
     "pot": {
       "type": "category",
       "glyph": "md-pot_steam_outline",
-      "apps": [{"id":"org.gnome.Recipes","confidence":0.7,"source":"package"},{"id":"org.kde.krecipes","confidence":0.7,"source":"package"}]
+      "apps": [{"id":"org.gnome.Calculator","confidence":0.6,"source":"package"},{"id":"org.kde.kcalc","confidence":0.6,"source":"package"}]
     },
     "power": {
       "type": "category",
       "glyph": "md-wind_power_outline",
-      "apps": [{"id":"cockpit","confidence":0.6,"source":"service"},{"id":"gnome-system-monitor","confidence":0.8,"source":"package"},{"id":"htop","confidence":0.8,"source":"package"},{"id":"lxtask","confidence":0.7,"source":"package"},{"id":"org.gnome.SystemMonitor","confidence":0.8,"source":"desktop-file"},{"id":"org.kde.ksysguard","confidence":0.8,"source":"desktop-file"},{"id":"plasma-systemmonitor","confidence":0.8,"source":"package"},{"id":"systemd","confidence":0.6,"source":"service"},{"id":"xfce4-taskmanager","confidence":0.7,"source":"package"}]
+      "apps": [{"id":"org.gnome.PowerManager","confidence":0.9,"source":"system"},{"id":"systemd","confidence":0.8,"source":"system"},{"id":"xfce4-power-manager","confidence":0.9,"source":"package"}]
     },
     "powerpoint": {
       "type": "app",
       "glyph": "md-microsoft_powerpoint",
-      "apps": [{"id":"libreoffice-impress","confidence":0.9,"source":"package"},{"id":"onlyoffice-desktopeditors","confidence":0.8,"source":"package"},{"id":"org.libreoffice.LibreOffice","confidence":0.9,"source":"flatpak"}]
+      "apps": [{"id":"libreoffice","confidence":0.8,"source":"package"},{"id":"onlyoffice-desktopeditors","confidence":0.8,"source":"package"}]
     },
     "powershell": {
       "type": "app",
       "glyph": "seti-powershell",
-      "apps": [{"id":"bash","confidence":0.7,"source":"package"},{"id":"fish","confidence":0.7,"source":"package"},{"id":"gnome-terminal","confidence":0.6,"source":"package"},{"id":"org.kde.konsole","confidence":0.6,"source":"desktop-file"},{"id":"org.powershell.Powershell","confidence":1,"source":"flatpak"},{"id":"powershell","confidence":1,"source":"package"},{"id":"pwsh","confidence":1,"source":"package"},{"id":"zsh","confidence":0.7,"source":"package"}]
+      "apps": [{"id":"com.microsoft.PowerShell","confidence":1,"source":"flatpak"},{"id":"powershell","confidence":1,"source":"package"}]
     },
     "printer": {
       "type": "category",
       "glyph": "md-printer_wireless",
-      "apps": [{"id":"gnome-printers-panel","confidence":0.9,"source":"package"},{"id":"org.kde.PrintQueue","confidence":0.9,"source":"package"},{"id":"system-config-printer","confidence":0.9,"source":"package"}]
+      "apps": [{"id":"kde-print-manager","confidence":0.9,"source":"package"},{"id":"org.gnome.Printers","confidence":0.85,"source":"flatpak"},{"id":"system-config-printer","confidence":0.9,"source":"package"}]
     },
     "progress": {
       "type": "category",
       "glyph": "md-progress_clock",
-      "apps": [{"id":"gnome-system-monitor","confidence":0.8,"source":"package"},{"id":"org.kde.ksysguard","confidence":0.8,"source":"package"}]
+      "apps": [{"id":"gnome-system-monitor","confidence":0.8,"source":"package"},{"id":"ksysguard","confidence":0.8,"source":"package"}]
     },
-    "qqchat": {
+    "qq": {
       "type": "app",
       "glyph": "md-qqchat",
-      "apps": [{"id":"qq","confidence":1,"source":"package"}]
+      "apps": [{"id":"com.qq.QQ","confidence":0.95,"source":"flatpak"},{"id":"qq","confidence":1,"source":"package"}]
     },
     "qrcode": {
       "type": "category",
@@ -761,492 +766,492 @@
     "reddit": {
       "type": "app",
       "glyph": "md-reddit",
-      "apps": [{"id":"org.gnome.Epiphany","confidence":0.6,"source":"package"},{"id":"rtv","confidence":0.8,"source":"package"},{"id":"tuir","confidence":0.8,"source":"package"}]
+      "apps": [{"id":"firefox","confidence":0.6,"source":"package"},{"id":"reddit","confidence":0.8,"source":"package"}]
     },
     "reload": {
       "type": "category",
       "glyph": "md-reload_alert",
-      "apps": [{"id":"org.gnome.Shell","confidence":0.8,"source":"package"},{"id":"plasmashell","confidence":0.8,"source":"package"}]
+      "apps": [{"id":"org.gnome.Nautilus","confidence":0.9,"source":"package"},{"id":"org.kde.dolphin","confidence":0.9,"source":"package"}]
     },
     "restart": {
       "type": "category",
       "glyph": "md-restart_alert",
-      "apps": [{"id":"gnome-control-center","confidence":0.9,"source":"package"},{"id":"systemsettings","confidence":0.9,"source":"package"}]
+      "apps": [{"id":"gnome-session","confidence":0.9,"source":"package"},{"id":"plasma-shutdown","confidence":0.9,"source":"package"}]
     },
     "restore": {
       "type": "category",
       "glyph": "md-restore_alert",
-      "apps": [{"id":"gnome-control-center","confidence":0.8,"source":"package"},{"id":"systemsettings","confidence":0.8,"source":"package"}]
+      "apps": [{"id":"gnome-session","confidence":0.9,"source":"package"},{"id":"plasma-shutdown","confidence":0.9,"source":"package"}]
     },
     "rocketchat": {
       "type": "app",
       "glyph": "fa-rocketchat",
-      "apps": [{"id":"org.rocket.Chat","confidence":0.8,"source":"flatpak"},{"id":"rocketchat","confidence":0.8,"source":"package"}]
+      "apps": [{"id":"chat.rocket.RocketChat","confidence":0.9,"source":"flatpak"},{"id":"rocketchat-desktop","confidence":0.9,"source":"package"}]
     },
     "router": {
       "type": "category",
       "glyph": "md-router_wireless_settings",
-      "apps": [{"id":"network-manager-applet","confidence":0.8,"source":"package"},{"id":"wicd","confidence":0.8,"source":"package"}]
+      "apps": [{"id":"network-manager-applet","confidence":0.9,"source":"package"},{"id":"nmtui","confidence":0.8,"source":"package"}]
     },
     "routes": {
       "type": "category",
       "glyph": "md-routes_clock",
-      "apps": [{"id":"org.gnome.Maps","confidence":0.8,"source":"package"}]
+      "apps": [{"id":"gnome-maps","confidence":0.85,"source":"flatpak"},{"id":"org.gnome.Maps","confidence":0.8,"source":"package"}]
     },
     "safari": {
       "type": "app",
       "glyph": "md-apple_safari",
-      "apps": [{"id":"safari","confidence":0.5,"source":"package"}]
+      "apps": [{"id":"safari","confidence":0.1,"source":"package"}]
     },
     "save": {
       "type": "category",
       "glyph": "md-content_save_settings_outline",
-      "apps": [{"id":"caja","confidence":0.8,"source":"package"},{"id":"nemo","confidence":0.8,"source":"package"},{"id":"org.gnome.Nautilus","confidence":0.8,"source":"package"},{"id":"org.kde.dolphin","confidence":0.8,"source":"package"},{"id":"org.xfce.thunar","confidence":0.8,"source":"package"}]
+      "apps": [{"id":"caja","confidence":0.7,"source":"package"},{"id":"nemo","confidence":0.8,"source":"package"},{"id":"org.gnome.Nautilus","confidence":0.9,"source":"package"},{"id":"org.kde.dolphin","confidence":0.9,"source":"package"}]
     },
     "saxophone": {
       "type": "category",
       "glyph": "md-saxophone",
-      "apps": [{"id":"org.gnome.Lollypop","confidence":0.6,"source":"package"},{"id":"org.kde.elisa","confidence":0.6,"source":"package"}]
+      "apps": [{"id":"org.gnome.Shell","confidence":0.6,"source":"package"},{"id":"plasmashell","confidence":0.6,"source":"package"}]
     },
     "scanner": {
       "type": "category",
       "glyph": "md-scanner_off",
-      "apps": [{"id":"simple-scan","confidence":0.9,"source":"package"},{"id":"skanlite","confidence":0.9,"source":"package"},{"id":"xsane","confidence":0.9,"source":"package"}]
+      "apps": [{"id":"org.gnome.SimpleScan","confidence":0.85,"source":"flatpak"},{"id":"simple-scan","confidence":0.9,"source":"package"},{"id":"skanlite","confidence":0.8,"source":"package"}]
     },
     "screen": {
       "type": "category",
       "glyph": "md-screen_rotation_lock",
-      "apps": [{"id":"flameshot","confidence":0.9,"source":"package"},{"id":"ksnip","confidence":0.9,"source":"package"},{"id":"org.gnome.Screenshot","confidence":0.9,"source":"package"}]
+      "apps": [{"id":"flameshot","confidence":0.8,"source":"package"},{"id":"gnome-screenshot","confidence":0.9,"source":"package"},{"id":"kscreen","confidence":0.9,"source":"package"}]
     },
     "script": {
       "type": "category",
       "glyph": "md-script_text_key_outline",
-      "apps": [{"id":"code","confidence":0.8,"source":"package"},{"id":"gedit","confidence":0.8,"source":"package"},{"id":"kate","confidence":0.8,"source":"package"},{"id":"mousepad","confidence":0.8,"source":"package"}]
+      "apps": [{"id":"code","confidence":0.8,"source":"package"},{"id":"gedit","confidence":0.9,"source":"package"},{"id":"kate","confidence":0.9,"source":"package"},{"id":"org.gnome.gedit","confidence":0.85,"source":"flatpak"}]
     },
     "search": {
       "type": "category",
       "glyph": "seti-code_search",
-      "apps": [{"id":"baloo","confidence":0.8,"source":"service"},{"id":"caja","confidence":0.9,"source":"package"},{"id":"catfish","confidence":0.9,"source":"package"},{"id":"nemo","confidence":0.9,"source":"package"},{"id":"org.gnome.Nautilus","confidence":0.9,"source":"desktop-file"},{"id":"org.gnome.Recipes","confidence":0.7,"source":"desktop-file"},{"id":"org.gnome.Software","confidence":0.7,"source":"desktop-file"},{"id":"org.kde.dolphin","confidence":0.9,"source":"desktop-file"},{"id":"org.xfce.thunar","confidence":0.9,"source":"desktop-file"},{"id":"tracker","confidence":0.8,"source":"service"}]
+      "apps": [{"id":"org.gnome.Calculator","confidence":0.8,"source":"category"},{"id":"org.gnome.Nautilus","confidence":0.9,"source":"category"},{"id":"org.kde.dolphin","confidence":0.9,"source":"category"}]
     },
     "security": {
       "type": "category",
       "glyph": "md-security_network",
-      "apps": [{"id":"gnome-control-center","confidence":0.8,"source":"package"},{"id":"seahorse","confidence":0.8,"source":"package"},{"id":"systemsettings","confidence":0.8,"source":"package"}]
+      "apps": [{"id":"firewalld","confidence":0.8,"source":"package"},{"id":"gnome-shell","confidence":0.8,"source":"package"},{"id":"plasmashell","confidence":0.8,"source":"package"}]
     },
     "send": {
       "type": "category",
       "glyph": "md-send_lock_outline",
-      "apps": [{"id":"geary","confidence":0.8,"source":"package"},{"id":"org.gnome.Evolution","confidence":0.8,"source":"package"},{"id":"thunderbird","confidence":0.8,"source":"package"}]
+      "apps": [{"id":"geary","confidence":0.8,"source":"package"},{"id":"org.gnome.Evolution","confidence":0.85,"source":"package"},{"id":"thunderbird","confidence":0.9,"source":"package"}]
     },
     "server": {
       "type": "category",
       "glyph": "md-server_security",
-      "apps": [{"id":"cockpit","confidence":0.8,"source":"package"},{"id":"proftpd","confidence":0.8,"source":"package"},{"id":"webmin","confidence":0.8,"source":"package"}]
+      "apps": [{"id":"cockpit","confidence":0.9,"source":"package"},{"id":"org.cockpit_project.Cockpit","confidence":0.85,"source":"flatpak"},{"id":"webmin","confidence":0.8,"source":"package"}]
     },
     "settings": {
       "type": "category",
       "glyph": "seti-settings",
-      "apps": [{"id":"gnome-control-center","confidence":0.9,"source":"package"},{"id":"gnome-tweaks","confidence":0.8,"source":"package"},{"id":"lxappearance","confidence":0.9,"source":"package"},{"id":"mate-control-center","confidence":0.9,"source":"package"},{"id":"org.gnome.Settings","confidence":0.9,"source":"desktop-file"},{"id":"org.kde.systemsettings","confidence":0.9,"source":"desktop-file"},{"id":"plasma-sdk","confidence":0.8,"source":"package"},{"id":"plasma-systemsettings","confidence":0.9,"source":"package"},{"id":"xfce4-settings-manager","confidence":0.9,"source":"package"}]
+      "apps": [{"id":"org.gnome.Settings","confidence":1,"source":"package"},{"id":"org.kde.systemsettings","confidence":1,"source":"package"}]
     },
     "shield": {
       "type": "category",
       "glyph": "md-shield_sync_outline",
-      "apps": [{"id":"clamav","confidence":0.5,"source":"package"},{"id":"fail2ban","confidence":0.5,"source":"package"},{"id":"firewalld","confidence":0.6,"source":"service"},{"id":"gufw","confidence":0.6,"source":"package"},{"id":"network-manager-openvpn","confidence":0.6,"source":"package"},{"id":"org.cisco.OpenConnect","confidence":0.6,"source":"package"},{"id":"org.freedesktop.secrets","confidence":0.7,"source":"service"},{"id":"org.fwupd","confidence":0.7,"source":"package"},{"id":"org.gnome.Shell","confidence":0.8,"source":"desktop-file"},{"id":"org.openvpn.OpenVPN","confidence":0.6,"source":"package"},{"id":"rkhunter","confidence":0.5,"source":"package"},{"id":"wireguard","confidence":0.6,"source":"package"}]
+      "apps": [{"id":"org.cisco","confidence":0.5,"source":"category"},{"id":"org.freedesktop.secrets","confidence":0.7,"source":"category"},{"id":"org.fwupd","confidence":0.7,"source":"package"},{"id":"org.gnome.Shell.Extensions","confidence":0.8,"source":"desktop-file"}]
     },
     "shopping": {
       "type": "category",
       "glyph": "md-shopping_music",
-      "apps": [{"id":"dnfdragora","confidence":0.7,"source":"desktop-file"},{"id":"io.elementary.appcenter","confidence":0.8,"source":"desktop-file"},{"id":"org.debian.packages.synaptic","confidence":0.7,"source":"desktop-file"},{"id":"org.flathub.flatpakref","confidence":0.8,"source":"service"},{"id":"org.gnome.Epiphany","confidence":0.4,"source":"desktop-file"},{"id":"org.gnome.Software","confidence":0.9,"source":"desktop-file"},{"id":"org.kde.discover","confidence":0.9,"source":"desktop-file"},{"id":"org.manjaro.pamac","confidence":0.8,"source":"desktop-file"},{"id":"org.mozilla.firefox","confidence":0.4,"source":"desktop-file"},{"id":"snap-store","confidence":0.8,"source":"package"}]
+      "apps": [{"id":"com.usebottles.bottles","confidence":0.5,"source":"category"},{"id":"org.gnome.Epiphany","confidence":0.6,"source":"category"},{"id":"org.gnome.Nautilus","confidence":0.8,"source":"category"},{"id":"org.kde.dolphin","confidence":0.8,"source":"category"}]
     },
     "signal": {
       "type": "category",
       "glyph": "md-signal_variant",
-      "apps": [{"id":"element-desktop","confidence":0.4,"source":"package"},{"id":"org.signal.Signal","confidence":1,"source":"flatpak"},{"id":"org.signal.Signal.Devel","confidence":0.9,"source":"flatpak"},{"id":"org.telegram.desktop","confidence":0.4,"source":"flatpak"},{"id":"signal-cli","confidence":0.8,"source":"package"},{"id":"signal-desktop","confidence":1,"source":"package"},{"id":"signal-desktop-beta","confidence":0.9,"source":"package"},{"id":"telegram-desktop","confidence":0.4,"source":"package"},{"id":"whatsapp-desktop","confidence":0.4,"source":"package"}]
+      "apps": [{"id":"org.signal.Signal","confidence":1,"source":"flatpak"},{"id":"signal","confidence":1,"source":"package"},{"id":"signal-desktop","confidence":1,"source":"package"}]
     },
     "signature": {
       "type": "category",
       "glyph": "md-signature_image",
-      "apps": [{"id":"gimp","confidence":0.5,"source":"package"},{"id":"inkscape","confidence":0.5,"source":"package"},{"id":"org.gnome.Evince","confidence":0.7,"source":"desktop-file"},{"id":"org.gnome.SimpleScan","confidence":0.6,"source":"desktop-file"},{"id":"org.kde.okular","confidence":0.7,"source":"desktop-file"},{"id":"org.kde.skanpage","confidence":0.6,"source":"desktop-file"},{"id":"org.libreoffice.LibreOffice","confidence":0.8,"source":"desktop-file"},{"id":"org.pdfarranger.pdfarranger","confidence":0.6,"source":"desktop-file"}]
+      "apps": [{"id":"com.github.libreoffice.libreoffice","confidence":0.6,"source":"category"},{"id":"org.gnome.Evince","confidence":0.7,"source":"category"},{"id":"org.kde.okular","confidence":0.7,"source":"category"}]
     },
     "sim": {
       "type": "category",
       "glyph": "md-sim_alert_outline",
-      "apps": [{"id":"ModemManager","confidence":0.8,"source":"service"},{"id":"connman-gtk","confidence":0.6,"source":"desktop-file"},{"id":"nm-tray","confidence":0.7,"source":"desktop-file"},{"id":"ofono","confidence":0.5,"source":"service"},{"id":"org.gnome.NetworkManager","confidence":0.7,"source":"desktop-file"},{"id":"plasma-nm","confidence":0.7,"source":"desktop-file"},{"id":"wvkbd","confidence":0.5,"source":"package"}]
+      "apps": [{"id":"ModemManager","confidence":0.8,"source":"system"},{"id":"chatty","confidence":0.6,"source":"package"},{"id":"org.gnome.NetworkManager","confidence":0.7,"source":"category"}]
     },
     "skype": {
       "type": "app",
       "glyph": "md-skype_business",
-      "apps": [{"id":"com.skype.Client","confidence":1,"source":"flatpak"},{"id":"org.telegram.desktop","confidence":0.4,"source":"flatpak"},{"id":"skypeforlinux","confidence":1,"source":"package"},{"id":"teams","confidence":0.4,"source":"package"},{"id":"zoom","confidence":0.4,"source":"package"}]
+      "apps": [{"id":"com.skype.Client","confidence":1,"source":"flatpak"},{"id":"skypeforlinux","confidence":1,"source":"package"}]
     },
     "slack": {
       "type": "app",
       "glyph": "md-slack",
-      "apps": [{"id":"com.slack.Slack","confidence":1,"source":"flatpak"},{"id":"discord","confidence":0.4,"source":"package"},{"id":"mattermost-desktop","confidence":0.4,"source":"package"},{"id":"slack","confidence":1,"source":"package"},{"id":"slack-beta","confidence":0.9,"source":"package"}]
+      "apps": [{"id":"com.slack.Slack","confidence":1,"source":"flatpak"},{"id":"slack","confidence":1,"source":"package"}]
     },
     "slackware": {
       "type": "app",
       "glyph": "linux-slackware_inverse",
-      "apps": [{"id":"slackpkg","confidence":0.9,"source":"package"}]
+      "apps": [{"id":"slackware","confidence":0.1,"source":"package"}]
     },
     "smoke_detector": {
       "type": "category",
       "glyph": "md-smoke_detector_variant_alert",
-      "apps": [{"id":"gnome-session","confidence":0.6,"source":"desktop-file"},{"id":"mate-session","confidence":0.6,"source":"desktop-file"},{"id":"org.cinnamon.desktop.session","confidence":0.6,"source":"desktop-file"},{"id":"org.freedesktop.portal.Desktop","confidence":0.7,"source":"service"},{"id":"org.freedesktop.portal.Inhibit","confidence":0.7,"source":"service"},{"id":"plasmashell","confidence":0.6,"source":"desktop-file"},{"id":"systemd","confidence":0.5,"source":"service"},{"id":"xfce4-session","confidence":0.6,"source":"desktop-file"}]
+      "apps": [{"id":"org.cups.cupsd","confidence":0.6,"source":"system"},{"id":"org.freedesktop.NetworkManager","confidence":0.7,"source":"system"}]
     },
     "snapchat": {
       "type": "app",
       "glyph": "md-snapchat",
-      "apps": [{"id":"discord","confidence":0.4,"source":"package"},{"id":"org.gnome.Epiphany","confidence":0.3,"source":"desktop-file"},{"id":"org.telegram.desktop","confidence":0.4,"source":"flatpak"},{"id":"signal-desktop","confidence":0.4,"source":"package"},{"id":"whatsapp-desktop","confidence":0.4,"source":"package"}]
+      "apps": [{"id":"com.snapchat.Snapchat","confidence":0.9,"source":"flatpak"},{"id":"snapchat","confidence":0.8,"source":"package"}]
     },
     "snowflake": {
       "type": "category",
       "glyph": "md-snowflake_alert",
-      "apps": [{"id":"fr.romainvigier.Nosefart","confidence":0.5,"source":"flatpak"},{"id":"meteo","confidence":0.8,"source":"package"},{"id":"org.gnome.Weather","confidence":0.8,"source":"desktop-file"},{"id":"org.kde.kpat","confidence":0.4,"source":"desktop-file"},{"id":"org.kde.kweather","confidence":0.8,"source":"desktop-file"},{"id":"org.kde.weather","confidence":0.8,"source":"desktop-file"}]
+      "apps": [{"id":"org.gnome.Weather","confidence":0.8,"source":"category"},{"id":"org.kde.kweather","confidence":0.8,"source":"category"}]
     },
     "snowmobile": {
       "type": "category",
       "glyph": "md-snowmobile",
-      "apps": [{"id":"meteo","confidence":0.7,"source":"package"},{"id":"org.gnome.Weather","confidence":0.7,"source":"desktop-file"},{"id":"org.kde.kclock","confidence":0.5,"source":"desktop-file"},{"id":"org.kde.kweather","confidence":0.7,"source":"desktop-file"},{"id":"org.kde.plasma.weather","confidence":0.6,"source":"desktop-file"}]
+      "apps": [{"id":"org.gnome.Maps","confidence":0.7,"source":"category"},{"id":"org.kde.kweather","confidence":0.6,"source":"category"}]
     },
     "sort": {
       "type": "category",
       "glyph": "md-sort_variant_lock_open",
-      "apps": [{"id":"caja","confidence":0.8,"source":"package"},{"id":"nemo","confidence":0.8,"source":"package"},{"id":"org.gnome.Calculator","confidence":0.5,"source":"desktop-file"},{"id":"org.gnome.Nautilus","confidence":0.8,"source":"desktop-file"},{"id":"org.kde.dolphin","confidence":0.8,"source":"desktop-file"},{"id":"org.kde.kcalc","confidence":0.5,"source":"desktop-file"},{"id":"org.xfce.thunar","confidence":0.8,"source":"desktop-file"}]
+      "apps": [{"id":"org.gnome.Files","confidence":0.8,"source":"category"},{"id":"org.gnome.Nautilus","confidence":0.8,"source":"category"},{"id":"org.kde.dolphin","confidence":0.8,"source":"category"}]
     },
     "soundcloud": {
       "type": "app",
       "glyph": "md-soundcloud",
-      "apps": [{"id":"audacious","confidence":0.6,"source":"package"},{"id":"org.gnome.Music","confidence":0.7,"source":"desktop-file"},{"id":"org.kde.elisa","confidence":0.7,"source":"desktop-file"},{"id":"org.kde.konqueror","confidence":0.4,"source":"desktop-file"},{"id":"org.strawberrymusicplayer.strawberry","confidence":0.6,"source":"flatpak"},{"id":"org.videolan.VLC","confidence":0.7,"source":"flatpak"},{"id":"vlc","confidence":0.7,"source":"package"}]
+      "apps": [{"id":"com.soundcloud.Soundcloud","confidence":0.9,"source":"flatpak"},{"id":"soundcloud","confidence":0.8,"source":"package"}]
     },
     "speaker": {
       "type": "category",
       "glyph": "md-speaker_wireless",
-      "apps": [{"id":"alsamixer","confidence":0.8,"source":"package"},{"id":"gnome-volume-control","confidence":0.8,"source":"package"},{"id":"org.cinnamon.volume-control","confidence":0.8,"source":"desktop-file"},{"id":"org.gnome.VolumeControl","confidence":0.9,"source":"desktop-file"},{"id":"org.kde.kmix","confidence":0.9,"source":"desktop-file"},{"id":"org.kde.plasma.volume","confidence":0.8,"source":"desktop-file"},{"id":"pavucontrol","confidence":0.9,"source":"package"},{"id":"pulsemixer","confidence":0.8,"source":"package"},{"id":"xfce4-mixer","confidence":0.8,"source":"package"}]
+      "apps": [{"id":"org.gnome.VolumeControl","confidence":0.9,"source":"category"},{"id":"org.kde.plasma.volume","confidence":0.9,"source":"category"},{"id":"pavucontrol","confidence":0.9,"source":"package"}]
     },
     "speakerdeck": {
       "type": "app",
       "glyph": "fa-speaker_deck",
-      "apps": [{"id":"speakerdeck","confidence":0.5,"source":"package"}]
+      "apps": [{"id":"speakerdeck-cli","confidence":0.7,"source":"package"}]
     },
     "speed": {
       "type": "category",
       "glyph": "fa-tachograph_digital",
-      "apps": [{"id":"fast","confidence":0.9,"source":"package"},{"id":"speedtest-cli","confidence":0.9,"source":"package"}]
+      "apps": [{"id":"iftop","confidence":0.9,"source":"package"},{"id":"nethogs","confidence":0.9,"source":"package"},{"id":"speedtest-cli","confidence":0.95,"source":"package"}]
     },
     "spider": {
       "type": "category",
       "glyph": "md-spider_web",
-      "apps": [{"id":"brave","confidence":0.8,"source":"package"},{"id":"chromium","confidence":0.8,"source":"package"},{"id":"firefox","confidence":0.8,"source":"package"},{"id":"google-chrome","confidence":0.8,"source":"package"},{"id":"org.gnome.Epiphany","confidence":0.8,"source":"desktop-file"},{"id":"org.gnu.gnuzilla","confidence":0.7,"source":"flatpak"},{"id":"org.kde.konqueror","confidence":0.7,"source":"desktop-file"},{"id":"org.midori_browser.Midori","confidence":0.7,"source":"flatpak"},{"id":"vivaldi","confidence":0.8,"source":"package"}]
+      "apps": [{"id":"org.gnome.Epiphany","confidence":0.7,"source":"category"},{"id":"org.mozilla.firefox","confidence":0.7,"source":"category"}]
     },
     "spotify": {
       "type": "app",
       "glyph": "md-spotify",
-      "apps": [{"id":"com.spotify.Client","confidence":1,"source":"flatpak"},{"id":"org.gnome.Music","confidence":0.5,"source":"desktop-file"},{"id":"org.kde.elisa","confidence":0.5,"source":"desktop-file"},{"id":"org.strawberrymusicplayer.strawberry","confidence":0.5,"source":"flatpak"},{"id":"spotify","confidence":1,"source":"package"},{"id":"vlc","confidence":0.5,"source":"package"}]
+      "apps": [{"id":"com.spotify.Client","confidence":1,"source":"flatpak"},{"id":"spotify","confidence":1,"source":"package"}]
     },
     "star": {
       "type": "category",
       "glyph": "md-star_settings_outline",
-      "apps": [{"id":"caja","confidence":0.8,"source":"package"},{"id":"nemo","confidence":0.8,"source":"package"},{"id":"org.gnome.Books","confidence":0.7,"source":"desktop-file"},{"id":"org.gnome.Evince","confidence":0.7,"source":"desktop-file"},{"id":"org.gnome.Nautilus","confidence":0.8,"source":"desktop-file"},{"id":"org.gnome.Recipes","confidence":0.6,"source":"desktop-file"},{"id":"org.kde.dolphin","confidence":0.8,"source":"desktop-file"},{"id":"org.kde.okular","confidence":0.7,"source":"desktop-file"},{"id":"org.libreoffice.LibreOffice","confidence":0.7,"source":"desktop-file"},{"id":"org.xfce.thunar","confidence":0.8,"source":"desktop-file"}]
+      "apps": [{"id":"org.gnome.Bookmarks","confidence":0.8,"source":"category"},{"id":"org.gnome.Nautilus","confidence":0.8,"source":"category"},{"id":"org.kde.dolphin","confidence":0.8,"source":"category"}]
     },
     "steam": {
       "type": "app",
       "glyph": "md-steam",
-      "apps": [{"id":"com.valvesoftware.Steam","confidence":1,"source":"flatpak"},{"id":"org.kde.kpat","confidence":0.4,"source":"desktop-file"},{"id":"org.prismlauncher.PrismLauncher","confidence":0.6,"source":"flatpak"},{"id":"steam","confidence":1,"source":"package"},{"id":"steam-devices","confidence":0.9,"source":"package"},{"id":"steam-native","confidence":0.9,"source":"package"}]
+      "apps": [{"id":"com.valvesoftware.Steam","confidence":1,"source":"flatpak"},{"id":"steam","confidence":1,"source":"package"}]
     },
     "sticker": {
       "type": "category",
       "glyph": "md-sticker_alert_outline",
-      "apps": [{"id":"com.discordapp.Discord","confidence":0.8,"source":"flatpak"},{"id":"discord","confidence":0.8,"source":"package"},{"id":"org.gnome.Empathy","confidence":0.6,"source":"desktop-file"},{"id":"org.signal.Signal","confidence":0.7,"source":"flatpak"},{"id":"org.telegram.desktop","confidence":0.8,"source":"flatpak"},{"id":"pidgin","confidence":0.6,"source":"package"},{"id":"signal-desktop","confidence":0.7,"source":"package"},{"id":"whatsapp-desktop","confidence":0.7,"source":"package"}]
+      "apps": [{"id":"com.discordapp.Discord","confidence":0.7,"source":"category"},{"id":"org.telegram.desktop","confidence":0.8,"source":"category"}]
     },
     "store": {
       "type": "category",
       "glyph": "md-store_settings_outline",
-      "apps": [{"id":"dnfdragora","confidence":0.8,"source":"desktop-file"},{"id":"io.elementary.appcenter","confidence":0.9,"source":"desktop-file"},{"id":"org.debian.packages.synaptic","confidence":0.8,"source":"desktop-file"},{"id":"org.flathub.flatpakref","confidence":0.8,"source":"service"},{"id":"org.gnome.Software","confidence":0.9,"source":"desktop-file"},{"id":"org.kde.discover","confidence":0.9,"source":"desktop-file"},{"id":"org.manjaro.pamac","confidence":0.9,"source":"desktop-file"},{"id":"snap-store","confidence":0.9,"source":"package"},{"id":"yast2","confidence":0.8,"source":"package"}]
+      "apps": [{"id":"com.solus_pkg","confidence":0.9,"source":"package"},{"id":"org.gnome.PackageUpdater","confidence":0.8,"source":"package"},{"id":"org.gnome.Software","confidence":0.9,"source":"package"},{"id":"org.kde.discover","confidence":0.9,"source":"package"}]
     },
     "sublime": {
       "type": "app",
       "glyph": "seti-sublime",
-      "apps": [{"id":"code","confidence":0.7,"source":"package"},{"id":"gedit","confidence":0.7,"source":"package"},{"id":"kate","confidence":0.7,"source":"package"},{"id":"org.gnome.TextEditor","confidence":0.7,"source":"desktop-file"},{"id":"org.kde.kate","confidence":0.7,"source":"desktop-file"},{"id":"org.sublimetext.three","confidence":1,"source":"flatpak"},{"id":"sublime-merge","confidence":1,"source":"package"},{"id":"sublime-text","confidence":1,"source":"package"},{"id":"vscode","confidence":0.7,"source":"package"},{"id":"vscodium","confidence":0.7,"source":"package"}]
+      "apps": [{"id":"com.sublimetext.three","confidence":1,"source":"flatpak"},{"id":"sublime-text","confidence":1,"source":"package"}]
     },
     "subway": {
       "type": "category",
       "glyph": "md-subway_alert_variant",
-      "apps": [{"id":"meteo","confidence":0.7,"source":"package"},{"id":"org.gnome.Maps","confidence":0.8,"source":"desktop-file"},{"id":"org.gnome.Weather","confidence":0.7,"source":"desktop-file"},{"id":"org.kde.kclock","confidence":0.6,"source":"desktop-file"},{"id":"org.kde.kmap","confidence":0.8,"source":"desktop-file"},{"id":"org.kde.kweather","confidence":0.7,"source":"desktop-file"}]
+      "apps": [{"id":"org.gnome.Maps","confidence":0.7,"source":"category"},{"id":"org.kde.kweather","confidence":0.6,"source":"category"}]
     },
     "sun": {
       "type": "category",
       "glyph": "md-sun_clock_outline",
-      "apps": [{"id":"meteo","confidence":0.9,"source":"package"},{"id":"org.gnome.Maps","confidence":0.7,"source":"desktop-file"},{"id":"org.gnome.Weather","confidence":0.9,"source":"desktop-file"},{"id":"org.kde.kclock","confidence":0.6,"source":"desktop-file"},{"id":"org.kde.kweather","confidence":0.9,"source":"desktop-file"},{"id":"org.kde.plasma.weather","confidence":0.8,"source":"desktop-file"}]
+      "apps": [{"id":"org.gnome.Weather","confidence":0.9,"source":"category"},{"id":"org.kde.kweather","confidence":0.9,"source":"category"}]
     },
     "superpowers": {
       "type": "app",
       "glyph": "fa-superpowers",
-      "apps": [{"id":"superpowers","confidence":0.5,"source":"package"}]
+      "apps": [{"id":"superpowers","confidence":0.7,"source":"package"}]
     },
     "sync": {
       "type": "category",
       "glyph": "md-sync_off",
-      "apps": [{"id":"caja","confidence":0.8,"source":"package"},{"id":"nemo","confidence":0.8,"source":"package"},{"id":"org.gnome.Evolution","confidence":0.7,"source":"desktop-file"},{"id":"org.gnome.Nautilus","confidence":0.8,"source":"desktop-file"},{"id":"org.gnome.Rhythmbox","confidence":0.7,"source":"desktop-file"},{"id":"org.kde.dolphin","confidence":0.8,"source":"desktop-file"},{"id":"org.kde.elisa","confidence":0.7,"source":"desktop-file"},{"id":"org.kde.kontact","confidence":0.7,"source":"desktop-file"},{"id":"org.libreoffice.LibreOffice","confidence":0.7,"source":"desktop-file"},{"id":"org.xfce.thunar","confidence":0.8,"source":"desktop-file"}]
+      "apps": [{"id":"org.gnome.Nautilus","confidence":0.8,"source":"category"},{"id":"org.gnome.Rhythmbox","confidence":0.7,"source":"category"},{"id":"org.kde.dolphin","confidence":0.8,"source":"category"}]
     },
     "table": {
       "type": "category",
       "glyph": "md-table_sync",
-      "apps": [{"id":"gnumeric","confidence":0.9,"source":"package"},{"id":"gnuplot","confidence":0.8,"source":"package"},{"id":"org.gnome.Calc","confidence":0.9,"source":"desktop-file"},{"id":"org.gnome.Sheets","confidence":0.9,"source":"flatpak"},{"id":"org.kde.kcalc","confidence":0.9,"source":"desktop-file"},{"id":"org.kde.kexi","confidence":0.8,"source":"desktop-file"},{"id":"org.libreoffice.LibreOffice","confidence":0.9,"source":"desktop-file"},{"id":"sc","confidence":0.8,"source":"package"},{"id":"sqlitebrowser","confidence":0.8,"source":"package"}]
+      "apps": [{"id":"org.gnome.Calculator","confidence":0.8,"source":"category"},{"id":"org.kde.kcalc","confidence":0.8,"source":"category"},{"id":"org.libreoffice.LibreOffice","confidence":0.8,"source":"category"}]
     },
     "tablet": {
       "type": "category",
       "glyph": "md-tablet_cellphone",
-      "apps": [{"id":"gnome-control-center","confidence":0.8,"source":"package"},{"id":"lxappearance","confidence":0.8,"source":"package"},{"id":"mate-control-center","confidence":0.8,"source":"package"},{"id":"org.gnome.Settings","confidence":0.8,"source":"desktop-file"},{"id":"org.kde.systemsettings","confidence":0.8,"source":"desktop-file"},{"id":"plasma-systemsettings","confidence":0.8,"source":"package"},{"id":"xfce4-settings-manager","confidence":0.8,"source":"package"}]
+      "apps": [{"id":"org.gnome.eog","confidence":0.7,"source":"category"},{"id":"org.kde.gwenview","confidence":0.7,"source":"category"}]
     },
     "tape": {
       "type": "category",
       "glyph": "md-tape_drive",
-      "apps": [{"id":"ardour","confidence":0.8,"source":"package"},{"id":"audacity","confidence":0.9,"source":"package"},{"id":"org.audacityteam.Audacity","confidence":0.9,"source":"flatpak"},{"id":"org.gnome.SoundRecorder","confidence":0.9,"source":"desktop-file"},{"id":"org.kde.krecorder","confidence":0.9,"source":"desktop-file"},{"id":"org.videolan.VLC","confidence":0.8,"source":"flatpak"},{"id":"vlc","confidence":0.8,"source":"package"}]
+      "apps": [{"id":"org.gnome.SoundRecorder","confidence":0.8,"source":"package"},{"id":"org.kde.krecorder","confidence":0.8,"source":"package"}]
     },
     "telegram": {
       "type": "app",
       "glyph": "fa-telegram",
-      "apps": [{"id":"org.telegram.desktop","confidence":1,"source":"flatpak"},{"id":"telegram-desktop","confidence":1,"source":"package"}]
+      "apps": [{"id":"org.telegram.desktop","confidence":0.95,"source":"flatpak"},{"id":"telegram-desktop","confidence":1,"source":"package"}]
     },
     "terminal": {
       "type": "category",
       "glyph": "seti-shell",
-      "apps": [{"id":"alacritty","confidence":0.9,"source":"package"},{"id":"ghostty","confidence":0.9,"source":"package"},{"id":"gnome-terminal","confidence":0.9,"source":"package"},{"id":"kitty","confidence":0.9,"source":"package"},{"id":"konsole","confidence":0.9,"source":"package"},{"id":"lxterminal","confidence":0.9,"source":"package"},{"id":"mate-terminal","confidence":0.9,"source":"package"},{"id":"org.gnome.Terminal","confidence":0.9,"source":"flatpak"},{"id":"org.kde.konsole","confidence":0.9,"source":"desktop-file"},{"id":"org.kde.konsole","confidence":0.9,"source":"flatpak"},{"id":"tilix","confidence":0.9,"source":"package"},{"id":"wezterm","confidence":0.9,"source":"package"},{"id":"xfce4-terminal","confidence":0.9,"source":"package"}]
+      "apps": [{"id":"com.github.stunkymonkey.alacritty","confidence":1,"source":"flatpak"},{"id":"io.ghostty.dev","confidence":1,"source":"flatpak"},{"id":"org.gnome.Terminal","confidence":1,"source":"package"},{"id":"org.kde.konsole","confidence":1,"source":"package"}]
     },
     "text": {
       "type": "category",
       "glyph": "md-text_recognition",
-      "apps": [{"id":"gedit","confidence":0.9,"source":"package"},{"id":"kate","confidence":0.9,"source":"package"},{"id":"mousepad","confidence":0.9,"source":"package"},{"id":"nano","confidence":0.8,"source":"package"},{"id":"org.gnome.TextEditor","confidence":0.9,"source":"desktop-file"},{"id":"org.gnome.gedit","confidence":0.9,"source":"flatpak"},{"id":"org.kde.kate","confidence":0.9,"source":"desktop-file"},{"id":"org.kde.kate","confidence":0.9,"source":"flatpak"},{"id":"vim","confidence":0.8,"source":"package"},{"id":"xed","confidence":0.9,"source":"package"}]
+      "apps": [{"id":"org.gnome.TextEditor","confidence":0.9,"source":"package"},{"id":"org.kde.kate","confidence":0.9,"source":"package"},{"id":"org.x.editor","confidence":0.9,"source":"package"}]
     },
     "thermometer": {
       "type": "category",
       "glyph": "md-thermometer_bluetooth",
-      "apps": [{"id":"meteo","confidence":0.9,"source":"package"},{"id":"org.gnome.Maps","confidence":0.7,"source":"desktop-file"},{"id":"org.gnome.Weather","confidence":0.9,"source":"desktop-file"},{"id":"org.kde.kclock","confidence":0.6,"source":"desktop-file"},{"id":"org.kde.kweather","confidence":0.9,"source":"desktop-file"},{"id":"org.kde.plasma.weather","confidence":0.8,"source":"desktop-file"}]
+      "apps": [{"id":"org.gnome.Weather","confidence":0.9,"source":"category"},{"id":"org.kde.kweather","confidence":0.9,"source":"category"}]
     },
     "thunderbird": {
       "type": "app",
       "glyph": "linux-thunderbird",
-      "apps": [{"id":"org.mozilla.Thunderbird","confidence":1,"source":"flatpak"},{"id":"thunderbird","confidence":1,"source":"package"}]
+      "apps": [{"id":"org.mozilla.Thunderbird","confidence":0.95,"source":"flatpak"},{"id":"thunderbird","confidence":1,"source":"package"}]
     },
     "timeline": {
       "type": "category",
       "glyph": "md-timeline_clock_outline",
-      "apps": [{"id":"gnome-calendar","confidence":0.8,"source":"package"},{"id":"orage","confidence":0.8,"source":"package"},{"id":"org.gnome.Calendar","confidence":0.8,"source":"desktop-file"},{"id":"org.gnome.Evolution","confidence":0.8,"source":"desktop-file"},{"id":"org.kde.kontact","confidence":0.8,"source":"desktop-file"},{"id":"org.kde.korganizer","confidence":0.8,"source":"desktop-file"},{"id":"org.mozilla.Thunderbird","confidence":0.8,"source":"flatpak"},{"id":"thunderbird","confidence":0.8,"source":"package"}]
+      "apps": [{"id":"org.gnome.History","confidence":0.8,"source":"package"},{"id":"org.kde.konsole","confidence":0.7,"source":"category"}]
     },
     "timer": {
       "type": "category",
       "glyph": "md-timer_sync_outline",
-      "apps": [{"id":"gnome-clocks","confidence":0.9,"source":"package"},{"id":"gnome-shell","confidence":0.7,"source":"desktop-file"},{"id":"kclock","confidence":0.9,"source":"package"},{"id":"orage","confidence":0.8,"source":"package"},{"id":"org.gnome.Clocks","confidence":0.9,"source":"desktop-file"},{"id":"org.gnome.Metronome","confidence":0.8,"source":"flatpak"},{"id":"org.kde.kclock","confidence":0.9,"source":"desktop-file"},{"id":"org.kde.ktimer","confidence":0.8,"source":"desktop-file"},{"id":"plasmashell","confidence":0.7,"source":"desktop-file"},{"id":"timers","confidence":0.8,"source":"package"}]
+      "apps": [{"id":"com.github.dainnil.kclock","confidence":0.9,"source":"flatpak"},{"id":"org.gnome.Clocks","confidence":0.9,"source":"package"},{"id":"org.kde.kclock","confidence":0.9,"source":"package"}]
     },
     "tooltip": {
       "type": "category",
       "glyph": "md-tooltip_image_outline",
-      "apps": [{"id":"gnome-shell","confidence":0.8,"source":"package"},{"id":"org.gnome.Shell","confidence":0.8,"source":"desktop-file"},{"id":"org.kde.kdialog","confidence":0.7,"source":"desktop-file"},{"id":"plasma-desktop","confidence":0.8,"source":"package"},{"id":"plasmashell","confidence":0.8,"source":"desktop-file"},{"id":"yad","confidence":0.7,"source":"package"},{"id":"zenity","confidence":0.7,"source":"package"}]
+      "apps": [{"id":"org.gnome.Shell","confidence":0.8,"source":"system"},{"id":"org.kde.plasmashell","confidence":0.8,"source":"system"}]
     },
     "tortoisegit": {
       "type": "app",
       "glyph": "dev-tortoisegit",
-      "apps": [{"id":"git-cola","confidence":0.7,"source":"package"},{"id":"qgit","confidence":0.7,"source":"package"}]
+      "apps": [{"id":"tortoisegit","confidence":0.1,"source":"package"}]
     },
     "towergit": {
       "type": "app",
       "glyph": "dev-towergit",
-      "apps": [{"id":"git-cola","confidence":0.7,"source":"package"},{"id":"gitg","confidence":0.7,"source":"package"}]
+      "apps": [{"id":"gittower","confidence":0.1,"source":"package"}]
     },
     "trackpad": {
       "type": "category",
       "glyph": "md-trackpad_lock",
-      "apps": [{"id":"gnome-control-center","confidence":0.9,"source":"package"},{"id":"lxappearance","confidence":0.9,"source":"package"},{"id":"mate-control-center","confidence":0.9,"source":"package"},{"id":"org.gnome.Settings","confidence":0.9,"source":"desktop-file"},{"id":"org.kde.systemsettings","confidence":0.9,"source":"desktop-file"},{"id":"plasma-systemsettings","confidence":0.9,"source":"package"},{"id":"xfce4-settings-manager","confidence":0.9,"source":"package"}]
+      "apps": [{"id":"org.gnome.Settings","confidence":0.8,"source":"category"},{"id":"org.kde.kcmshell5","confidence":0.8,"source":"category"}]
     },
     "tray": {
       "type": "category",
       "glyph": "md-tray_alert",
-      "apps": [{"id":"gnome-shell","confidence":0.8,"source":"package"},{"id":"org.gnome.Shell","confidence":0.8,"source":"desktop-file"},{"id":"plasma-desktop","confidence":0.8,"source":"package"},{"id":"plasmashell","confidence":0.8,"source":"desktop-file"},{"id":"stalonetray","confidence":0.7,"source":"package"},{"id":"tint2","confidence":0.7,"source":"package"},{"id":"trayer","confidence":0.7,"source":"package"}]
+      "apps": [{"id":"org.gnome.Shell","confidence":0.8,"source":"system"},{"id":"org.kde.plasmashell","confidence":0.8,"source":"system"}]
     },
     "truck": {
       "type": "category",
       "glyph": "md-truck_alert_outline",
-      "apps": [{"id":"caja","confidence":0.8,"source":"package"},{"id":"nemo","confidence":0.8,"source":"package"},{"id":"org.gnome.Epiphany","confidence":0.5,"source":"desktop-file"},{"id":"org.gnome.Nautilus","confidence":0.8,"source":"desktop-file"},{"id":"org.kde.dolphin","confidence":0.8,"source":"desktop-file"},{"id":"org.kde.konqueror","confidence":0.5,"source":"desktop-file"},{"id":"org.xfce.thunar","confidence":0.8,"source":"desktop-file"}]
+      "apps": [{"id":"org.gnome.Nautilus","confidence":0.7,"source":"category"},{"id":"org.kde.dolphin","confidence":0.7,"source":"category"}]
     },
     "tumble_dryer": {
       "type": "category",
       "glyph": "md-tumble_dryer_alert",
-      "apps": [{"id":"dnfdragora","confidence":0.7,"source":"desktop-file"},{"id":"io.elementary.appcenter","confidence":0.8,"source":"desktop-file"},{"id":"org.debian.packages.synaptic","confidence":0.7,"source":"desktop-file"},{"id":"org.gnome.Software","confidence":0.8,"source":"desktop-file"},{"id":"org.kde.discover","confidence":0.8,"source":"desktop-file"},{"id":"org.manjaro.pamac","confidence":0.8,"source":"desktop-file"},{"id":"snap-store","confidence":0.8,"source":"package"}]
+      "apps": [{"id":"org.gnome.SystemMonitor","confidence":0.7,"source":"category"},{"id":"org.kde.ksysguard","confidence":0.7,"source":"category"}]
     },
     "twitter": {
       "type": "app",
       "glyph": "md-twitter",
-      "apps": [{"id":"brave","confidence":0.7,"source":"package"},{"id":"chromium","confidence":0.7,"source":"package"},{"id":"firefox","confidence":0.7,"source":"package"},{"id":"google-chrome","confidence":0.7,"source":"package"},{"id":"org.gnome.Epiphany","confidence":0.7,"source":"desktop-file"},{"id":"org.kde.konqueror","confidence":0.6,"source":"desktop-file"},{"id":"org.midori_browser.Midori","confidence":0.6,"source":"flatpak"},{"id":"vivaldi","confidence":0.7,"source":"package"}]
+      "apps": [{"id":"com.twitter.desktop","confidence":0.9,"source":"flatpak"},{"id":"twitter","confidence":0.8,"source":"package"}]
     },
     "unicode": {
       "type": "category",
       "glyph": "md-unicode",
-      "apps": [{"id":"gnome-characters","confidence":0.9,"source":"package"},{"id":"gucharmap","confidence":0.9,"source":"package"},{"id":"kcharselect","confidence":0.9,"source":"package"},{"id":"org.gnome.Charmap","confidence":0.9,"source":"flatpak"},{"id":"org.kde.kcharselect","confidence":0.9,"source":"flatpak"},{"id":"plasma-sdk","confidence":0.8,"source":"package"}]
+      "apps": [{"id":"org.gnome.CharMap","confidence":0.9,"source":"package"},{"id":"org.kde.kcharselect","confidence":0.9,"source":"package"}]
     },
     "update": {
       "type": "category",
       "glyph": "md-update",
-      "apps": [{"id":"dnfdragora","confidence":0.8,"source":"desktop-file"},{"id":"fwupd","confidence":0.8,"source":"service"},{"id":"io.elementary.appcenter","confidence":0.9,"source":"desktop-file"},{"id":"org.debian.packages.synaptic","confidence":0.8,"source":"desktop-file"},{"id":"org.gnome.Software","confidence":0.9,"source":"desktop-file"},{"id":"org.kde.discover","confidence":0.9,"source":"desktop-file"},{"id":"org.manjaro.pamac","confidence":0.9,"source":"desktop-file"},{"id":"packagekit","confidence":0.8,"source":"service"},{"id":"snap-store","confidence":0.9,"source":"package"}]
+      "apps": [{"id":"org.gnome.PackageUpdater","confidence":0.9,"source":"package"},{"id":"org.gnome.Software","confidence":0.9,"source":"package"},{"id":"org.kde.discover","confidence":0.9,"source":"package"}]
     },
     "upload": {
       "type": "category",
       "glyph": "md-upload_network_outline",
-      "apps": [{"id":"caja","confidence":0.8,"source":"package"},{"id":"filezilla","confidence":0.6,"source":"package"},{"id":"nemo","confidence":0.8,"source":"package"},{"id":"org.filezilla.FileZilla","confidence":0.6,"source":"flatpak"},{"id":"org.gnome.Epiphany","confidence":0.6,"source":"desktop-file"},{"id":"org.gnome.Nautilus","confidence":0.8,"source":"desktop-file"},{"id":"org.kde.dolphin","confidence":0.8,"source":"desktop-file"},{"id":"org.kde.konqueror","confidence":0.6,"source":"desktop-file"},{"id":"org.xfce.thunar","confidence":0.8,"source":"desktop-file"}]
+      "apps": [{"id":"org.gnome.Epiphany","confidence":0.7,"source":"category"},{"id":"org.gnome.Nautilus","confidence":0.8,"source":"category"},{"id":"org.kde.dolphin","confidence":0.8,"source":"category"}]
     },
     "usb": {
       "type": "category",
       "glyph": "md-usb_flash_drive_outline",
-      "apps": [{"id":"caja","confidence":0.9,"source":"package"},{"id":"gnome-disk-utility","confidence":0.8,"source":"package"},{"id":"gvfs","confidence":0.8,"source":"package"},{"id":"nemo","confidence":0.9,"source":"package"},{"id":"org.gnome.DiskUtility","confidence":0.8,"source":"desktop-file"},{"id":"org.gnome.Nautilus","confidence":0.9,"source":"desktop-file"},{"id":"org.kde.dolphin","confidence":0.9,"source":"desktop-file"},{"id":"org.xfce.thunar","confidence":0.9,"source":"desktop-file"},{"id":"udisks2","confidence":0.8,"source":"service"}]
+      "apps": [{"id":"org.gnome.DiskUtility","confidence":0.9,"source":"package"},{"id":"org.kde.kdisknav","confidence":0.9,"source":"package"},{"id":"udisks2","confidence":0.8,"source":"system"}]
     },
     "user": {
       "type": "category",
       "glyph": "md-face_woman_profile",
-      "apps": [{"id":"gnome-control-center","confidence":0.9,"source":"package"},{"id":"mate-control-center","confidence":0.9,"source":"package"},{"id":"org.gnome.Settings","confidence":0.9,"source":"package"},{"id":"systemsettings","confidence":0.9,"source":"package"}]
+      "apps": [{"id":"gnome-control-center","confidence":0.9,"source":"package"},{"id":"org.gnome.Settings","confidence":0.85,"source":"flatpak"},{"id":"systemsettings5","confidence":0.9,"source":"package"}]
     },
     "users": {
       "type": "category",
       "glyph": "fa-users_gear",
-      "apps": [{"id":"accountsservice","confidence":0.9,"source":"package"},{"id":"gnome-user-accounts","confidence":0.9,"source":"package"}]
+      "apps": [{"id":"gnome-system-monitor","confidence":0.8,"source":"package"},{"id":"org.gnome.SystemMonitor","confidence":0.8,"source":"flatpak"},{"id":"org.kde.systemsettings","confidence":0.8,"source":"flatpak"},{"id":"systemsettings","confidence":0.8,"source":"package"}]
     },
     "video": {
       "type": "category",
       "glyph": "seti-video",
-      "apps": [{"id":"audacity","confidence":0.7,"source":"package"},{"id":"cheese","confidence":0.8,"source":"package"},{"id":"mpv","confidence":0.9,"source":"package"},{"id":"obs-studio","confidence":0.8,"source":"package"},{"id":"org.audacityteam.Audacity","confidence":0.7,"source":"flatpak"},{"id":"org.gnome.Cheese","confidence":0.8,"source":"flatpak"},{"id":"org.gnome.Totem","confidence":0.9,"source":"flatpak"},{"id":"org.gnome.Videos","confidence":0.9,"source":"desktop-file"},{"id":"org.kde.kaffeine","confidence":0.9,"source":"desktop-file"},{"id":"org.kde.kamoso","confidence":0.8,"source":"desktop-file"},{"id":"org.kde.kdenlive","confidence":0.8,"source":"desktop-file"},{"id":"org.mpv.MPV","confidence":0.9,"source":"flatpak"},{"id":"org.obsproject.Studio","confidence":0.8,"source":"flatpak"},{"id":"org.videolan.VLC","confidence":0.9,"source":"flatpak"},{"id":"smplayer","confidence":0.9,"source":"package"},{"id":"totem","confidence":0.9,"source":"package"},{"id":"vlc","confidence":0.9,"source":"package"}]
+      "apps": [{"id":"org.gnome.Totem","confidence":0.9,"source":"package"},{"id":"org.kde.kaffeine","confidence":0.9,"source":"package"},{"id":"vlc","confidence":0.9,"source":"package"}]
     },
     "vim": {
       "type": "app",
       "glyph": "dev-vim",
-      "apps": [{"id":"gvim","confidence":0.9,"source":"package"},{"id":"neovim","confidence":0.8,"source":"package"},{"id":"vim","confidence":1,"source":"package"}]
+      "apps": [{"id":"gvim","confidence":1,"source":"package"},{"id":"org.vim.Vim","confidence":0.95,"source":"flatpak"},{"id":"vim","confidence":1,"source":"package"}]
     },
     "vimeo": {
       "type": "app",
       "glyph": "md-vimeo",
-      "apps": [{"id":"brave","confidence":0.7,"source":"package"},{"id":"chromium","confidence":0.7,"source":"package"},{"id":"firefox","confidence":0.7,"source":"package"},{"id":"google-chrome","confidence":0.7,"source":"package"},{"id":"org.gnome.Epiphany","confidence":0.7,"source":"desktop-file"},{"id":"org.kde.konqueror","confidence":0.6,"source":"desktop-file"},{"id":"org.midori_browser.Midori","confidence":0.6,"source":"flatpak"},{"id":"vivaldi","confidence":0.7,"source":"package"}]
+      "apps": [{"id":"com.vimeo.Vimeo","confidence":0.9,"source":"flatpak"},{"id":"vimeo","confidence":0.8,"source":"package"}]
     },
     "vlc": {
       "type": "app",
       "glyph": "md-vlc",
-      "apps": [{"id":"mpv","confidence":0.6,"source":"package"},{"id":"org.gnome.Videos","confidence":0.5,"source":"desktop-file"},{"id":"org.kde.kaffeine","confidence":0.5,"source":"desktop-file"},{"id":"org.mpv.MPV","confidence":0.6,"source":"flatpak"},{"id":"org.videolan.VLC","confidence":1,"source":"flatpak"},{"id":"smplayer","confidence":0.6,"source":"package"},{"id":"vlc","confidence":1,"source":"package"}]
+      "apps": [{"id":"org.videolan.VLC","confidence":1,"source":"flatpak"},{"id":"vlc","confidence":1,"source":"package"}]
     },
     "voicemail": {
       "type": "category",
       "glyph": "md-voicemail",
-      "apps": [{"id":"empathy","confidence":0.7,"source":"package"},{"id":"org.gnome.Empathy","confidence":0.7,"source":"desktop-file"},{"id":"org.gnome.Evolution","confidence":0.8,"source":"desktop-file"},{"id":"org.kde.kontact","confidence":0.8,"source":"desktop-file"},{"id":"org.mozilla.Thunderbird","confidence":0.8,"source":"flatpak"},{"id":"pidgin","confidence":0.7,"source":"package"},{"id":"thunderbird","confidence":0.8,"source":"package"}]
+      "apps": [{"id":"org.gnome.Evolution","confidence":0.8,"source":"category"},{"id":"org.kde.kmail","confidence":0.8,"source":"category"}]
     },
     "volume": {
       "type": "category",
       "glyph": "md-volume_vibrate",
-      "apps": [{"id":"alsamixer","confidence":0.8,"source":"package"},{"id":"gnome-volume-control","confidence":0.8,"source":"package"},{"id":"org.cinnamon.volume-control","confidence":0.8,"source":"desktop-file"},{"id":"org.gnome.VolumeControl","confidence":0.9,"source":"desktop-file"},{"id":"org.kde.kmix","confidence":0.9,"source":"desktop-file"},{"id":"org.kde.plasma.volume","confidence":0.8,"source":"desktop-file"},{"id":"pavucontrol","confidence":0.9,"source":"package"},{"id":"pulsemixer","confidence":0.8,"source":"package"},{"id":"xfce4-mixer","confidence":0.8,"source":"package"}]
+      "apps": [{"id":"org.gnome.VolumeControl","confidence":0.9,"source":"category"},{"id":"org.kde.plasma.volume","confidence":0.9,"source":"category"},{"id":"pavucontrol","confidence":0.9,"source":"package"}]
     },
     "vpn": {
       "type": "category",
       "glyph": "md-vpn",
-      "apps": [{"id":"network-manager-openvpn","confidence":0.8,"source":"package"},{"id":"nm-tray","confidence":0.8,"source":"package"},{"id":"openconnect","confidence":0.8,"source":"package"},{"id":"org.cisco.OpenConnect","confidence":0.8,"source":"package"},{"id":"org.gnome.NetworkManager","confidence":0.8,"source":"desktop-file"},{"id":"org.openvpn.OpenVPN","confidence":0.8,"source":"package"},{"id":"plasma-nm","confidence":0.8,"source":"desktop-file"},{"id":"wireguard","confidence":0.8,"source":"package"}]
+      "apps": [{"id":"network-manager-applet","confidence":0.9,"source":"package"},{"id":"org.gnome.NetworkManager","confidence":0.9,"source":"system"},{"id":"org.kde.networkmanagement","confidence":0.9,"source":"package"}]
     },
     "vscode": {
       "type": "app",
       "glyph": "md-microsoft_visual_studio_code",
-      "apps": [{"id":"code","confidence":1,"source":"package"},{"id":"com.visualstudio.code","confidence":0.95,"source":"flatpak"},{"id":"cursor","confidence":0.8,"source":"package"},{"id":"vscodium","confidence":0.9,"source":"package"},{"id":"zed","confidence":0.8,"source":"package"}]
+      "apps": [{"id":"code","confidence":1,"source":"package"},{"id":"com.visualstudio.code","confidence":0.95,"source":"flatpak"},{"id":"com.vscodium.codium","confidence":0.85,"source":"flatpak"},{"id":"dev.zed.Zed","confidence":0.75,"source":"flatpak"},{"id":"vscodium","confidence":0.9,"source":"package"},{"id":"zed","confidence":0.7,"source":"package"}]
     },
     "warning": {
       "type": "category",
-      "glyph": "md-alert_rhombus_outline",
-      "apps": [{"id":"apport","confidence":0.8,"source":"package"},{"id":"gnome-abrt","confidence":0.8,"source":"package"}]
+      "glyph": "fa-warning",
+      "apps": [{"id":"apport-gtk","confidence":0.9,"source":"package"},{"id":"gnome-abrt","confidence":0.9,"source":"package"},{"id":"org.gnome.Abrt","confidence":0.9,"source":"flatpak"}]
     },
     "washing_machine": {
       "type": "category",
       "glyph": "md-washing_machine_alert",
-      "apps": [{"id":"dnfdragora","confidence":0.7,"source":"desktop-file"},{"id":"io.elementary.appcenter","confidence":0.8,"source":"desktop-file"},{"id":"org.debian.packages.synaptic","confidence":0.7,"source":"desktop-file"},{"id":"org.gnome.Software","confidence":0.8,"source":"desktop-file"},{"id":"org.kde.discover","confidence":0.8,"source":"desktop-file"},{"id":"org.manjaro.pamac","confidence":0.8,"source":"desktop-file"},{"id":"snap-store","confidence":0.8,"source":"package"}]
+      "apps": [{"id":"org.gnome.SystemMonitor","confidence":0.7,"source":"category"},{"id":"org.kde.ksysguard","confidence":0.7,"source":"category"}]
     },
     "water": {
       "type": "category",
       "glyph": "md-water_sync",
-      "apps": [{"id":"meteo","confidence":0.9,"source":"package"},{"id":"org.gnome.Maps","confidence":0.7,"source":"desktop-file"},{"id":"org.gnome.Weather","confidence":0.9,"source":"desktop-file"},{"id":"org.kde.kclock","confidence":0.6,"source":"desktop-file"},{"id":"org.kde.kweather","confidence":0.9,"source":"desktop-file"},{"id":"org.kde.plasma.weather","confidence":0.8,"source":"desktop-file"}]
+      "apps": [{"id":"org.gnome.Weather","confidence":0.9,"source":"category"},{"id":"org.kde.kweather","confidence":0.9,"source":"category"}]
     },
     "weather": {
       "type": "category",
       "glyph": "md-weather_sunny_alert",
-      "apps": [{"id":"gnome-weather","confidence":1,"source":"package"},{"id":"kweather","confidence":1,"source":"package"},{"id":"meteo","confidence":1,"source":"package"},{"id":"org.gnome.Maps","confidence":0.7,"source":"desktop-file"},{"id":"org.gnome.Weather","confidence":1,"source":"desktop-file"},{"id":"org.kde.kweather","confidence":1,"source":"desktop-file"},{"id":"org.kde.plasma.weather","confidence":0.9,"source":"desktop-file"}]
+      "apps": [{"id":"com.github.dainnil.Weather","confidence":1,"source":"flatpak"},{"id":"org.gnome.Weather","confidence":1,"source":"package"},{"id":"org.kde.kweather","confidence":1,"source":"package"}]
     },
     "web": {
       "type": "category",
       "glyph": "md-web_sync",
-      "apps": [{"id":"brave","confidence":0.9,"source":"package"},{"id":"chromium","confidence":0.9,"source":"package"},{"id":"firefox","confidence":0.9,"source":"package"},{"id":"google-chrome","confidence":0.9,"source":"package"},{"id":"icecat","confidence":0.8,"source":"package"},{"id":"org.gnome.Epiphany","confidence":0.9,"source":"desktop-file"},{"id":"org.gnu.gnuzilla","confidence":0.8,"source":"flatpak"},{"id":"org.kde.konqueror","confidence":0.8,"source":"desktop-file"},{"id":"org.midori_browser.Midori","confidence":0.8,"source":"flatpak"},{"id":"org.mozilla.firefox","confidence":0.9,"source":"flatpak"},{"id":"vivaldi","confidence":0.9,"source":"package"}]
+      "apps": [{"id":"chromium","confidence":0.9,"source":"category"},{"id":"google-chrome","confidence":0.9,"source":"category"},{"id":"org.gnome.Epiphany","confidence":0.9,"source":"category"},{"id":"org.mozilla.firefox","confidence":0.9,"source":"category"}]
     },
     "webflow": {
       "type": "app",
       "glyph": "dev-webflow",
-      "apps": [{"id":"webflow","confidence":0.5,"source":"package"}]
+      "apps": [{"id":"webflow","confidence":0.7,"source":"package"}]
     },
     "webhook": {
       "type": "category",
       "glyph": "md-webhook",
-      "apps": [{"id":"curl","confidence":0.9,"source":"package"},{"id":"git","confidence":0.7,"source":"package"},{"id":"httpie","confidence":0.9,"source":"package"},{"id":"insomnia","confidence":0.9,"source":"package"},{"id":"org.gnome.gitg","confidence":0.7,"source":"desktop-file"},{"id":"postman","confidence":0.9,"source":"package"},{"id":"wget","confidence":0.9,"source":"package"}]
+      "apps": [{"id":"org.gnome.Epiphany","confidence":0.7,"source":"category"},{"id":"org.mozilla.firefox","confidence":0.7,"source":"category"}]
     },
     "weblate": {
       "type": "app",
       "glyph": "dev-weblate",
-      "apps": [{"id":"weblate","confidence":0.5,"source":"package"}]
+      "apps": [{"id":"weblate","confidence":0.7,"source":"package"}]
     },
     "webpack": {
       "type": "app",
       "glyph": "seti-webpack",
-      "apps": [{"id":"git","confidence":0.6,"source":"package"},{"id":"nodejs","confidence":0.9,"source":"package"},{"id":"npm","confidence":0.9,"source":"package"},{"id":"org.gnome.gitg","confidence":0.6,"source":"desktop-file"},{"id":"pnpm","confidence":0.9,"source":"package"},{"id":"yarn","confidence":0.9,"source":"package"}]
+      "apps": [{"id":"com.visualstudio.code","confidence":0.8,"source":"category"},{"id":"org.gnome.Builder","confidence":0.8,"source":"category"}]
     },
     "webrtc": {
       "type": "category",
       "glyph": "md-webrtc",
-      "apps": [{"id":"brave","confidence":0.8,"source":"package"},{"id":"chromium","confidence":0.8,"source":"package"},{"id":"com.discordapp.Discord","confidence":0.7,"source":"flatpak"},{"id":"discord","confidence":0.7,"source":"package"},{"id":"firefox","confidence":0.8,"source":"package"},{"id":"google-chrome","confidence":0.8,"source":"package"},{"id":"org.gnome.Epiphany","confidence":0.8,"source":"desktop-file"},{"id":"vivaldi","confidence":0.8,"source":"package"},{"id":"zoom","confidence":0.7,"source":"package"}]
+      "apps": [{"id":"chromium","confidence":0.8,"source":"category"},{"id":"org.mozilla.firefox","confidence":0.8,"source":"category"}]
     },
     "webstorm": {
       "type": "app",
       "glyph": "dev-webstorm",
-      "apps": [{"id":"idea","confidence":0.8,"source":"package"},{"id":"webstorm","confidence":0.9,"source":"package"}]
+      "apps": [{"id":"jetbrains-webstorm","confidence":1,"source":"package"},{"id":"webstorm","confidence":1,"source":"package"}]
     },
     "wechat": {
       "type": "app",
       "glyph": "md-wechat",
-      "apps": [{"id":"discord","confidence":0.6,"source":"package"},{"id":"org.gnome.Epiphany","confidence":0.4,"source":"desktop-file"},{"id":"org.telegram.desktop","confidence":0.6,"source":"flatpak"},{"id":"signal-desktop","confidence":0.6,"source":"package"},{"id":"whatsapp-desktop","confidence":0.6,"source":"package"}]
+      "apps": [{"id":"com.tencent.WeChat","confidence":1,"source":"flatpak"},{"id":"wechat","confidence":0.9,"source":"package"}]
     },
     "whatsapp": {
       "type": "app",
       "glyph": "md-whatsapp",
-      "apps": [{"id":"com.whatsapp.WhatsApp","confidence":1,"source":"flatpak"},{"id":"discord","confidence":0.5,"source":"package"},{"id":"org.telegram.desktop","confidence":0.5,"source":"flatpak"},{"id":"signal-desktop","confidence":0.5,"source":"package"},{"id":"whatsapp-desktop","confidence":1,"source":"package"}]
+      "apps": [{"id":"com.whatsapp.WhatsApp","confidence":1,"source":"flatpak"},{"id":"whatsapp","confidence":0.9,"source":"package"}]
     },
     "wifi": {
       "type": "category",
       "glyph": "md-wifi_sync",
-      "apps": [{"id":"NetworkManager","confidence":0.8,"source":"service"},{"id":"connman-gtk","confidence":0.8,"source":"package"},{"id":"hostapd","confidence":0.7,"source":"package"},{"id":"iw","confidence":0.7,"source":"package"},{"id":"iwd","confidence":0.8,"source":"service"},{"id":"network-manager-applet","confidence":0.9,"source":"package"},{"id":"nm-tray","confidence":0.9,"source":"package"},{"id":"nmcli","confidence":0.7,"source":"package"},{"id":"nmtui","confidence":0.7,"source":"package"},{"id":"org.gnome.NetworkManager","confidence":0.9,"source":"desktop-file"},{"id":"plasma-nm","confidence":0.9,"source":"desktop-file"},{"id":"rfkill","confidence":0.7,"source":"package"},{"id":"wavemon","confidence":0.7,"source":"package"},{"id":"wicd","confidence":0.8,"source":"package"},{"id":"wicd-gtk","confidence":0.8,"source":"package"},{"id":"wpa_supplicant","confidence":0.8,"source":"service"}]
+      "apps": [{"id":"network-manager-applet","confidence":0.9,"source":"package"},{"id":"org.gnome.NetworkManager","confidence":0.9,"source":"system"},{"id":"org.kde.networkmanagement","confidence":0.9,"source":"package"}]
     },
-    "wind": {
+    "wind_turbine": {
       "type": "category",
       "glyph": "md-wind_turbine_alert",
-      "apps": [{"id":"meteo","confidence":0.9,"source":"package"},{"id":"org.gnome.Maps","confidence":0.7,"source":"desktop-file"},{"id":"org.gnome.Weather","confidence":0.9,"source":"desktop-file"},{"id":"org.kde.kclock","confidence":0.6,"source":"desktop-file"},{"id":"org.kde.kweather","confidence":0.9,"source":"desktop-file"},{"id":"org.kde.plasma.weather","confidence":0.8,"source":"desktop-file"}]
+      "apps": [{"id":"org.gnome.SystemMonitor","confidence":0.7,"source":"category"},{"id":"org.kde.ksysguard","confidence":0.7,"source":"category"}]
     },
     "window": {
       "type": "category",
       "glyph": "md-window_shutter_settings",
-      "apps": [{"id":"compiz","confidence":0.7,"source":"package"},{"id":"gnome-shell","confidence":0.8,"source":"package"},{"id":"marco","confidence":0.7,"source":"package"},{"id":"metacity","confidence":0.7,"source":"package"},{"id":"org.gnome.Shell","confidence":0.8,"source":"desktop-file"},{"id":"plasma-desktop","confidence":0.8,"source":"package"},{"id":"plasmashell","confidence":0.8,"source":"desktop-file"}]
+      "apps": [{"id":"org.gnome.Shell","confidence":0.8,"source":"system"},{"id":"org.kde.plasmashell","confidence":0.8,"source":"system"}]
     },
     "wiper": {
       "type": "category",
       "glyph": "md-wiper_wash_alert",
-      "apps": [{"id":"caja","confidence":0.8,"source":"package"},{"id":"nemo","confidence":0.8,"source":"package"},{"id":"org.gnome.Epiphany","confidence":0.5,"source":"desktop-file"},{"id":"org.gnome.Nautilus","confidence":0.8,"source":"desktop-file"},{"id":"org.kde.dolphin","confidence":0.8,"source":"desktop-file"},{"id":"org.kde.konqueror","confidence":0.5,"source":"desktop-file"},{"id":"org.xfce.thunar","confidence":0.8,"source":"desktop-file"}]
+      "apps": [{"id":"org.gnome.Nautilus","confidence":0.7,"source":"category"},{"id":"org.kde.dolphin","confidence":0.7,"source":"category"}]
     },
     "wrench": {
       "type": "category",
       "glyph": "md-wrench_clock",
-      "apps": [{"id":"gnome-control-center","confidence":0.9,"source":"package"},{"id":"gnome-tweaks","confidence":0.8,"source":"package"},{"id":"lxappearance","confidence":0.9,"source":"package"},{"id":"mate-control-center","confidence":0.9,"source":"package"},{"id":"org.gnome.Settings","confidence":0.9,"source":"desktop-file"},{"id":"org.kde.systemsettings","confidence":0.9,"source":"desktop-file"},{"id":"plasma-sdk","confidence":0.8,"source":"package"},{"id":"plasma-systemsettings","confidence":0.9,"source":"package"},{"id":"xfce4-settings-manager","confidence":0.9,"source":"package"}]
+      "apps": [{"id":"org.gnome.Settings","confidence":0.9,"source":"package"},{"id":"org.kde.systemsettings","confidence":0.9,"source":"package"}]
     },
     "xcode": {
       "type": "app",
       "glyph": "dev-xcode",
-      "apps": [{"id":"xcode","confidence":0.5,"source":"package"}]
+      "apps": [{"id":"xcode","confidence":0.1,"source":"package"}]
     },
     "youtube": {
       "type": "app",
       "glyph": "md-youtube_tv",
-      "apps": [{"id":"brave","confidence":0.8,"source":"package"},{"id":"chromium","confidence":0.8,"source":"package"},{"id":"firefox","confidence":0.8,"source":"package"},{"id":"google-chrome","confidence":0.8,"source":"package"},{"id":"org.gnome.Epiphany","confidence":0.8,"source":"desktop-file"},{"id":"org.kde.konqueror","confidence":0.7,"source":"desktop-file"},{"id":"org.midori_browser.Midori","confidence":0.7,"source":"flatpak"},{"id":"org.videolan.VLC","confidence":0.6,"source":"flatpak"},{"id":"vivaldi","confidence":0.8,"source":"package"},{"id":"vlc","confidence":0.6,"source":"package"}]
+      "apps": [{"id":"com.google.YouTube","confidence":1,"source":"flatpak"},{"id":"youtube","confidence":0.9,"source":"package"}]
     }
   }
 }
