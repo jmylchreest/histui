@@ -1,0 +1,191 @@
+# App Categories for histui
+# =========================
+#
+# When an app doesn't have a brand-specific icon in Nerd Fonts,
+# the AI should assign it to one of these categories instead.
+#
+# Run `task generate:icons:suggest` to get AI icon suggestions,
+# then `task generate:icons:apply-suggestions` to populate glyph fields.
+
+[meta]
+description = "Fallback categories for apps without brand icons"
+version = 2
+
+[categories]
+
+# Communication
+[categories.messaging]
+description = "Instant messaging and chat applications"
+examples = ["signal", "telegram", "whatsapp", "slack", "discord"]
+symbol = ""  # nf-fa-comment_dots
+gtk_icon = "chat-message-new-symbolic"
+
+[categories.email]
+description = "Email clients"
+examples = ["thunderbird", "evolution", "geary", "mailspring"]
+symbol = ""  # nf-fa-envelope
+gtk_icon = "mail-send-symbolic"
+
+[categories.social]
+description = "Social media clients"
+examples = ["tweetdeck", "cawbird", "facebook-messenger"]
+symbol = ""  # nf-fa-users
+gtk_icon = "user-available-symbolic"
+
+# Media
+[categories.video]
+description = "Video players and editors"
+examples = ["vlc", "mpv", "totem", "kdenlive", "pitivi"]
+symbol = ""  # nf-fa-video
+gtk_icon = "video-display-symbolic"
+
+[categories.audio]
+description = "Audio players and editors"
+examples = ["rhythmbox", "audacious", "audacity", "ardour"]
+symbol = ""  # nf-fa-music
+gtk_icon = "audio-card-symbolic"
+
+[categories.image]
+description = "Image viewers and editors"
+examples = ["eog", "gwenview", "gimp", "inkscape"]
+symbol = ""  # nf-fa-image
+gtk_icon = "image-x-generic-symbolic"
+
+# Productivity
+[categories.text-editor]
+description = "Text and document editors"
+examples = ["gedit", "kate", "mousepad", "libreoffice-writer"]
+symbol = ""  # nf-fa-pen_to_square
+gtk_icon = "accessories-text-editor-symbolic"
+
+[categories.notes]
+description = "Note-taking applications"
+examples = ["gnote", "joplin", "obsidian", "logseq"]
+symbol = ""  # nf-fa-note_sticky
+gtk_icon = "text-x-generic-symbolic"
+
+[categories.calendar]
+description = "Calendar and scheduling"
+examples = ["gnome-calendar", "korganizer"]
+symbol = ""  # nf-fa-calendar
+gtk_icon = "x-office-calendar-symbolic"
+
+[categories.office]
+description = "Office and productivity suites"
+examples = ["libreoffice", "onlyoffice", "calligra"]
+symbol = ""  # nf-fa-file_lines
+gtk_icon = "x-office-document-symbolic"
+
+# System
+[categories.terminal]
+description = "Terminal emulators"
+examples = ["gnome-terminal", "konsole", "alacritty", "kitty"]
+symbol = ""  # nf-fa-terminal
+gtk_icon = "utilities-terminal-symbolic"
+
+[categories.file-manager]
+description = "File managers"
+examples = ["nautilus", "thunar", "dolphin", "nemo"]
+symbol = ""  # nf-fa-folder_open
+gtk_icon = "system-file-manager-symbolic"
+
+[categories.settings]
+description = "System settings and preferences"
+examples = ["gnome-control-center", "systemsettings"]
+symbol = ""  # nf-fa-gear
+gtk_icon = "preferences-system-symbolic"
+
+[categories.system-monitor]
+description = "System monitors and task managers"
+examples = ["gnome-system-monitor", "htop", "btop"]
+symbol = ""  # nf-fa-gauge_high
+gtk_icon = "system-monitor-symbolic"
+
+[categories.archive]
+description = "Archive and compression tools"
+examples = ["file-roller", "ark", "engrampa"]
+symbol = ""  # nf-fa-box_archive
+gtk_icon = "package-x-generic-symbolic"
+
+# Security & Network
+[categories.firewall]
+description = "Firewall and security applications"
+examples = ["gufw", "firewalld"]
+symbol = ""  # nf-fa-shield_halved
+gtk_icon = "security-high-symbolic"
+
+[categories.vpn]
+description = "VPN clients"
+examples = ["openvpn", "wireguard", "mullvad"]
+symbol = ""  # nf-fa-shield_halved
+gtk_icon = "network-vpn-symbolic"
+
+[categories.password]
+description = "Password managers"
+examples = ["keepassxc", "bitwarden", "1password"]
+symbol = ""  # nf-fa-key
+gtk_icon = "dialog-password-symbolic"
+
+[categories.backup]
+description = "Backup and sync tools"
+examples = ["deja-dup", "timeshift", "syncthing"]
+symbol = ""  # nf-fa-cloud_arrow_up
+gtk_icon = "folder-drag-accept-symbolic"
+
+# Network
+[categories.download]
+description = "Download managers"
+examples = ["uget", "persepolis", "jdownloader"]
+symbol = ""  # nf-fa-cloud_arrow_down
+gtk_icon = "folder-download-symbolic"
+
+[categories.torrent]
+description = "BitTorrent clients"
+examples = ["qbittorrent", "transmission", "deluge"]
+symbol = ""  # nf-fa-download
+gtk_icon = "folder-download-symbolic"
+
+[categories.browser]
+description = "Web browsers (generic fallback)"
+examples = ["epiphany", "midori", "min"]
+symbol = ""  # nf-fa-globe
+gtk_icon = "web-browser-symbolic"
+
+# Development
+[categories.code]
+description = "Code editors and IDEs"
+examples = ["vscode", "sublime", "atom", "geany"]
+symbol = ""  # nf-fa-code
+gtk_icon = "applications-engineering-symbolic"
+
+[categories.git]
+description = "Git clients and tools"
+examples = ["gitg", "gittyup", "lazygit"]
+symbol = ""  # nf-fa-git_alt
+gtk_icon = "system-run-symbolic"
+
+[categories.database]
+description = "Database tools"
+examples = ["dbeaver", "pgadmin", "mysql-workbench"]
+symbol = ""  # nf-fa-database
+gtk_icon = "network-server-symbolic"
+
+# Other
+[categories.game]
+description = "Games and gaming platforms"
+examples = ["steam", "lutris", "heroic"]
+symbol = ""  # nf-fa-gamepad
+gtk_icon = "input-gaming-symbolic"
+
+[categories.screenshot]
+description = "Screenshot and screen recording"
+examples = ["flameshot", "spectacle", "obs"]
+symbol = ""  # nf-fa-camera
+gtk_icon = "camera-photo-symbolic"
+
+[categories.calculator]
+description = "Calculator applications"
+examples = ["gnome-calculator", "kcalc", "qalculate"]
+symbol = ""  # nf-fa-calculator
+gtk_icon = "accessories-calculator-symbolic"
+

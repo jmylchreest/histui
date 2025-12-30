@@ -28,10 +28,14 @@ Create `~/.config/histui/icon-aliases.toml` to customize icon mappings:
 my-custom-app = "firefox"
 another-app = "terminal"
 
-# Map icon names to Nerd Font glyphs
+# Map icon names to Nerd Font glyphs (use actual Unicode characters)
 [symbols]
-my-custom-icon = "\U0000E658"  # Firefox Nerd Font symbol
+my-custom-icon = "󰈹"  # Firefox Nerd Font symbol (paste the actual glyph)
 ```
+
+:::tip Symbol Format
+The `[symbols]` section uses actual Unicode characters, not escape sequences. Copy glyphs directly from a [Nerd Fonts cheat sheet](https://www.nerdfonts.com/cheat-sheet) into your TOML file.
+:::
 
 ### Aliases Section
 
@@ -51,19 +55,23 @@ work-email = "email"
 
 ### Symbols Section
 
-Maps icon names to Nerd Font glyph characters:
+Maps icon names to Nerd Font glyph characters. Use actual Unicode characters (paste from Nerd Fonts cheat sheet):
 
 ```toml
 [symbols]
-# Application icons
-discord = "\U000F066F"    # nf-md-discord
-firefox = "\U0000E658"    # nf-dev-firefox
-terminal = "\U000F0257"   # nf-md-console
+# Application icons (paste actual glyphs)
+discord = "󰙯"    # nf-md-discord
+firefox = "󰈹"    # nf-md-firefox
+terminal = "󰆍"   # nf-md-console
 
 # Category fallbacks
-notification = "\U000F009A"  # nf-md-bell
-im = "\U000F0CE4"            # nf-md-chat
+notification = "󰂚"  # nf-md-bell
+im = "󱃲"            # nf-md-chat
 ```
+
+:::note Finding Glyphs
+Use the [Nerd Fonts Cheat Sheet](https://www.nerdfonts.com/cheat-sheet) to search for icons and copy the glyph character directly.
+:::
 
 ## Built-in Aliases
 
@@ -94,22 +102,22 @@ When the TUI or notification popup displays icons, it can use Nerd Font glyphs a
 
 Built-in urgency fallbacks:
 
-| Urgency | Symbol | Codepoint |
-|---------|--------|-----------|
-| low | (info) | `\U000F02FC` |
-| normal | (bell) | `\U000F009A` |
-| critical | (alert) | `\U000F0026` |
+| Urgency | Symbol | Description |
+|---------|--------|-------------|
+| low | 󰋼 | Info circle |
+| normal | 󰂚 | Bell |
+| critical | 󰀦 | Alert |
 
 ### Category Symbols
 
 Built-in category fallbacks (from freedesktop notification spec):
 
-| Category | Symbol | Codepoint |
-|----------|--------|-----------|
-| im | (chat) | `\U000F0CE4` |
-| device | (harddisk) | `\U000F03CF` |
-| transfer | (download) | `\U000F01DA` |
-| presence | (account) | `\U000F0061` |
+| Category | Symbol | Description |
+|----------|--------|-------------|
+| im | 󱃲 | Chat bubble |
+| device | 󰋊 | Hard disk |
+| transfer | 󰇚 | Download |
+| presence | 󰀄 | Account |
 
 ## Duplicate Handling
 
@@ -125,76 +133,98 @@ WARN duplicate icon alias, keeping first app=alacritty existing=terminal ignored
 
 ## Generating Aliases
 
-The `contrib/generate-icon-aliases` tool generates the built-in aliases from Nerd Fonts glyph data. It can also generate custom aliases using AI.
+The `contrib/generate-icon-aliases` tool generates the built-in aliases from Nerd Fonts glyph data and upstream icon metadata. It uses AI to map Linux applications to appropriate icons.
 
-### Basic Usage
+### Workflow
+
+The generator uses a multi-step workflow:
+
+1. **Fetch** - Download upstream icon metadata (Font Awesome, Material Design, Devicons, Codicons)
+2. **Generate KB** - Use AI to generate application-to-icon mappings
+3. **Output** - Generate the final `icon-aliases.toml` with manual overrides applied
+
+### Quick Start
 
 ```bash
 cd contrib/generate-icon-aliases
+
+# Build the generator
 go build .
 
-# Generate aliases from Nerd Fonts data
-./generate-icon-aliases --output icon-aliases.toml
+# Generate output using existing knowledge base
+./generate-icon-aliases --output ../../internal/icon/aliases_default.toml
 
-# Fetch fresh glyph data from GitHub
-./generate-icon-aliases --fetch --output icon-aliases.toml
+# Or use the Taskfile from project root
+task generate:icons:output
 ```
 
-### AI-Enhanced Generation
+### Full Regeneration
 
-The generator supports AI-powered knowledge base generation:
+To regenerate everything from scratch (requires OpenRouter API key):
 
 ```bash
-# Generate AI knowledge base (requires OPENROUTER_API_KEY)
+# Fetch fresh upstream metadata
+./generate-icon-aliases --fetch
+
+# Generate AI knowledge base
 export OPENROUTER_API_KEY="your-key"
 ./generate-icon-aliases --generate-kb
 
-# Use the AI knowledge base
-./generate-icon-aliases --output icon-aliases.toml
+# Generate final output
+./generate-icon-aliases --output ../../internal/icon/aliases_default.toml
 ```
 
-### Generator Options
+### Generator Flags
 
 | Flag | Description |
 |------|-------------|
-| `--fetch` | Download fresh glyphnames.json from GitHub |
-| `--output` | Output TOML file path (default: icon-aliases.toml) |
-| `--prefer` | Icon set preference: md, fa, dev (default: md) |
+| `--fetch` | Fetch upstream icon metadata and regenerate patterns |
+| `--generate-kb` | Generate AI knowledge base (requires API key) |
+| `--output` | Output TOML file path |
+| `--font-output` | Also download Nerd Font symbols TTF |
 | `--verbose` | Show detailed matching information |
-| `--generate-kb` | Generate AI knowledge base |
-| `--no-cache` | Disable API response caching |
 
-### Icon Set Preferences
+### Manual Overrides
 
-The `--prefer` flag selects which icon set to prioritize:
-
-| Value | Description |
-|-------|-------------|
-| `md` | Material Design icons (default) |
-| `fa` | Font Awesome icons |
-| `dev` | Devicons |
-
-### Overrides
-
-Create `kb-overrides.toml` to customize generated aliases:
+Create or edit `kb-patterns-manual.toml` to customize mappings. Manual overrides take highest priority over AI-generated mappings.
 
 ```toml
-# Replace app list entirely
-[icons]
-discord = ["my-discord-fork", "custom-discord"]
+# Force specific apps to use a specific icon
+[icons.magnet]
+patterns = ["md-magnet", "fa-magnet"]
+type = "category"
+description = "BitTorrent and download clients"
+upstream = "manual"
+force_apps = [
+    "qbittorrent",
+    "transmission",
+    "deluge",
+    "aria2",
+]
 
-# Add apps to existing mapping
-[additions]
-email = ["my-email-client"]
-
-# Remove apps from mapping
-[exclusions]
-email = ["thunderbird"]
-
-# Force specific glyph
-[glyph_overrides]
-discord = "fa-discord"
+# Override an existing icon's app list
+[icons.firefox]
+patterns = ["md-firefox", "fa-firefox"]
+type = "app"
+description = "Firefox web browser"
+upstream = "manual"
+force_apps = [
+    "firefox",
+    "firefox-esr",
+    "firefox-developer-edition",
+    "librewolf",
+]
 ```
+
+### Override Fields
+
+| Field | Description |
+|-------|-------------|
+| `patterns` | Nerd Font glyph patterns to match (e.g., `md-discord`) |
+| `type` | `"app"` for brand icons, `"category"` for generic icons |
+| `description` | Human-readable description |
+| `force_apps` | List of app names - replaces AI-generated list entirely |
+| `extra_apps` | List of app names - adds to AI-generated list |
 
 ## Source Code
 

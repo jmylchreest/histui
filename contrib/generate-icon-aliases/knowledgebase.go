@@ -6,13 +6,46 @@ import (
 	"os"
 	"sort"
 	"strings"
+
+	"github.com/pelletier/go-toml/v2"
 )
 
 const (
-	kbDefaultFile = "kb-default.json"
+	kbDefaultFile = "kb-default.toml" // New TOML format for urgency/category defaults
 	kbAIFile      = "kb-ai.json"
-	minConfidence = 0.6 // Minimum confidence to include an app (filters out AI errors)
+	minConfidence = 0.7 // Minimum confidence to include an app in brand icon mappings
 )
+
+// DefaultsConfig represents the kb-default.toml file structure.
+type DefaultsConfig struct {
+	Meta     DefaultsMeta      `toml:"meta"`
+	Symbols  map[string]string `toml:"symbols"`
+	GtkIcons map[string]string `toml:"gtk-icons"`
+}
+
+// DefaultsMeta contains metadata about the defaults file.
+type DefaultsMeta struct {
+	Description string `toml:"description"`
+	Version     int    `toml:"version"`
+}
+
+// LoadDefaultsConfig loads the kb-default.toml file.
+func LoadDefaultsConfig(path string) (*DefaultsConfig, error) {
+	data, err := os.ReadFile(path)
+	if err != nil {
+		if os.IsNotExist(err) {
+			return nil, nil // Not an error, just doesn't exist
+		}
+		return nil, fmt.Errorf("read defaults file: %w", err)
+	}
+
+	var config DefaultsConfig
+	if err := toml.Unmarshal(data, &config); err != nil {
+		return nil, fmt.Errorf("parse defaults file: %w", err)
+	}
+
+	return &config, nil
+}
 
 // KnowledgeBase represents the AI-generated knowledge base.
 type KnowledgeBase struct {
@@ -122,6 +155,7 @@ type appAssignment struct {
 	iconName   string
 	confidence float64
 	isAI       bool // AI KB takes priority over default (default is seed data)
+	isManual   bool // Manual overrides take highest priority
 }
 
 // DeduplicateApps ensures each app only appears under one icon.
@@ -135,11 +169,12 @@ func DeduplicateApps(merged map[string]*MergedIcon, defaultKB, aiKB *KnowledgeBa
 		for _, app := range icon.Apps {
 			appLower := strings.ToLower(app)
 
-			// Determine if this app comes from AI KB for this icon (AI takes priority)
+			// Determine source priority: manual > AI > default
+			isManual := icon.Source == "manual"
 			isAI := false
 			confidence := icon.Confidence
 
-			if aiKB != nil {
+			if !isManual && aiKB != nil {
 				if kbIcon, ok := aiKB.Icons[iconName]; ok {
 					for _, kbApp := range kbIcon.Apps {
 						if strings.ToLower(kbApp.ID) == appLower {
@@ -151,8 +186,8 @@ func DeduplicateApps(merged map[string]*MergedIcon, defaultKB, aiKB *KnowledgeBa
 				}
 			}
 
-			// If not from AI, get default KB confidence for this specific app
-			if !isAI && defaultKB != nil {
+			// If not from AI or manual, get default KB confidence for this specific app
+			if !isManual && !isAI && defaultKB != nil {
 				if kbIcon, ok := defaultKB.Icons[iconName]; ok {
 					for _, kbApp := range kbIcon.Apps {
 						if strings.ToLower(kbApp.ID) == appLower {
@@ -169,13 +204,16 @@ func DeduplicateApps(merged map[string]*MergedIcon, defaultKB, aiKB *KnowledgeBa
 					iconName:   iconName,
 					confidence: confidence,
 					isAI:       isAI,
+					isManual:   isManual,
 				}
 			} else {
-				// Compare: AI beats default (AI augments seed data), then higher confidence wins
+				// Compare: manual beats all, then AI beats default, then higher confidence wins
 				shouldReplace := false
-				if isAI && !current.isAI {
+				if isManual && !current.isManual {
 					shouldReplace = true
-				} else if isAI == current.isAI && confidence > current.confidence {
+				} else if !isManual && !current.isManual && isAI && !current.isAI {
+					shouldReplace = true
+				} else if isManual == current.isManual && isAI == current.isAI && confidence > current.confidence {
 					shouldReplace = true
 				}
 				if shouldReplace {
@@ -183,6 +221,7 @@ func DeduplicateApps(merged map[string]*MergedIcon, defaultKB, aiKB *KnowledgeBa
 						iconName:   iconName,
 						confidence: confidence,
 						isAI:       isAI,
+						isManual:   isManual,
 					}
 				}
 			}
@@ -458,4 +497,55 @@ func replaceHyphensWithUnderscores(s string) string {
 		}
 	}
 	return string(result)
+}
+
+// ApplyManualForceApps applies force_apps from manual patterns to the merged icons.
+// This ensures manual overrides take highest priority over AI-generated mappings.
+func ApplyManualForceApps(merged map[string]*MergedIcon, patterns *PatternConfig, glyphs map[string]GlyphInfo, verbose bool) {
+	if patterns == nil {
+		return
+	}
+
+	appliedCount := 0
+	for iconName, pattern := range patterns.Icons {
+		if len(pattern.ForceApps) == 0 {
+			continue
+		}
+
+		// Find or create the merged icon
+		icon, exists := merged[iconName]
+		if !exists {
+			// Create new merged icon for manual-only entries
+			// Find glyph from pattern
+			glyphName := ""
+			for _, p := range pattern.Patterns {
+				if _, ok := glyphs[p]; ok {
+					glyphName = p
+					break
+				}
+			}
+
+			icon = &MergedIcon{
+				Name:   iconName,
+				Type:   pattern.Type,
+				Glyph:  glyphName,
+				Apps:   pattern.ForceApps,
+				Source: "manual",
+			}
+			merged[iconName] = icon
+		} else {
+			// Override existing apps with force_apps
+			icon.Apps = pattern.ForceApps
+			icon.Source = "manual"
+		}
+
+		appliedCount++
+		if verbose {
+			fmt.Printf("Applied manual force_apps for %s: %v\n", iconName, pattern.ForceApps)
+		}
+	}
+
+	if appliedCount > 0 {
+		fmt.Printf("Applied %d manual force_apps overrides\n", appliedCount)
+	}
 }

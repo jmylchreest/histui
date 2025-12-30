@@ -222,3 +222,184 @@ func BuildSymbolsMap(matched map[string]*MatchedIcon) map[string]GlyphInfo {
 
 	return result
 }
+
+// UnmatchedIcon represents an icon pattern that couldn't be matched to a glyph.
+type UnmatchedIcon struct {
+	Name        string   `json:"name"`
+	Type        string   `json:"type"`
+	Description string   `json:"description"`
+	Patterns    []string `json:"patterns"`
+}
+
+// FindUnmatchedIcons finds icons defined in patterns that have no matching glyph.
+func FindUnmatchedIcons(patterns *PatternConfig, matched map[string]*MatchedIcon) []UnmatchedIcon {
+	var unmatched []UnmatchedIcon
+
+	for name, pattern := range patterns.Icons {
+		if _, found := matched[name]; !found {
+			unmatched = append(unmatched, UnmatchedIcon{
+				Name:        name,
+				Type:        pattern.Type,
+				Description: pattern.Description,
+				Patterns:    pattern.Patterns,
+			})
+		}
+	}
+
+	// Sort for deterministic output
+	sort.Slice(unmatched, func(i, j int) bool {
+		return unmatched[i].Name < unmatched[j].Name
+	})
+
+	return unmatched
+}
+
+// BuildGlyphMetadataForSuggestions builds metadata for the category suggestion prompt.
+// It filters to "category" type icons only (not brand-specific app icons) and includes
+// the description and search terms from the patterns.
+func BuildGlyphMetadataForSuggestions(patterns *PatternConfig, glyphs map[string]GlyphInfo) []GlyphMetadata {
+	var result []GlyphMetadata
+
+	// Collect all category-type icons with their matched glyphs
+	for iconName, pattern := range patterns.Icons {
+		// Only include category-type icons
+		if pattern.Type != "category" {
+			continue
+		}
+
+		// Find the best matching glyph for this pattern
+		var bestGlyph string
+		var bestGlyphInfo GlyphInfo
+		found := false
+
+		for _, p := range pattern.Patterns {
+			pLower := strings.ToLower(p)
+			for glyphName, info := range glyphs {
+				glyphLower := strings.ToLower(glyphName)
+
+				var matches bool
+				if strings.HasSuffix(p, "*") {
+					prefix := strings.TrimSuffix(pLower, "*")
+					matches = strings.HasPrefix(glyphLower, prefix)
+				} else {
+					matches = strings.Contains(glyphLower, pLower)
+				}
+
+				if matches {
+					bestGlyph = glyphName
+					bestGlyphInfo = info
+					found = true
+					break
+				}
+			}
+			if found {
+				break
+			}
+		}
+
+		if !found {
+			continue
+		}
+
+		// Extract prefix from glyph name (e.g., "md-chat" -> "md")
+		prefix := ""
+		if idx := strings.Index(bestGlyph, "-"); idx > 0 {
+			prefix = bestGlyph[:idx]
+		}
+
+		result = append(result, GlyphMetadata{
+			Name:        iconName,
+			Prefix:      prefix,
+			Symbol:      bestGlyphInfo.Char,
+			Description: pattern.Description,
+			Tags:        pattern.SearchTerms,
+		})
+	}
+
+	// Sort by name for consistent output
+	sort.Slice(result, func(i, j int) bool {
+		return result[i].Name < result[j].Name
+	})
+
+	return result
+}
+
+// BuildAllGlyphMetadata builds metadata for ALL glyphs (not just those with patterns).
+// This is useful for letting AI discover new category icons from the full glyph set.
+func BuildAllGlyphMetadata(glyphs map[string]GlyphInfo, preferredPrefixes []string) []GlyphMetadata {
+	var result []GlyphMetadata
+
+	// Create a set of preferred prefixes for quick lookup
+	prefixOrder := make(map[string]int)
+	for i, p := range preferredPrefixes {
+		prefixOrder[p] = i
+	}
+
+	for glyphName, info := range glyphs {
+		// Extract prefix
+		prefix := ""
+		name := glyphName
+		if idx := strings.Index(glyphName, "-"); idx > 0 {
+			prefix = glyphName[:idx]
+			name = glyphName[idx+1:]
+		}
+
+		// Skip glyphs that look like brand/app icons (heuristic)
+		// These usually have very specific names like "discord", "spotify", etc.
+		// We want generic category icons like "chat", "email", "music"
+		if isLikelyBrandIcon(name) {
+			continue
+		}
+
+		result = append(result, GlyphMetadata{
+			Name:        name,
+			Prefix:      prefix,
+			Symbol:      info.Char,
+			Description: "", // No description available for raw glyphs
+			Tags:        nil,
+		})
+	}
+
+	// Sort by preferred prefix order, then by name
+	sort.Slice(result, func(i, j int) bool {
+		iOrder, iOk := prefixOrder[result[i].Prefix]
+		jOrder, jOk := prefixOrder[result[j].Prefix]
+
+		// Preferred prefixes come first
+		if iOk && !jOk {
+			return true
+		}
+		if !iOk && jOk {
+			return false
+		}
+		if iOk && jOk && iOrder != jOrder {
+			return iOrder < jOrder
+		}
+
+		// Then sort by name
+		return result[i].Name < result[j].Name
+	})
+
+	return result
+}
+
+// isLikelyBrandIcon uses heuristics to detect brand-specific icons.
+func isLikelyBrandIcon(name string) bool {
+	// Known brand patterns (partial list - AI will filter further)
+	brandPatterns := []string{
+		"discord", "spotify", "slack", "twitter", "facebook", "instagram",
+		"google", "apple", "microsoft", "amazon", "netflix", "youtube",
+		"github", "gitlab", "bitbucket", "docker", "kubernetes",
+		"firefox", "chrome", "safari", "edge", "opera",
+		"android", "ios", "windows", "linux", "ubuntu", "fedora", "debian",
+	}
+
+	nameLower := strings.ToLower(name)
+	for _, brand := range brandPatterns {
+		if strings.Contains(nameLower, brand) {
+			return true
+		}
+	}
+
+	return false
+}

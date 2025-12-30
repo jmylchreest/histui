@@ -65,9 +65,10 @@ type Popup struct {
 // NewPopupWidget creates a notification popup widget for embedding in a container.
 // This creates just the notification content box, not a window.
 // All notifications share one layer-shell window managed by the stack.
-func NewPopupWidget(notification *dbus.DBusNotification, cfg *config.DaemonConfig, logger *slog.Logger, iconResolver *icon.Resolver) (*Popup, error) {
+func NewPopupWidget(notification *dbus.DBusNotification, cfg *config.DaemonConfig, logger *slog.Logger, iconResolver *icon.Resolver, themeIconsDir string) (*Popup, error) {
 	p := newPopupBase(notification, cfg, logger)
 	p.iconResolver = iconResolver
+	p.themeIconsDir = themeIconsDir
 
 	// Build the UI from layout template
 	p.buildUI()
@@ -299,7 +300,7 @@ const DefaultIconSize = 48
 // buildIcon creates the notification icon.
 // Handles both icon names (e.g., "dialog-information") and file paths (e.g., "/usr/lib/kitty/logo/kitty.png").
 // The icon size can be configured via the layout element's "size" attribute (e.g., <icon size="32"/>).
-// Falls back to Nerd Font symbols when icon theme lookup fails.
+// Falls back to symbol font glyphs when icon theme lookup fails.
 func (p *Popup) buildIcon(elem layout.LayoutElement) gtk.Widgetter {
 	// Parse icon size from layout attributes (default: 48)
 	iconSize := DefaultIconSize
@@ -312,34 +313,36 @@ func (p *Popup) buildIcon(elem layout.LayoutElement) gtk.Widgetter {
 	iconName := p.notification.AppIcon
 	appName := p.notification.AppName
 
-	// Helper to create a Nerd Font symbol label as fallback
-	createNerdLabel := func(symbol string) gtk.Widgetter {
+	// Helper to create a symbol font label as fallback
+	createSymbolLabel := func(symbol string) gtk.Widgetter {
 		label := gtk.NewLabel(symbol)
 		label.AddCSSClass("notification-icon")
-		label.AddCSSClass("notification-icon-nerd")
+		label.AddCSSClass("notification-icon-symbol")
 		return label
 	}
 
-	// Helper to get Nerd Font symbol for app/category
-	getNerdSymbol := func() string {
+	// Helper to get symbol font glyph for app/category
+	getSymbol := func() string {
 		if p.iconResolver != nil {
 			// Try app name first
-			if symbol := p.iconResolver.GetNerdSymbol(appName); symbol != "" {
+			if symbol := p.iconResolver.GetSymbolForApp(appName); symbol != "" {
 				return symbol
 			}
 			// Try resolved icon name
 			if iconName != "" {
-				resolved := p.iconResolver.Resolve(iconName)
-				if symbol := p.iconResolver.GetNerdSymbol(resolved); symbol != "" {
+				canonical := p.iconResolver.ResolveApp(iconName)
+				if symbol := p.iconResolver.GetSymbol(canonical); symbol != "" {
 					return symbol
 				}
 			}
 			// Try notification category
-			if symbol := p.iconResolver.GetNerdSymbolForCategory(p.notification.Category()); symbol != "" {
+			if symbol := p.iconResolver.GetSymbolForCategory(p.notification.Category()); symbol != "" {
 				return symbol
 			}
+			// Fallback based on urgency
+			return p.iconResolver.GetSymbolForUrgency(p.notification.Urgency())
 		}
-		// Fallback based on urgency
+		// No resolver available - use hardcoded fallback
 		return icon.FallbackNerdSymbolForUrgency(p.notification.Urgency())
 	}
 
@@ -347,10 +350,71 @@ func (p *Popup) buildIcon(elem layout.LayoutElement) gtk.Widgetter {
 	p.iconImage.AddCSSClass("notification-icon")
 	p.iconImage.SetPixelSize(iconSize)
 
+	// Add theme icons directory to GTK icon search path for symbolic icon coloring
+	iconTheme := gtk.IconThemeGetForDisplay(p.iconImage.Display())
+	if iconTheme != nil && p.themeIconsDir != "" {
+		// Add our theme icons dir to GTK's search path so symbolic icons get colored
+		iconTheme.AddSearchPath(p.themeIconsDir)
+		p.logger.Debug("added theme icons to GTK search path", "path", p.themeIconsDir)
+	}
+
+	// Helper to try loading icon from GTK theme (includes our added search path)
+	tryLoadIcon := func(name string) bool {
+		if name == "" {
+			return false
+		}
+
+		// Use GTK icon theme - this handles symbolic icon coloring correctly
+		// Our theme icons dir was added to the search path above
+		if iconTheme != nil && iconTheme.HasIcon(name) {
+			p.logger.Debug("loaded icon from GTK icon theme",
+				"icon_name", name,
+			)
+			p.iconImage.SetFromIconName(name)
+			return true
+		}
+
+		// Fallback: try loading directly from file (for non-symbolic icons)
+		if themeIconPath := p.findThemeIcon(name, iconSize); themeIconPath != "" {
+			pixbuf, err := gdkpixbuf.NewPixbufFromFileAtSize(themeIconPath, iconSize, iconSize)
+			if err == nil {
+				p.logger.Debug("loaded icon from file",
+					"icon_name", name,
+					"path", themeIconPath,
+				)
+				texture := gdk.NewTextureForPixbuf(pixbuf)
+				if texture != nil {
+					p.iconImage.SetFromPaintable(texture)
+				}
+				return true
+			}
+			p.logger.Debug("failed to load theme icon",
+				"path", themeIconPath,
+				"error", err,
+			)
+		}
+
+		return false
+	}
+
 	if iconName == "" {
-		// No icon provided - use Nerd Font symbol
-		p.logger.Debug("no app icon provided, using nerd font symbol", "app", appName)
-		return createNerdLabel(getNerdSymbol())
+		// No app icon provided - try urgency-based icon from theme aliases
+		if p.iconResolver != nil {
+			urgencyIconName := p.iconResolver.GetUrgencyIconName(p.notification.Urgency())
+			if urgencyIconName != "" {
+				p.logger.Debug("trying urgency icon from theme aliases",
+					"urgency", p.notification.Urgency(),
+					"icon_name", urgencyIconName,
+				)
+				if tryLoadIcon(urgencyIconName) {
+					return p.iconImage
+				}
+			}
+		}
+
+		// Fallback to symbol font glyph
+		p.logger.Debug("no app icon provided and urgency icon not found, using symbol font glyph", "app", appName)
+		return createSymbolLabel(getSymbol())
 	}
 
 	p.logger.Debug("loading app icon", "icon", iconName, "size", iconSize)
@@ -360,11 +424,11 @@ func (p *Popup) buildIcon(elem layout.LayoutElement) gtk.Widgetter {
 		// Absolute file path - load from file
 		pixbuf, err := gdkpixbuf.NewPixbufFromFileAtSize(iconName, iconSize, iconSize)
 		if err != nil {
-			p.logger.Debug("failed to load icon from file, using nerd font symbol",
+			p.logger.Debug("failed to load icon from file, using symbol font glyph",
 				"path", iconName,
 				"error", err,
 			)
-			return createNerdLabel(getNerdSymbol())
+			return createSymbolLabel(getSymbol())
 		}
 		p.logger.Debug("loaded icon from file", "path", iconName, "width", pixbuf.Width(), "height", pixbuf.Height())
 		texture := gdk.NewTextureForPixbuf(pixbuf)
@@ -379,11 +443,11 @@ func (p *Popup) buildIcon(elem layout.LayoutElement) gtk.Widgetter {
 		path := strings.TrimPrefix(iconName, "file://")
 		pixbuf, err := gdkpixbuf.NewPixbufFromFileAtSize(path, iconSize, iconSize)
 		if err != nil {
-			p.logger.Debug("failed to load icon from file URI, using nerd font symbol",
+			p.logger.Debug("failed to load icon from file URI, using symbol font glyph",
 				"uri", iconName,
 				"error", err,
 			)
-			return createNerdLabel(getNerdSymbol())
+			return createSymbolLabel(getSymbol())
 		}
 		p.logger.Debug("loaded icon from file URI", "path", path, "width", pixbuf.Width(), "height", pixbuf.Height())
 		texture := gdk.NewTextureForPixbuf(pixbuf)
@@ -402,41 +466,32 @@ func (p *Popup) buildIcon(elem layout.LayoutElement) gtk.Widgetter {
 		}
 	}
 
-	// Check theme icons directory first (theme-bundled icons)
-	if themeIconPath := p.findThemeIcon(resolvedIcon, iconSize); themeIconPath != "" {
-		pixbuf, err := gdkpixbuf.NewPixbufFromFileAtSize(themeIconPath, iconSize, iconSize)
-		if err == nil {
-			p.logger.Debug("loaded icon from theme icons folder",
-				"icon_name", resolvedIcon,
-				"path", themeIconPath,
-			)
-			texture := gdk.NewTextureForPixbuf(pixbuf)
-			if texture != nil {
-				p.iconImage.SetFromPaintable(texture)
-			}
-			return p.iconImage
-		}
-		p.logger.Debug("failed to load theme icon, trying system theme",
-			"path", themeIconPath,
-			"error", err,
-		)
-	}
-
-	// Check if icon exists in system icon theme
-	iconTheme := gtk.IconThemeGetForDisplay(p.iconImage.Display())
-	if iconTheme != nil && iconTheme.HasIcon(resolvedIcon) {
-		p.logger.Debug("using icon from system theme", "icon_name", resolvedIcon)
-		p.iconImage.SetFromIconName(resolvedIcon)
+	// Try theme icons folder and GTK icon theme
+	if tryLoadIcon(resolvedIcon) {
 		return p.iconImage
 	}
 
-	// Icon not found anywhere - use Nerd Font symbol
-	p.logger.Debug("icon not found in any source, using nerd font symbol",
+	// Icon not found anywhere - try urgency fallback icon from theme aliases
+	if p.iconResolver != nil {
+		urgencyIconName := p.iconResolver.GetUrgencyIconName(p.notification.Urgency())
+		if urgencyIconName != "" && urgencyIconName != resolvedIcon {
+			p.logger.Debug("app icon not found, trying urgency fallback",
+				"original", resolvedIcon,
+				"urgency_icon", urgencyIconName,
+			)
+			if tryLoadIcon(urgencyIconName) {
+				return p.iconImage
+			}
+		}
+	}
+
+	// Fallback to symbol font glyph
+	p.logger.Debug("icon not found in any source, using symbol font glyph",
 		"icon_name", resolvedIcon,
 		"app", appName,
 		"theme_icons_dir", p.themeIconsDir,
 	)
-	return createNerdLabel(getNerdSymbol())
+	return createSymbolLabel(getSymbol())
 }
 
 // findThemeIcon looks for an icon file in the theme icons directory.

@@ -16,32 +16,32 @@ import (
 	"github.com/jmylchreest/histui/internal/icon"
 )
 
-// nerdFontCache caches the loaded NerdFont for reuse.
+// symbolFontCache caches the loaded symbol font for reuse.
 var (
-	nerdFontOnce   sync.Once
-	nerdFontParsed *opentype.Font
-	nerdFontError  error
+	symbolFontOnce   sync.Once
+	symbolFontParsed *opentype.Font
+	symbolFontError  error
 )
 
-// loadEmbeddedNerdFont loads the embedded NerdFont from the icon package.
-func loadEmbeddedNerdFont() (*opentype.Font, error) {
-	nerdFontOnce.Do(func() {
+// loadEmbeddedSymbolFont loads the embedded symbol font from the icon package.
+func loadEmbeddedSymbolFont() (*opentype.Font, error) {
+	symbolFontOnce.Do(func() {
 		// Read the embedded font file
 		fontData, err := icon.EmbeddedFonts.ReadFile("fonts/SymbolsNerdFont-Regular.ttf")
 		if err != nil {
-			nerdFontError = err
+			symbolFontError = err
 			return
 		}
 
-		nerdFontParsed, nerdFontError = opentype.Parse(fontData)
+		symbolFontParsed, symbolFontError = opentype.Parse(fontData)
 	})
 
-	return nerdFontParsed, nerdFontError
+	return symbolFontParsed, symbolFontError
 }
 
 // createFontFace creates a font face at the specified size.
 func createFontFace(size float64) (font.Face, error) {
-	f, err := loadEmbeddedNerdFont()
+	f, err := loadEmbeddedSymbolFont()
 	if err != nil {
 		return nil, err
 	}
@@ -53,9 +53,9 @@ func createFontFace(size float64) (font.Face, error) {
 	})
 }
 
-// renderNerdSymbolToImage renders a NerdFont symbol to an image.
+// renderSymbolToImage renders a symbol font glyph to an image.
 // Returns nil if rendering fails.
-func renderNerdSymbolToImage(symbol string, size int, fgColor, bgColor color.Color) image.Image {
+func renderSymbolToImage(symbol string, size int, fgColor, bgColor color.Color) image.Image {
 	if symbol == "" {
 		return nil
 	}
@@ -116,10 +116,10 @@ func renderNerdSymbolToImage(symbol string, size int, fgColor, bgColor color.Col
 	return img
 }
 
-// renderNerdSymbolToHalfblocks renders a NerdFont symbol to halfblocks string.
+// renderSymbolToHalfblocks renders a symbol font glyph to halfblocks string.
 // cols and rows are the terminal character dimensions.
 // Returns empty string if rendering fails.
-func renderNerdSymbolToHalfblocks(symbol string, cols, rows int) string {
+func renderSymbolToHalfblocks(symbol string, cols, rows int) string {
 	if symbol == "" {
 		return ""
 	}
@@ -132,7 +132,7 @@ func renderNerdSymbolToHalfblocks(symbol string, cols, rows int) string {
 	fgColor := color.RGBA{R: 100, G: 150, B: 255, A: 255} // Light blue
 	bgColor := color.RGBA{R: 30, G: 30, B: 40, A: 255}    // Dark background
 
-	img := renderNerdSymbolToImage(symbol, pixelSize, fgColor, bgColor)
+	img := renderSymbolToImage(symbol, pixelSize, fgColor, bgColor)
 	if img == nil {
 		return ""
 	}

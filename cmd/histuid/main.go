@@ -221,6 +221,13 @@ func runDaemonMode(logger *slog.Logger) {
 		logger.Debug("initialized embedded fonts", "dir", fontDir, "fonts", icon.ListEmbeddedFonts())
 	}
 
+	// Log embedded aliases metadata
+	if meta, err := icon.GetEmbeddedAliasesMeta(); err != nil {
+		logger.Debug("failed to get embedded aliases metadata", "error", err)
+	} else if meta.GeneratedAt != "" {
+		logger.Info("loaded embedded icon aliases", "version", meta.Version, "generated", meta.GeneratedAt)
+	}
+
 	// Initialize Viper for configuration
 	v, err := config.NewViper()
 	if err != nil {
@@ -407,7 +414,7 @@ func runDaemonMode(logger *slog.Logger) {
 
 		// Apply theme icon settings to display manager
 		if loadedTheme := themeLoader.GetTheme(); loadedTheme != nil {
-			displayManager.UpdateTheme(loadedTheme.Aliases, loadedTheme.IconsDir)
+			displayManager.UpdateTheme(loadedTheme.Aliases, loadedTheme.Symbols, loadedTheme.GtkIcons, loadedTheme.IconsDir)
 		}
 
 		// Initialize D-Bus server
@@ -668,7 +675,7 @@ func runDaemonMode(logger *slog.Logger) {
 							loadThemeSounds(themeLoader, audioManager, logger)
 							// Update display manager with theme icon settings
 							if loadedTheme := themeLoader.GetTheme(); loadedTheme != nil {
-								displayManager.UpdateTheme(loadedTheme.Aliases, loadedTheme.IconsDir)
+								displayManager.UpdateTheme(loadedTheme.Aliases, loadedTheme.Symbols, loadedTheme.GtkIcons, loadedTheme.IconsDir)
 							}
 							internalNotifier.NotifyThemeReloaded(newConfig.Theme.Name)
 						}

@@ -149,7 +149,7 @@ export OPENROUTER_API_KEY="sk-or-..."
 
 ```toml
 [upstream]
-font_awesome = "https://raw.githubusercontent.com/FortAwesome/Font-Awesome/6.x/metadata/icons.json"
+font_awesome = "https://raw.githubusercontent.com/FortAwesome/Font-Awesome/7.x/metadata/icons.json"
 material_design = "https://raw.githubusercontent.com/Templarian/MaterialDesign-Meta/master/meta.json"
 devicons = "https://raw.githubusercontent.com/devicons/devicon/master/devicon.json"
 ```

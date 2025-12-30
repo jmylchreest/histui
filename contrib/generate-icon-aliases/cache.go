@@ -109,6 +109,36 @@ func AppGenCacheKey(icons []struct{ Name, Type string }) string {
 	return hashStrings(items)
 }
 
+// CategorySuggestCacheKey generates a cache key for category icon suggestion requests.
+// The key is based on category names and glyph metadata to detect changes.
+func CategorySuggestCacheKey(categories *CategoriesConfig, glyphs []GlyphMetadata) string {
+	var items []string
+
+	// Add category names and descriptions (sorted for determinism)
+	if categories != nil {
+		var catNames []string
+		for name := range categories.Categories {
+			catNames = append(catNames, name)
+		}
+		sort.Strings(catNames)
+		for _, name := range catNames {
+			cat := categories.Categories[name]
+			items = append(items, fmt.Sprintf("cat:%s:%s", name, cat.Description))
+		}
+	}
+
+	// Add glyph count and a sample of glyph names (full list would be too large)
+	items = append(items, fmt.Sprintf("glyphs:%d", len(glyphs)))
+	// Sample first and last 10 glyphs for change detection
+	for i, g := range glyphs {
+		if i < 10 || i >= len(glyphs)-10 {
+			items = append(items, fmt.Sprintf("g:%s-%s", g.Prefix, g.Name))
+		}
+	}
+
+	return hashStrings(items)
+}
+
 // ClearCache removes all cached files for all models.
 func ClearCache() error {
 	return os.RemoveAll(cacheBaseDir)
@@ -120,7 +150,7 @@ func ClearCacheForModel(model string) error {
 }
 
 // CacheStats returns cache statistics across all models.
-func CacheStats() (classifyCount, appGenCount int, totalSize int64) {
+func CacheStats() (classifyCount, appGenCount, catSuggestCount int, totalSize int64) {
 	// Walk all model subdirectories
 	_ = filepath.Walk(cacheBaseDir, func(path string, info os.FileInfo, err error) error {
 		if err != nil {
@@ -137,6 +167,8 @@ func CacheStats() (classifyCount, appGenCount int, totalSize int64) {
 			classifyCount++
 		} else if strings.HasPrefix(info.Name(), "appgen-") {
 			appGenCount++
+		} else if strings.HasPrefix(info.Name(), "catsuggest-") {
+			catSuggestCount++
 		}
 		totalSize += info.Size()
 		return nil

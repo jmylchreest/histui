@@ -592,3 +592,205 @@ func (c *OpenRouterClient) GenerateAppMappings(icons []struct{ Name, Type, Descr
 	fmt.Printf("Generated app mappings for %d icons\n", len(kb.Icons))
 	return kb, nil
 }
+
+// CategorySuggestResult is the structured output for category icon suggestions.
+// Note: CategorySuggestion is defined in config.go
+type CategorySuggestResult struct {
+	Suggestions map[string][]CategorySuggestion `json:"suggestions"`
+}
+
+// GenerateCategorySuggestions calls the AI to suggest icons for each category.
+func (c *OpenRouterClient) GenerateCategorySuggestions(prompt string, cacheKey string, useCache bool) (map[string][]CategorySuggestion, error) {
+	// Check cache first
+	if useCache {
+		if cached, ok := loadCache("catsuggest", cacheKey, c.Model); ok {
+			var result CategorySuggestResult
+			if err := json.Unmarshal([]byte(cached), &result); err == nil {
+				c.cacheHits++
+				fmt.Printf("[CACHE HIT] Category icon suggestions\n")
+				return result.Suggestions, nil
+			}
+		}
+	}
+
+	c.apiCalls++
+	fmt.Printf("[API CALL] Generating category icon suggestions...\n")
+
+	req := ChatRequest{
+		Model: c.Model,
+		Messages: []ChatMessage{
+			{
+				Role:    "user",
+				Content: prompt,
+			},
+		},
+		ResponseFormat: &ResponseFormat{
+			Type: "json_object",
+		},
+		MaxTokens: c.Config.OpenRouter.MaxTokens,
+	}
+
+	start := time.Now()
+	content, debugInfo, err := c.call(req)
+	elapsed := time.Since(start)
+	if err != nil {
+		fmt.Printf("[API CALL] Failed after %s\n", elapsed.Round(time.Millisecond))
+		if debugInfo != nil {
+			debugPath := saveDebugResponse("category-suggest-error", debugInfo)
+			if debugPath != "" {
+				fmt.Fprintf(os.Stderr, "[DEBUG] API error details saved to: %s\n", debugPath)
+			}
+		}
+		return nil, err
+	}
+
+	fmt.Printf("[API CALL] Completed in %s\n", elapsed.Round(time.Millisecond))
+
+	// Save to cache before parsing (so we cache the raw response)
+	if useCache {
+		if err := saveCache("catsuggest", cacheKey, c.Model, content); err != nil && c.Verbose {
+			fmt.Printf("    (warning: failed to save cache: %v)\n", err)
+		}
+	}
+
+	// Parse response
+	var result CategorySuggestResult
+	if err := json.Unmarshal([]byte(content), &result); err != nil {
+		// Save debug info on parse failure
+		if debugInfo != nil {
+			debugInfo.Error = fmt.Sprintf("JSON parse error: %v", err)
+			debugPath := saveDebugResponse("category-suggest-parse-error", debugInfo)
+			if debugPath != "" {
+				fmt.Fprintf(os.Stderr, "[DEBUG] Parse error details saved to: %s\n", debugPath)
+			}
+		}
+		return nil, fmt.Errorf("parse category suggestions: %w", err)
+	}
+
+	return result.Suggestions, nil
+}
+
+// CategoryAssignment represents an app assigned to a category.
+type CategoryAssignment struct {
+	App        string  `json:"app"`
+	Category   string  `json:"category"`
+	Confidence float64 `json:"confidence"`
+	Reason     string  `json:"reason"`
+}
+
+// CategoryAssignResult is the structured output for category assignments.
+type CategoryAssignResult struct {
+	Assignments []CategoryAssignment `json:"assignments"`
+}
+
+// LowConfidenceApp represents an app that needs category assignment.
+type LowConfidenceApp struct {
+	ID         string  // App identifier
+	IconName   string  // Original icon it was assigned to
+	Confidence float64 // Original confidence score
+}
+
+// GenerateCategoryAssignments calls the AI to assign apps to categories.
+func (c *OpenRouterClient) GenerateCategoryAssignments(apps []LowConfidenceApp, categories *CategoriesConfig, useCache bool) (*CategoryAssignResult, error) {
+	if len(apps) == 0 {
+		return &CategoryAssignResult{}, nil
+	}
+
+	// Format apps for the prompt
+	var appLines []string
+	for _, app := range apps {
+		appLines = append(appLines, fmt.Sprintf("- %s (%s, %.2f)", app.ID, app.IconName, app.Confidence))
+	}
+
+	// Render prompt
+	prompt, err := c.Config.RenderCategoryAssignPrompt(categories, appLines)
+	if err != nil {
+		return nil, fmt.Errorf("render category assign prompt: %w", err)
+	}
+
+	// Generate cache key from apps list
+	cacheKey := CategoryAssignCacheKey(apps)
+
+	// Check cache first
+	if useCache {
+		if cached, ok := loadCache("catassign", cacheKey, c.Model); ok {
+			var result CategoryAssignResult
+			if err := json.Unmarshal([]byte(cached), &result); err == nil {
+				c.cacheHits++
+				fmt.Printf("[CACHE HIT] Category assignment batch\n")
+				return &result, nil
+			}
+		}
+	}
+
+	c.apiCalls++
+	fmt.Printf("[API CALL] Assigning %d apps to categories...\n", len(apps))
+
+	req := ChatRequest{
+		Model: c.Model,
+		Messages: []ChatMessage{
+			{Role: "user", Content: prompt},
+		},
+		ResponseFormat: &ResponseFormat{
+			Type: "json_object",
+		},
+		Temperature: 0.2,
+		MaxTokens:   c.Config.OpenRouter.MaxTokens,
+	}
+
+	start := time.Now()
+	content, debugInfo, err := c.call(req)
+	elapsed := time.Since(start)
+	if err != nil {
+		fmt.Printf("[API CALL] Failed after %s\n", elapsed.Round(time.Millisecond))
+		if debugInfo != nil {
+			debugPath := saveDebugResponse("category-assign-error", debugInfo)
+			if debugPath != "" {
+				fmt.Fprintf(os.Stderr, "[DEBUG] API error details saved to: %s\n", debugPath)
+			}
+		}
+		return nil, err
+	}
+
+	fmt.Printf("[API CALL] Completed in %s\n", elapsed.Round(time.Millisecond))
+
+	// Save to cache
+	if useCache {
+		if err := saveCache("catassign", cacheKey, c.Model, content); err != nil && c.Verbose {
+			fmt.Printf("    (warning: failed to save cache: %v)\n", err)
+		}
+	}
+
+	// Parse response
+	var result CategoryAssignResult
+	if err := json.Unmarshal([]byte(content), &result); err != nil {
+		if debugInfo != nil {
+			debugInfo.Error = fmt.Sprintf("JSON parse error: %v", err)
+			debugPath := saveDebugResponse("category-assign-parse-error", debugInfo)
+			if debugPath != "" {
+				fmt.Fprintf(os.Stderr, "[DEBUG] Parse error details saved to: %s\n", debugPath)
+			}
+		}
+		return nil, fmt.Errorf("parse category assignments: %w", err)
+	}
+
+	return &result, nil
+}
+
+// CategoryAssignCacheKey generates a cache key for category assignment.
+func CategoryAssignCacheKey(apps []LowConfidenceApp) string {
+	// Create a deterministic key from the app list
+	var parts []string
+	for _, app := range apps {
+		parts = append(parts, fmt.Sprintf("%s:%s:%.2f", app.ID, app.IconName, app.Confidence))
+	}
+	// Sort for determinism
+	for i := 0; i < len(parts)-1; i++ {
+		for j := i + 1; j < len(parts); j++ {
+			if parts[i] > parts[j] {
+				parts[i], parts[j] = parts[j], parts[i]
+			}
+		}
+	}
+	return strings.Join(parts, ",")
+}

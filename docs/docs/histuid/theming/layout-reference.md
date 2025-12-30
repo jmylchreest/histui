@@ -67,7 +67,7 @@ These elements display notification content:
 | `<body />` | Notification message body | `.notification-body` |
 | `<appname />` | Application name | `.notification-appname` |
 | `<timestamp />` | Time since notification | `.notification-timestamp` |
-| `<icon />` | Application icon (with Nerd Font fallback) | `.notification-icon` |
+| `<icon />` | Application icon (with symbol font fallback) | `.notification-icon` |
 | `<image />` | Notification image attachment | `.notification-image` |
 | `<progress />` | Progress bar (if hint provided) | `.notification-progress` |
 | `<actions />` | Action buttons | `.notification-actions` |
@@ -97,7 +97,7 @@ These elements group other elements:
 The icon element displays:
 1. Application-provided icon (if available)
 2. GTK icon theme icon (if app name matches)
-3. Nerd Font symbol (fallback, styled with `.notification-icon-nerd`)
+3. Symbol font glyph (fallback, styled with `.notification-icon-symbol`)
 
 ### Image Element
 

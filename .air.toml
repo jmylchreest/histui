@@ -30,7 +30,7 @@ kill_delay = 500
 # Rerun binary when it exits
 rerun = false
 # Arguments to pass to binary
-args_bin = []
+args_bin = ["--log-level=debug"]
 
 [log]
 # Show log time

@@ -295,15 +295,38 @@ tasks:
   # See contrib/generate-icon-aliases/README.md for details.
 
   generate:icons:
-    desc: Generate icon aliases (full workflow - fetch, AI, output)
+    desc: Generate icon aliases (full workflow - fetch, suggest, AI, category fallbacks, output)
     dir: contrib/generate-icon-aliases
     cmds:
       - task: generate:icons:build
       - task: generate:icons:fetch
+      - task: generate:icons:suggest-if-api-key
       - task: generate:icons:ai
+      - task: generate:icons:category-fallbacks-if-api-key
       - task: generate:icons:output
       - echo ""
-      - echo "Done! Updated internal/icon/aliases_default.toml"
+      - echo "Done! Updated embed/aliases_default.toml"
+
+  generate:icons:suggest-if-api-key:
+    desc: Generate and apply category suggestions if OPENROUTER_API_KEY is set
+    dir: contrib/generate-icon-aliases
+    deps: [generate:icons:build]
+    cmds:
+      - |
+        if [ -z "$OPENROUTER_API_KEY" ]; then
+          echo "OPENROUTER_API_KEY not set - skipping category suggestions"
+          echo "Using existing kb-categories.toml (if populated)"
+          exit 0
+        fi
+        VERBOSE_FLAG=""
+        if [ "${VERBOSE:-false}" = "true" ]; then
+          VERBOSE_FLAG="--verbose"
+        fi
+        echo "Generating category icon suggestions..."
+        ./generate-icon-aliases --suggest-category-icons $VERBOSE_FLAG
+        echo ""
+        echo "Applying suggestions to kb-categories.toml..."
+        ./generate-icon-aliases --apply-suggestions $VERBOSE_FLAG
 
   generate:icons:build:
     desc: Build the icon alias generator
@@ -320,8 +343,13 @@ tasks:
     dir: contrib/generate-icon-aliases
     deps: [generate:icons:build]
     cmds:
-      - ./generate-icon-aliases --fetch --verbose
-      - echo "Updated kb-patterns.toml from upstream sources"
+      - |
+        VERBOSE_FLAG=""
+        if [ "${VERBOSE:-false}" = "true" ]; then
+          VERBOSE_FLAG="--verbose"
+        fi
+        ./generate-icon-aliases --fetch $VERBOSE_FLAG
+        echo "Updated kb-patterns.toml from upstream sources"
 
   generate:icons:ai:
     desc: Generate AI app mappings (requires OPENROUTER_API_KEY)
@@ -334,17 +362,99 @@ tasks:
           echo "Using existing kb-ai.json (if available)"
           exit 0
         fi
+        VERBOSE_FLAG=""
+        if [ "${VERBOSE:-false}" = "true" ]; then
+          VERBOSE_FLAG="--verbose"
+        fi
         echo "Generating AI app mappings..."
-        ./generate-icon-aliases --generate-kb --verbose
+        ./generate-icon-aliases --generate-kb $VERBOSE_FLAG
+
+  generate:icons:category-fallbacks-if-api-key:
+    desc: Assign low-confidence apps to category fallbacks if OPENROUTER_API_KEY is set
+    dir: contrib/generate-icon-aliases
+    deps: [generate:icons:build]
+    cmds:
+      - |
+        if [ -z "$OPENROUTER_API_KEY" ]; then
+          echo "OPENROUTER_API_KEY not set - skipping category fallback assignment"
+          echo "Using existing kb-category-assignments.json (if available)"
+          exit 0
+        fi
+        VERBOSE_FLAG=""
+        if [ "${VERBOSE:-false}" = "true" ]; then
+          VERBOSE_FLAG="--verbose"
+        fi
+        echo "Assigning low-confidence apps to category fallbacks..."
+        ./generate-icon-aliases --assign-category-fallbacks $VERBOSE_FLAG
+
+  generate:icons:category-fallbacks:
+    desc: Assign low-confidence apps to category fallbacks (requires OPENROUTER_API_KEY)
+    dir: contrib/generate-icon-aliases
+    deps: [generate:icons:build]
+    cmds:
+      - |
+        if [ -z "$OPENROUTER_API_KEY" ]; then
+          echo "Error: OPENROUTER_API_KEY not set"
+          echo "Set it with: export OPENROUTER_API_KEY=your-key"
+          exit 1
+        fi
+        VERBOSE_FLAG=""
+        if [ "${VERBOSE:-false}" = "true" ]; then
+          VERBOSE_FLAG="--verbose"
+        fi
+        echo "Assigning low-confidence apps to category fallbacks..."
+        ./generate-icon-aliases --assign-category-fallbacks $VERBOSE_FLAG
+        echo ""
+        echo "Generated kb-category-assignments.json"
+        echo "Run 'task generate:icons:output' to regenerate aliases with category fallbacks"
 
   generate:icons:output:
     desc: Generate final icon-aliases.toml output
     dir: contrib/generate-icon-aliases
     deps: [generate:icons:build]
     cmds:
-      - ./generate-icon-aliases --verbose --output ../../internal/icon/aliases_default.toml --font-output ../../internal/icon/fonts/SymbolsNerdFont-Regular.ttf
-      - echo "Generated internal/icon/aliases_default.toml"
-      - echo "Downloaded internal/icon/fonts/SymbolsNerdFont-Regular.ttf"
+      - |
+        VERBOSE_FLAG=""
+        if [ "${VERBOSE:-false}" = "true" ]; then
+          VERBOSE_FLAG="--verbose"
+        fi
+        ./generate-icon-aliases $VERBOSE_FLAG --output ../../embed/aliases_default.toml --font-output ../../embed/fonts/SymbolsNerdFont-Regular.ttf
+        echo "Generated embed/aliases_default.toml"
+        echo "Downloaded embed/fonts/SymbolsNerdFont-Regular.ttf"
+
+  generate:icons:suggest:
+    desc: Generate AI icon suggestions for categories (requires OPENROUTER_API_KEY)
+    dir: contrib/generate-icon-aliases
+    deps: [generate:icons:build]
+    cmds:
+      - |
+        if [ -z "$OPENROUTER_API_KEY" ]; then
+          echo "Error: OPENROUTER_API_KEY not set"
+          echo "Set it with: export OPENROUTER_API_KEY=your-key"
+          exit 1
+        fi
+        echo "Generating category icon suggestions..."
+        VERBOSE_FLAG=""
+        if [ "${VERBOSE:-false}" = "true" ]; then
+          VERBOSE_FLAG="--verbose"
+        fi
+        ./generate-icon-aliases --suggest-category-icons $VERBOSE_FLAG
+        echo ""
+        echo "Review kb-category-suggestions.toml, then run: task generate:icons:apply-suggestions"
+
+  generate:icons:apply-suggestions:
+    desc: Apply top icon suggestions to kb-categories.toml
+    dir: contrib/generate-icon-aliases
+    deps: [generate:icons:build]
+    cmds:
+      - |
+        VERBOSE_FLAG=""
+        if [ "${VERBOSE:-false}" = "true" ]; then
+          VERBOSE_FLAG="--verbose"
+        fi
+        ./generate-icon-aliases --apply-suggestions $VERBOSE_FLAG
+        echo ""
+        echo "kb-categories.toml updated with icon suggestions"
 
   generate:icons:clean:
     desc: Clean generated icon files and caches
@@ -352,5 +462,5 @@ tasks:
     cmds:
       - rm -f generate-icon-aliases
       - rm -rf .cache
-      - rm -f kb-patterns.toml kb-ai.json
+      - rm -f kb-patterns.toml kb-ai.json gtk-icons.json kb-category-suggestions.toml kb-category-assignments.json
       - echo "Cleaned generated files and cache"

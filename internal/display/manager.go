@@ -111,6 +111,7 @@ func NewManager(app *gtk.Application, cfg *config.DaemonConfig, logger *slog.Log
 	if err != nil {
 		logger.Warn("failed to load icon aliases file", "error", err)
 	}
+	iconResolver.SetLogger(logger)
 
 	m := &Manager{
 		app:          app,
@@ -424,14 +425,9 @@ func (m *Manager) Show(notification *dbus.DBusNotification, dbusID uint32, histu
 // Uses single-window mode where notifications are widgets inside a shared container.
 func (m *Manager) showPopupLocked(notification *dbus.DBusNotification, dbusID uint32, histuiID string) error {
 	// Create the popup widget (no window - will be added to stack container)
-	popup, err := NewPopupWidget(notification, m.config, m.logger, m.iconResolver)
+	popup, err := NewPopupWidget(notification, m.config, m.logger, m.iconResolver, m.themeIconsDir)
 	if err != nil {
 		return err
-	}
-
-	// Set theme icons directory for custom icon lookup
-	if m.themeIconsDir != "" {
-		popup.SetThemeIconsDir(m.themeIconsDir)
 	}
 
 	// Set up callbacks
@@ -942,19 +938,23 @@ func (m *Manager) UpdateConfig(cfg *config.DaemonConfig) {
 }
 
 // UpdateTheme updates the theme-specific settings for icon resolution.
-// Called when the theme changes to apply theme-provided aliases and icons.
-func (m *Manager) UpdateTheme(themeAliases map[string]string, themeIconsDir string) {
+// Called when the theme changes to apply theme-provided aliases, symbols, GTK icons, and icon dir.
+func (m *Manager) UpdateTheme(themeAliases, themeSymbols, themeGtkIcons map[string]string, themeIconsDir string) {
 	m.mu.Lock()
 	m.themeIconsDir = themeIconsDir
 	m.mu.Unlock()
 
-	// Update the resolver's theme aliases
+	// Update the resolver's theme data
 	if m.iconResolver != nil {
 		m.iconResolver.SetThemeAliases(themeAliases)
+		m.iconResolver.SetThemeSymbols(themeSymbols)
+		m.iconResolver.SetThemeGtkIcons(themeGtkIcons)
 	}
 
 	m.logger.Debug("updated theme settings",
 		"aliases_count", len(themeAliases),
+		"symbols_count", len(themeSymbols),
+		"gtk_icons_count", len(themeGtkIcons),
 		"icons_dir", themeIconsDir,
 	)
 }

@@ -122,10 +122,12 @@ window {
     min-width: 48px;
     min-height: 48px;
     margin-right: 12px;
+    /* Default color for symbolic icons */
+    color: var(--ctp-mauve);
 }
 
 /* Nerd Font symbol icons - displayed as text labels */
-.notification-icon-nerd {
+.notification-icon-symbol {
     font-family: "Symbols Nerd Font", "Symbols Nerd Font Mono", monospace;
     font-size: 32px;
     color: var(--ctp-mauve);
@@ -134,16 +136,19 @@ window {
     min-height: 48px;
 }
 
-/* Per-urgency icon colors */
-.notification-popup.urgency-low .notification-icon-nerd {
+/* Per-urgency icon colors (applies to both GTK icons and Nerd Font) */
+.notification-popup.urgency-low .notification-icon,
+.notification-popup.urgency-low .notification-icon-symbol {
     color: var(--ctp-overlay0);
 }
 
-.notification-popup.urgency-normal .notification-icon-nerd {
+.notification-popup.urgency-normal .notification-icon,
+.notification-popup.urgency-normal .notification-icon-symbol {
     color: var(--ctp-mauve);
 }
 
-.notification-popup.urgency-critical .notification-icon-nerd {
+.notification-popup.urgency-critical .notification-icon,
+.notification-popup.urgency-critical .notification-icon-symbol {
     color: var(--ctp-red);
 }
 

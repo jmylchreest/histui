@@ -26,7 +26,9 @@ type Theme struct {
 	Manifest  *Manifest // Theme manifest (nil if no manifest)
 
 	// Icon-related fields
-	Aliases  map[string]string // Theme-specific icon aliases (app name -> icon name)
+	Aliases  map[string]string // Theme-specific icon aliases (app name -> canonical icon name)
+	Symbols  map[string]string // Theme-specific symbols (canonical name -> glyph character)
+	GtkIcons map[string]string // Theme-specific GTK icons (canonical name -> GTK icon name)
 	IconsDir string            // Path to theme's icons/ folder (for custom icon images)
 }
 
@@ -107,9 +109,11 @@ func NewThemeFromDir(name, themeDir string) (*Theme, error) {
 		}
 	}
 
-	// Load theme-specific icon aliases if present
-	if aliases, found := loadThemeAliases(themeDir); found {
-		theme.Aliases = aliases
+	// Load theme-specific icon aliases, symbols, and GTK icons if present
+	if aliasesFile, found := loadThemeAliasesFile(themeDir); found {
+		theme.Aliases = aliasesFile.Aliases
+		theme.Symbols = aliasesFile.Symbols
+		theme.GtkIcons = aliasesFile.GtkIcons
 	}
 
 	// Check for icons directory
@@ -121,10 +125,17 @@ func NewThemeFromDir(name, themeDir string) (*Theme, error) {
 	return theme, nil
 }
 
-// loadThemeAliases loads icon aliases from a theme directory.
+// themeAliasesFileData represents the structure of a theme's aliases.toml file.
+type themeAliasesFileData struct {
+	Aliases  map[string]string `toml:"aliases"`
+	Symbols  map[string]string `toml:"symbols"`
+	GtkIcons map[string]string `toml:"gtk-icons"`
+}
+
+// loadThemeAliasesFile loads icon aliases, symbols, and GTK icons from a theme directory.
 // Looks for aliases.toml in the theme directory.
-// Returns the aliases map and whether aliases were found.
-func loadThemeAliases(themeDir string) (map[string]string, bool) {
+// Returns the parsed file and whether it was found.
+func loadThemeAliasesFile(themeDir string) (*themeAliasesFileData, bool) {
 	aliasesPath := filepath.Join(themeDir, "aliases.toml")
 
 	data, err := os.ReadFile(aliasesPath)
@@ -132,21 +143,28 @@ func loadThemeAliases(themeDir string) (map[string]string, bool) {
 		return nil, false
 	}
 
-	// Structure for TOML aliases file
-	type aliasesFile struct {
-		Aliases map[string]string `toml:"aliases"`
-	}
-
-	var file aliasesFile
+	var file themeAliasesFileData
 	if err := toml.Unmarshal(data, &file); err != nil {
 		return nil, false
 	}
 
-	if len(file.Aliases) == 0 {
+	// Initialize nil maps to empty maps
+	if file.Aliases == nil {
+		file.Aliases = make(map[string]string)
+	}
+	if file.Symbols == nil {
+		file.Symbols = make(map[string]string)
+	}
+	if file.GtkIcons == nil {
+		file.GtkIcons = make(map[string]string)
+	}
+
+	// Return true if any section has content
+	if len(file.Aliases) == 0 && len(file.Symbols) == 0 && len(file.GtkIcons) == 0 {
 		return nil, false
 	}
 
-	return file.Aliases, true
+	return &file, true
 }
 
 // resolveManifestPaths resolves relative paths in the manifest to absolute paths.

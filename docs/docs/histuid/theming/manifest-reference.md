@@ -21,17 +21,9 @@ Manifest files belong in theme directories:
     └── notify.ogg
 ```
 
-## Supported Formats
+## File Format
 
-While `.toml` is recommended, histuid also supports:
-
-| Format | Filename |
-|--------|----------|
-| TOML | `manifest.toml` |
-| YAML | `manifest.yaml` or `manifest.yml` |
-| JSON | `manifest.json` |
-
-histuid checks for these in order and uses the first one found.
+Manifest files use TOML format. The filename must be `manifest.toml`.
 
 ## Complete Reference
 
@@ -327,70 +319,6 @@ Bundled themes include embedded sounds that are extracted to the cache directory
 ```
 
 When you inherit from a bundled theme, the embedded sounds are automatically extracted and used.
-
-## YAML Format Example
-
-If you prefer YAML:
-
-```yaml
-# manifest.yaml
-name: My Theme
-description: A custom notification theme
-author: Your Name
-version: "1.0.0"
-
-icon:
-  size: 48
-
-audio:
-  low:
-    path: ""
-    volume: 0.5
-    repeat_count: -1
-
-  normal:
-    path: sounds/notify.ogg
-    volume: 0.8
-    repeat_count: -1
-
-  critical:
-    path: sounds/alert.ogg
-    volume: 1.0
-    repeat_count: 0
-    repeat_delay: 10s
-```
-
-## JSON Format Example
-
-```json
-{
-  "name": "My Theme",
-  "description": "A custom notification theme",
-  "author": "Your Name",
-  "version": "1.0.0",
-  "icon": {
-    "size": 48
-  },
-  "audio": {
-    "low": {
-      "path": "",
-      "volume": 0.5,
-      "repeat_count": -1
-    },
-    "normal": {
-      "path": "sounds/notify.ogg",
-      "volume": 0.8,
-      "repeat_count": -1
-    },
-    "critical": {
-      "path": "sounds/alert.ogg",
-      "volume": 1.0,
-      "repeat_count": 0,
-      "repeat_delay": "10s"
-    }
-  }
-}
-```
 
 ## See Also
 

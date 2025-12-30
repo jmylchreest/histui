@@ -3,3 +3,8 @@ config.toml
 .debug/
 generate-icon-aliases
 glyphnames.json
+SymbolsNerdFont-Regular.ttf
+icon-aliases.toml
+gtk-icons.json
+kb-category-suggestions.toml
+kb-category-assignments.json

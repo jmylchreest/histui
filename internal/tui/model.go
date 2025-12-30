@@ -28,8 +28,8 @@ import (
 	"github.com/jmylchreest/histui/internal/db"
 	"github.com/jmylchreest/histui/internal/dbus"
 	"github.com/jmylchreest/histui/internal/icon"
-	"github.com/jmylchreest/histui/internal/theme"
 	"github.com/jmylchreest/histui/internal/model"
+	"github.com/jmylchreest/histui/internal/theme"
 )
 
 // Mode represents the current UI mode.
@@ -277,11 +277,13 @@ func New(cfg *config.Config, database *db.DB, daemonClient *dbus.DaemonClient, i
 		themeName = cfg.TUI.Theme
 	}
 
-	// Load theme aliases into the resolver
+	// Load theme aliases, symbols, and GTK icons into the resolver
 	if iconRes != nil {
 		if aliasesData, found := theme.GetEmbeddedAliases(themeName); found {
-			if themeAliases, err := icon.LoadThemeAliases(aliasesData); err == nil && len(themeAliases) > 0 {
-				iconRes.SetThemeAliases(themeAliases)
+			if themeFile, err := icon.LoadThemeAliasesFile(aliasesData); err == nil && themeFile != nil {
+				iconRes.SetThemeAliases(themeFile.Aliases)
+				iconRes.SetThemeSymbols(themeFile.Symbols)
+				iconRes.SetThemeGtkIcons(themeFile.GtkIcons)
 			}
 		}
 	}
@@ -1649,40 +1651,40 @@ func (m Model) collectImages(n model.Notification) []imageSource {
 	return images
 }
 
-// renderPreviewIcon renders the notification icon as a NerdFont symbol using halfblocks.
+// renderPreviewIcon renders the notification icon as a symbol font glyph using halfblocks.
 // This shows the app icon that matches what histuid displays in popups.
-// Falls back to theme urgency icons if no NerdFont symbol is available.
+// Falls back to theme urgency icons if no symbol is available.
 // Returns empty string if no icon can be rendered.
 func (m Model) renderPreviewIcon(n model.Notification) string {
 	// Dimensions for the icon (matches image placeholder)
 	const iconCols = 10
 	const iconRows = 5
 
-	// Get the NerdFont symbol for this notification
+	// Get the symbol for this notification
 	symbol := ""
 
 	if m.iconResolver != nil {
 		// Try app name first
 		appName := strings.ToLower(n.AppName)
-		symbol = m.iconResolver.GetNerdSymbol(appName)
+		symbol = m.iconResolver.GetSymbolForApp(appName)
 
 		// Try resolved icon name
 		if symbol == "" {
-			resolved := m.iconResolver.Resolve(appName)
-			if resolved != appName {
-				symbol = m.iconResolver.GetNerdSymbol(resolved)
+			canonical := m.iconResolver.ResolveApp(appName)
+			if canonical != appName {
+				symbol = m.iconResolver.GetSymbol(canonical)
 			}
 		}
 
 		// Try category
 		if symbol == "" && n.Category != "" {
-			symbol = m.iconResolver.GetNerdSymbolForCategory(n.Category)
+			symbol = m.iconResolver.GetSymbolForCategory(n.Category)
 		}
 	}
 
 	// If we have a symbol, try to render it
 	if symbol != "" {
-		rendered := renderNerdSymbolToHalfblocks(symbol, iconCols, iconRows)
+		rendered := renderSymbolToHalfblocks(symbol, iconCols, iconRows)
 		if rendered != "" {
 			return rendered
 		}
@@ -1690,7 +1692,7 @@ func (m Model) renderPreviewIcon(n model.Notification) string {
 
 	// Try theme urgency icon as fallback
 	if m.iconResolver != nil {
-		urgencyIconName := m.iconResolver.GetUrgencyIconName(n.Urgency)
+		urgencyIconName := m.iconResolver.ResolveUrgency(n.Urgency)
 		if urgencyIconName != "" {
 			// Try to load the icon from embedded themes
 			rendered := m.renderThemeIcon(urgencyIconName, iconCols, iconRows)
@@ -1700,10 +1702,14 @@ func (m Model) renderPreviewIcon(n model.Notification) string {
 		}
 	}
 
-	// Fall back to urgency-based NerdFont symbol
-	symbol = icon.FallbackNerdSymbolForUrgency(n.Urgency)
+	// Fall back to urgency-based symbol (uses resolver's symbols if available)
+	if m.iconResolver != nil {
+		symbol = m.iconResolver.GetSymbolForUrgency(n.Urgency)
+	} else {
+		symbol = icon.FallbackNerdSymbolForUrgency(n.Urgency)
+	}
 	if symbol != "" {
-		rendered := renderNerdSymbolToHalfblocks(symbol, iconCols, iconRows)
+		rendered := renderSymbolToHalfblocks(symbol, iconCols, iconRows)
 		if rendered != "" {
 			return rendered
 		}

@@ -201,26 +201,31 @@ my-custom-app = "application-default-icon"
 ### Nerd Font Symbols
 
 When GTK icons aren't available, histuid displays Nerd Font symbols.
-Override the default symbols:
+Override the default symbols by pasting actual glyph characters:
 
 ```toml
 # ~/.config/histui/icon-aliases.toml
 
 [symbols]
 # Override app symbols (icon name -> Nerd Font glyph)
-spotify = "\U000F04C7"     # nf-md-spotify
-discord = "\U000F066F"     # nf-md-discord
+# Copy glyphs from https://www.nerdfonts.com/cheat-sheet
+spotify = "󰓇"     # nf-md-spotify
+discord = "󰙯"     # nf-md-discord
 
 # Override urgency fallbacks
-critical = "\U000F0026"    # nf-md-alert
-normal = "\U000F009A"      # nf-md-bell
-low = "\U000F02FC"         # nf-md-information
-undefined = "\U000F009C"   # nf-md-bell-outline
+critical = "󰀦"    # nf-md-alert
+normal = "󰂚"      # nf-md-bell
+low = "󰋼"         # nf-md-information
+undefined = "󰂜"   # nf-md-bell-outline
 
 # Override category fallbacks
-notification = "\U000F009A"  # nf-md-bell
-im = "\U000F0CE4"            # nf-md-chat
+notification = "󰂚"  # nf-md-bell
+im = "󱃲"            # nf-md-chat
 ```
+
+:::tip Symbol Format
+Use actual Unicode characters in your TOML file, not escape sequences. Copy glyphs directly from the [Nerd Fonts cheat sheet](https://www.nerdfonts.com/cheat-sheet).
+:::
 
 ### Built-in Aliases
 
@@ -234,16 +239,18 @@ histuid includes aliases for 350+ common applications:
 
 ### Icon Alias Generator
 
-The icon aliases are generated from Nerd Fonts data. To regenerate with different preferences:
+The icon aliases are generated using a combination of upstream metadata and AI-powered app mapping. See [Icon Aliases](/docs/histuid/theming/icon-aliases#generating-aliases) for the full generator documentation.
+
+Quick usage from project root:
 
 ```bash
+# Regenerate aliases using existing knowledge base
+task generate:icons:output
+
+# Or manually from the generator directory
 cd contrib/generate-icon-aliases
-
-# Prefer Material Design icons (default)
-go run . --fetch --output ../../internal/icon/aliases_default.toml
-
-# Prefer Font Awesome icons
-go run . --fetch --prefer fa --output ../../internal/icon/aliases_default.toml
+go build .
+./generate-icon-aliases --output ../../internal/icon/aliases_default.toml
 ```
 
 ## Font Configuration

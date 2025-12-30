@@ -1,0 +1,35 @@
+# Default icon mappings for histui
+# This file provides fallback symbols and GTK icons for urgency levels
+# and special categories not covered by app pattern matching.
+#
+# These values are merged into the generated aliases_default.toml
+
+[meta]
+description = "Default urgency and category icon mappings"
+version = 1
+
+[symbols]
+# Urgency symbols (Font Awesome circle icons from Nerd Fonts)
+urgency-critical = '' # fa-circle_exclamation
+urgency-normal = ''   # fa-circle_chevron_up
+urgency-low = ''      # fa-circle_chevron_down
+urgency-unknown = ''  # fa-circle_dot
+
+# Desktop Notification spec categories
+im = '󱧍'       # md-message_fast_outline
+device = '󰯰'   # md-devices
+transfer = '' # fa-download
+presence = '󰀄' # md-account
+
+[gtk-icons]
+# Urgency GTK icons (standard freedesktop/GTK icon names)
+urgency-critical = 'dialog-warning-symbolic'
+urgency-normal = 'dialog-information-symbolic'
+urgency-low = 'dialog-information-symbolic'
+urgency-unknown = 'dialog-question-symbolic'
+
+# Desktop Notification spec categories
+im = 'chat-message-new-symbolic'
+device = 'harddisk-symbolic'
+transfer = 'folder-download-symbolic'
+presence = 'avatar-default-symbolic'

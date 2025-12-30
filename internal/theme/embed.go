@@ -6,13 +6,13 @@ import (
 	"io/fs"
 	"os"
 	"strings"
+
+	histuiembed "github.com/jmylchreest/histui/embed"
 )
 
-// EmbeddedThemes contains all bundled theme directories.
+// EmbeddedThemes provides access to bundled theme directories.
 // Each theme is a directory containing theme.css and optional assets.
-//
-//go:embed themes
-var EmbeddedThemes embed.FS
+var EmbeddedThemes embed.FS = histuiembed.Themes
 
 // DefaultThemeName is the name of the built-in default theme.
 const DefaultThemeName = "default"
@@ -230,4 +230,82 @@ func ExtractEmbeddedSounds(themeName, extractDir string) (map[string]string, err
 	}
 
 	return pathMap, nil
+}
+
+// ExtractEmbeddedIcons extracts all embedded icons for a theme to a directory.
+// Returns the icons directory path if any icons were extracted, empty string otherwise.
+// The extractDir should be a writable directory (e.g., a cache dir).
+func ExtractEmbeddedIcons(themeName, extractDir string) (string, error) {
+	// List files in the theme's icons directory
+	iconsDir := "themes/" + themeName + "/icons"
+	entries, err := fs.ReadDir(EmbeddedThemes, iconsDir)
+	if err != nil {
+		// No icons directory is not an error
+		return "", nil
+	}
+
+	// Create the icons extraction directory
+	iconsExtractDir := extractDir + "/icons"
+	if err := os.MkdirAll(iconsExtractDir, 0755); err != nil {
+		return "", err
+	}
+
+	extracted := 0
+	for _, entry := range entries {
+		if entry.IsDir() {
+			// Handle subdirectories like scalable/ or 48x48/
+			subDir := iconsDir + "/" + entry.Name()
+			subEntries, err := fs.ReadDir(EmbeddedThemes, subDir)
+			if err != nil {
+				continue
+			}
+
+			subExtractDir := iconsExtractDir + "/" + entry.Name()
+			if err := os.MkdirAll(subExtractDir, 0755); err != nil {
+				continue
+			}
+
+			for _, subEntry := range subEntries {
+				if subEntry.IsDir() {
+					continue
+				}
+
+				srcPath := subDir + "/" + subEntry.Name()
+				dstPath := subExtractDir + "/" + subEntry.Name()
+
+				data, err := EmbeddedThemes.ReadFile(srcPath)
+				if err != nil {
+					continue
+				}
+
+				if err := os.WriteFile(dstPath, data, 0644); err != nil {
+					continue
+				}
+				extracted++
+			}
+			continue
+		}
+
+		name := entry.Name()
+		srcPath := iconsDir + "/" + name
+		dstPath := iconsExtractDir + "/" + name
+
+		// Read embedded file
+		data, err := EmbeddedThemes.ReadFile(srcPath)
+		if err != nil {
+			continue
+		}
+
+		// Write to extraction directory
+		if err := os.WriteFile(dstPath, data, 0644); err != nil {
+			continue
+		}
+		extracted++
+	}
+
+	if extracted == 0 {
+		return "", nil
+	}
+
+	return iconsExtractDir, nil
 }

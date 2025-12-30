@@ -1,10 +1,10 @@
-/* histui Compact Theme
- * Right-aligned icon, smaller fonts, tighter spacing.
+/* histui Minimal Theme
+ * Compact, distraction-free notifications without icons.
  * Uses libadwaita CSS variables for automatic light/dark mode.
  *
- * For compositor blur, add to your config:
- *   layerrule = blur, histui-notification
- *   layerrule = ignorealpha 0.5, histui-notification
+ * Font Variables (can be overridden via config or CLI):
+ *   --histui-font-family    - Font family (default: monospace for minimal)
+ *   --histui-font-size      - Base font size (default: 13px for minimal)
  */
 
 /* =============================================================================
@@ -12,12 +12,12 @@
  * ============================================================================= */
 
 * {
-    --histui-font-family: inherit;
-    --histui-font-size: 12px;
+    --histui-font-family: monospace;
+    --histui-font-size: 13px;
 }
 
 /* =============================================================================
- * WINDOW
+ * WINDOW - Must be transparent for proper notification appearance
  * ============================================================================= */
 
 window {
@@ -25,62 +25,66 @@ window {
 }
 
 /* =============================================================================
- * BASE POPUP CONTAINER - Tight padding
+ * BASE POPUP CONTAINER - Compact sizing
  * ============================================================================= */
 
 .notification-popup {
     background-color: alpha(@window_bg_color, 0.85);
     color: @window_fg_color;
     border-radius: 8px;
-    border: 1px solid alpha(@borders, 0.4);
-    box-shadow: 0 2px 8px alpha(black, 0.12);
+    border: 1px solid alpha(@borders, 0.3);
     padding: 8px 10px;
     margin: 4px;
     font-family: var(--histui-font-family);
     font-size: var(--histui-font-size);
 }
 
+/* Translucent mode */
+.notification-popup.translucent {
+    background-color: alpha(@window_bg_color, 0.9);
+}
+
 /* =============================================================================
- * HEADER
+ * HEADER - Inline, no vertical stacking
  * ============================================================================= */
 
 .notification-header {
-    margin-bottom: 4px;
+    margin-bottom: 2px;
 }
 
-/* Icon placement determined by layout.xml order; CSS adjusts margins */
+/* Compact icon - smaller than default but visible */
 .notification-icon {
-    min-width: 24px;
-    min-height: 24px;
-    margin-left: 8px;
-    margin-right: 0;
+    min-width: 32px;
+    min-height: 32px;
+    margin-right: 8px;
 }
 
-/* Nerd Font symbol icons */
-.notification-icon-nerd {
+/* Nerd Font symbol icons - displayed as text labels */
+.notification-icon-symbol {
     font-family: "Symbols Nerd Font", "Symbols Nerd Font Mono", monospace;
-    font-size: 18px;
+    font-size: 24px;
     color: @accent_color;
-    min-width: 24px;
-    min-height: 24px;
+    /* Center the symbol in the icon area */
+    min-width: 32px;
+    min-height: 32px;
 }
 
 /* Per-urgency icon colors */
-.notification-popup.urgency-low .notification-icon-nerd {
-    color: alpha(@window_fg_color, 0.5);
+.notification-popup.urgency-low .notification-icon-symbol {
+    color: alpha(@window_fg_color, 0.6);
 }
 
-.notification-popup.urgency-normal .notification-icon-nerd {
+.notification-popup.urgency-normal .notification-icon-symbol {
     color: @accent_color;
 }
 
-.notification-popup.urgency-critical .notification-icon-nerd {
+.notification-popup.urgency-critical .notification-icon-symbol {
     color: @error_color;
 }
 
 .notification-summary {
     font-weight: 600;
-    font-size: 1em;
+    font-size: 0.95em;
     color: @window_fg_color;
 }
 
@@ -95,13 +99,14 @@ window {
 }
 
 .notification-stack-count {
+    /* Subtle background - slightly lighter/darker than notification background */
     background-color: alpha(@window_fg_color, 0.08);
     color: alpha(@window_fg_color, 0.6);
     border-radius: 6px;
     padding: 1px 5px;
     font-size: 0.7em;
     font-weight: 600;
-    margin-left: 4px;
+    margin-left: 6px;
 }
 
 .notification-close {
@@ -160,6 +165,7 @@ window {
     margin-top: 6px;
 }
 
+/* Image container for cropped images */
 .notification-image-container {
     margin-top: 6px;
     border-radius: 4px;
@@ -170,15 +176,25 @@ window {
     border-radius: 0;
 }
 
+/* Fade gradient overlay when image is cropped */
 .notification-image-fade {
     background-image: linear-gradient(
         to bottom,
         alpha(@window_bg_color, 0.0) 0%,
-        alpha(@window_bg_color, 0.6) 60%,
-        alpha(@window_bg_color, 0.8) 100%
+        alpha(@window_bg_color, 0.7) 60%,
+        @window_bg_color 100%
     );
     border-bottom-left-radius: 4px;
     border-bottom-right-radius: 4px;
+}
+
+.notification-popup.translucent .notification-image-fade {
+    background-image: linear-gradient(
+        to bottom,
+        alpha(@window_bg_color, 0.0) 0%,
+        alpha(@window_bg_color, 0.6) 60%,
+        alpha(@window_bg_color, 0.9) 100%
+    );
 }
 
 /* =============================================================================
@@ -204,25 +220,24 @@ window {
 }
 
 /* =============================================================================
- * URGENCY MODIFIERS
+ * URGENCY - Subtle indicators with danger backgrounds
  * ============================================================================= */
 
 .notification-popup.urgency-low {
-    border-color: alpha(@borders, 0.2);
-    box-shadow: 0 1px 4px alpha(black, 0.08);
-}
-
-.notification-popup.urgency-low .notification-summary {
-    font-weight: normal;
+    opacity: 0.85;
 }
 
 .notification-popup.urgency-normal {
     /* Default styling */
 }
 
+/* Critical urgency - muted danger background (solid colors, not transparent)
+ * Uses color-mix to blend error color with background for a solid tint.
+ */
 .notification-popup.urgency-critical {
-    background-color: color-mix(in srgb, @error_color 8%, alpha(@window_bg_color, 0.8));
-    border-color: @error_color;
+    /* Solid muted red background - blends error color with window background */
+    background-color: color-mix(in srgb, @error_color 8%, @window_bg_color);
+    border-color: color-mix(in srgb, @error_color 40%, @borders);
     border-width: 1px;
 }
 
@@ -241,13 +256,17 @@ window {
 
 /* =============================================================================
  * STACK POSITION CLASSES
+ * For unified stack appearance with 0 gap between notifications.
+ * Use display.gap=0 in config for best results.
  * ============================================================================= */
 
+/* Single notification - normal rounded corners with all margins */
 box.notification-popup.stack-single {
     border-radius: 8px;
     margin: 4px;
 }
 
+/* First notification in stack - squared bottom edge, no bottom margin */
 box.notification-popup.stack-first {
     border-radius: 8px 8px 0 0;
     margin: 4px 4px 0 4px;
@@ -255,6 +274,7 @@ box.notification-popup.stack-first {
     border-bottom-width: 0;
 }
 
+/* Middle notifications - flat edges with thin separator, no vertical margins */
 box.notification-popup.stack-middle {
     border-radius: 0;
     margin: 0 4px 0 4px;
@@ -264,6 +284,7 @@ box.notification-popup.stack-middle {
     border-bottom-width: 0;
 }
 
+/* Last notification in stack - squared top edge, no top margin */
 box.notification-popup.stack-last {
     border-radius: 0 0 8px 8px;
     margin: 0 4px 4px 4px;

@@ -1,3 +1,5 @@
+//go:build cgo
+
 package theme
 
 import (
@@ -8,23 +10,38 @@ import (
 	"path/filepath"
 	"sync"
 
-	"github.com/pelletier/go-toml/v2"
 	"github.com/diamondburned/gotk4/pkg/gdk/v4"
 	"github.com/diamondburned/gotk4/pkg/glib/v2"
 	"github.com/diamondburned/gotk4/pkg/gtk/v4"
+	"github.com/pelletier/go-toml/v2"
 )
 
-// parseEmbeddedAliases parses TOML aliases data from a string.
-func parseEmbeddedAliases(data string) map[string]string {
+// embeddedAliasesFile represents parsed aliases data from embedded TOML.
+type embeddedAliasesFile struct {
+	Aliases  map[string]string
+	Symbols  map[string]string
+	GtkIcons map[string]string
+}
+
+// parseEmbeddedAliasesFile parses TOML aliases data from a string.
+// Returns all sections: aliases, symbols, and gtk-icons.
+func parseEmbeddedAliasesFile(data string) *embeddedAliasesFile {
 	type aliasesFile struct {
-		Aliases map[string]string `toml:"aliases"`
+		Aliases  map[string]string `toml:"aliases"`
+		Symbols  map[string]string `toml:"symbols"`
+		GtkIcons map[string]string `toml:"gtk-icons"`
 	}
 
 	var file aliasesFile
 	if err := toml.Unmarshal([]byte(data), &file); err != nil {
 		return nil
 	}
-	return file.Aliases
+
+	return &embeddedAliasesFile{
+		Aliases:  file.Aliases,
+		Symbols:  file.Symbols,
+		GtkIcons: file.GtkIcons,
+	}
 }
 
 // Loader handles loading and applying CSS themes with hot-reload support.
@@ -59,15 +76,6 @@ func NewLoader(logger *slog.Logger) *Loader {
 		provider:  gtk.NewCSSProvider(),
 		themesDir: themesDir,
 	}
-}
-
-// ThemesDir returns the path to the user's themes directory.
-func ThemesDir() (string, error) {
-	configDir, err := os.UserConfigDir()
-	if err != nil {
-		return "", err
-	}
-	return filepath.Join(configDir, "histui", "themes"), nil
 }
 
 // LoadTheme loads a theme by name.
@@ -139,15 +147,16 @@ func (l *Loader) LoadTheme(name string) error {
 			IsDefault: name == DefaultThemeName,
 		}
 
-		// Load embedded manifest if present
-		if manifestData, found := GetEmbeddedManifest(name); found {
-			manifest, err := ParseManifest([]byte(manifestData), ".toml")
-			if err == nil {
-				l.theme.Manifest = manifest
-
-				// Extract embedded sounds to cache directory
-				cacheDir, err := l.getSoundsCacheDir(name)
+		// Get cache directory for extracting embedded assets
+		cacheDir, err := l.getSoundsCacheDir(name)
+		if err == nil {
+			// Load embedded manifest if present
+			if manifestData, found := GetEmbeddedManifest(name); found {
+				manifest, err := ParseManifest([]byte(manifestData), ".toml")
 				if err == nil {
+					l.theme.Manifest = manifest
+
+					// Extract embedded sounds to cache directory
 					pathMap, err := ExtractEmbeddedSounds(name, cacheDir)
 					if err == nil && len(pathMap) > 0 {
 						l.theme.Dir = cacheDir
@@ -155,18 +164,34 @@ func (l *Loader) LoadTheme(name string) error {
 						l.updateManifestSoundPaths(pathMap)
 						l.logger.Debug("extracted embedded sounds", "theme", name, "count", len(pathMap))
 					}
+				} else {
+					l.logger.Warn("failed to parse embedded manifest", "theme", name, "error", err)
 				}
-			} else {
-				l.logger.Warn("failed to parse embedded manifest", "theme", name, "error", err)
+			}
+
+		}
+
+		// Extract embedded icons to theme cache directory (not sounds cache)
+		themeCacheDir, err := l.getThemeCacheDir(name)
+		if err == nil {
+			iconsDir, err := ExtractEmbeddedIcons(name, themeCacheDir)
+			if err == nil && iconsDir != "" {
+				l.theme.IconsDir = iconsDir
+				l.logger.Debug("extracted embedded icons", "theme", name, "icons_dir", iconsDir)
 			}
 		}
 
-		// Load embedded aliases if present
+		// Load embedded aliases, symbols, and GTK icons if present
 		if aliasesData, found := GetEmbeddedAliases(name); found {
-			aliases := parseEmbeddedAliases(aliasesData)
-			if len(aliases) > 0 {
-				l.theme.Aliases = aliases
-				l.logger.Debug("loaded embedded aliases", "theme", name, "count", len(aliases))
+			aliasesFile := parseEmbeddedAliasesFile(aliasesData)
+			if aliasesFile != nil {
+				l.theme.Aliases = aliasesFile.Aliases
+				l.theme.Symbols = aliasesFile.Symbols
+				l.theme.GtkIcons = aliasesFile.GtkIcons
+				l.logger.Debug("loaded embedded aliases", "theme", name,
+					"aliases_count", len(aliasesFile.Aliases),
+					"symbols_count", len(aliasesFile.Symbols),
+					"gtk_icons_count", len(aliasesFile.GtkIcons))
 			}
 		}
 
@@ -174,7 +199,8 @@ func (l *Loader) LoadTheme(name string) error {
 		l.currentName = name
 		l.logger.Info("loaded bundled theme", "name", name,
 			"has_manifest", l.theme.Manifest != nil,
-			"has_aliases", len(l.theme.Aliases) > 0)
+			"has_aliases", len(l.theme.Aliases) > 0,
+			"has_icons", l.theme.IconsDir != "")
 		return nil
 	}
 
@@ -189,15 +215,16 @@ func (l *Loader) LoadTheme(name string) error {
 		IsDefault: true,
 	}
 
-	// Load embedded manifest for default theme
-	if manifestData, found := GetEmbeddedManifest(DefaultThemeName); found {
-		manifest, err := ParseManifest([]byte(manifestData), ".toml")
-		if err == nil {
-			l.theme.Manifest = manifest
-
-			// Extract embedded sounds to cache directory
-			cacheDir, err := l.getSoundsCacheDir(DefaultThemeName)
+	// Get cache directory for extracting embedded assets
+	cacheDir, err := l.getSoundsCacheDir(DefaultThemeName)
+	if err == nil {
+		// Load embedded manifest for default theme
+		if manifestData, found := GetEmbeddedManifest(DefaultThemeName); found {
+			manifest, err := ParseManifest([]byte(manifestData), ".toml")
 			if err == nil {
+				l.theme.Manifest = manifest
+
+				// Extract embedded sounds to cache directory
 				pathMap, err := ExtractEmbeddedSounds(DefaultThemeName, cacheDir)
 				if err == nil && len(pathMap) > 0 {
 					l.theme.Dir = cacheDir
@@ -205,20 +232,34 @@ func (l *Loader) LoadTheme(name string) error {
 				}
 			}
 		}
+
 	}
 
-	// Load embedded aliases for default theme
+	// Extract embedded icons to theme cache directory (not sounds cache)
+	themeCacheDir, err := l.getThemeCacheDir(DefaultThemeName)
+	if err == nil {
+		iconsDir, err := ExtractEmbeddedIcons(DefaultThemeName, themeCacheDir)
+		if err == nil && iconsDir != "" {
+			l.theme.IconsDir = iconsDir
+			l.logger.Debug("extracted embedded icons", "theme", DefaultThemeName, "icons_dir", iconsDir)
+		}
+	}
+
+	// Load embedded aliases, symbols, and GTK icons for default theme
 	if aliasesData, found := GetEmbeddedAliases(DefaultThemeName); found {
-		aliases := parseEmbeddedAliases(aliasesData)
-		if len(aliases) > 0 {
-			l.theme.Aliases = aliases
+		aliasesFile := parseEmbeddedAliasesFile(aliasesData)
+		if aliasesFile != nil {
+			l.theme.Aliases = aliasesFile.Aliases
+			l.theme.Symbols = aliasesFile.Symbols
+			l.theme.GtkIcons = aliasesFile.GtkIcons
 		}
 	}
 
 	l.provider.LoadFromString(processedCSS)
 	l.currentName = DefaultThemeName
 	l.logger.Info("loaded default theme", "has_manifest", l.theme.Manifest != nil,
-		"has_aliases", len(l.theme.Aliases) > 0)
+		"has_aliases", len(l.theme.Aliases) > 0,
+		"has_icons", l.theme.IconsDir != "")
 	return nil
 }
 
@@ -415,6 +456,15 @@ func (l *Loader) getSoundsCacheDir(themeName string) (string, error) {
 		return "", err
 	}
 	return filepath.Join(cacheDir, "histui", "themes", themeName, "sounds"), nil
+}
+
+// getThemeCacheDir returns the cache directory for a theme's extracted assets.
+func (l *Loader) getThemeCacheDir(themeName string) (string, error) {
+	cacheDir, err := os.UserCacheDir()
+	if err != nil {
+		return "", err
+	}
+	return filepath.Join(cacheDir, "histui", "themes", themeName), nil
 }
 
 // updateManifestSoundPaths updates the manifest's sound paths using the path map.

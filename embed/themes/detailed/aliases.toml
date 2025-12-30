@@ -1,0 +1,19 @@
+# Theme icon aliases
+# Defines icon overrides for this theme.
+#
+# [aliases]   - Maps app/urgency names to canonical icon names
+# [symbols]   - Maps canonical names to symbol font glyphs
+# [gtk-icons] - Maps canonical names to GTK icon theme names
+#
+# All defaults (urgency icons, categories, apps) are provided by
+# the embedded aliases_default.toml. Only add entries here if this
+# theme needs to override specific icons.
+
+# [aliases]
+# Add app alias overrides here if needed
+
+# [symbols]
+# Add symbol overrides here if needed
+
+# [gtk-icons]
+# Add GTK icon overrides here if needed

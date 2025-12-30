@@ -103,3 +103,22 @@ force_apps = [
 # =============================================================================
 # YOUR OVERRIDES BELOW
 # =============================================================================
+
+# -----------------------------------------------------------------------------
+# Tor - The Onion Router (NOT tortoise!)
+# -----------------------------------------------------------------------------
+# Tor has a dedicated icon in Nerd Fonts (linux-tor with onion symbol).
+# Without this override, "tor" gets matched to "tortoise" by string similarity.
+
+[icons.tor]
+patterns = ["linux-tor"]
+type = "app"
+description = "Tor anonymity network and browser"
+upstream = "manual"
+force_apps = [
+    "tor",
+    "tor-browser",
+    "torbrowser-launcher",
+    "org.torproject.torbrowser-launcher",
+    "start-tor-browser",
+]
