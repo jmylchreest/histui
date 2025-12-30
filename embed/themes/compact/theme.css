@@ -7,7 +7,7 @@
  *   layerrule = ignorealpha 0.5, histui-notification
  */
 
-/* Import shared effects library (animations + gradients + ribbons) */
+/* Import shared effects library (animations + gradients) */
 @import "effects.css";
 
 /* =============================================================================

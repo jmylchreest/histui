@@ -10,7 +10,7 @@
  *   --histui-font-size      - Base font size (default: 14px)
  */
 
-/* Import shared effects library (animations + gradients + ribbons) */
+/* Import shared effects library (animations + gradients) */
 @import "effects.css";
 
 /* =============================================================================
@@ -263,20 +263,42 @@ window {
     border-radius: 0;
 }
 
-/* Fade gradient overlay when image is cropped */
+/* Fade gradient overlay when image is cropped
+ * Light mode (Latte): #eff1f5
+ * Dark mode (Mocha): #1e1e2e
+ * Note: GTK4 doesn't support CSS variables in linear-gradient() */
 .notification-image-fade {
+    background-image: linear-gradient(
+        to bottom,
+        alpha(#eff1f5, 0.0) 0%,
+        alpha(#eff1f5, 0.7) 60%,
+        #eff1f5 100%
+    );
+    border-bottom-left-radius: 6px;
+    border-bottom-right-radius: 6px;
+}
+
+/* Dark mode (Mocha) gradient */
+.dark .notification-image-fade {
     background-image: linear-gradient(
         to bottom,
         alpha(#1e1e2e, 0.0) 0%,
         alpha(#1e1e2e, 0.7) 60%,
         #1e1e2e 100%
     );
-    border-bottom-left-radius: 6px;
-    border-bottom-right-radius: 6px;
 }
 
-/* Translucent mode gradient */
+/* Translucent mode gradients */
 .notification-popup.translucent .notification-image-fade {
+    background-image: linear-gradient(
+        to bottom,
+        alpha(#eff1f5, 0.0) 0%,
+        alpha(#eff1f5, 0.6) 60%,
+        alpha(#eff1f5, 0.9) 100%
+    );
+}
+
+.dark .notification-popup.translucent .notification-image-fade {
     background-image: linear-gradient(
         to bottom,
         alpha(#1e1e2e, 0.0) 0%,
