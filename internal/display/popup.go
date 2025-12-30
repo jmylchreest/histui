@@ -50,9 +50,10 @@ type Popup struct {
 	onCloseAll func()
 
 	// State
-	closed     bool
-	stackCount int // Number of stacked identical notifications
-	timestamp  time.Time
+	closed           bool
+	stackCount       int    // Number of stacked identical notifications
+	stackCountFormat string // "number" (default) or "dots"
+	timestamp        time.Time
 
 	// Stack position for unified stack styling
 	stackPosition string // "single", "first", "middle", "last"
@@ -277,7 +278,7 @@ func (p *Popup) buildElement(elem layout.LayoutElement) gtk.Widgetter {
 	case layout.ElementTypeTimestamp:
 		return p.buildTimestamp()
 	case layout.ElementTypeStackCount:
-		return p.buildStackCount()
+		return p.buildStackCount(elem)
 	case layout.ElementTypeImage:
 		return p.buildImage()
 	case layout.ElementTypeBox:
@@ -290,17 +291,87 @@ func (p *Popup) buildElement(elem layout.LayoutElement) gtk.Widgetter {
 }
 
 // buildHeader creates the header row with child elements.
+// Supports overlay="top-right" etc. for elements that should float over others.
+// Supports underlay="top-right" etc. for elements that should float behind others.
 func (p *Popup) buildHeader(elem layout.LayoutElement) gtk.Widgetter {
 	headerBox := gtk.NewBox(gtk.OrientationHorizontal, 8)
 	headerBox.AddCSSClass("notification-header")
 
+	// Categorize children by positioning type
+	var underlayChildren []layout.LayoutElement
+	var normalChildren []layout.LayoutElement
+	var overlayChildren []layout.LayoutElement
+
 	for _, child := range elem.Children {
+		if _, hasUnderlay := child.Attributes["underlay"]; hasUnderlay {
+			underlayChildren = append(underlayChildren, child)
+		} else if _, hasOverlay := child.Attributes["overlay"]; hasOverlay {
+			overlayChildren = append(overlayChildren, child)
+		} else {
+			normalChildren = append(normalChildren, child)
+		}
+	}
+
+	// Add normal children to header box
+	for _, child := range normalChildren {
 		if widget := p.buildElement(child); widget != nil {
 			headerBox.Append(widget)
 		}
 	}
 
-	return headerBox
+	// If no floating children, return the simple header box
+	if len(underlayChildren) == 0 && len(overlayChildren) == 0 {
+		return headerBox
+	}
+
+	// Wrap in GtkOverlay for floating elements
+	overlay := gtk.NewOverlay()
+	overlay.SetChild(headerBox)
+	overlay.AddCSSClass("notification-header-overlay")
+
+	// Add underlay children first (they render below overlays)
+	for _, child := range underlayChildren {
+		if widget := p.buildElement(child); widget != nil {
+			pos := child.Attributes["underlay"]
+			applyOverlayAlignment(widget, pos)
+			overlay.AddOverlay(widget)
+		}
+	}
+
+	// Add overlay children last (they render on top)
+	for _, child := range overlayChildren {
+		if widget := p.buildElement(child); widget != nil {
+			pos := child.Attributes["overlay"]
+			applyOverlayAlignment(widget, pos)
+			overlay.AddOverlay(widget)
+		}
+	}
+
+	return overlay
+}
+
+// applyOverlayAlignment sets halign/valign based on position string.
+func applyOverlayAlignment(widget gtk.Widgetter, position string) {
+	// Get the base widget to set alignment
+	baseWidget := gtk.BaseWidget(widget)
+
+	var hAlign, vAlign gtk.Align
+	switch position {
+	case "top-right":
+		hAlign, vAlign = gtk.AlignEnd, gtk.AlignStart
+	case "top-left":
+		hAlign, vAlign = gtk.AlignStart, gtk.AlignStart
+	case "bottom-right":
+		hAlign, vAlign = gtk.AlignEnd, gtk.AlignEnd
+	case "bottom-left":
+		hAlign, vAlign = gtk.AlignStart, gtk.AlignEnd
+	default:
+		// Default to top-right
+		hAlign, vAlign = gtk.AlignEnd, gtk.AlignStart
+	}
+
+	baseWidget.SetHAlign(hAlign)
+	baseWidget.SetVAlign(vAlign)
 }
 
 // buildBox creates a container box with child elements.
@@ -592,12 +663,20 @@ func (p *Popup) buildTimestamp() gtk.Widgetter {
 }
 
 // buildStackCount creates the stack count label.
-func (p *Popup) buildStackCount() gtk.Widgetter {
+func (p *Popup) buildStackCount(elem layout.LayoutElement) gtk.Widgetter {
 	p.stackCountLbl = gtk.NewLabel("")
 	p.stackCountLbl.AddCSSClass("notification-stack-count")
 	p.stackCountLbl.SetVisible(false)
 	// Align to top of header, don't expand to fill height
 	p.stackCountLbl.SetVAlign(gtk.AlignStart)
+	// Right-align text within label for overlay positioning
+	p.stackCountLbl.SetXAlign(1)
+
+	// Check for format attribute (e.g., format="dots")
+	if format, ok := elem.Attributes["format"]; ok {
+		p.stackCountFormat = format
+	}
+
 	return p.stackCountLbl
 }
 
@@ -1158,7 +1237,16 @@ func (p *Popup) SetStackCount(count int) {
 	// Defer GTK operations to main thread
 	glib.IdleAdd(func() {
 		if count > 1 {
-			p.stackCountLbl.SetText(itoa(count))
+			// Format the count based on stackCountFormat
+			var text string
+			if p.stackCountFormat == "dots" {
+				// Show dots: one bullet per stacked item (excluding the first)
+				text = strings.Repeat("•", count-1)
+			} else {
+				// Default: show the number
+				text = itoa(count)
+			}
+			p.stackCountLbl.SetText(text)
 			p.stackCountLbl.SetVisible(true)
 
 			// Trigger flash animation when count increases

@@ -220,9 +220,8 @@ window {
     font-size: 11px;
     font-weight: 700;
 
-    /* Vertical alignment */
+    /* Vertical alignment - top aligned */
     margin-top: 0;
-    margin-bottom: auto;
 }
 
 .notification-close {

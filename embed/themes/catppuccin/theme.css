@@ -175,23 +175,20 @@ window {
 }
 
 .notification-stack-count {
-    /* Counter badge with catppuccin colors */
-    background-color: var(--ctp-surface0);
-    border: 1px solid var(--ctp-surface1);
-    color: var(--ctp-subtext0);
+    /* Invisible container - subtle text only */
+    background-color: transparent;
+    border: none;
+    color: alpha(var(--ctp-subtext0), 0.5);
 
-    /* Tight box that hugs the text */
-    border-radius: 4px;
-    padding: 2px 4px;
+    /* Positioning */
     margin-left: 6px;
 
     /* Compact font styling */
     font-size: 11px;
     font-weight: 700;
 
-    /* Vertical alignment */
+    /* Vertical alignment - top aligned */
     margin-top: 0;
-    margin-bottom: auto;
 }
 
 .notification-close {

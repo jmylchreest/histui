@@ -74,6 +74,67 @@ These elements display notification content:
 | `<stack-count />` | Badge showing stacked notification count | `.notification-stack-count` |
 | `<default-action-indicator />` | Visual indicator for clickable notifications | `.notification-default-action-indicator` |
 
+### Stack Count Attributes
+
+```xml
+<stack-count />
+<stack-count format="dots" />
+<stack-count format="dots" overlay="top-right" />
+```
+
+| Attribute | Type | Default | Description |
+|-----------|------|---------|-------------|
+| `format` | string | `number` | Display format: `number` (shows count) or `dots` (shows one dot per stacked item) |
+| `overlay` | string | (none) | Float over other elements at specified position (see [Overlay Positioning](#overlay-positioning)) |
+
+**Format Options:**
+
+- **`number`** (default) - Displays "2", "3", etc. as a badge
+- **`dots`** - Displays one bullet point (•) per additional notification in the stack
+
+The `dots` format is useful for minimal themes where you want a subtle visual indicator without numeric display.
+
+### Overlay Positioning
+
+Elements inside `<header>` can be positioned as floating overlays using the `overlay` or `underlay` attributes. This allows elements to float over (or under) other content without affecting layout flow.
+
+```xml
+<header>
+  <summary />
+  <stack-count format="dots" overlay="top-right" />
+</header>
+```
+
+| Attribute | Type | Values | Description |
+|-----------|------|--------|-------------|
+| `overlay` | string | `top-right`, `top-left`, `bottom-right`, `bottom-left` | Float above other elements at specified corner |
+| `underlay` | string | `top-right`, `top-left`, `bottom-right`, `bottom-left` | Float below other elements at specified corner |
+
+**Position Values:**
+
+- `top-right` - Upper right corner (default if not specified)
+- `top-left` - Upper left corner
+- `bottom-right` - Lower right corner
+- `bottom-left` - Lower left corner
+
+**CSS Positioning:**
+
+Overlay elements use GTK alignment for base positioning. Use negative margins in CSS to fine-tune placement outside the header bounds:
+
+```css
+.notification-stack-count {
+    /* Float outside the header boundary */
+    margin-top: -8px;
+    margin-right: -6px;
+}
+```
+
+**Use Cases:**
+
+- Corner badges that don't push other elements
+- Floating indicators
+- Decorative elements that shouldn't affect layout
+
 ### Container Elements
 
 These elements group other elements:
@@ -262,25 +323,31 @@ The standard layout with icon, summary, app name, body, and actions:
 
 ### Minimal Layout
 
-Text-only notifications without icons:
+Text-only notifications with floating dot indicators for stacked notifications:
 
 ```xml
 <popup min-width="150" max-width="250" min-height="0" max-height="200">
-  <summary />
+  <header>
+    <summary />
+    <stack-count format="dots" overlay="top-right" />
+  </header>
   <body />
   <progress />
 </popup>
 ```
 
+The `overlay="top-right"` attribute positions the dots as a floating overlay that doesn't affect the header layout. Use negative margins in CSS to position the dots at the popup edge.
+
 ### Compact Layout
 
-Smaller icon, right-aligned, minimal elements:
+Smaller icon, right-aligned, with floating dot indicators:
 
 ```xml
 <popup min-width="180" max-width="280" min-height="0" max-height="300">
   <header>
     <summary />
-    <stack-count />
+    <stack-count format="dots" overlay="top-right" />
+    <default-action-indicator />
     <icon size="24" />
   </header>
   <body />

@@ -2,7 +2,7 @@
 <popup min-width="180" max-width="280" min-height="0" max-height="300">
   <header>
     <summary />
-    <stack-count />
+    <stack-count format="dots" overlay="top-right" />
     <default-action-indicator />
     <icon size="24" />
   </header>
