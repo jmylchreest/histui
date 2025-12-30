@@ -223,9 +223,59 @@ Try a different model in `config.toml`. Claude and Gemini have best JSON reliabi
 3. Add override in `kb-patterns-manual.toml`
 
 ### Missing apps in output
-1. Check confidence threshold (default: 0.6)
+1. Check confidence threshold (apps require ≥0.7, categories ≥0.3)
 2. Add `extra_apps` in manual file
 3. Or use `force_apps` to specify exact list
+
+## Confidence Thresholds
+
+The generator uses a two-tier confidence system:
+
+| Tier | Threshold | Description |
+|------|-----------|-------------|
+| Brand icons | ≥0.7 | Apps confidently mapped to specific brand icons (e.g., `discord → discord`) |
+| Category fallbacks | 0.3-0.7 | Low-confidence apps get assigned to generic categories (e.g., `myapp → messaging`) |
+
+Apps with confidence <0.3 are excluded entirely.
+
+### Category Fallback Assignment
+
+When `--assign-category-fallbacks` is used:
+
+1. Apps with <0.7 confidence for brand icons are collected
+2. AI assigns each to the most appropriate category from `kb-categories.toml`
+3. Low-confidence apps get category fallback icons instead of potentially wrong brand icons
+
+Example output with category fallbacks:
+```toml
+[aliases]
+discord = 'discord'           # 1.00 confidence
+vesktop = 'discord'           # 0.85 confidence
+my-chat-app = 'messaging'     # 0.50 (category) - no brand icon, falls back to category
+```
+
+## Output Format
+
+The output file includes:
+
+```toml
+[meta]
+version = 1
+generated_at = '2025-01-15T10:30:00Z'
+generator = "contrib/generate-icon-aliases"
+
+[aliases]
+discord = 'discord'           # 1.00
+firefox = 'firefox'           # 0.95
+my-app = 'messaging'          # 0.50 (category)
+
+[apps]
+discord = { symbol = "󰙯", gtk_icon = "discord" }
+firefox = { symbol = "󰈹", gtk_icon = "firefox" }
+
+[categories]
+messaging = { symbol = "󱃲", gtk_icon = "mail-symbolic" }
+```
 
 ## References
 

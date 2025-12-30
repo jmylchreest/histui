@@ -221,11 +221,16 @@ func runDaemonMode(logger *slog.Logger) {
 		logger.Debug("initialized embedded fonts", "dir", fontDir, "fonts", icon.ListEmbeddedFonts())
 	}
 
-	// Log embedded aliases metadata
-	if meta, err := icon.GetEmbeddedAliasesMeta(); err != nil {
-		logger.Debug("failed to get embedded aliases metadata", "error", err)
-	} else if meta.GeneratedAt != "" {
-		logger.Info("loaded embedded icon aliases", "version", meta.Version, "generated", meta.GeneratedAt)
+	// Log embedded aliases metadata and statistics
+	if stats, err := icon.GetEmbeddedAliasesStats(); err != nil {
+		logger.Debug("failed to get embedded aliases stats", "error", err)
+	} else if stats.Meta.GeneratedAt != "" {
+		logger.Info("loaded embedded icon aliases",
+			"version", stats.Meta.Version,
+			"generated", stats.Meta.GeneratedAt,
+			"aliases", stats.Aliases,
+			"apps", stats.Apps,
+			"categories", stats.Categories)
 	}
 
 	// Initialize Viper for configuration

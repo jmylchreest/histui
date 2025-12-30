@@ -205,10 +205,7 @@ window {
     color: var(--ctp-blue);
 }
 
-.notification-body link:hover {
-    color: var(--ctp-lavender);
-    text-decoration: underline;
-}
+/* Note: GTK4 doesn't support :hover on link elements */
 
 /* =============================================================================
  * PROGRESS

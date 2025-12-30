@@ -181,17 +181,21 @@ func (l *Loader) LoadTheme(name string) error {
 			}
 		}
 
-		// Load embedded aliases, symbols, and GTK icons if present
+		// Load theme-specific aliases, symbols, and GTK icons if present
+		// (These are overrides only - global aliases come from embed/aliases_default.toml)
 		if aliasesData, found := GetEmbeddedAliases(name); found {
 			aliasesFile := parseEmbeddedAliasesFile(aliasesData)
 			if aliasesFile != nil {
 				l.theme.Aliases = aliasesFile.Aliases
 				l.theme.Symbols = aliasesFile.Symbols
 				l.theme.GtkIcons = aliasesFile.GtkIcons
-				l.logger.Debug("loaded embedded aliases", "theme", name,
-					"aliases_count", len(aliasesFile.Aliases),
-					"symbols_count", len(aliasesFile.Symbols),
-					"gtk_icons_count", len(aliasesFile.GtkIcons))
+				// Only log if there are actual overrides (0 is expected for default themes)
+				if len(aliasesFile.Aliases) > 0 || len(aliasesFile.Symbols) > 0 || len(aliasesFile.GtkIcons) > 0 {
+					l.logger.Debug("loaded theme icon overrides", "theme", name,
+						"aliases_count", len(aliasesFile.Aliases),
+						"symbols_count", len(aliasesFile.Symbols),
+						"gtk_icons_count", len(aliasesFile.GtkIcons))
+				}
 			}
 		}
 

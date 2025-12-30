@@ -54,6 +54,14 @@ type AliasesFile struct {
 	GtkIcons map[string]string `toml:"gtk-icons"`
 }
 
+// AliasesStats contains statistics about loaded aliases.
+type AliasesStats struct {
+	Meta       AliasesMeta
+	Aliases    int // Number of app-to-icon aliases
+	Apps       int // Number of brand/app icons
+	Categories int // Number of category fallback icons
+}
+
 // GetEmbeddedAliasesMeta returns metadata about the embedded aliases file.
 func GetEmbeddedAliasesMeta() (AliasesMeta, error) {
 	file, err := LoadEmbeddedAliasesFile()
@@ -61,6 +69,20 @@ func GetEmbeddedAliasesMeta() (AliasesMeta, error) {
 		return AliasesMeta{}, err
 	}
 	return file.Meta, nil
+}
+
+// GetEmbeddedAliasesStats returns metadata and statistics about the embedded aliases file.
+func GetEmbeddedAliasesStats() (AliasesStats, error) {
+	file, err := LoadEmbeddedAliasesFile()
+	if err != nil {
+		return AliasesStats{}, err
+	}
+	return AliasesStats{
+		Meta:       file.Meta,
+		Aliases:    len(file.Aliases),
+		Apps:       len(file.Apps),
+		Categories: len(file.Categories),
+	}, nil
 }
 
 // UserAliasesPath returns the path to the user's icon aliases file.

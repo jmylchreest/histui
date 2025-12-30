@@ -144,3 +144,53 @@ func TestDefaultFallbackConstants(t *testing.T) {
 		t.Errorf("DefaultFallbackGTKIcon = %q, want notification-symbolic", DefaultFallbackGTKIcon)
 	}
 }
+
+func TestGetEmbeddedAliasesMeta(t *testing.T) {
+	meta, err := GetEmbeddedAliasesMeta()
+	if err != nil {
+		t.Fatalf("GetEmbeddedAliasesMeta() error: %v", err)
+	}
+
+	// Version should be 1
+	if meta.Version != 1 {
+		t.Errorf("meta.Version = %d, want 1", meta.Version)
+	}
+
+	// GeneratedAt should not be empty
+	if meta.GeneratedAt == "" {
+		t.Error("meta.GeneratedAt is empty")
+	}
+
+	// Generator should be set
+	if meta.Generator == "" {
+		t.Error("meta.Generator is empty")
+	}
+
+	t.Logf("Aliases metadata: version=%d, generated_at=%q, generator=%q",
+		meta.Version, meta.GeneratedAt, meta.Generator)
+}
+
+func TestGetEmbeddedAliasesStats(t *testing.T) {
+	stats, err := GetEmbeddedAliasesStats()
+	if err != nil {
+		t.Fatalf("GetEmbeddedAliasesStats() error: %v", err)
+	}
+
+	// Should have aliases
+	if stats.Aliases == 0 {
+		t.Error("stats.Aliases is 0, expected some aliases")
+	}
+
+	// Should have apps
+	if stats.Apps == 0 {
+		t.Error("stats.Apps is 0, expected some apps")
+	}
+
+	// Should have categories
+	if stats.Categories == 0 {
+		t.Error("stats.Categories is 0, expected some categories")
+	}
+
+	t.Logf("Aliases stats: aliases=%d, apps=%d, categories=%d",
+		stats.Aliases, stats.Apps, stats.Categories)
+}

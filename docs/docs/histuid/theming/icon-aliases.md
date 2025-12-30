@@ -18,23 +18,46 @@ When a notification arrives, histui resolves the icon in this order:
 
 The resolver normalizes all names to lowercase for case-insensitive matching.
 
-## Icon Aliases File
+## User Icon Aliases File
 
-Create `~/.config/histui/icon-aliases.toml` to customize icon mappings:
+Create `~/.config/histui/icon-aliases.toml` to customize icon mappings. User aliases take highest priority over built-in defaults.
+
+### Modern Format (Recommended)
+
+```toml
+# Map app names to canonical icon names
+[aliases]
+my-custom-app = "firefox"
+another-app = "terminal"
+my-chat-client = "messaging"  # Use a category for generic apps
+
+# Define app icons with both symbol and GTK icon
+[apps]
+my-custom-app = { symbol = "󰈹", gtk_icon = "my-app-icon" }
+
+# Define category fallback icons
+[categories]
+messaging = { symbol = "󱃲", gtk_icon = "mail-symbolic" }
+```
+
+### Legacy Format (Still Supported)
 
 ```toml
 # Map app names to icon names
 [aliases]
 my-custom-app = "firefox"
-another-app = "terminal"
 
-# Map icon names to Nerd Font glyphs (use actual Unicode characters)
+# Map icon names to Nerd Font glyphs
 [symbols]
-my-custom-icon = "󰈹"  # Firefox Nerd Font symbol (paste the actual glyph)
+my-custom-icon = "󰈹"
+
+# Map icon names to GTK icon names
+[gtk-icons]
+my-custom-icon = "firefox"
 ```
 
 :::tip Symbol Format
-The `[symbols]` section uses actual Unicode characters, not escape sequences. Copy glyphs directly from a [Nerd Fonts cheat sheet](https://www.nerdfonts.com/cheat-sheet) into your TOML file.
+The `symbol` fields use actual Unicode characters, not escape sequences. Copy glyphs directly from a [Nerd Fonts cheat sheet](https://www.nerdfonts.com/cheat-sheet) into your TOML file.
 :::
 
 ### Aliases Section
@@ -135,13 +158,16 @@ WARN duplicate icon alias, keeping first app=alacritty existing=terminal ignored
 
 The `contrib/generate-icon-aliases` tool generates the built-in aliases from Nerd Fonts glyph data and upstream icon metadata. It uses AI to map Linux applications to appropriate icons.
 
+For full documentation, see the [generator README](https://github.com/jmylchreest/histui/tree/main/contrib/generate-icon-aliases).
+
 ### Workflow
 
 The generator uses a multi-step workflow:
 
 1. **Fetch** - Download upstream icon metadata (Font Awesome, Material Design, Devicons, Codicons)
-2. **Generate KB** - Use AI to generate application-to-icon mappings
-3. **Output** - Generate the final `icon-aliases.toml` with manual overrides applied
+2. **Generate KB** - Use AI to generate application-to-icon mappings (brand icons ≥0.7 confidence)
+3. **Category Fallbacks** - Assign low-confidence apps (0.3-0.7) to generic categories
+4. **Output** - Generate the final aliases file with metadata and confidence comments
 
 ### Quick Start
 
@@ -180,9 +206,11 @@ export OPENROUTER_API_KEY="your-key"
 |------|-------------|
 | `--fetch` | Fetch upstream icon metadata and regenerate patterns |
 | `--generate-kb` | Generate AI knowledge base (requires API key) |
+| `--assign-category-fallbacks` | Assign low-confidence apps to categories |
 | `--output` | Output TOML file path |
 | `--font-output` | Also download Nerd Font symbols TTF |
 | `--verbose` | Show detailed matching information |
+| `--threshold` | Override category fallback threshold (default: 0.7) |
 
 ### Manual Overrides
 

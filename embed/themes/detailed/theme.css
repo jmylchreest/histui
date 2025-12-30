@@ -241,10 +241,7 @@ window {
 
 .notification-body link {
     color: @accent_color;
-}
-
-.notification-body link:hover {
-    text-decoration: underline;
+    /* Note: GTK4 doesn't support :hover on link elements */
 }
 
 /* =============================================================================

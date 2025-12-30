@@ -3,7 +3,7 @@
 # Use kb-patterns-manual.toml for manual overrides
 
 [meta]
-generated = '2025-12-30T20:46:38Z'
+generated = '2025-12-30T20:58:17Z'
 sources = ['font-awesome', 'material-design-icons', 'devicons', 'codicons']
 description = 'Auto-generated from upstream icon metadata. Do not edit - use kb-patterns-manual.toml for overrides.'
 

@@ -1,6 +1,6 @@
 {
   "version": 1,
-  "generated_at": "2025-12-30T20:46:41Z",
+  "generated_at": "2025-12-30T20:58:19Z",
   "model": "xiaomi/mimo-v2-flash:free:online",
   "icons": {
     "5": {
@@ -15,7 +15,7 @@
     },
     "a": {
       "type": "category",
-      "glyph": "fa-algolia",
+      "glyph": "fa-angular",
       "apps": [{"id":"a","confidence":0.5,"source":"category"}]
     },
     "aarch64": {
@@ -475,7 +475,7 @@
     },
     "b": {
       "type": "category",
-      "glyph": "fa-building",
+      "glyph": "fa-biohazard",
       "apps": [{"id":"b","confidence":0.5,"source":"category"}]
     },
     "babel": {
@@ -1470,7 +1470,7 @@
     },
     "content-cut": {
       "type": "category",
-      "glyph": "md-clipboard_clock",
+      "glyph": "md-clipboard",
       "apps": [{"id":"content-cut","confidence":0.5,"source":"category"}]
     },
     "contrast": {
@@ -1610,7 +1610,7 @@
     },
     "css": {
       "type": "app",
-      "glyph": "fa-css3",
+      "glyph": "fa-css3_alt",
       "apps": [{"id":"css","confidence":0.5,"source":"category"}]
     },
     "css3": {
@@ -1675,7 +1675,7 @@
     },
     "d": {
       "type": "category",
-      "glyph": "fa-drivers_license",
+      "glyph": "fa-dhl",
       "apps": [{"id":"d","confidence":0.5,"source":"category"}]
     },
     "d3js": {
@@ -2085,7 +2085,7 @@
     },
     "e": {
       "type": "category",
-      "glyph": "fa-earth_asia",
+      "glyph": "fa-elementor",
       "apps": [{"id":"e","confidence":0.5,"source":"category"}]
     },
     "ear-deaf": {
@@ -2105,7 +2105,7 @@
     },
     "earth-americas": {
       "type": "category",
-      "glyph": "fa-earth_americas",
+      "glyph": "fa-earth_europe",
       "apps": [{"id":"earth-americas","confidence":0.5,"source":"category"}]
     },
     "ebay": {
@@ -2365,12 +2365,12 @@
     },
     "f": {
       "type": "category",
-      "glyph": "fa-flag",
+      "glyph": "fa-face_laugh_beam",
       "apps": [{"id":"f","confidence":0.5,"source":"category"}]
     },
     "face": {
       "type": "category",
-      "glyph": "md-face_man_profile",
+      "glyph": "md-face_man_outline",
       "apps": [{"id":"face","confidence":0.5,"source":"category"}]
     },
     "face-angry": {
@@ -2550,7 +2550,7 @@
     },
     "flash-circle": {
       "type": "category",
-      "glyph": "md-amplifier",
+      "glyph": "md-ampersand",
       "apps": [{"id":"gnome-software","confidence":0.5,"source":"category"},{"id":"pamac-manager","confidence":0.5,"source":"category"}]
     },
     "flashlight": {
@@ -2730,7 +2730,7 @@
     },
     "g": {
       "type": "category",
-      "glyph": "fa-google_plus",
+      "glyph": "fa-gripfire",
       "apps": [{"id":"gimp","confidence":0.5,"source":"category"}]
     },
     "game": {
@@ -3070,7 +3070,7 @@
     },
     "h": {
       "type": "category",
-      "glyph": "fa-hand_dots",
+      "glyph": "fa-hourglass_start",
       "apps": [{"id":"haskell","confidence":0.5,"source":"category"}]
     },
     "hackerrank": {
@@ -3380,7 +3380,7 @@
     },
     "i": {
       "type": "category",
-      "glyph": "fa-itunes",
+      "glyph": "fa-id_card_o",
       "apps": [{"id":"gnome-info","confidence":0.5,"source":"category"}]
     },
     "icicles": {
@@ -3540,7 +3540,7 @@
     },
     "j": {
       "type": "category",
-      "glyph": "fa-jsfiddle",
+      "glyph": "fa-joget",
       "apps": [{"id":"java","confidence":0.5,"source":"category"}]
     },
     "jaegertracing": {
@@ -3680,7 +3680,7 @@
     },
     "k": {
       "type": "category",
-      "glyph": "fa-keyboard",
+      "glyph": "fa-kiwi_bird",
       "apps": [{"id":"kate","confidence":0.5,"source":"category"}]
     },
     "k3os": {
@@ -3825,7 +3825,7 @@
     },
     "l": {
       "type": "category",
-      "glyph": "fa-long_arrow_down",
+      "glyph": "fa-lastfm",
       "apps": [{"id":"libreoffice","confidence":0.5,"source":"category"}]
     },
     "label": {
@@ -4020,7 +4020,7 @@
     },
     "location-crosshairs": {
       "type": "category",
-      "glyph": "fa-location_dot",
+      "glyph": "fa-location_arrow",
       "apps": [{"id":"gnome-maps","confidence":0.8,"source":"package"}]
     },
     "lock": {
@@ -4095,7 +4095,7 @@
     },
     "m": {
       "type": "category",
-      "glyph": "fa-mastodon",
+      "glyph": "fa-medapps",
       "apps": [{"id":"matlab","confidence":0.5,"source":"category"}]
     },
     "magento": {
@@ -4150,7 +4150,7 @@
     },
     "map-marker": {
       "type": "category",
-      "glyph": "md-location_exit",
+      "glyph": "md-location_enter",
       "apps": [{"id":"gnome-maps","confidence":0.9,"source":"package"}]
     },
     "margin": {
@@ -4570,7 +4570,7 @@
     },
     "n": {
       "type": "category",
-      "glyph": "fa-note_sticky",
+      "glyph": "fa-napster",
       "apps": [{"id":"nano","confidence":0.5,"source":"category"}]
     },
     "nano": {
@@ -4820,7 +4820,7 @@
     },
     "o": {
       "type": "category",
-      "glyph": "fa-oil_can",
+      "glyph": "fa-otter",
       "apps": [{"id":"gnome-office","confidence":0.5,"source":"category"}]
     },
     "oar": {
@@ -5015,7 +5015,7 @@
     },
     "p": {
       "type": "category",
-      "glyph": "fa-person_running",
+      "glyph": "fa-pizza_slice",
       "apps": [{"id":"perl","confidence":0.5,"source":"category"},{"id":"php","confidence":0.5,"source":"category"},{"id":"python","confidence":0.5,"source":"category"}]
     },
     "p5js": {
@@ -5615,7 +5615,7 @@
     },
     "q": {
       "type": "category",
-      "glyph": "fa-quora",
+      "glyph": "fa-qrcode",
       "apps": [{"id":"qt5","confidence":0.5,"source":"category"},{"id":"qt6","confidence":0.5,"source":"category"}]
     },
     "qi": {
@@ -5830,7 +5830,7 @@
     },
     "rectangle-ad": {
       "type": "category",
-      "glyph": "fa-adversal",
+      "glyph": "fa-address_card",
       "apps": [{"id":"gimp","confidence":0.5,"source":"category"},{"id":"inkscape","confidence":0.5,"source":"category"}]
     },
     "recycle": {
@@ -6160,7 +6160,7 @@
     },
     "s": {
       "type": "category",
-      "glyph": "fa-search",
+      "glyph": "fa-suitcase",
       "apps": [{"id":"gedit","confidence":0.5,"source":"category"},{"id":"sublime-text","confidence":0.5,"source":"category"}]
     },
     "safari": {
@@ -6455,7 +6455,7 @@
     },
     "sign-hanging": {
       "type": "category",
-      "glyph": "fa-sign_hanging",
+      "glyph": "fa-signal",
       "apps": [{"id":"gnome-maps","confidence":0.5,"source":"category"}]
     },
     "signal": {
@@ -7040,7 +7040,7 @@
     },
     "t": {
       "type": "category",
-      "glyph": "fa-transgender_alt",
+      "glyph": "fa-typo3",
       "apps": [{"id":"gedit","confidence":0.5,"source":"category"},{"id":"kate","confidence":0.5,"source":"category"}]
     },
     "tab": {
@@ -7500,7 +7500,7 @@
     },
     "u": {
       "type": "category",
-      "glyph": "fa-users",
+      "glyph": "fa-user_lock",
       "apps": [{"id":"gedit","confidence":0.5,"source":"category"},{"id":"kate","confidence":0.5,"source":"category"}]
     },
     "uber": {
@@ -7650,7 +7650,7 @@
     },
     "v": {
       "type": "category",
-      "glyph": "fa-vihara",
+      "glyph": "fa-video_slash",
       "apps": [{"id":"v-language","confidence":0.5,"source":"category"}]
     },
     "v8": {
@@ -7830,7 +7830,7 @@
     },
     "voice": {
       "type": "category",
-      "glyph": "md-speaker_wireless",
+      "glyph": "md-speaker_off",
       "apps": [{"id":"discord","confidence":0.9,"source":"package"},{"id":"teams","confidence":0.9,"source":"package"},{"id":"zoom","confidence":0.9,"source":"package"}]
     },
     "voicemail": {
@@ -7910,7 +7910,7 @@
     },
     "w": {
       "type": "category",
-      "glyph": "fa-waze",
+      "glyph": "fa-whmcs",
       "apps": [{"id":"w3m","confidence":0.8,"source":"package"},{"id":"wget","confidence":0.8,"source":"package"}]
     },
     "walk": {
@@ -8150,7 +8150,7 @@
     },
     "x": {
       "type": "category",
-      "glyph": "fa-x_ray",
+      "glyph": "fa-xmark",
       "apps": [{"id":"xinit","confidence":0.9,"source":"package"},{"id":"xorg","confidence":1,"source":"system"}]
     },
     "xamarin": {
@@ -8195,7 +8195,7 @@
     },
     "y": {
       "type": "category",
-      "glyph": "fa-youtube_square",
+      "glyph": "fa-yen",
       "apps": [{"id":"yash","confidence":0.7,"source":"package"}]
     },
     "yahoo": {
