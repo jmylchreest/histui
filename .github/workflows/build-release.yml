@@ -1,6 +1,9 @@
 # Build workflow for histui
 # - On version tags (v*): Create a release with clean semver
 # - On main branch: Create a pre-release snapshot with dev version
+#
+# Note: This workflow does NOT run on main branch pushes if the commit is also tagged.
+# Tags take precedence - the tag-triggered run will create the release.
 
 name: Build Release
 
@@ -40,6 +43,7 @@ jobs:
       version: ${{ steps.version.outputs.version }}
       version_tag: ${{ steps.version.outputs.version_tag }}
       is_release: ${{ steps.version.outputs.is_release }}
+      should_skip: ${{ steps.version.outputs.should_skip }}
     steps:
       - name: Checkout code
         uses: actions/checkout@v5
@@ -50,6 +54,8 @@ jobs:
       - name: Determine version
         id: version
         run: |
+          SHOULD_SKIP=false
+
           # Check if this is a release (tag push)
           if [[ "${{ github.ref }}" == refs/tags/v* ]]; then
             IS_RELEASE=true
@@ -58,6 +64,18 @@ jobs:
             VERSION_TAG="${GITHUB_REF_NAME}"
           else
             IS_RELEASE=false
+
+            # For main branch builds, check if this commit already has a release tag
+            # If so, skip this build as the tag-triggered workflow will handle it
+            if [[ "${{ github.ref }}" == refs/heads/main ]]; then
+              EXISTING_TAG=$(git tag --points-at HEAD | grep -E '^v[0-9]+\.[0-9]+\.[0-9]+$' | head -1 || true)
+              if [[ -n "$EXISTING_TAG" ]]; then
+                echo "Commit already has release tag: ${EXISTING_TAG}"
+                echo "Skipping main branch build - tag workflow will handle this"
+                SHOULD_SKIP=true
+              fi
+            fi
+
             # Snapshot version format: {major}.{minor}.{next_patch}-dev.{commits}+{hash}
             if git describe --tags --always --long 2>/dev/null | grep -q '^v'; then
               DESCRIBE=$(git describe --tags --always --long 2>/dev/null)
@@ -87,9 +105,11 @@ jobs:
             fi
           fi
 
+          echo "should_skip=${SHOULD_SKIP}" >> $GITHUB_OUTPUT
           echo "is_release=${IS_RELEASE}" >> $GITHUB_OUTPUT
           echo "version=${VERSION}" >> $GITHUB_OUTPUT
           echo "version_tag=${VERSION_TAG}" >> $GITHUB_OUTPUT
+          echo "Should skip: ${SHOULD_SKIP}"
           echo "Is release: ${IS_RELEASE}"
           echo "Version: ${VERSION}"
           echo "Version tag: ${VERSION_TAG}"
@@ -98,6 +118,7 @@ jobs:
     name: Build (${{ matrix.goos }}/${{ matrix.goarch }})
     runs-on: ${{ matrix.os }}
     needs: prepare
+    if: needs.prepare.outputs.should_skip != 'true'
     container:
       image: fedora:rawhide
     strategy:
@@ -198,6 +219,7 @@ jobs:
     name: Create Release
     runs-on: ubuntu-latest
     needs: [prepare, build]
+    if: needs.prepare.outputs.should_skip != 'true'
     permissions:
       contents: write
     steps:

@@ -145,7 +145,7 @@ if (require.main === module) {
   if (args.length === 0) {
     // Default: convert effects.css for docs
     const repoRoot = path.resolve(__dirname, '../..');
-    const inputPath = path.join(repoRoot, 'internal/theme/themes/effects.css');
+    const inputPath = path.join(repoRoot, 'embed/themes/effects.css');
     const outputPath = path.join(__dirname, '../src/components/AnimationDemo/effects-generated.css');
 
     convertGtkCss(inputPath, outputPath);
