@@ -18,179 +18,123 @@ type Config struct {
 	// OpenRouter settings
 	OpenRouter OpenRouterConfig `toml:"openrouter"`
 
+	// Upstream metadata sources
+	Upstream UpstreamConfig `toml:"upstream"`
+
 	// Prompts for AI generation (supports {{.Year}} template)
 	Prompts PromptConfig `toml:"prompts"`
-
-	// Filter settings for pre-filtering glyphs
-	Filter FilterConfig `toml:"filter"`
 }
 
 // OpenRouterConfig contains OpenRouter API settings.
 type OpenRouterConfig struct {
 	// DefaultModel is the model to use when not specified via flag/env
-	// Append ":online" for web search (e.g., "anthropic/claude-sonnet-4:online")
 	DefaultModel string `toml:"default_model"`
 
-	// WebSearch enables real-time web search by default
+	// WebSearch enables real-time web search
 	WebSearch bool `toml:"web_search"`
 
-	// ClassifyBatchSize is the number of icons to classify per API call
-	// Higher = fewer API calls but may hit output token limits
-	// Modern models can handle 200-500 icons per batch
-	ClassifyBatchSize int `toml:"classify_batch_size"`
-
 	// AppGenBatchSize is the number of icons to generate apps for per API call
-	// Keep smaller than classify since output is much larger per icon
 	AppGenBatchSize int `toml:"app_gen_batch_size"`
 
 	// RequestTimeout is the timeout for each API request in seconds
-	// Web search requests need longer timeouts (300-600s recommended)
 	RequestTimeout int `toml:"request_timeout"`
+
+	// MaxTokens is the maximum number of tokens to generate per response
+	MaxTokens int `toml:"max_tokens"`
+}
+
+// UpstreamConfig contains URLs for upstream icon metadata sources.
+type UpstreamConfig struct {
+	// FontAwesome metadata URL
+	FontAwesome string `toml:"font_awesome"`
+
+	// MaterialDesign metadata URL
+	MaterialDesign string `toml:"material_design"`
+
+	// Devicons metadata URL
+	Devicons string `toml:"devicons"`
+
+	// Codicons metadata URL
+	Codicons string `toml:"codicons"`
 }
 
 // PromptConfig contains customizable AI prompts.
-// Prompts support Go templates with {{.Year}} for current year.
 type PromptConfig struct {
-	// ClassifyPrompt is the full prompt template for icon classification
-	ClassifyPrompt string `toml:"classify_prompt"`
-
-	// AppGenPrompt is the full prompt template for app name generation
+	// AppGenPrompt is the prompt template for app name generation
 	AppGenPrompt string `toml:"app_gen_prompt"`
-}
-
-// FilterConfig contains settings for pre-filtering glyphs before AI processing.
-type FilterConfig struct {
-	// Prefixes are glyph name prefixes that typically contain app icons
-	Prefixes []string `toml:"prefixes"`
-
-	// Keywords are substrings that suggest app-related icons
-	Keywords []string `toml:"keywords"`
 }
 
 // PromptVars contains variables for prompt templates.
 type PromptVars struct {
-	Year   int
-	Icons  string // newline-separated list of icons
+	Year  int
+	Icons string // newline-separated list of icons
 }
 
 // DefaultConfig returns the default configuration.
 func DefaultConfig() *Config {
 	return &Config{
 		OpenRouter: OpenRouterConfig{
-			DefaultModel:      "anthropic/claude-sonnet-4",
-			WebSearch:         true,
-			ClassifyBatchSize: 500, // Large batches - modern models handle easily
-			AppGenBatchSize:   100, // Smaller since output per icon is larger
-			RequestTimeout:    600, // 10 minutes - web search needs longer
+			DefaultModel:    "google/gemini-2.5-flash",
+			WebSearch:       true,
+			AppGenBatchSize: 50,
+			RequestTimeout:  600,
+			MaxTokens:       32000,
+		},
+		Upstream: UpstreamConfig{
+			FontAwesome:    "https://raw.githubusercontent.com/FortAwesome/Font-Awesome/6.x/metadata/icons.json",
+			MaterialDesign: "https://raw.githubusercontent.com/Templarian/MaterialDesign-Meta/master/meta.json",
+			Devicons:       "https://raw.githubusercontent.com/devicons/devicon/master/devicon.json",
+			Codicons:       "https://raw.githubusercontent.com/microsoft/vscode-codicons/main/src/template/mapping.json",
 		},
 		Prompts: PromptConfig{
-			ClassifyPrompt: defaultClassifyPrompt,
-			AppGenPrompt:   defaultAppGenPrompt,
-		},
-		Filter: FilterConfig{
-			Prefixes: []string{
-				"fa-",     // Font Awesome
-				"md-",     // Material Design Icons
-				"dev-",    // Devicons
-				"linux-",  // Linux distro icons
-				"custom-", // Custom icons
-				"seti-",   // Seti UI
-				"cod-",    // Codicons (VS Code)
-			},
-			Keywords: []string{
-				// Messaging & Social
-				"discord", "slack", "telegram", "whatsapp", "signal", "skype",
-				"facebook", "twitter", "mastodon", "reddit", "linkedin",
-				"chat", "message", "comment",
-				// Browsers
-				"firefox", "chrome", "chromium", "brave", "edge", "opera", "safari", "vivaldi",
-				"browser", "web",
-				// Email
-				"email", "gmail", "outlook", "thunderbird",
-				// Media
-				"spotify", "youtube", "music", "video", "vlc", "mpv",
-				// Development
-				"terminal", "console", "shell",
-				"code", "visual-studio", "vim", "emacs", "atom", "sublime",
-				"git", "github", "gitlab", "bitbucket", "docker", "kubernetes",
-				// Files
-				"folder", "file", "archive",
-				// Gaming
-				"steam", "gamepad", "controller",
-				// Cloud & Network
-				"cloud", "dropbox", "drive",
-				"wifi", "bluetooth", "network", "vpn",
-				// Security
-				"lock", "key", "security", "shield",
-				// System
-				"bell", "notification", "alert", "warning",
-				"settings", "cog", "gear",
-				"power", "battery", "cpu", "memory",
-				"update", "download", "sync",
-				"calendar", "clock", "timer",
-				"camera", "image", "photo", "picture",
-				"microphone", "audio", "speaker", "volume",
-				"printer", "scanner",
-				"phone", "cellphone", "mobile",
-				"desktop", "laptop", "monitor", "display",
-			},
+			AppGenPrompt: defaultAppGenPrompt,
 		},
 	}
 }
 
-const defaultClassifyPrompt = `You are classifying Nerd Font icon names for a Linux desktop notification system.
-Current year: {{.Year}} - use current knowledge of the Linux app ecosystem.
-
-For each icon glyph name, determine:
-- type: "app" if it represents a specific application (Discord, Firefox, Spotify), "category" if it's generic (email, browser, folder, music), or "skip" if not useful for app icons (arrows, shapes, abstract symbols)
-- name: the canonical lowercase name extracted from the glyph (e.g., "md-discord" -> "discord", "fa-envelope" -> "email", "md-folder" -> "folder")
-
-Focus on icons that would be useful for matching Linux desktop applications and notification sources.
-
-Icons to classify:
-{{.Icons}}
-
-Respond with JSON in this format:
-{
-  "icons": [
-    {"glyph": "md-discord", "type": "app", "name": "discord"},
-    {"glyph": "fa-envelope", "type": "category", "name": "email"},
-    {"glyph": "md-arrow-left", "type": "skip", "name": ""}
-  ]
-}`
-
 const defaultAppGenPrompt = `You are generating Linux application identifiers for icon mappings in a desktop notification system.
 Current year: {{.Year}} - include current and actively maintained apps in the Linux ecosystem.
 
-For each icon, list all Linux apps that would use this icon. Include:
-- Package names (apt, pacman, dnf, etc.): discord, firefox, thunderbird
-- Desktop file base names: org.mozilla.firefox, com.discordapp.Discord
-- Flatpak application IDs: com.discordapp.Discord, org.mozilla.firefox
-- Common variants and forks: discord-canary, firefox-esr, firefox-nightly, librewolf
-- New/popular apps from recent years (Vesktop, Zen Browser, Ghostty, Zed, Cursor, Windsurf, etc.)
+For each icon, list ALL Linux applications that would use this icon. Be comprehensive.
 
-Confidence scoring guidelines:
-- 0.9-1.0: Official/primary app that exactly matches the icon (discord for discord icon)
-- 0.7-0.9: Well-known official variants (discord-canary, firefox-esr)
-- 0.5-0.7: Popular third-party clients or forks (vesktop, librewolf, evolution for email)
-- 0.3-0.5: Less common alternatives or inferred matches
+Include these identifier types:
+- Package names (apt/pacman/dnf): discord, firefox, thunderbird
+- Flatpak IDs: com.discordapp.Discord, org.mozilla.firefox
+- Snap names: discord, firefox
+- Desktop file names: org.mozilla.firefox, com.discordapp.Discord
+- Binary names: discord, firefox-esr
+- Common forks/variants: librewolf, waterfox, vesktop, armcord
 
-For "category" type icons (email, browser, file-manager, music), list the most popular Linux applications in that category, including newer alternatives.
+For "app" type icons (brand logos like Discord, Spotify):
+- List the primary app and all known variants/forks
+- Include official variants (discord-canary, spotify-client)
+- Include popular third-party clients (vesktop for Discord)
 
-Icons to map (format: name (type)):
+For "category" type icons (generic like email, music, video):
+- List the most popular Linux applications in that category
+- Include both mainstream (thunderbird) and alternatives (evolution, geary)
+- Include newer/modern alternatives (Ghostty for terminal, Zed for code)
+
+Confidence scoring:
+- 1.0: Primary/official app (discord for discord icon)
+- 0.9: Official variants (discord-canary, firefox-esr)
+- 0.8: Well-known Flatpak/Snap IDs
+- 0.7: Popular forks (librewolf, vesktop)
+- 0.6: Less common alternatives
+
+Icons to map (format: "name (type) - description"):
 {{.Icons}}
 
-Be comprehensive but accurate. Only include apps you're confident exist on Linux.
-
-Respond with JSON in this format:
+Respond with valid JSON only:
 {
   "mappings": [
     {
       "icon": "discord",
       "apps": [
         {"id": "discord", "confidence": 1.0, "source": "package"},
-        {"id": "com.discordapp.Discord", "confidence": 0.95, "source": "flatpak"},
-        {"id": "vesktop", "confidence": 0.6, "source": "package"}
+        {"id": "com.discordapp.Discord", "confidence": 0.9, "source": "flatpak"},
+        {"id": "discord-canary", "confidence": 0.9, "source": "package"},
+        {"id": "vesktop", "confidence": 0.7, "source": "package"}
       ]
     }
   ]
@@ -209,15 +153,6 @@ func RenderPrompt(tmpl string, vars PromptVars) (string, error) {
 	}
 
 	return buf.String(), nil
-}
-
-// RenderClassifyPrompt renders the classification prompt with icons.
-func (c *Config) RenderClassifyPrompt(iconList []string) (string, error) {
-	vars := PromptVars{
-		Year:  time.Now().Year(),
-		Icons: strings.Join(iconList, "\n"),
-	}
-	return RenderPrompt(c.Prompts.ClassifyPrompt, vars)
 }
 
 // RenderAppGenPrompt renders the app generation prompt with icons.
@@ -251,153 +186,103 @@ func LoadConfig(path string) (*Config, error) {
 // WriteDefaultConfig writes the default configuration to a file.
 func WriteDefaultConfig(path string) error {
 	content := `# Icon Aliases Generator Configuration
-# See https://openrouter.ai/models for available models
-# See https://openrouter.ai/docs/features/web-search for web search
+# =====================================
+#
+# This tool generates icon-aliases.toml for histui by:
+# 1. Fetching icon metadata from upstream sources (Font Awesome, MDI, Devicons)
+# 2. Generating kb-patterns.toml from upstream metadata
+# 3. Merging with kb-patterns-manual.toml (your overrides)
+# 4. Using AI to generate comprehensive Linux app lists for each icon
+# 5. Outputting the final icon-aliases.toml
+#
+# Workflow:
+#   ./generate-icon-aliases --fetch        # Update patterns from upstream
+#   ./generate-icon-aliases --generate-kb  # Generate AI app mappings
+#   ./generate-icon-aliases                # Output icon-aliases.toml
+#
+# See README.md for full documentation.
 
 [openrouter]
-# Default model for AI generation
-# Recommended models (December 2025):
-#   - anthropic/claude-sonnet-4.5  - Best for coding/agentic tasks
-#   - anthropic/claude-sonnet-4    - Good balance of speed and quality
-#   - openai/gpt-5.1               - Latest GPT with native structured output
-#   - google/gemini-2.0-flash      - Fast and cheap for bulk operations
-#   - anthropic/claude-opus-4.5    - Maximum quality (expensive)
-default_model = "anthropic/claude-sonnet-4"
+# Model to use for AI app generation
+default_model = "google/gemini-2.5-flash"
 
-# Enable web search for real-time data (adds :online suffix)
-# This ensures current package names, new apps, and ecosystem info
-# Cost: ~$0.02 per request for Exa-powered search (native for Anthropic/OpenAI)
+# Enable web search for real-time Linux ecosystem data
 web_search = true
 
-# Batch sizes for API calls
-# Higher = fewer API calls, modern models handle large batches easily
-classify_batch_size = 500  # Icons to classify per call
-app_gen_batch_size = 100   # Icons to generate apps for per call (output is larger)
+# Number of icons to process per API call
+app_gen_batch_size = 50
 
 # Request timeout in seconds
-# Web search requests need longer timeouts
-request_timeout = 600  # 10 minutes
+request_timeout = 600
+
+# Maximum tokens to request in response
+max_tokens = 32000
+
+[upstream]
+# Font Awesome - includes "brands" style for app logos
+font_awesome = "https://raw.githubusercontent.com/FortAwesome/Font-Awesome/6.x/metadata/icons.json"
+
+# Material Design Icons - community-maintained, extensive tags
+material_design = "https://raw.githubusercontent.com/Templarian/MaterialDesign-Meta/master/meta.json"
+
+# Devicons - developer tool and language logos (ALL are app-type)
+devicons = "https://raw.githubusercontent.com/devicons/devicon/master/devicon.json"
+
+# Codicons - VS Code icons
+codicons = "https://raw.githubusercontent.com/microsoft/vscode-codicons/main/src/template/mapping.json"
 
 [prompts]
-# Classification prompt template
-# Supports {{.Year}} for current year, {{.Icons}} for icon list
-classify_prompt = '''
-You are classifying Nerd Font icon names for a Linux desktop notification system.
-Current year: {{.Year}} - use current knowledge of the Linux app ecosystem.
-
-For each icon glyph name, determine:
-- type: "app" if it represents a specific application (Discord, Firefox, Spotify), "category" if it's generic (email, browser, folder, music), or "skip" if not useful for app icons (arrows, shapes, abstract symbols)
-- name: the canonical lowercase name extracted from the glyph (e.g., "md-discord" -> "discord", "fa-envelope" -> "email", "md-folder" -> "folder")
-
-Focus on icons that would be useful for matching Linux desktop applications and notification sources.
-
-Icons to classify:
-{{.Icons}}
-
-Respond with JSON in this format:
-{
-  "icons": [
-    {"glyph": "md-discord", "type": "app", "name": "discord"},
-    {"glyph": "fa-envelope", "type": "category", "name": "email"},
-    {"glyph": "md-arrow-left", "type": "skip", "name": ""}
-  ]
-}
-'''
-
 # App generation prompt template
-# Supports {{.Year}} for current year, {{.Icons}} for icon list
+# Variables: {{.Year}} = current year, {{.Icons}} = icon list
 app_gen_prompt = '''
 You are generating Linux application identifiers for icon mappings in a desktop notification system.
 Current year: {{.Year}} - include current and actively maintained apps in the Linux ecosystem.
 
-For each icon, list all Linux apps that would use this icon. Include:
-- Package names (apt, pacman, dnf, etc.): discord, firefox, thunderbird
-- Desktop file base names: org.mozilla.firefox, com.discordapp.Discord
-- Flatpak application IDs: com.discordapp.Discord, org.mozilla.firefox
-- Common variants and forks: discord-canary, firefox-esr, firefox-nightly, librewolf
-- New/popular apps from recent years (Vesktop, Zen Browser, Ghostty, Zed, Cursor, Windsurf, etc.)
+For each icon, list ALL Linux applications that would use this icon. Be comprehensive.
 
-Confidence scoring guidelines:
-- 0.9-1.0: Official/primary app that exactly matches the icon (discord for discord icon)
-- 0.7-0.9: Well-known official variants (discord-canary, firefox-esr)
-- 0.5-0.7: Popular third-party clients or forks (vesktop, librewolf, evolution for email)
-- 0.3-0.5: Less common alternatives or inferred matches
+Include these identifier types:
+- Package names (apt/pacman/dnf): discord, firefox, thunderbird
+- Flatpak IDs: com.discordapp.Discord, org.mozilla.firefox
+- Snap names: discord, firefox
+- Desktop file names: org.mozilla.firefox, com.discordapp.Discord
+- Binary names: discord, firefox-esr
+- Common forks/variants: librewolf, waterfox, vesktop, armcord
 
-For "category" type icons (email, browser, file-manager, music), list the most popular Linux applications in that category, including newer alternatives.
+For "app" type icons (brand logos like Discord, Spotify):
+- List the primary app and all known variants/forks
+- Include official variants (discord-canary, spotify-client)
+- Include popular third-party clients (vesktop for Discord)
 
-Icons to map (format: name (type)):
+For "category" type icons (generic like email, music, video):
+- List the most popular Linux applications in that category
+- Include both mainstream (thunderbird) and alternatives (evolution, geary)
+- Include newer/modern alternatives (Ghostty for terminal, Zed for code)
+
+Confidence scoring:
+- 1.0: Primary/official app (discord for discord icon)
+- 0.9: Official variants (discord-canary, firefox-esr)
+- 0.8: Well-known Flatpak/Snap IDs
+- 0.7: Popular forks (librewolf, vesktop)
+- 0.6: Less common alternatives
+
+Icons to map (format: "name (type) - description"):
 {{.Icons}}
 
-Be comprehensive but accurate. Only include apps you're confident exist on Linux.
-
-Respond with JSON in this format:
+Respond with valid JSON only:
 {
   "mappings": [
     {
       "icon": "discord",
       "apps": [
         {"id": "discord", "confidence": 1.0, "source": "package"},
-        {"id": "com.discordapp.Discord", "confidence": 0.95, "source": "flatpak"},
-        {"id": "vesktop", "confidence": 0.6, "source": "package"}
+        {"id": "com.discordapp.Discord", "confidence": 0.9, "source": "flatpak"},
+        {"id": "discord-canary", "confidence": 0.9, "source": "package"},
+        {"id": "vesktop", "confidence": 0.7, "source": "package"}
       ]
     }
   ]
 }
 '''
-
-[filter]
-# Pre-filter glyphs before sending to AI (reduces 10k+ to ~2.5k)
-# Only glyphs matching these prefixes AND containing keywords are processed
-
-# Glyph name prefixes that typically contain app icons
-prefixes = [
-  "fa-",     # Font Awesome
-  "md-",     # Material Design Icons
-  "dev-",    # Devicons
-  "linux-",  # Linux distro icons
-  "custom-", # Custom icons
-  "seti-",   # Seti UI
-  "cod-",    # Codicons (VS Code)
-]
-
-# Keywords that suggest app-related icons
-keywords = [
-  # Messaging & Social
-  "discord", "slack", "telegram", "whatsapp", "signal", "skype",
-  "facebook", "twitter", "mastodon", "reddit", "linkedin",
-  "chat", "message", "comment",
-  # Browsers
-  "firefox", "chrome", "chromium", "brave", "edge", "opera", "safari", "vivaldi",
-  "browser", "web",
-  # Email
-  "email", "gmail", "outlook", "thunderbird",
-  # Media
-  "spotify", "youtube", "music", "video", "vlc", "mpv",
-  # Development
-  "terminal", "console", "shell",
-  "code", "visual-studio", "vim", "emacs", "atom", "sublime",
-  "git", "github", "gitlab", "bitbucket", "docker", "kubernetes",
-  # Files
-  "folder", "file", "archive",
-  # Gaming
-  "steam", "gamepad", "controller",
-  # Cloud & Network
-  "cloud", "dropbox", "drive",
-  "wifi", "bluetooth", "network", "vpn",
-  # Security
-  "lock", "key", "security", "shield",
-  # System
-  "bell", "notification", "alert", "warning",
-  "settings", "cog", "gear",
-  "power", "battery", "cpu", "memory",
-  "update", "download", "sync",
-  "calendar", "clock", "timer",
-  "camera", "image", "photo", "picture",
-  "microphone", "audio", "speaker", "volume",
-  "printer", "scanner",
-  "phone", "cellphone", "mobile",
-  "desktop", "laptop", "monitor", "display",
-]
 `
 	return os.WriteFile(path, []byte(content), 0644)
 }

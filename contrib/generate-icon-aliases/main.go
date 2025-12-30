@@ -74,22 +74,23 @@ var explicitIconOverrides = map[string]string{
 }
 
 func main() {
-	// Existing flags
-	fetchFlag := flag.Bool("fetch", false, "Fetch fresh glyphnames.json and font from GitHub")
+	// Primary workflow flags
+	fetchFlag := flag.Bool("fetch", false, "Fetch upstream metadata and regenerate kb-patterns.toml (also refreshes Nerd Font data)")
 	outputFlag := flag.String("output", "icon-aliases.toml", "Output TOML file path")
 	fontOutputFlag := flag.String("font-output", "", "Output path for Nerd Font symbols TTF (optional)")
 	verboseFlag := flag.Bool("verbose", false, "Verbose logging")
 	preferFlag := flag.String("prefer", "md", "Preferred icon set: md (Material Design), fa (Font Awesome), dev (Devicons)")
 
 	// Knowledge base flags
-	generateKBFlag := flag.Bool("generate-kb", false, "Generate AI knowledge base using OpenRouter (requires OPENROUTER_API_KEY)")
+	generateKBFlag := flag.Bool("generate-kb", false, "Generate AI app mappings using OpenRouter (requires OPENROUTER_API_KEY)")
 	openrouterModelFlag := flag.String("openrouter-model", "", "OpenRouter model to use (from config or anthropic/claude-sonnet-4)")
 	webSearchFlag := flag.Bool("web-search", false, "Enable web search for real-time data (adds :online suffix)")
 	noCacheFlag := flag.Bool("no-cache", false, "Disable caching of API responses")
 	clearCacheFlag := flag.Bool("clear-cache", false, "Clear the API response cache before generating")
+	patternsFileFlag := flag.String("patterns-file", kbPatternsFile, "Path to auto-generated patterns file")
+	manualPatternsFileFlag := flag.String("manual-patterns-file", kbPatternsManualFile, "Path to manual patterns override file")
 	defaultFileFlag := flag.String("default-file", kbDefaultFile, "Path to default knowledge base file")
 	aiFileFlag := flag.String("ai-file", kbAIFile, "Path to AI knowledge base file")
-	adjustmentsFileFlag := flag.String("adjustments-file", kbAdjustmentsFile, "Path to final adjustments file")
 	configFileFlag := flag.String("config", configFile, "Path to config file")
 	writeExampleConfigFlag := flag.Bool("write-example-config", false, "Write an example config file and exit")
 
@@ -116,10 +117,44 @@ func main() {
 		os.Exit(1)
 	}
 
-	// Load or fetch glyph data
-	glyphs, err := loadGlyphs(*fetchFlag)
+	// Handle --fetch: fetch upstream metadata and regenerate kb-patterns.toml
+	if *fetchFlag {
+		fmt.Println("=== Fetching upstream metadata ===")
+
+		// 1. Fetch Nerd Font glyphs (always refresh when --fetch is used)
+		fmt.Println("Fetching Nerd Font glyphnames.json...")
+		if _, err := loadGlyphs(true); err != nil {
+			fmt.Fprintf(os.Stderr, "Error fetching glyphs: %v\n", err)
+			os.Exit(1)
+		}
+		fmt.Printf("Cached glyphnames.json\n")
+
+		// 2. Fetch Nerd Font symbols TTF
+		fmt.Println("Fetching Nerd Font symbols TTF...")
+		if err := fetchFont(true, nerdFontCacheFile); err != nil {
+			fmt.Fprintf(os.Stderr, "Error fetching font: %v\n", err)
+			os.Exit(1)
+		}
+		fmt.Printf("Cached %s\n", nerdFontCacheFile)
+
+		// 3. Fetch upstream icon metadata (FA, MDI, Devicons, Codicons)
+		fmt.Println("\nFetching icon library metadata...")
+		if err := RunFetch(config, *verboseFlag); err != nil {
+			fmt.Fprintf(os.Stderr, "Error fetching upstream: %v\n", err)
+			os.Exit(1)
+		}
+
+		fmt.Println("\n=== Fetch complete ===")
+		fmt.Printf("Generated: %s\n", kbPatternsFile)
+		fmt.Println("Next: Run --generate-kb to create AI app mappings")
+		return
+	}
+
+	// Load glyph data (from cache)
+	glyphs, err := loadGlyphs(false)
 	if err != nil {
 		fmt.Fprintf(os.Stderr, "Error loading glyphs: %v\n", err)
+		fmt.Fprintf(os.Stderr, "Run with --fetch to download Nerd Font data\n")
 		os.Exit(1)
 	}
 	fmt.Printf("Loaded %d glyphs from Nerd Fonts\n", len(glyphs))
@@ -135,13 +170,27 @@ func main() {
 			fmt.Println("Cleared API response cache")
 		}
 
+		// Load patterns for canonical icon names (auto + manual merged)
+		patterns, err := LoadPatternsWithManual(*patternsFileFlag, *manualPatternsFileFlag)
+		if err != nil {
+			fmt.Fprintf(os.Stderr, "Error loading patterns: %v\n", err)
+			os.Exit(1)
+		}
+		fmt.Printf("Loaded %d icon patterns (auto: %s, manual: %s)\n",
+			len(patterns.Icons), *patternsFileFlag, *manualPatternsFileFlag)
+
+		// Match glyphs to canonical icons using patterns
+		fmt.Println("Matching glyphs to canonical icons...")
+		matchedIcons := MatchGlyphsToIcons(patterns, glyphs, *verboseFlag)
+		fmt.Printf("Matched %d canonical icons to glyphs\n", len(matchedIcons))
+
 		// Show cache stats
 		useCache := !*noCacheFlag
 		if useCache {
-			classifyCount, appGenCount, totalSize := CacheStats()
-			if classifyCount > 0 || appGenCount > 0 {
-				fmt.Printf("Cache: %d classify, %d app-gen entries (%.1f KB)\n",
-					classifyCount, appGenCount, float64(totalSize)/1024)
+			_, appGenCount, totalSize := CacheStats()
+			if appGenCount > 0 {
+				fmt.Printf("Cache: %d app-gen entries (%.1f KB)\n",
+					appGenCount, float64(totalSize)/1024)
 			}
 		}
 
@@ -151,12 +200,16 @@ func main() {
 			os.Exit(1)
 		}
 
-		fmt.Printf("Generating knowledge base using model: %s (web search: %v, cache: %v)\n",
+		fmt.Printf("Generating app mappings using model: %s (web search: %v, cache: %v)\n",
 			client.Model, client.WebSearch, client.UseCache)
 
-		kb, err := client.GenerateKnowledgeBase(glyphs)
+		// Get icons for app generation (from patterns, not AI classification)
+		iconsForAppGen := GetIconsForAppGeneration(matchedIcons)
+
+		// Generate app mappings using AI (only app generation, no classification)
+		kb, err := client.GenerateAppMappings(iconsForAppGen, matchedIcons)
 		if err != nil {
-			fmt.Fprintf(os.Stderr, "Error generating knowledge base: %v\n", err)
+			fmt.Fprintf(os.Stderr, "Error generating app mappings: %v\n", err)
 			os.Exit(1)
 		}
 
@@ -178,10 +231,6 @@ func main() {
 		}
 	}
 
-	// Find app-related glyphs for matching
-	appGlyphs := filterAppGlyphs(glyphs, config.Filter)
-	fmt.Printf("Found %d app-related glyphs\n", len(appGlyphs))
-
 	// Load default knowledge base
 	defaultKB, err := LoadKnowledgeBase(*defaultFileFlag)
 	if err != nil {
@@ -198,20 +247,11 @@ func main() {
 		fmt.Printf("Loaded AI KB (%d icons, generated %s)\n", len(aiKB.Icons), aiKB.GeneratedAt)
 	}
 
-	// Load final adjustments (if exists)
-	adjustments, err := LoadFinalAdjustments(*adjustmentsFileFlag)
-	if err != nil {
-		fmt.Fprintf(os.Stderr, "Warning: error loading adjustments: %v\n", err)
-	} else if adjustments != nil {
-		fmt.Printf("Loaded final adjustments (%d deletions, %d moves, %d glyph overrides)\n",
-			len(adjustments.DeleteIcons), len(adjustments.MoveApps), len(adjustments.SetGlyph))
-	}
-
 	// Merge and generate mappings
 	var mappings []AppMapping
 
 	if defaultKB != nil || aiKB != nil {
-		// Merge all sources: AI > default, then apply final adjustments
+		// Merge all sources: AI > default
 		fmt.Println("Using merged icon sources (AI > default)")
 		merged := MergeIconSources(defaultKB, aiKB, *verboseFlag)
 
@@ -219,13 +259,8 @@ func main() {
 		fmt.Println("Deduplicating app assignments...")
 		DeduplicateApps(merged, defaultKB, aiKB, *verboseFlag)
 
-		// Apply final adjustments (fixes known issues like Signal -> signal_3g)
-		if adjustments != nil {
-			fmt.Println("Applying final adjustments...")
-			ApplyFinalAdjustments(merged, adjustments, *verboseFlag)
-		}
-
-		mappings = ConvertMergedToAppMapping(merged, appGlyphs, *verboseFlag)
+		// Use full glyphs map for lookup since KB stores full glyph names
+		mappings = ConvertMergedToAppMapping(merged, glyphs, *verboseFlag)
 	} else {
 		// No KB files found - this shouldn't happen in normal usage
 		fmt.Fprintf(os.Stderr, "Error: No knowledge base files found.\n")
@@ -328,36 +363,6 @@ func loadGlyphs(fetch bool) (map[string]GlyphInfo, error) {
 	}
 
 	return glyphs, nil
-}
-
-// filterAppGlyphs finds glyphs that are likely app icons using config filters
-func filterAppGlyphs(glyphs map[string]GlyphInfo, filter FilterConfig) map[string]GlyphInfo {
-	result := make(map[string]GlyphInfo)
-
-	for name, glyph := range glyphs {
-		// Check prefix
-		hasAppPrefix := false
-		for _, prefix := range filter.Prefixes {
-			if strings.HasPrefix(name, prefix) {
-				hasAppPrefix = true
-				break
-			}
-		}
-		if !hasAppPrefix {
-			continue
-		}
-
-		// Check if name contains app-related keyword
-		nameLower := strings.ToLower(name)
-		for _, keyword := range filter.Keywords {
-			if strings.Contains(nameLower, keyword) {
-				result[name] = glyph
-				break
-			}
-		}
-	}
-
-	return result
 }
 
 func writeTOML(path string, mappings []AppMapping) error {

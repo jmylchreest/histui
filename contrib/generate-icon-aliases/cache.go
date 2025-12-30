@@ -100,11 +100,6 @@ func saveCache(cacheType, hash, model, content string) error {
 	return os.WriteFile(getCachePath(cacheType, hash, model), data, 0644)
 }
 
-// ClassifyCacheKey generates a cache key for classification requests.
-func ClassifyCacheKey(glyphNames []string) string {
-	return hashStrings(glyphNames)
-}
-
 // AppGenCacheKey generates a cache key for app generation requests.
 func AppGenCacheKey(icons []struct{ Name, Type string }) string {
 	var items []string

@@ -282,17 +282,75 @@ tasks:
         echo ""
         echo "Cleaned up ${TMPDIR}"
 
-  # Contrib tools
+  # =============================================================================
+  # Icon Alias Generation
+  # =============================================================================
+  # Generates icon-aliases.toml for histui by:
+  # 1. Fetching upstream metadata (Font Awesome, MDI, Devicons)
+  # 2. Generating kb-patterns.toml from upstream
+  # 3. Merging with kb-patterns-manual.toml (manual overrides)
+  # 4. Using AI to generate app lists (requires OPENROUTER_API_KEY)
+  # 5. Outputting icon-aliases.toml
+  #
+  # See contrib/generate-icon-aliases/README.md for details.
+
   generate:icons:
-    desc: Generate icon aliases and download Nerd Font symbols (regenerates AI KB if OPENROUTER_API_KEY is set)
+    desc: Generate icon aliases (full workflow - fetch, AI, output)
+    dir: contrib/generate-icon-aliases
+    cmds:
+      - task: generate:icons:build
+      - task: generate:icons:fetch
+      - task: generate:icons:ai
+      - task: generate:icons:output
+      - echo ""
+      - echo "Done! Updated internal/icon/aliases_default.toml"
+
+  generate:icons:build:
+    desc: Build the icon alias generator
     dir: contrib/generate-icon-aliases
     cmds:
       - go build -o generate-icon-aliases .
+    sources:
+      - "*.go"
+    generates:
+      - generate-icon-aliases
+
+  generate:icons:fetch:
+    desc: Fetch upstream metadata and regenerate kb-patterns.toml
+    dir: contrib/generate-icon-aliases
+    deps: [generate:icons:build]
+    cmds:
+      - ./generate-icon-aliases --fetch --verbose
+      - echo "Updated kb-patterns.toml from upstream sources"
+
+  generate:icons:ai:
+    desc: Generate AI app mappings (requires OPENROUTER_API_KEY)
+    dir: contrib/generate-icon-aliases
+    deps: [generate:icons:build]
+    cmds:
       - |
-        EXTRA_FLAGS=""
-        if [ -n "$OPENROUTER_API_KEY" ]; then
-          echo "OPENROUTER_API_KEY detected - enabling AI knowledge base generation"
-          EXTRA_FLAGS="-generate-kb"
+        if [ -z "$OPENROUTER_API_KEY" ]; then
+          echo "OPENROUTER_API_KEY not set - skipping AI generation"
+          echo "Using existing kb-ai.json (if available)"
+          exit 0
         fi
-        ./generate-icon-aliases -fetch -verbose $EXTRA_FLAGS -output ../../internal/icon/aliases_default.toml -font-output ../../internal/icon/fonts/SymbolsNerdFont-Regular.ttf
-      - echo "Updated internal/icon/aliases_default.toml and fonts/SymbolsNerdFont-Regular.ttf"
+        echo "Generating AI app mappings..."
+        ./generate-icon-aliases --generate-kb --verbose
+
+  generate:icons:output:
+    desc: Generate final icon-aliases.toml output
+    dir: contrib/generate-icon-aliases
+    deps: [generate:icons:build]
+    cmds:
+      - ./generate-icon-aliases --verbose --output ../../internal/icon/aliases_default.toml --font-output ../../internal/icon/fonts/SymbolsNerdFont-Regular.ttf
+      - echo "Generated internal/icon/aliases_default.toml"
+      - echo "Downloaded internal/icon/fonts/SymbolsNerdFont-Regular.ttf"
+
+  generate:icons:clean:
+    desc: Clean generated icon files and caches
+    dir: contrib/generate-icon-aliases
+    cmds:
+      - rm -f generate-icon-aliases
+      - rm -rf .cache
+      - rm -f kb-patterns.toml kb-ai.json
+      - echo "Cleaned generated files and cache"

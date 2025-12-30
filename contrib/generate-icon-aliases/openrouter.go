@@ -8,7 +8,6 @@ import (
 	"net/http"
 	"os"
 	"path/filepath"
-	"sort"
 	"strings"
 	"time"
 )
@@ -136,10 +135,11 @@ func saveDebugResponse(prefix string, info *APIDebugInfo) string {
 
 // ChatRequest represents an OpenRouter API request.
 type ChatRequest struct {
-	Model          string         `json:"model"`
-	Messages       []ChatMessage  `json:"messages"`
+	Model          string          `json:"model"`
+	Messages       []ChatMessage   `json:"messages"`
 	ResponseFormat *ResponseFormat `json:"response_format,omitempty"`
-	Temperature    float64        `json:"temperature,omitempty"`
+	Temperature    float64         `json:"temperature,omitempty"`
+	MaxTokens      int             `json:"max_tokens,omitempty"`
 }
 
 // ChatMessage represents a message in the conversation.
@@ -171,15 +171,6 @@ type ChatResponse struct {
 	Error *struct {
 		Message string `json:"message"`
 	} `json:"error,omitempty"`
-}
-
-// ClassifyResult is the structured output for icon classification.
-type ClassifyResult struct {
-	Icons []struct {
-		Glyph string `json:"glyph"`
-		Type  string `json:"type"` // "app", "category", "skip"
-		Name  string `json:"name"` // canonical name
-	} `json:"icons"`
 }
 
 // AppGenResult is the structured output for app name generation.
@@ -301,34 +292,6 @@ func (c *OpenRouterClient) call(req ChatRequest) (string, *APIDebugInfo, error) 
 	return chatResp.Choices[0].Message.Content, debugInfo, nil
 }
 
-// classifyIconsSchema returns the JSON schema for icon classification.
-func classifyIconsSchema() *JSONSchema {
-	return &JSONSchema{
-		Name:   "icon_classification",
-		Strict: true,
-		Schema: map[string]any{
-			"type": "object",
-			"properties": map[string]any{
-				"icons": map[string]any{
-					"type": "array",
-					"items": map[string]any{
-						"type": "object",
-						"properties": map[string]any{
-							"glyph": map[string]any{"type": "string"},
-							"type":  map[string]any{"type": "string", "enum": []string{"app", "category", "skip"}},
-							"name":  map[string]any{"type": "string"},
-						},
-						"required":             []string{"glyph", "type", "name"},
-						"additionalProperties": false,
-					},
-				},
-			},
-			"required":             []string{"icons"},
-			"additionalProperties": false,
-		},
-	}
-}
-
 // appGenSchema returns the JSON schema for app name generation.
 func appGenSchema() *JSONSchema {
 	return &JSONSchema{
@@ -368,92 +331,6 @@ func appGenSchema() *JSONSchema {
 	}
 }
 
-// ClassifyIcons classifies a batch of glyph names.
-func (c *OpenRouterClient) ClassifyIcons(glyphNames []string, useCache bool) (*ClassifyResult, error) {
-	// Check cache first
-	cacheKey := ClassifyCacheKey(glyphNames)
-	if useCache {
-		if cached, ok := loadCache("classify", cacheKey, c.Model); ok {
-			var result ClassifyResult
-			if err := json.Unmarshal([]byte(cached), &result); err == nil {
-				c.cacheHits++
-				fmt.Printf("    [CACHE HIT] classification batch\n")
-				return &result, nil
-			}
-		}
-	}
-
-	c.apiCalls++
-	fmt.Printf("    [API CALL] classification batch\n")
-	prompt, err := c.Config.RenderClassifyPrompt(glyphNames)
-	if err != nil {
-		return nil, fmt.Errorf("render classify prompt: %w", err)
-	}
-
-	req := ChatRequest{
-		Model: c.Model,
-		Messages: []ChatMessage{
-			{Role: "user", Content: prompt},
-		},
-		ResponseFormat: &ResponseFormat{
-			Type:       "json_schema",
-			JSONSchema: classifyIconsSchema(),
-		},
-		Temperature: 0.1,
-	}
-
-	content, debugInfo, err := c.call(req)
-	if err != nil {
-		if debugInfo != nil {
-			debugPath := saveDebugResponse("classify-error", debugInfo)
-			if debugPath != "" {
-				fmt.Fprintf(os.Stderr, "[ERROR] Debug info saved to: %s\n", debugPath)
-			}
-		}
-		return nil, err
-	}
-
-	// Save to cache
-	if useCache {
-		if err := saveCache("classify", cacheKey, c.Model, content); err != nil && c.Verbose {
-			fmt.Printf("    (warning: failed to save cache: %v)\n", err)
-		}
-	}
-
-	var result ClassifyResult
-	if err := json.Unmarshal([]byte(content), &result); err != nil {
-		// Save full debug info including headers
-		debugInfo.Error = fmt.Sprintf("JSON unmarshal error: %v", err)
-		debugPath := saveDebugResponse("classify-parse-error", debugInfo)
-
-		// Show truncated content for debugging
-		preview := content
-		if len(preview) > 500 {
-			preview = preview[:500] + "... [truncated]"
-		}
-		fmt.Fprintf(os.Stderr, "\n[ERROR] Failed to parse API response:\n%s\n", preview)
-		fmt.Fprintf(os.Stderr, "[ERROR] Response length: %d bytes\n", len(content))
-		if debugPath != "" {
-			fmt.Fprintf(os.Stderr, "[ERROR] Full debug info saved to: %s\n", debugPath)
-		}
-
-		// Check for common issues
-		if len(content) < 100 {
-			fmt.Fprintf(os.Stderr, "[ERROR] Response is suspiciously short - API may have truncated output\n")
-		}
-		if !strings.HasPrefix(strings.TrimSpace(content), "{") {
-			fmt.Fprintf(os.Stderr, "[ERROR] Response does not start with '{' - may not be JSON\n")
-		}
-		if !strings.HasSuffix(strings.TrimSpace(content), "}") {
-			fmt.Fprintf(os.Stderr, "[ERROR] Response does not end with '}' - JSON appears truncated\n")
-		}
-
-		return nil, fmt.Errorf("parse classification result: %w", err)
-	}
-
-	return &result, nil
-}
-
 // GenerateAppNames generates Linux app identifiers for icons.
 func (c *OpenRouterClient) GenerateAppNames(icons []struct{ Name, Type string }, useCache bool) (*AppGenResult, error) {
 	// Check cache first
@@ -491,6 +368,7 @@ func (c *OpenRouterClient) GenerateAppNames(icons []struct{ Name, Type string },
 			JSONSchema: appGenSchema(),
 		},
 		Temperature: 0.2,
+		MaxTokens:   c.Config.OpenRouter.MaxTokens,
 	}
 
 	content, debugInfo, err := c.call(req)
@@ -573,68 +451,15 @@ func progressTicker(phase string, batchNum, totalBatches int) func() {
 	}
 }
 
-// GenerateKnowledgeBase generates the full AI knowledge base from Nerd Font glyphs.
-func (c *OpenRouterClient) GenerateKnowledgeBase(glyphs map[string]GlyphInfo) (*KnowledgeBase, error) {
-	// Filter to app-related glyphs
-	appGlyphs := filterAppGlyphs(glyphs, c.Config.Filter)
-
-	// Get all glyph names (sorted for deterministic batching and cache hits)
-	var glyphNames []string
-	for name := range appGlyphs {
-		glyphNames = append(glyphNames, name)
-	}
-	sort.Strings(glyphNames)
-
-	classifyBatch := c.Config.OpenRouter.ClassifyBatchSize
+// GenerateAppMappings generates app mappings for canonical icons from patterns.
+// This skips the classification phase entirely - icons come from kb-patterns.toml.
+// AI is only used to generate comprehensive app lists for each canonical icon.
+//
+// Icons with ForceApps skip AI generation entirely and use the forced list.
+// Icons with ExtraApps have those apps appended to AI-generated results.
+func (c *OpenRouterClient) GenerateAppMappings(icons []struct{ Name, Type, Description string }, matched map[string]*MatchedIcon) (*KnowledgeBase, error) {
 	appGenBatch := c.Config.OpenRouter.AppGenBatchSize
 
-	// Calculate total batches
-	classifyBatches := (len(glyphNames) + classifyBatch - 1) / classifyBatch
-	fmt.Printf("Classifying %d glyphs in %d batches (batch size: %d)...\n", len(glyphNames), classifyBatches, classifyBatch)
-
-	// Phase 1: Classify icons in batches
-	var classified []struct {
-		Glyph string
-		Type  string
-		Name  string
-	}
-
-	batchNum := 0
-	for i := 0; i < len(glyphNames); i += classifyBatch {
-		batchNum++
-		end := i + classifyBatch
-		if end > len(glyphNames) {
-			end = len(glyphNames)
-		}
-		batch := glyphNames[i:end]
-
-		stop := progressTicker("classify", batchNum, classifyBatches)
-		result, err := c.ClassifyIcons(batch, c.UseCache)
-		stop()
-
-		if err != nil {
-			return nil, fmt.Errorf("classify batch %d: %w", batchNum, err)
-		}
-
-		for _, icon := range result.Icons {
-			if icon.Type != "skip" {
-				classified = append(classified, struct {
-					Glyph string
-					Type  string
-					Name  string
-				}{icon.Glyph, icon.Type, icon.Name})
-			}
-		}
-
-		// Rate limiting between batches
-		if i+classifyBatch < len(glyphNames) {
-			time.Sleep(500 * time.Millisecond)
-		}
-	}
-
-	fmt.Printf("Classified %d relevant icons (app + category)\n", len(classified))
-
-	// Phase 2: Generate app names in batches
 	kb := &KnowledgeBase{
 		Version:     1,
 		GeneratedAt: time.Now().UTC().Format(time.RFC3339),
@@ -642,43 +467,83 @@ func (c *OpenRouterClient) GenerateKnowledgeBase(glyphs map[string]GlyphInfo) (*
 		Icons:       make(map[string]KBIcon),
 	}
 
-	appGenBatches := (len(classified) + appGenBatch - 1) / appGenBatch
-	fmt.Printf("Generating app names for %d icons in %d batches (batch size: %d)...\n", len(classified), appGenBatches, appGenBatch)
+	// First, handle icons with force_apps (skip AI entirely)
+	var iconsForAI []struct{ Name, Type, Description string }
+	var forcedCount int
 
-	batchNum = 0
-	for i := 0; i < len(classified); i += appGenBatch {
+	for _, icon := range icons {
+		matchedIcon, ok := matched[icon.Name]
+		if !ok {
+			continue
+		}
+
+		if len(matchedIcon.ForceApps) > 0 {
+			// Use forced apps directly, skip AI
+			var apps []KBApp
+			for _, appID := range matchedIcon.ForceApps {
+				apps = append(apps, KBApp{
+					ID:         appID,
+					Confidence: 1.0, // Forced apps get max confidence
+					Source:     "manual",
+				})
+			}
+
+			kb.Icons[icon.Name] = KBIcon{
+				Type:  matchedIcon.Type,
+				Glyph: matchedIcon.GlyphName,
+				Apps:  apps,
+			}
+			forcedCount++
+		} else {
+			// Queue for AI generation
+			iconsForAI = append(iconsForAI, icon)
+		}
+	}
+
+	if forcedCount > 0 {
+		fmt.Printf("Using force_apps for %d icons (skipping AI)\n", forcedCount)
+	}
+
+	if len(iconsForAI) == 0 {
+		fmt.Printf("All icons have force_apps - no AI generation needed\n")
+		return kb, nil
+	}
+
+	appGenBatches := (len(iconsForAI) + appGenBatch - 1) / appGenBatch
+	fmt.Printf("Generating app names for %d icons in %d batches (batch size: %d)...\n",
+		len(iconsForAI), appGenBatches, appGenBatch)
+
+	batchNum := 0
+	for i := 0; i < len(iconsForAI); i += appGenBatch {
 		batchNum++
 		end := i + appGenBatch
-		if end > len(classified) {
-			end = len(classified)
+		if end > len(iconsForAI) {
+			end = len(iconsForAI)
 		}
-		batch := classified[i:end]
+		batch := iconsForAI[i:end]
 
-		var icons []struct{ Name, Type string }
-		for _, cl := range batch {
-			icons = append(icons, struct{ Name, Type string }{cl.Name, cl.Type})
+		// Prepare icons with descriptions for better AI context
+		var iconList []struct{ Name, Type string }
+		for _, icon := range batch {
+			iconList = append(iconList, struct{ Name, Type string }{
+				Name: icon.Name,
+				Type: icon.Type,
+			})
 		}
 
 		stop := progressTicker("app-gen", batchNum, appGenBatches)
-		result, err := c.GenerateAppNames(icons, c.UseCache)
+		result, err := c.GenerateAppNames(iconList, c.UseCache)
 		stop()
 
 		if err != nil {
 			return nil, fmt.Errorf("generate apps batch %d: %w", batchNum, err)
 		}
 
-		// Map back to glyphs and store
-		glyphMap := make(map[string]string) // name -> glyph
-		typeMap := make(map[string]string)  // name -> type
-		for _, c := range batch {
-			glyphMap[c.Name] = c.Glyph
-			typeMap[c.Name] = c.Type
-		}
-
+		// Store results with glyph info from pattern matching
 		for _, mapping := range result.Mappings {
-			glyph, ok := glyphMap[mapping.Icon]
+			matchedIcon, ok := matched[mapping.Icon]
 			if !ok {
-				continue
+				continue // Skip icons not in our patterns
 			}
 
 			var apps []KBApp
@@ -690,15 +555,24 @@ func (c *OpenRouterClient) GenerateKnowledgeBase(glyphs map[string]GlyphInfo) (*
 				})
 			}
 
+			// Append extra_apps from manual file with high confidence
+			for _, extraApp := range matchedIcon.ExtraApps {
+				apps = append(apps, KBApp{
+					ID:         extraApp,
+					Confidence: 0.8, // Extra apps get good confidence
+					Source:     "manual",
+				})
+			}
+
 			kb.Icons[mapping.Icon] = KBIcon{
-				Type:  typeMap[mapping.Icon],
-				Glyph: glyph,
+				Type:  matchedIcon.Type,
+				Glyph: matchedIcon.GlyphName,
 				Apps:  apps,
 			}
 		}
 
 		// Rate limiting between batches
-		if i+appGenBatch < len(classified) {
+		if i+appGenBatch < len(iconsForAI) {
 			time.Sleep(500 * time.Millisecond)
 		}
 	}
@@ -715,6 +589,6 @@ func (c *OpenRouterClient) GenerateKnowledgeBase(glyphs map[string]GlyphInfo) (*
 		}
 	}
 
-	fmt.Printf("Generated knowledge base with %d icon mappings\n", len(kb.Icons))
+	fmt.Printf("Generated app mappings for %d icons\n", len(kb.Icons))
 	return kb, nil
 }

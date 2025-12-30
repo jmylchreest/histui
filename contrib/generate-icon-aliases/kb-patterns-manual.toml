@@ -1,0 +1,105 @@
+# Manual Icon Pattern Overrides
+# =============================
+#
+# This file contains manual overrides that are merged ON TOP of the
+# auto-generated kb-patterns.toml. Entries here take priority.
+#
+# Use this file to:
+#   1. Add icons missing from upstream (e.g., Signal has no Nerd Font glyph)
+#   2. Fix misclassifications (e.g., force "signal" to be app, not category)
+#   3. Force specific apps to use specific icons (skip AI generation)
+#   4. Add extra patterns for better matching
+#
+# This file is version-controlled and manually maintained.
+# kb-patterns.toml is auto-generated and should not be edited.
+#
+# =============================================================================
+# SCHEMA
+# =============================================================================
+#
+# [icons.<canonical-name>]
+# patterns = ["pattern1", "pattern2"]   # Glyph name patterns to match
+# search_terms = ["term1", "term2"]     # Additional search terms (optional)
+# type = "app" | "category"             # app = brand logo, category = generic
+# description = "Human description"     # What this icon represents
+# upstream = "manual"                   # Always "manual" for this file
+#
+# # Optional: Force specific apps (skips AI generation for this icon)
+# force_apps = ["app1", "app2", "org.example.App"]
+#
+# # Optional: Add apps to AI-generated list
+# extra_apps = ["additional-app", "another-app"]
+#
+# =============================================================================
+# PATTERN SYNTAX
+# =============================================================================
+#
+# Patterns match against Nerd Font glyph names (case-insensitive):
+#   "discord"       - Substring match (matches md-discord, fa-discord, etc.)
+#   "md-discord"    - Exact prefix match (only Material Design)
+#   "md-message*"   - Wildcard (matches md-message, md-message_lock, etc.)
+#
+# First matching pattern wins, so order matters for ambiguous cases.
+#
+# =============================================================================
+# EXAMPLES
+# =============================================================================
+
+# -----------------------------------------------------------------------------
+# Icons missing from upstream
+# -----------------------------------------------------------------------------
+# Signal doesn't have a dedicated Nerd Font glyph, so we map it to a
+# privacy-themed icon and force the app list (no AI needed).
+
+[icons.signal]
+patterns = ["md-message_lock", "md-message-lock"]
+type = "app"
+description = "Signal private messenger"
+upstream = "manual"
+force_apps = [
+    "signal",
+    "signal-desktop",
+    "signal-desktop-beta",
+    "org.signal.Signal",
+]
+
+# -----------------------------------------------------------------------------
+# Fixing misclassifications
+# -----------------------------------------------------------------------------
+# If upstream classifies something incorrectly, override it here.
+# Example: "element" might be classified as generic, but it's the Matrix client.
+
+# [icons.element]
+# patterns = ["element", "matrix"]
+# type = "app"
+# description = "Element Matrix client"
+# upstream = "manual"
+# force_apps = [
+#     "element",
+#     "element-desktop",
+#     "io.element.Element",
+# ]
+
+# -----------------------------------------------------------------------------
+# Adding extra apps to AI-generated lists
+# -----------------------------------------------------------------------------
+# If AI misses some apps, add them here without replacing the full list.
+
+# [icons.discord]
+# extra_apps = ["ripcord", "gtkcord4"]  # Added to AI-generated list
+
+# -----------------------------------------------------------------------------
+# Custom category icons
+# -----------------------------------------------------------------------------
+# Define generic icons for app categories.
+
+# [icons.productivity]
+# patterns = ["md-briefcase", "md-office"]
+# type = "category"
+# description = "Productivity and office applications"
+# upstream = "manual"
+# # No force_apps - let AI generate the list
+
+# =============================================================================
+# YOUR OVERRIDES BELOW
+# =============================================================================

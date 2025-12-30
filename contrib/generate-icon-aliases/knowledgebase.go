@@ -9,10 +9,9 @@ import (
 )
 
 const (
-	kbDefaultFile     = "kb-default.json"
-	kbAIFile          = "kb-ai.json"
-	kbAdjustmentsFile = "kb-final-adjustments.json"
-	minConfidence     = 0.6 // Minimum confidence to include an app (filters out AI errors)
+	kbDefaultFile = "kb-default.json"
+	kbAIFile      = "kb-ai.json"
+	minConfidence = 0.6 // Minimum confidence to include an app (filters out AI errors)
 )
 
 // KnowledgeBase represents the AI-generated knowledge base.
@@ -35,23 +34,6 @@ type KBApp struct {
 	ID         string  `json:"id"`
 	Confidence float64 `json:"confidence"`
 	Source     string  `json:"source"` // "package", "desktop", "flatpak", "snap", "inferred"
-}
-
-// FinalAdjustments represents final adjustments applied after all KB merging.
-// These fix known issues like AI incorrectly mapping "signal" to cellular signal icons.
-type FinalAdjustments struct {
-	// DeleteIcons is a list of icon names to remove entirely from output
-	DeleteIcons []string `json:"delete_icons"`
-	// MoveApps moves app names from source icons to target icons
-	MoveApps map[string]MoveAppsEntry `json:"move_apps"`
-	// SetGlyph forces a specific glyph for an icon
-	SetGlyph map[string]string `json:"set_glyph"`
-}
-
-// MoveAppsEntry defines apps to move to a target icon
-type MoveAppsEntry struct {
-	Apps      []string `json:"apps"`       // App names to add to target
-	FromIcons []string `json:"from_icons"` // Icon names to remove these apps from
 }
 
 // MergedIcon represents the final merged icon mapping.
@@ -133,112 +115,6 @@ func SaveKnowledgeBase(kb *KnowledgeBase, path string) error {
 	}
 
 	return nil
-}
-
-// LoadFinalAdjustments loads final adjustments from JSON file.
-func LoadFinalAdjustments(path string) (*FinalAdjustments, error) {
-	data, err := os.ReadFile(path)
-	if err != nil {
-		if os.IsNotExist(err) {
-			return nil, nil // Not an error, just doesn't exist
-		}
-		return nil, fmt.Errorf("read adjustments: %w", err)
-	}
-
-	var adj FinalAdjustments
-	if err := json.Unmarshal(data, &adj); err != nil {
-		return nil, fmt.Errorf("parse adjustments: %w", err)
-	}
-
-	return &adj, nil
-}
-
-// ApplyFinalAdjustments applies final adjustments to merged icons.
-// This is called after all KB merging to fix known issues.
-func ApplyFinalAdjustments(merged map[string]*MergedIcon, adj *FinalAdjustments, verbose bool) {
-	if adj == nil {
-		return
-	}
-
-	// Step 1: Move apps from source icons to target icons
-	for targetIcon, entry := range adj.MoveApps {
-		// Collect apps to move
-		appsToAdd := make([]string, len(entry.Apps))
-		copy(appsToAdd, entry.Apps)
-
-		// Check if from_icons is empty or contains "*" (means remove from ALL icons)
-		removeFromAll := len(entry.FromIcons) == 0
-		for _, s := range entry.FromIcons {
-			if s == "*" {
-				removeFromAll = true
-				break
-			}
-		}
-
-		if removeFromAll {
-			// Remove apps from ALL icons except the target
-			for iconName, icon := range merged {
-				if iconName == targetIcon {
-					continue
-				}
-				originalLen := len(icon.Apps)
-				icon.Apps = excludeFrom(icon.Apps, entry.Apps)
-				if verbose && len(icon.Apps) < originalLen {
-					fmt.Printf("  Adjusted: removed %v from %s\n", entry.Apps, iconName)
-				}
-			}
-		} else {
-			// Remove apps from specified source icons only
-			for _, sourceIcon := range entry.FromIcons {
-				if source, ok := merged[sourceIcon]; ok {
-					source.Apps = excludeFrom(source.Apps, entry.Apps)
-					if verbose {
-						fmt.Printf("  Adjusted: removed %v from %s\n", entry.Apps, sourceIcon)
-					}
-				}
-			}
-		}
-
-		// Add apps to target icon
-		if target, ok := merged[targetIcon]; ok {
-			target.Apps = mergeApps(target.Apps, appsToAdd)
-			target.Source = target.Source + "+adjusted"
-			if verbose {
-				fmt.Printf("  Adjusted: added %v to %s\n", appsToAdd, targetIcon)
-			}
-		} else {
-			// Create new target icon if it doesn't exist
-			merged[targetIcon] = &MergedIcon{
-				Name:   targetIcon,
-				Type:   "app",
-				Apps:   dedupe(appsToAdd),
-				Source: "adjusted",
-			}
-			if verbose {
-				fmt.Printf("  Adjusted: created %s with %v\n", targetIcon, appsToAdd)
-			}
-		}
-	}
-
-	// Step 2: Apply glyph overrides
-	for iconName, glyphName := range adj.SetGlyph {
-		if icon, ok := merged[iconName]; ok {
-			icon.Glyph = glyphName
-			if verbose {
-				fmt.Printf("  Adjusted: set glyph %s -> %s\n", iconName, glyphName)
-			}
-		}
-	}
-
-	// Step 3: Delete icons (after moving apps)
-	for _, iconName := range adj.DeleteIcons {
-		if _, ok := merged[iconName]; ok {
-			delete(merged, iconName)
-			if verbose {
-				fmt.Printf("  Adjusted: deleted icon %s\n", iconName)
-			}
-		}
-	}
 }
 
 // appAssignment tracks which icon an app is assigned to during deduplication.
@@ -338,7 +214,6 @@ func DeduplicateApps(merged map[string]*MergedIcon, defaultKB, aiKB *KnowledgeBa
 }
 
 // MergeIconSources merges icons from all sources with priority: AI > default.
-// Final adjustments are applied separately via ApplyFinalAdjustments.
 // Returns a map of icon name -> MergedIcon.
 func MergeIconSources(defaultKB, aiKB *KnowledgeBase, verbose bool) map[string]*MergedIcon {
 	result := make(map[string]*MergedIcon)
