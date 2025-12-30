@@ -61,8 +61,11 @@ window {
     --ctp-lavender: #7287fd;
 }
 
-/* Mocha (dark mode) - applied when .dark class is present */
-.dark {
+/* Mocha (dark mode) - applied when .dark class is present
+ * Use ".dark, .dark *" to ensure children inherit these variables,
+ * since the universal "*" selector also defines variables on children. */
+.dark,
+.dark * {
     --ctp-text: #cdd6f4;
     --ctp-subtext1: #bac2de;
     --ctp-subtext0: #a6adc8;
