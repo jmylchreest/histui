@@ -47,7 +47,10 @@
  * 7. INDICATOR BAR EFFECTS
  *    - indicator-pulse (opacity pulse for indicator bars)
  *
- * 8. UTILITY CLASSES
+ * 8. STACK COUNT FLASH ANIMATION
+ *    - stack-count-flash (temporary highlight when count increases)
+ *
+ * 9. UTILITY CLASSES
  *    - Ready-to-use animation classes
  *
  * =============================================================================
@@ -1216,4 +1219,26 @@
 /* Animation utility class */
 .anim-indicator-pulse {
     animation: indicator-pulse 3s ease-in-out infinite;
+}
+
+
+/* =============================================================================
+ * 8. STACK COUNT FLASH ANIMATION
+ * =============================================================================
+ * Gentle flash effect for stack count badge when count increases.
+ * Applied temporarily via CSS class, then removed after animation completes.
+ * ============================================================================= */
+
+@keyframes stack-count-flash {
+    0% {
+        color: @accent_color;
+    }
+    100% {
+        color: alpha(@window_fg_color, 0.5);
+    }
+}
+
+/* Applied temporarily when stack count increases */
+.stack-count-flash {
+    animation: stack-count-flash 0.6s ease-out forwards;
 }

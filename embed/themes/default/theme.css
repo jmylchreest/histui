@@ -197,14 +197,21 @@ window {
 }
 
 .notification-stack-count {
-    /* Subtle background - slightly lighter/darker than notification background */
-    background-color: alpha(@window_fg_color, 0.1);
-    color: alpha(@window_fg_color, 0.7);
-    border-radius: 8px;
+    /* Counter badge - subtle/transparent */
+    background-color: alpha(@window_fg_color, 0.05);
+    border: 1px solid alpha(@window_fg_color, 0.1);
+    color: alpha(@window_fg_color, 0.5);
+
+    /* Box with comfortable padding */
+    border-radius: 4px;
     padding: 2px 6px;
-    font-size: 0.75em;
-    font-weight: 600;
     margin-left: 6px;
+
+    /* Match title font size, bold */
+    font-family: "JetBrains Mono", "Fira Code", "SF Mono", "Consolas", monospace;
+    font-size: 1.1em;
+    font-weight: bold;
+    letter-spacing: 0.5px;
 }
 
 /* =============================================================================

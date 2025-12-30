@@ -596,6 +596,8 @@ func (p *Popup) buildStackCount() gtk.Widgetter {
 	p.stackCountLbl = gtk.NewLabel("")
 	p.stackCountLbl.AddCSSClass("notification-stack-count")
 	p.stackCountLbl.SetVisible(false)
+	// Align to top of header, don't expand to fill height
+	p.stackCountLbl.SetVAlign(gtk.AlignStart)
 	return p.stackCountLbl
 }
 
@@ -1144,8 +1146,10 @@ func (p *Popup) SetWidth(width int) {
 
 // SetStackCount updates the stack count badge.
 // A count of 1 or less hides the badge.
+// When count increases, triggers a brief flash animation.
 // Thread-safe: defers GTK operations to main thread.
 func (p *Popup) SetStackCount(count int) {
+	oldCount := p.stackCount
 	p.stackCount = count
 	if p.stackCountLbl == nil {
 		return
@@ -1154,8 +1158,18 @@ func (p *Popup) SetStackCount(count int) {
 	// Defer GTK operations to main thread
 	glib.IdleAdd(func() {
 		if count > 1 {
-			p.stackCountLbl.SetText("(" + itoa(count) + ")")
+			p.stackCountLbl.SetText(itoa(count))
 			p.stackCountLbl.SetVisible(true)
+
+			// Trigger flash animation when count increases
+			if count > oldCount {
+				p.stackCountLbl.AddCSSClass("stack-count-flash")
+				// Remove animation class after it completes (600ms)
+				glib.TimeoutAdd(650, func() bool {
+					p.stackCountLbl.RemoveCSSClass("stack-count-flash")
+					return false // Don't repeat
+				})
+			}
 		} else {
 			p.stackCountLbl.SetVisible(false)
 		}
