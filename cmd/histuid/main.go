@@ -405,6 +405,11 @@ func runDaemonMode(logger *slog.Logger) {
 			return
 		}
 
+		// Apply theme icon settings to display manager
+		if loadedTheme := themeLoader.GetTheme(); loadedTheme != nil {
+			displayManager.UpdateTheme(loadedTheme.Aliases, loadedTheme.IconsDir)
+		}
+
 		// Initialize D-Bus server
 		dbusServer = dbus.NewNotificationServer(logger)
 		dbusServer.SetServerInfo(dbus.ServerInfo{
@@ -661,6 +666,10 @@ func runDaemonMode(logger *slog.Logger) {
 							themeLoader.Apply(nil)
 							// Reload sounds from new theme
 							loadThemeSounds(themeLoader, audioManager, logger)
+							// Update display manager with theme icon settings
+							if loadedTheme := themeLoader.GetTheme(); loadedTheme != nil {
+								displayManager.UpdateTheme(loadedTheme.Aliases, loadedTheme.IconsDir)
+							}
 							internalNotifier.NotifyThemeReloaded(newConfig.Theme.Name)
 						}
 					}

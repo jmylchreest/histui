@@ -23,7 +23,7 @@ import (
 	"strings"
 	"time"
 
-	"github.com/BurntSushi/toml"
+	"github.com/pelletier/go-toml/v2"
 )
 
 const (
@@ -501,8 +501,12 @@ func writeTOML(path string, mappings []AppMapping) error {
 	fmt.Fprintf(f, "# [metadata] - Category info for each alias (messaging, browsers, email, media, dev, system, other)\n\n")
 
 	// Encode using toml library (keys are sorted alphabetically)
-	encoder := toml.NewEncoder(f)
-	return encoder.Encode(output)
+	encoded, err := toml.Marshal(output)
+	if err != nil {
+		return err
+	}
+	_, err = f.Write(encoded)
+	return err
 }
 
 func printSummary(mappings []AppMapping) {

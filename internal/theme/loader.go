@@ -8,10 +8,24 @@ import (
 	"path/filepath"
 	"sync"
 
+	"github.com/pelletier/go-toml/v2"
 	"github.com/diamondburned/gotk4/pkg/gdk/v4"
 	"github.com/diamondburned/gotk4/pkg/glib/v2"
 	"github.com/diamondburned/gotk4/pkg/gtk/v4"
 )
+
+// parseEmbeddedAliases parses TOML aliases data from a string.
+func parseEmbeddedAliases(data string) map[string]string {
+	type aliasesFile struct {
+		Aliases map[string]string `toml:"aliases"`
+	}
+
+	var file aliasesFile
+	if err := toml.Unmarshal([]byte(data), &file); err != nil {
+		return nil
+	}
+	return file.Aliases
+}
 
 // Loader handles loading and applying CSS themes with hot-reload support.
 type Loader struct {
@@ -147,9 +161,20 @@ func (l *Loader) LoadTheme(name string) error {
 			}
 		}
 
+		// Load embedded aliases if present
+		if aliasesData, found := GetEmbeddedAliases(name); found {
+			aliases := parseEmbeddedAliases(aliasesData)
+			if len(aliases) > 0 {
+				l.theme.Aliases = aliases
+				l.logger.Debug("loaded embedded aliases", "theme", name, "count", len(aliases))
+			}
+		}
+
 		l.provider.LoadFromString(processedCSS)
 		l.currentName = name
-		l.logger.Info("loaded bundled theme", "name", name, "has_manifest", l.theme.Manifest != nil)
+		l.logger.Info("loaded bundled theme", "name", name,
+			"has_manifest", l.theme.Manifest != nil,
+			"has_aliases", len(l.theme.Aliases) > 0)
 		return nil
 	}
 
@@ -182,9 +207,18 @@ func (l *Loader) LoadTheme(name string) error {
 		}
 	}
 
+	// Load embedded aliases for default theme
+	if aliasesData, found := GetEmbeddedAliases(DefaultThemeName); found {
+		aliases := parseEmbeddedAliases(aliasesData)
+		if len(aliases) > 0 {
+			l.theme.Aliases = aliases
+		}
+	}
+
 	l.provider.LoadFromString(processedCSS)
 	l.currentName = DefaultThemeName
-	l.logger.Info("loaded default theme", "has_manifest", l.theme.Manifest != nil)
+	l.logger.Info("loaded default theme", "has_manifest", l.theme.Manifest != nil,
+		"has_aliases", len(l.theme.Aliases) > 0)
 	return nil
 }
 

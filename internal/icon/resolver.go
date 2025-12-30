@@ -10,11 +10,16 @@ import (
 )
 
 // Resolver handles icon name resolution with aliases and fallbacks.
+// Priority order for alias resolution:
+//  1. customAliases (user-defined from config file)
+//  2. themeAliases (from current theme's aliases.toml)
+//  3. aliases (default/embedded aliases)
 type Resolver struct {
 	mu            sync.RWMutex
-	aliases       map[string]string // app name -> icon name
+	aliases       map[string]string // app name -> icon name (default/embedded)
 	nerdSymbols   map[string]string // app/category name -> nerd font codepoint
-	customAliases map[string]string // user-defined aliases
+	customAliases map[string]string // user-defined aliases (highest priority)
+	themeAliases  map[string]string // theme-provided aliases (middle priority)
 }
 
 // NewResolver creates a new icon resolver with default mappings.
@@ -53,8 +58,11 @@ func (r *Resolver) initDefaults() {
 }
 
 // Resolve returns the best icon name for the given app name.
-// It checks custom aliases first, then default aliases, returning
-// the original name if no alias is found.
+// Priority order:
+//  1. Custom aliases (user-defined from config file)
+//  2. Theme aliases (from current theme's aliases.toml)
+//  3. Default aliases (embedded/bundled)
+//  4. Original name (for icon theme lookup)
 func (r *Resolver) Resolve(appName string) string {
 	if appName == "" {
 		return ""
@@ -66,12 +74,17 @@ func (r *Resolver) Resolve(appName string) string {
 	// Normalize app name (lowercase, no leading/trailing spaces)
 	normalized := strings.ToLower(strings.TrimSpace(appName))
 
-	// Check custom aliases first
+	// Check custom aliases first (user-defined, highest priority)
 	if alias, ok := r.customAliases[normalized]; ok {
 		return alias
 	}
 
-	// Check default aliases
+	// Check theme aliases (from current theme, middle priority)
+	if alias, ok := r.themeAliases[normalized]; ok {
+		return alias
+	}
+
+	// Check default aliases (embedded, lowest priority)
 	if alias, ok := r.aliases[normalized]; ok {
 		return alias
 	}
@@ -185,6 +198,26 @@ func (r *Resolver) SetUserAliases(aliases map[string]string) {
 	}
 }
 
+// SetThemeAliases replaces all theme-level aliases with the provided map.
+// This is called when the theme changes to apply theme-specific icon aliases.
+// Theme aliases have middle priority (after user aliases, before defaults).
+func (r *Resolver) SetThemeAliases(aliases map[string]string) {
+	r.mu.Lock()
+	defer r.mu.Unlock()
+
+	// Clear and rebuild theme aliases
+	if aliases == nil {
+		r.themeAliases = nil
+		return
+	}
+
+	r.themeAliases = make(map[string]string, len(aliases))
+	for appName, iconName := range aliases {
+		normalized := strings.ToLower(strings.TrimSpace(appName))
+		r.themeAliases[normalized] = iconName
+	}
+}
+
 // FallbackNerdSymbolForUrgency returns a Nerd Font symbol based on notification urgency.
 func FallbackNerdSymbolForUrgency(urgency int) string {
 	switch urgency {
@@ -195,4 +228,45 @@ func FallbackNerdSymbolForUrgency(urgency int) string {
 	default: // normal or unknown
 		return "\U000f009a" // nf-md-bell
 	}
+}
+
+// UrgencyAliasKey returns the alias key for a given urgency level.
+// These keys are used in aliases.toml: urgency-low, urgency-normal, urgency-critical, urgency-unknown.
+func UrgencyAliasKey(urgency int) string {
+	switch urgency {
+	case model.UrgencyLow:
+		return "urgency-low"
+	case model.UrgencyNormal:
+		return "urgency-normal"
+	case model.UrgencyCritical:
+		return "urgency-critical"
+	default:
+		return "urgency-unknown"
+	}
+}
+
+// GetUrgencyIconName returns the icon name for a given urgency level from theme aliases.
+// Returns empty string if no urgency icon is configured.
+func (r *Resolver) GetUrgencyIconName(urgency int) string {
+	r.mu.RLock()
+	defer r.mu.RUnlock()
+
+	key := UrgencyAliasKey(urgency)
+
+	// Check custom aliases first (user-defined, highest priority)
+	if name, ok := r.customAliases[key]; ok {
+		return name
+	}
+
+	// Check theme aliases (from current theme, middle priority)
+	if name, ok := r.themeAliases[key]; ok {
+		return name
+	}
+
+	// Check default aliases (embedded, lowest priority)
+	if name, ok := r.aliases[key]; ok {
+		return name
+	}
+
+	return ""
 }

@@ -8,7 +8,7 @@ import (
 	"text/template"
 	"time"
 
-	"github.com/BurntSushi/toml"
+	"github.com/pelletier/go-toml/v2"
 )
 
 const configFile = "config.toml"
@@ -176,7 +176,7 @@ func LoadConfig(path string) (*Config, error) {
 		return nil, fmt.Errorf("read config: %w", err)
 	}
 
-	if _, err := toml.Decode(string(data), config); err != nil {
+	if err := toml.Unmarshal(data, config); err != nil {
 		return nil, fmt.Errorf("parse config: %w", err)
 	}
 

@@ -188,7 +188,7 @@
   file-roller = "archive"
   firebase-tools = "firebase"
   firefox-developer-edition = "firefox"
-  firefox-esr = "fire"
+  firefox-esr = "firefox"
   firefox-nightly = "phoenix"
   flameshot = "flame"
   flashplayer = "flash"

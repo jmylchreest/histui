@@ -62,9 +62,10 @@ type TemplatesConfig struct {
 
 // TUIConfig holds TUI-specific settings.
 type TUIConfig struct {
-	ShowIcons bool `toml:"show_icons"`
-	IconSize  int  `toml:"icon_size"`
-	ShowHelp  bool `toml:"show_help"`
+	ShowIcons bool   `toml:"show_icons"`
+	IconSize  int    `toml:"icon_size"`
+	ShowHelp  bool   `toml:"show_help"`
+	Theme     string `toml:"theme"` // Theme name for urgency icons (default: "default")
 }
 
 // ClipboardConfig holds clipboard settings (TUI only).
@@ -99,6 +100,7 @@ func DefaultConfig() *Config {
 			ShowIcons: true,
 			IconSize:  DefaultIconSize,
 			ShowHelp:  true,
+			Theme:     "default", // Use default theme for urgency icons
 		},
 		Clipboard: ClipboardConfig{
 			Command: "", // Auto-detect

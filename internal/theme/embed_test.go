@@ -123,19 +123,19 @@ func TestBundledThemes_ValidCSS(t *testing.T) {
 	}
 }
 
-func TestGetEmbeddedPartial_Animations(t *testing.T) {
-	// Test that animations.css partial can be loaded
-	css, found := GetEmbeddedPartial("animations.css")
-	require.True(t, found, "animations.css partial should be found")
+func TestGetEmbeddedPartial_Effects(t *testing.T) {
+	// Test that effects.css partial can be loaded
+	css, found := GetEmbeddedPartial("effects.css")
+	require.True(t, found, "effects.css partial should be found")
 	assert.Contains(t, css, "@keyframes sparkle")
 	assert.Contains(t, css, "@keyframes pulse-glow")
 	assert.Contains(t, css, ".anim-sparkle")
 }
 
-func TestGetEmbeddedPartial_AnimationsLegacy(t *testing.T) {
-	// Test that _animations.css (underscore prefix) also works
-	css, found := GetEmbeddedPartial("_animations.css")
-	require.True(t, found, "_animations.css partial should be found (legacy naming)")
+func TestGetEmbeddedPartial_EffectsLegacy(t *testing.T) {
+	// Test that _effects.css (underscore prefix) also works
+	css, found := GetEmbeddedPartial("_effects.css")
+	require.True(t, found, "_effects.css partial should be found (legacy naming)")
 	assert.Contains(t, css, "@keyframes sparkle")
 }
 

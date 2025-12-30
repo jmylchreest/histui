@@ -6,7 +6,7 @@ import (
 	"sort"
 	"strings"
 
-	"github.com/BurntSushi/toml"
+	"github.com/pelletier/go-toml/v2"
 )
 
 // PatternConfig represents the kb-patterns.toml file structure.

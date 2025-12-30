@@ -71,6 +71,9 @@ type Manager struct {
 	// Icon aliases hot-reloading
 	aliasesWatcher *icon.AliasesWatcher
 
+	// Theme-provided icons directory
+	themeIconsDir string
+
 	// Single window containing all notifications
 	stack *NotificationStack
 
@@ -424,6 +427,11 @@ func (m *Manager) showPopupLocked(notification *dbus.DBusNotification, dbusID ui
 	popup, err := NewPopupWidget(notification, m.config, m.logger, m.iconResolver)
 	if err != nil {
 		return err
+	}
+
+	// Set theme icons directory for custom icon lookup
+	if m.themeIconsDir != "" {
+		popup.SetThemeIconsDir(m.themeIconsDir)
 	}
 
 	// Set up callbacks
@@ -931,6 +939,24 @@ func (m *Manager) UpdateConfig(cfg *config.DaemonConfig) {
 	}
 	// Note: If max_visible decreased, we don't close existing popups immediately.
 	// They will naturally expire or be dismissed. New notifications will respect the limit.
+}
+
+// UpdateTheme updates the theme-specific settings for icon resolution.
+// Called when the theme changes to apply theme-provided aliases and icons.
+func (m *Manager) UpdateTheme(themeAliases map[string]string, themeIconsDir string) {
+	m.mu.Lock()
+	m.themeIconsDir = themeIconsDir
+	m.mu.Unlock()
+
+	// Update the resolver's theme aliases
+	if m.iconResolver != nil {
+		m.iconResolver.SetThemeAliases(themeAliases)
+	}
+
+	m.logger.Debug("updated theme settings",
+		"aliases_count", len(themeAliases),
+		"icons_dir", themeIconsDir,
+	)
 }
 
 // DisplayError represents a display-related error.

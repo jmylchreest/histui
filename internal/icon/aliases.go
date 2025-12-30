@@ -5,7 +5,7 @@ import (
 	"os"
 	"path/filepath"
 
-	"github.com/BurntSushi/toml"
+	"github.com/pelletier/go-toml/v2"
 )
 
 //go:embed aliases_default.toml
@@ -128,4 +128,23 @@ func NewResolverWithAliases() (*Resolver, error) {
 	}
 
 	return r, nil
+}
+
+// LoadThemeAliases parses theme aliases TOML and loads them into a resolver.
+// The aliasesData should be the raw TOML content (e.g., from theme.GetEmbeddedAliases).
+func LoadThemeAliases(aliasesData string) (map[string]string, error) {
+	type aliasesFile struct {
+		Aliases map[string]string `toml:"aliases"`
+	}
+
+	var file aliasesFile
+	if err := toml.Unmarshal([]byte(aliasesData), &file); err != nil {
+		return nil, err
+	}
+
+	if file.Aliases == nil {
+		return make(map[string]string), nil
+	}
+
+	return file.Aliases, nil
 }

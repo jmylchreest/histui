@@ -121,6 +121,70 @@ func GetEmbeddedManifest(name string) (string, bool) {
 	return string(data), true
 }
 
+// GetEmbeddedAliases retrieves a bundled aliases file by theme name.
+// Returns the aliases TOML content and whether it was found.
+// Aliases are stored as: themes/{name}/aliases.toml
+func GetEmbeddedAliases(name string) (string, bool) {
+	path := "themes/" + name + "/aliases.toml"
+	data, err := EmbeddedThemes.ReadFile(path)
+	if err != nil {
+		return "", false
+	}
+	return string(data), true
+}
+
+// GetEmbeddedIcon retrieves a bundled icon by theme and icon name.
+// Returns the icon data and whether it was found.
+// Icons are stored as: themes/{themeName}/icons/{iconName}.{ext}
+// Checks for .svg, .png, .xpm extensions.
+func GetEmbeddedIcon(themeName, iconName string) ([]byte, string, bool) {
+	extensions := []string{".svg", ".png", ".xpm"}
+	basePath := "themes/" + themeName + "/icons/" + iconName
+
+	for _, ext := range extensions {
+		path := basePath + ext
+		data, err := EmbeddedThemes.ReadFile(path)
+		if err == nil {
+			return data, ext, true
+		}
+	}
+
+	return nil, "", false
+}
+
+// ListEmbeddedIcons lists all icons available for a theme.
+// Returns a list of icon names (without extensions).
+func ListEmbeddedIcons(themeName string) []string {
+	var icons []string
+	iconsDir := "themes/" + themeName + "/icons"
+
+	entries, err := fs.ReadDir(EmbeddedThemes, iconsDir)
+	if err != nil {
+		return icons
+	}
+
+	seen := make(map[string]bool)
+	for _, entry := range entries {
+		if entry.IsDir() {
+			continue
+		}
+		name := entry.Name()
+		// Strip extension to get icon name
+		for _, ext := range []string{".svg", ".png", ".xpm"} {
+			if strings.HasSuffix(name, ext) {
+				iconName := strings.TrimSuffix(name, ext)
+				if !seen[iconName] {
+					seen[iconName] = true
+					icons = append(icons, iconName)
+				}
+				break
+			}
+		}
+	}
+
+	return icons
+}
+
 // ExtractEmbeddedSounds extracts all embedded sounds for a theme to a directory.
 // Returns a map of original paths to extracted paths.
 // The extractDir should be a writable directory (e.g., a temp dir or cache dir).

@@ -2,6 +2,8 @@ package display
 
 import (
 	"log/slog"
+	"os"
+	"path/filepath"
 	"strconv"
 	"strings"
 	"time"
@@ -26,6 +28,9 @@ type Popup struct {
 	layout       *layout.LayoutConfig
 	logger       *slog.Logger
 	iconResolver *icon.Resolver
+
+	// Theme-provided icons directory (for custom icon images)
+	themeIconsDir string
 
 	// Widgets
 	box           *gtk.Box
@@ -397,20 +402,81 @@ func (p *Popup) buildIcon(elem layout.LayoutElement) gtk.Widgetter {
 		}
 	}
 
-	// Check if icon exists in theme
+	// Check theme icons directory first (theme-bundled icons)
+	if themeIconPath := p.findThemeIcon(resolvedIcon, iconSize); themeIconPath != "" {
+		pixbuf, err := gdkpixbuf.NewPixbufFromFileAtSize(themeIconPath, iconSize, iconSize)
+		if err == nil {
+			p.logger.Debug("loaded icon from theme icons folder",
+				"icon_name", resolvedIcon,
+				"path", themeIconPath,
+			)
+			texture := gdk.NewTextureForPixbuf(pixbuf)
+			if texture != nil {
+				p.iconImage.SetFromPaintable(texture)
+			}
+			return p.iconImage
+		}
+		p.logger.Debug("failed to load theme icon, trying system theme",
+			"path", themeIconPath,
+			"error", err,
+		)
+	}
+
+	// Check if icon exists in system icon theme
 	iconTheme := gtk.IconThemeGetForDisplay(p.iconImage.Display())
 	if iconTheme != nil && iconTheme.HasIcon(resolvedIcon) {
-		p.logger.Debug("using icon from theme", "icon_name", resolvedIcon)
+		p.logger.Debug("using icon from system theme", "icon_name", resolvedIcon)
 		p.iconImage.SetFromIconName(resolvedIcon)
 		return p.iconImage
 	}
 
-	// Icon not in theme - use Nerd Font symbol
-	p.logger.Debug("icon not found in theme, using nerd font symbol",
+	// Icon not found anywhere - use Nerd Font symbol
+	p.logger.Debug("icon not found in any source, using nerd font symbol",
 		"icon_name", resolvedIcon,
 		"app", appName,
+		"theme_icons_dir", p.themeIconsDir,
 	)
 	return createNerdLabel(getNerdSymbol())
+}
+
+// findThemeIcon looks for an icon file in the theme icons directory.
+// Returns the full path to the icon file if found, empty string otherwise.
+// Checks for common image formats: .png, .svg, .xpm, .ico
+// Also checks for scalable/ and {size}x{size}/ subdirectories.
+func (p *Popup) findThemeIcon(iconName string, size int) string {
+	if p.themeIconsDir == "" || iconName == "" {
+		return ""
+	}
+
+	extensions := []string{".png", ".svg", ".xpm", ".ico"}
+
+	// Check direct icon files in icons/
+	for _, ext := range extensions {
+		path := filepath.Join(p.themeIconsDir, iconName+ext)
+		if _, err := os.Stat(path); err == nil {
+			return path
+		}
+	}
+
+	// Check scalable/ subdirectory (SVG preferred)
+	scalableDir := filepath.Join(p.themeIconsDir, "scalable")
+	for _, ext := range extensions {
+		path := filepath.Join(scalableDir, iconName+ext)
+		if _, err := os.Stat(path); err == nil {
+			return path
+		}
+	}
+
+	// Check size-specific subdirectory (e.g., 48x48/)
+	sizeDir := filepath.Join(p.themeIconsDir, itoa(size)+"x"+itoa(size))
+	for _, ext := range extensions {
+		path := filepath.Join(sizeDir, iconName+ext)
+		if _, err := os.Stat(path); err == nil {
+			return path
+		}
+	}
+
+	return ""
 }
 
 // buildSummary creates the summary label.
@@ -876,6 +942,12 @@ func (p *Popup) OnHover(cb func(hovering bool)) {
 // OnCloseAll sets the callback for close-all action.
 func (p *Popup) OnCloseAll(cb func()) {
 	p.onCloseAll = cb
+}
+
+// SetThemeIconsDir sets the directory for theme-provided icons.
+// Icons in this directory are checked before the system icon theme.
+func (p *Popup) SetThemeIconsDir(dir string) {
+	p.themeIconsDir = dir
 }
 
 // SetStackPosition updates the popup's position in the notification stack.

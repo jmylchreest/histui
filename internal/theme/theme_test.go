@@ -108,28 +108,28 @@ func TestProcessImports_FallbackToEmbeddedTheme(t *testing.T) {
 	assert.Contains(t, result, ".notification-popup")
 }
 
-func TestProcessImports_AnimationsPartial(t *testing.T) {
-	// Verify the animations partial can be imported
-	css := `@import "animations.css";
+func TestProcessImports_EffectsPartial(t *testing.T) {
+	// Verify the effects partial can be imported
+	css := `@import "effects.css";
 .my-element { animation: sparkle 2s ease-in-out infinite; }`
 
 	result := ProcessImports(css, "/nonexistent/path", nil)
 
-	// Should import embedded animations partial
-	assert.Contains(t, result, "/* imported (embedded): animations.css */")
+	// Should import embedded effects partial
+	assert.Contains(t, result, "/* imported (embedded): effects.css */")
 	assert.Contains(t, result, "@keyframes sparkle")
 	assert.Contains(t, result, "@keyframes pulse-glow")
 	assert.Contains(t, result, ".anim-sparkle")
 }
 
-func TestProcessImports_AnimationsPartialLegacy(t *testing.T) {
+func TestProcessImports_EffectsPartialLegacy(t *testing.T) {
 	// Verify legacy underscore prefix still works
-	css := `@import "_animations.css";`
+	css := `@import "_effects.css";`
 
 	result := ProcessImports(css, "/nonexistent/path", nil)
 
-	// Should import embedded animations partial (underscore stripped)
-	assert.Contains(t, result, "/* imported (embedded): _animations.css */")
+	// Should import embedded effects partial (underscore stripped)
+	assert.Contains(t, result, "/* imported (embedded): _effects.css */")
 	assert.Contains(t, result, "@keyframes sparkle")
 }
 

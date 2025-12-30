@@ -28,6 +28,7 @@ import (
 	"github.com/jmylchreest/histui/internal/db"
 	"github.com/jmylchreest/histui/internal/dbus"
 	"github.com/jmylchreest/histui/internal/icon"
+	"github.com/jmylchreest/histui/internal/theme"
 	"github.com/jmylchreest/histui/internal/model"
 )
 
@@ -59,6 +60,7 @@ type Model struct {
 	db           *db.DB
 	daemon       *dbus.DaemonClient // D-Bus client for histuid communication
 	iconResolver *icon.Resolver     // Icon resolver for NerdFont symbols
+	themeName    string             // Theme name for loading theme icons
 
 	// Current mode
 	mode Mode
@@ -269,11 +271,27 @@ func New(cfg *config.Config, database *db.DB, daemonClient *dbus.DaemonClient, i
 
 	keys := DefaultKeyMap()
 
+	// Determine theme name for urgency icons
+	themeName := "default"
+	if cfg != nil && cfg.TUI.Theme != "" {
+		themeName = cfg.TUI.Theme
+	}
+
+	// Load theme aliases into the resolver
+	if iconRes != nil {
+		if aliasesData, found := theme.GetEmbeddedAliases(themeName); found {
+			if themeAliases, err := icon.LoadThemeAliases(aliasesData); err == nil && len(themeAliases) > 0 {
+				iconRes.SetThemeAliases(themeAliases)
+			}
+		}
+	}
+
 	m := Model{
 		cfg:           cfg,
 		db:            database,
 		daemon:        daemonClient,
 		iconResolver:  iconRes,
+		themeName:     themeName,
 		mode:          ModeList,
 		list:          l,
 		searchInput:   searchInput,
@@ -1411,24 +1429,52 @@ func (m Model) renderPreviewPanel(item notificationItem) string {
 // renderImageFromSource renders an image from an imageSource using halfblocks.
 // Uses a larger size than preview (30x15 chars for more detail).
 // Returns empty string if no image is available.
+// Handles SVG conversion automatically via the imgconv module.
 func (m Model) renderImageFromSource(src imageSource, histuiID string) string {
 	// Terminal image dimensions: 30 cols x 15 rows for detail view
 	const imgCols = 30
 	const imgRows = 15
 	const imgPixelWidth = imgCols * 2
 	const imgPixelHeight = imgRows * 2
+	// Size for SVG rasterization (higher for better quality)
+	const svgRasterSize = 128
 
 	var img *termimg.Image
 	var err error
 
 	// Load image based on source type
 	if src.path != "" {
-		img, err = termimg.Open(src.path)
+		// Check if path is SVG and convert first
+		if isSVGPath(src.path) {
+			pngData, rasterErr := RasterizeSVGFile(src.path, svgRasterSize, DefaultIconColor())
+			if rasterErr == nil {
+				img, err = termimg.From(bytes.NewReader(pngData))
+			}
+		} else {
+			img, err = termimg.Open(src.path)
+		}
 	} else if len(src.data) > 0 {
-		img, err = termimg.From(bytes.NewReader(src.data))
+		// Check if data is SVG and convert first
+		if isSVGData(src.data) {
+			pngData, rasterErr := RasterizeSVG(src.data, svgRasterSize, DefaultIconColor())
+			if rasterErr == nil {
+				img, err = termimg.From(bytes.NewReader(pngData))
+			}
+		} else {
+			img, err = termimg.From(bytes.NewReader(src.data))
+		}
 	} else if src.fromDB && m.db != nil {
-		if data, loadErr := m.db.LoadImage(histuiID, src.imageRef); loadErr == nil && len(data) > 0 {
-			img, err = termimg.From(bytes.NewReader(data))
+		data, loadErr := m.db.LoadImage(histuiID, src.imageRef)
+		if loadErr == nil && len(data) > 0 {
+			// Check if DB data is SVG and convert
+			if isSVGData(data) {
+				pngData, rasterErr := RasterizeSVG(data, svgRasterSize, DefaultIconColor())
+				if rasterErr == nil {
+					img, err = termimg.From(bytes.NewReader(pngData))
+				}
+			} else {
+				img, err = termimg.From(bytes.NewReader(data))
+			}
 		}
 	}
 
@@ -1605,6 +1651,7 @@ func (m Model) collectImages(n model.Notification) []imageSource {
 
 // renderPreviewIcon renders the notification icon as a NerdFont symbol using halfblocks.
 // This shows the app icon that matches what histuid displays in popups.
+// Falls back to theme urgency icons if no NerdFont symbol is available.
 // Returns empty string if no icon can be rendered.
 func (m Model) renderPreviewIcon(n model.Notification) string {
 	// Dimensions for the icon (matches image placeholder)
@@ -1631,25 +1678,42 @@ func (m Model) renderPreviewIcon(n model.Notification) string {
 		if symbol == "" && n.Category != "" {
 			symbol = m.iconResolver.GetNerdSymbolForCategory(n.Category)
 		}
-
 	}
 
-	// Fall back to urgency-based symbol (like histuid does)
-	if symbol == "" {
-		symbol = icon.FallbackNerdSymbolForUrgency(n.Urgency)
+	// If we have a symbol, try to render it
+	if symbol != "" {
+		rendered := renderNerdSymbolToHalfblocks(symbol, iconCols, iconRows)
+		if rendered != "" {
+			return rendered
+		}
 	}
 
+	// Try theme urgency icon as fallback
+	if m.iconResolver != nil {
+		urgencyIconName := m.iconResolver.GetUrgencyIconName(n.Urgency)
+		if urgencyIconName != "" {
+			// Try to load the icon from embedded themes
+			rendered := m.renderThemeIcon(urgencyIconName, iconCols, iconRows)
+			if rendered != "" {
+				return rendered
+			}
+		}
+	}
+
+	// Fall back to urgency-based NerdFont symbol
+	symbol = icon.FallbackNerdSymbolForUrgency(n.Urgency)
+	if symbol != "" {
+		rendered := renderNerdSymbolToHalfblocks(symbol, iconCols, iconRows)
+		if rendered != "" {
+			return rendered
+		}
+	}
+
+	// Final fallback: render symbol as text in a simple box
 	if symbol == "" {
 		return ""
 	}
 
-	// Try to render as halfblocks image
-	rendered := renderNerdSymbolToHalfblocks(symbol, iconCols, iconRows)
-	if rendered != "" {
-		return rendered
-	}
-
-	// Fallback: render as text in a simple box
 	iconStyle := lipgloss.NewStyle().
 		Foreground(lipgloss.Color("12")).
 		Bold(true)
@@ -1665,6 +1729,56 @@ func (m Model) renderPreviewIcon(n model.Notification) string {
 	lines[2] = dimStyle.Render("│") + strings.Repeat(" ", iconCols-2) + dimStyle.Render("│")
 	lines[3] = dimStyle.Render("│") + strings.Repeat(" ", iconCols-2) + dimStyle.Render("│")
 	lines[4] = dimStyle.Render("╰" + border + "╯")
+
+	return strings.Join(lines, "\n")
+}
+
+// renderThemeIcon renders a theme icon (SVG) as halfblocks.
+// Returns empty string if the icon cannot be loaded or rendered.
+func (m Model) renderThemeIcon(iconName string, cols, rows int) string {
+	// Size for rasterization (higher for better quality)
+	const rasterSize = 64
+
+	// Try to load icon from embedded themes
+	iconData, ext, found := theme.GetEmbeddedIcon(m.themeName, iconName)
+	if !found {
+		return ""
+	}
+
+	// Convert SVG to PNG if needed
+	var imgData []byte
+	if ext == ".svg" {
+		pngData, err := RasterizeSVG(iconData, rasterSize, DefaultIconColor())
+		if err != nil {
+			return ""
+		}
+		imgData = pngData
+	} else {
+		// Already a raster format
+		imgData = iconData
+	}
+
+	// Render using termimg
+	img, err := termimg.From(bytes.NewReader(imgData))
+	if err != nil {
+		return ""
+	}
+
+	rendered, err := img.
+		Protocol(termimg.Halfblocks).
+		Width(cols * 2).
+		Height(rows * 2).
+		Scale(termimg.ScaleFit).
+		Render()
+	if err != nil {
+		return ""
+	}
+
+	// Trim and limit to expected rows
+	lines := strings.Split(strings.TrimSuffix(rendered, "\n"), "\n")
+	if len(lines) > rows {
+		lines = lines[:rows]
+	}
 
 	return strings.Join(lines, "\n")
 }

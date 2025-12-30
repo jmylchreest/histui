@@ -1,0 +1,13 @@
+# Default theme icon aliases
+# These map urgency-based fallback names to themed icons
+
+[aliases]
+# Urgency fallback icons (used when no app icon is available)
+# These resolve to SVGs in the icons/ folder
+urgency-low = "dialog-question-symbolic"
+urgency-normal = "dialog-information-symbolic"
+urgency-critical = "dialog-warning-symbolic"
+urgency-unknown = "dialog-information-symbolic"
+
+# Generic notification fallback
+notification = "dialog-information-symbolic"

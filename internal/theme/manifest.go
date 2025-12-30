@@ -4,59 +4,57 @@ package theme
 import (
 	"os"
 	"path/filepath"
-	"strings"
 	"time"
 
 	"github.com/pelletier/go-toml/v2"
-	"gopkg.in/yaml.v3"
 
 	"github.com/jmylchreest/histui/internal/types"
 )
 
 // Manifest represents a theme's configuration and assets.
-// Theme directories can contain a manifest file (manifest.toml, manifest.yaml, or manifest.json)
-// to define audio, icon settings, and other theme-specific configuration.
+// Theme directories contain a manifest.toml file to define audio,
+// icon settings, and other theme-specific configuration.
 type Manifest struct {
 	// Theme metadata
-	Name        string `toml:"name" yaml:"name" json:"name"`
-	Description string `toml:"description" yaml:"description" json:"description"`
-	Author      string `toml:"author" yaml:"author" json:"author"`
-	Version     string `toml:"version" yaml:"version" json:"version"`
+	Name        string `toml:"name"`
+	Description string `toml:"description"`
+	Author      string `toml:"author"`
+	Version     string `toml:"version"`
 
 	// Audio configuration per urgency level
-	Audio AudioManifest `toml:"audio" yaml:"audio" json:"audio"`
+	Audio AudioManifest `toml:"audio"`
 
 	// Icon configuration
-	Icon IconManifest `toml:"icon" yaml:"icon" json:"icon"`
+	Icon IconManifest `toml:"icon"`
 }
 
 // AudioManifest defines sound configuration for each urgency level.
 type AudioManifest struct {
-	Low      SoundConfig `toml:"low" yaml:"low" json:"low"`
-	Normal   SoundConfig `toml:"normal" yaml:"normal" json:"normal"`
-	Critical SoundConfig `toml:"critical" yaml:"critical" json:"critical"`
+	Low      SoundConfig `toml:"low"`
+	Normal   SoundConfig `toml:"normal"`
+	Critical SoundConfig `toml:"critical"`
 }
 
 // SoundConfig defines a sound and its playback parameters.
 type SoundConfig struct {
 	// Path to the audio file (relative to theme directory or absolute)
-	Path string `toml:"path" yaml:"path" json:"path"`
+	Path string `toml:"path"`
 
 	// Volume override for this sound (0.0-1.0, 0 = use global volume)
-	Volume float64 `toml:"volume" yaml:"volume" json:"volume"`
+	Volume float64 `toml:"volume"`
 
 	// RepeatCount controls how many times to repeat the sound:
 	//   -1 = don't repeat (play once)
 	//    0 = repeat until notification is dismissed
 	//   >0 = repeat exactly N times
-	RepeatCount int `toml:"repeat_count" yaml:"repeat_count" json:"repeat_count"`
+	RepeatCount int `toml:"repeat_count"`
 
 	// RepeatDelay is the delay between repeats (default: 10s)
 	// Ignored if RepeatCount is -1
-	RepeatDelay Duration `toml:"repeat_delay" yaml:"repeat_delay" json:"repeat_delay"`
+	RepeatDelay Duration `toml:"repeat_delay"`
 }
 
-// Duration is a type alias for types.Duration (supports TOML/YAML/JSON string parsing).
+// Duration is a type alias for types.Duration (supports TOML string parsing).
 type Duration = types.Duration
 
 // DefaultRepeatDelay is the default delay between sound repeats.
@@ -83,7 +81,7 @@ func (s *SoundConfig) IsEnabled() bool {
 // IconManifest defines icon configuration for the theme.
 type IconManifest struct {
 	// Size is the icon size in pixels (default: 48)
-	Size int `toml:"size" yaml:"size" json:"size"`
+	Size int `toml:"size"`
 }
 
 // GetIconSize returns the configured icon size or the default (48).
@@ -108,66 +106,33 @@ func (m *Manifest) GetSoundConfig(urgency int) *SoundConfig {
 	}
 }
 
-// LoadManifest loads a manifest from a file.
-// Supports .toml, .yaml, .yml, and .json extensions.
+// LoadManifest loads a manifest from a TOML file.
 func LoadManifest(path string) (*Manifest, error) {
 	data, err := os.ReadFile(path)
 	if err != nil {
 		return nil, err
 	}
 
-	ext := strings.ToLower(filepath.Ext(path))
-	return ParseManifest(data, ext)
+	return ParseManifest(data, "")
 }
 
-// ParseManifest parses a manifest from bytes.
-// The ext parameter hints at the format (.toml, .yaml, .yml, .json).
-// If ext is empty, TOML is tried first, then YAML.
+// ParseManifest parses a manifest from TOML bytes.
+// The ext parameter is ignored (kept for API compatibility).
 func ParseManifest(data []byte, ext string) (*Manifest, error) {
 	manifest := &Manifest{}
-	var err error
-
-	switch ext {
-	case ".toml", "toml":
-		err = toml.Unmarshal(data, manifest)
-	case ".yaml", ".yml", "yaml", "yml":
-		err = yaml.Unmarshal(data, manifest)
-	case ".json", "json":
-		// JSON is handled by yaml.Unmarshal since it's a subset of YAML
-		err = yaml.Unmarshal(data, manifest)
-	default:
-		// Try TOML first, then YAML
-		err = toml.Unmarshal(data, manifest)
-		if err != nil {
-			err = yaml.Unmarshal(data, manifest)
-		}
-	}
-
-	if err != nil {
+	if err := toml.Unmarshal(data, manifest); err != nil {
 		return nil, err
 	}
-
 	return manifest, nil
 }
 
-// FindManifest looks for a manifest file in a theme directory.
+// FindManifest looks for a manifest.toml file in a theme directory.
 // Returns the path to the manifest file and whether it was found.
-// Checks for: manifest.toml, manifest.yaml, manifest.yml, manifest.json
 func FindManifest(themeDir string) (string, bool) {
-	candidates := []string{
-		"manifest.toml",
-		"manifest.yaml",
-		"manifest.yml",
-		"manifest.json",
+	path := filepath.Join(themeDir, "manifest.toml")
+	if _, err := os.Stat(path); err == nil {
+		return path, true
 	}
-
-	for _, name := range candidates {
-		path := filepath.Join(themeDir, name)
-		if _, err := os.Stat(path); err == nil {
-			return path, true
-		}
-	}
-
 	return "", false
 }
 

@@ -7,6 +7,8 @@ import (
 	"regexp"
 	"strings"
 	"time"
+
+	"github.com/pelletier/go-toml/v2"
 )
 
 // importRegex matches @import "file.css"; or @import 'file.css'; or @import url("file.css");
@@ -22,6 +24,10 @@ type Theme struct {
 	ModTime   time.Time // Last modification time
 	IsDefault bool      // True if this is the embedded default theme
 	Manifest  *Manifest // Theme manifest (nil if no manifest)
+
+	// Icon-related fields
+	Aliases  map[string]string // Theme-specific icon aliases (app name -> icon name)
+	IconsDir string            // Path to theme's icons/ folder (for custom icon images)
 }
 
 // NewTheme creates a new Theme by loading a CSS file.
@@ -52,6 +58,16 @@ func NewTheme(name, path string) (*Theme, error) {
 
 // NewThemeFromDir creates a Theme from a directory containing theme.css and optional manifest.
 // This supports the directory-based theme format for themes with bundled assets.
+//
+// Directory structure:
+//
+//	mytheme/
+//	  ├── theme.css         (required - or <name>.css or style.css)
+//	  ├── manifest.toml     (optional - theme metadata and audio config)
+//	  ├── aliases.toml      (optional - icon aliases for this theme)
+//	  ├── layout.xml        (optional - notification layout)
+//	  ├── sounds/           (optional - bundled sound files)
+//	  └── icons/            (optional - bundled icon images)
 func NewThemeFromDir(name, themeDir string) (*Theme, error) {
 	// Look for CSS file (theme.css, <name>.css, or style.css)
 	cssPath := ""
@@ -91,7 +107,46 @@ func NewThemeFromDir(name, themeDir string) (*Theme, error) {
 		}
 	}
 
+	// Load theme-specific icon aliases if present
+	if aliases, found := loadThemeAliases(themeDir); found {
+		theme.Aliases = aliases
+	}
+
+	// Check for icons directory
+	iconsDir := filepath.Join(themeDir, "icons")
+	if info, err := os.Stat(iconsDir); err == nil && info.IsDir() {
+		theme.IconsDir = iconsDir
+	}
+
 	return theme, nil
+}
+
+// loadThemeAliases loads icon aliases from a theme directory.
+// Looks for aliases.toml in the theme directory.
+// Returns the aliases map and whether aliases were found.
+func loadThemeAliases(themeDir string) (map[string]string, bool) {
+	aliasesPath := filepath.Join(themeDir, "aliases.toml")
+
+	data, err := os.ReadFile(aliasesPath)
+	if err != nil {
+		return nil, false
+	}
+
+	// Structure for TOML aliases file
+	type aliasesFile struct {
+		Aliases map[string]string `toml:"aliases"`
+	}
+
+	var file aliasesFile
+	if err := toml.Unmarshal(data, &file); err != nil {
+		return nil, false
+	}
+
+	if len(file.Aliases) == 0 {
+		return nil, false
+	}
+
+	return file.Aliases, true
 }
 
 // resolveManifestPaths resolves relative paths in the manifest to absolute paths.
