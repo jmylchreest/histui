@@ -10,6 +10,9 @@
  *   --histui-font-size      - Base font size (default: 14px)
  */
 
+/* Import shared effects library (animations + gradients + ribbons) */
+@import "effects.css";
+
 /* =============================================================================
  * WINDOW - Must be transparent for proper notification appearance
  * ============================================================================= */
@@ -205,7 +208,10 @@ window {
     color: var(--ctp-blue);
 }
 
-/* Note: GTK4 doesn't support :hover on link elements */
+.notification-body link:hover {
+    color: var(--ctp-lavender);
+    text-decoration: underline;
+}
 
 /* =============================================================================
  * PROGRESS
@@ -290,6 +296,36 @@ window {
 
 .notification-action:hover {
     background-color: var(--ctp-surface1);
+}
+
+/* =============================================================================
+ * DEFAULT ACTION INDICATOR
+ * Uses ribbon-135 from effects.css with catppuccin mauve color.
+ * ============================================================================= */
+
+/* Override ribbon color with catppuccin mauve */
+.notification-default-action-indicator {
+    --ribbon-color: alpha(var(--ctp-mauve), 0.6);
+
+    /* Position at top-right corner */
+    margin-left: auto;
+    margin-top: -12px;
+    margin-right: -12px;
+
+    min-width: 20px;
+    min-height: 20px;
+
+    font-size: 0;
+    color: transparent;
+
+    /* Use ribbon gradient from effects.css */
+    background-image: linear-gradient(
+        135deg,
+        transparent 50%,
+        var(--ribbon-color) 50%
+    );
+
+    border-top-right-radius: 12px;
 }
 
 /* =============================================================================

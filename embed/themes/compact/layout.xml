@@ -3,6 +3,7 @@
   <header>
     <summary />
     <stack-count />
+    <default-action-indicator />
     <icon size="24" />
   </header>
   <body />

@@ -1,7 +1,7 @@
 /* histui Effects Library
  * =============================================================================
  * Reusable CSS effects for notification themes including animations and gradients.
- * Import into your theme with: @import "effects.css";
+ * To use in your theme, add an import statement for "effects.css" at the top.
  *
  * Usage: Apply effect classes to elements or use @keyframes/gradients directly.
  *
@@ -13,7 +13,7 @@
  *
  * GTK4 CSS Limitations:
  *   - No transform animations (rotate, scale, translate)
- *   - No ::before/::after pseudo-elements
+ *   - No before/after pseudo-elements
  *   - No gradient position animations
  *   - No CSS filters (blur, hue-rotate)
  *
@@ -44,7 +44,13 @@
  * 6. BORDER ANIMATIONS
  *    - border-pulse-* (pulsing border effects)
  *
- * 7. UTILITY CLASSES
+ * 7. RIBBON EFFECTS
+ *    - ribbon-135 (top-right corner diagonal)
+ *    - ribbon-45 (top-left corner diagonal)
+ *    - ribbon-0 (full-height vertical bar)
+ *    - ribbon-shimmer-* (shimmer animations for ribbons)
+ *
+ * 8. UTILITY CLASSES
  *    - Ready-to-use animation classes
  *
  * =============================================================================
@@ -774,7 +780,7 @@
 
 
 /* =============================================================================
- * 6. UTILITY CLASSES
+ * 8. UTILITY CLASSES
  * =============================================================================
  * Ready-to-use animation classes. Apply directly to elements.
  * Uses CSS custom property --anim-color for color (defaults to currentColor).
@@ -1177,4 +1183,216 @@
 
 .anim-sparkle-accent {
     animation: sparkle-accent 2.5s ease-in-out infinite;
+}
+
+
+/* =============================================================================
+ * 7. RIBBON EFFECTS
+ * =============================================================================
+ * Corner and edge ribbons for visual indicators. Commonly used for
+ * default-action-indicator or other status markers.
+ *
+ * Available ribbons:
+ *   - .ribbon-135  - Top-right corner diagonal (solid triangular fill)
+ *   - .ribbon-45   - Top-left corner diagonal (solid triangular fill)
+ *   - .ribbon-0    - Full-height vertical bar (solid bar on left or right edge)
+ *
+ * Note: GTK4 CSS doesn't support transforms, so diagonal corner ribbons use
+ * a diagonal gradient to create the triangular shape. The fill is solid color,
+ * not a color blend - the gradient only defines the shape boundary.
+ *
+ * Usage:
+ *   .notification-default-action-indicator {
+ *       /* Use ribbon classes and customize colors */
+ *   }
+ *
+ * Ribbons use --ribbon-color custom property for easy theming.
+ * Default: alpha(@accent_bg_color, 0.6)
+ * ============================================================================= */
+
+/* --- Ribbon Variables --- */
+* {
+    --ribbon-color: alpha(@accent_bg_color, 0.6);
+    --ribbon-size: 20px;
+    --ribbon-padding: 4px;
+}
+
+/* --- Corner Ribbon: Top-Right (135°) --- */
+/* Creates a solid triangular fill in the top-right corner.
+ * The gradient defines the diagonal boundary (transparent -> solid),
+ * not a color blend. The visible area is solid --ribbon-color.
+ */
+.ribbon-135 {
+    /* Position at top-right corner */
+    margin-left: auto;
+    margin-top: calc(-1 * var(--ribbon-padding));
+    margin-right: calc(-1 * var(--ribbon-padding));
+
+    /* Ribbon dimensions */
+    min-width: var(--ribbon-size);
+    min-height: var(--ribbon-size);
+
+    /* Hide any content (symbol text) */
+    font-size: 0;
+    color: transparent;
+
+    /* Solid triangular fill via hard gradient stop */
+    background-image: linear-gradient(
+        135deg,
+        transparent 50%,
+        var(--ribbon-color) 50%
+    );
+
+    /* Round the outer corner to match popup */
+    border-top-right-radius: 12px;
+}
+
+/* --- Corner Ribbon: Top-Left (45°) --- */
+/* Creates a solid triangular fill in the top-left corner.
+ * Mirror of ribbon-135 for left-side positioning.
+ */
+.ribbon-45 {
+    /* Position at top-left corner */
+    margin-right: auto;
+    margin-top: calc(-1 * var(--ribbon-padding));
+    margin-left: calc(-1 * var(--ribbon-padding));
+
+    /* Ribbon dimensions */
+    min-width: var(--ribbon-size);
+    min-height: var(--ribbon-size);
+
+    /* Hide any content (symbol text) */
+    font-size: 0;
+    color: transparent;
+
+    /* Solid triangular fill via hard gradient stop (mirrored) */
+    background-image: linear-gradient(
+        45deg,
+        var(--ribbon-color) 50%,
+        transparent 50%
+    );
+
+    /* Round the outer corner to match popup */
+    border-top-left-radius: 12px;
+}
+
+/* --- Vertical Ribbon: Full Height (0°) --- */
+/* Use on left or right edge of notification.
+ * For left edge: place element first in header, use margin-right: auto
+ * For right edge: place element last in header, use margin-left: auto
+ */
+.ribbon-0 {
+    /* Full height of parent, narrow width */
+    min-width: var(--ribbon-size);
+    min-height: 100%;
+
+    /* Padding inside the ribbon */
+    padding: var(--ribbon-padding);
+
+    /* Hide any content (symbol text) */
+    font-size: 0;
+    color: transparent;
+
+    /* Solid color bar */
+    background-color: var(--ribbon-color);
+
+    /* Rounded ends */
+    border-radius: 4px;
+}
+
+/* Variant: Left edge ribbon (extends to container edge) */
+.ribbon-0-left {
+    margin-right: auto;
+    margin-left: calc(-1 * var(--ribbon-padding));
+    margin-top: calc(-1 * var(--ribbon-padding));
+    margin-bottom: calc(-1 * var(--ribbon-padding));
+
+    min-width: var(--ribbon-size);
+    min-height: calc(100% + 2 * var(--ribbon-padding));
+
+    font-size: 0;
+    color: transparent;
+
+    background-color: var(--ribbon-color);
+
+    /* Only round right side */
+    border-top-right-radius: 4px;
+    border-bottom-right-radius: 4px;
+    border-top-left-radius: 0;
+    border-bottom-left-radius: 0;
+}
+
+/* Variant: Right edge ribbon (extends to container edge) */
+.ribbon-0-right {
+    margin-left: auto;
+    margin-right: calc(-1 * var(--ribbon-padding));
+    margin-top: calc(-1 * var(--ribbon-padding));
+    margin-bottom: calc(-1 * var(--ribbon-padding));
+
+    min-width: var(--ribbon-size);
+    min-height: calc(100% + 2 * var(--ribbon-padding));
+
+    font-size: 0;
+    color: transparent;
+
+    background-color: var(--ribbon-color);
+
+    /* Only round left side */
+    border-top-left-radius: 4px;
+    border-bottom-left-radius: 4px;
+    border-top-right-radius: 0;
+    border-bottom-right-radius: 0;
+}
+
+/* --- Ribbon Shimmer Animation --- */
+/* Animated shimmer effect for ribbons. Uses opacity pulse to create
+ * a subtle highlight effect while keeping the ribbon solid.
+ */
+
+/* Shimmer for corner ribbons - subtle opacity pulse */
+@keyframes ribbon-shimmer-135 {
+    0%, 100% {
+        opacity: 1.0;
+    }
+    50% {
+        opacity: 0.7;
+    }
+}
+
+@keyframes ribbon-shimmer-45 {
+    0%, 100% {
+        opacity: 1.0;
+    }
+    50% {
+        opacity: 0.7;
+    }
+}
+
+/* Shimmer for vertical ribbons - same opacity pulse */
+@keyframes ribbon-shimmer-0 {
+    0%, 100% {
+        opacity: 1.0;
+    }
+    50% {
+        opacity: 0.7;
+    }
+}
+
+/* --- Ribbon Animation Utility Classes --- */
+
+.ribbon-135.anim-shimmer,
+.anim-ribbon-shimmer-135 {
+    animation: ribbon-shimmer-135 3s ease-in-out infinite;
+}
+
+.ribbon-45.anim-shimmer,
+.anim-ribbon-shimmer-45 {
+    animation: ribbon-shimmer-45 3s ease-in-out infinite;
+}
+
+.ribbon-0.anim-shimmer,
+.ribbon-0-left.anim-shimmer,
+.ribbon-0-right.anim-shimmer,
+.anim-ribbon-shimmer-0 {
+    animation: ribbon-shimmer-0 2s ease-in-out infinite;
 }

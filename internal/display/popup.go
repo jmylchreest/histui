@@ -149,8 +149,36 @@ func (p *Popup) applyThemeClasses() {
 	if p.notification.AppIcon != "" {
 		p.box.AddCSSClass("has-icon")
 	}
-	if len(p.notification.ParsedActions()) > 0 {
+
+	// Action-related classes
+	actions := p.notification.ParsedActions()
+	if len(actions) > 0 {
 		p.box.AddCSSClass("has-actions")
+	}
+
+	// Check for default action (key="default") - indicates notification is clickable
+	hasDefaultAction := false
+	for _, a := range actions {
+		if a.Key == "default" {
+			hasDefaultAction = true
+			break
+		}
+	}
+	if hasDefaultAction {
+		p.box.AddCSSClass("has-default-action")
+		p.box.AddCSSClass("is-clickable") // Semantic alias
+	}
+
+	// Check for visible actions (non-empty labels, non-default key)
+	hasVisibleActions := false
+	for _, a := range actions {
+		if a.Key != "default" && a.Label != "" {
+			hasVisibleActions = true
+			break
+		}
+	}
+	if hasVisibleActions {
+		p.box.AddCSSClass("has-visible-actions")
 	}
 	if p.notification.Resident() {
 		p.box.AddCSSClass("is-resident")
@@ -254,6 +282,8 @@ func (p *Popup) buildElement(elem layout.LayoutElement) gtk.Widgetter {
 		return p.buildImage()
 	case layout.ElementTypeBox:
 		return p.buildBox(elem)
+	case layout.ElementTypeDefaultActionIndicator:
+		return p.buildDefaultActionIndicator(elem)
 	default:
 		return nil
 	}
@@ -593,9 +623,31 @@ func (p *Popup) buildBody() gtk.Widgetter {
 }
 
 // buildActions creates the action buttons container.
+// Only shows actions with non-empty labels that are not the "default" action.
+// The "default" action is triggered by clicking the notification body (via do-action mouse binding),
+// not by a visible button. Actions with empty labels are also filtered out.
 func (p *Popup) buildActions() gtk.Widgetter {
 	actions := p.notification.ParsedActions()
 	if len(actions) == 0 {
+		return nil
+	}
+
+	// Filter to only visible actions (non-empty label, not "default" key)
+	var visibleActions []dbus.Action
+	for _, a := range actions {
+		// Skip "default" action - it's triggered by clicking notification body
+		if a.Key == "default" {
+			continue
+		}
+		// Skip empty labels - nothing to display
+		if a.Label == "" {
+			continue
+		}
+		visibleActions = append(visibleActions, a)
+	}
+
+	// No visible actions after filtering
+	if len(visibleActions) == 0 {
 		return nil
 	}
 
@@ -603,7 +655,7 @@ func (p *Popup) buildActions() gtk.Widgetter {
 	p.actionBox.AddCSSClass("notification-actions")
 	p.actionBox.SetVisible(false) // Hidden by default, shown on hover
 
-	for _, action := range actions {
+	for _, action := range visibleActions {
 		actionKey := action.Key // Capture for closure
 		btn := gtk.NewButtonWithLabel(action.Label)
 		btn.AddCSSClass("notification-action")
@@ -623,6 +675,45 @@ func (p *Popup) buildActions() gtk.Widgetter {
 	}
 
 	return p.actionBox
+}
+
+// buildDefaultActionIndicator creates a visual indicator that the notification has a default action.
+// This element is only visible when the notification has a "default" action key,
+// indicating that clicking the notification body will trigger an action.
+// The indicator can be customized via the "symbol" attribute in layout.xml:
+//
+//	<default-action-indicator symbol="󰍻"/>  <!-- Custom symbol -->
+//	<default-action-indicator/>               <!-- Uses default: 󰍻 -->
+//
+// Theme authors can use the CSS class ".notification-default-action-indicator" to style it,
+// or use ".is-clickable" / ".has-default-action" on the parent container for broader styling.
+func (p *Popup) buildDefaultActionIndicator(elem layout.LayoutElement) gtk.Widgetter {
+	// Check if notification has a "default" action
+	actions := p.notification.ParsedActions()
+	hasDefaultAction := false
+	for _, a := range actions {
+		if a.Key == "default" {
+			hasDefaultAction = true
+			break
+		}
+	}
+
+	// Don't show indicator if no default action
+	if !hasDefaultAction {
+		return nil
+	}
+
+	// Get symbol from attributes, default to a clickable indicator icon
+	symbol := "󰍻" // nf-md-cursor_default_click_outline
+	if s, ok := elem.Attributes["symbol"]; ok && s != "" {
+		symbol = s
+	}
+
+	label := gtk.NewLabel(symbol)
+	label.AddCSSClass("notification-default-action-indicator")
+	label.SetTooltipText("Click notification to activate")
+
+	return label
 }
 
 // buildProgress creates the progress bar.

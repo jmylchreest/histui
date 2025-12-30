@@ -197,10 +197,57 @@ Controls mouse button actions on notification popups.
 | Action | Description |
 |--------|-------------|
 | `dismiss` | Close this notification |
-| `do-action` | Execute the default action (e.g., open link) |
+| `do-action` | Execute the "default" action if present (see below) |
 | `close-all` | Close all visible notifications |
 | `context-menu` | Show context menu (if supported) |
 | `none` | Do nothing |
+
+### Understanding Notification Actions
+
+D-Bus notifications can include **actions** - interactive buttons or click behaviors. Actions are key/label pairs sent by the application:
+
+- **Key**: An identifier sent back to the app when triggered (e.g., `"reply"`, `"default"`)
+- **Label**: Human-readable text shown to the user (e.g., `"Reply"`, `"Open"`)
+
+**Special keys:**
+
+| Key | Meaning |
+|-----|---------|
+| `"default"` | Action triggered by clicking the notification body (not a button) |
+| Other keys | Displayed as action buttons in the notification |
+
+**How `do-action` works:**
+
+When you configure a mouse button to `do-action`, clicking the notification:
+1. Looks for an action with key `"default"`
+2. If found, sends an `ActionInvoked` D-Bus signal back to the originating application
+3. The application handles it (e.g., focusing its window, opening a conversation)
+
+**Common examples:**
+
+| Application | Default Action | Effect |
+|-------------|----------------|--------|
+| kitty/alacritty | Focus terminal window | `["default", ""]` |
+| Discord | Open conversation | `["default", ""]` |
+| Slack | Open thread | `["default", "Open"]` |
+| Firefox | Focus tab | `["default", ""]` |
+
+**Visual indicator:**
+
+Notifications with a "default" action display a subtle corner indicator (when using a theme that includes `<default-action-indicator />`). This signals to users that the notification is "clickable."
+
+See the [CSS Reference](/docs/histuid/theming/css-reference#action-state-classes) for styling options and the [Layout Reference](/docs/histuid/theming/layout-reference#default-action-indicator-attributes) for theme customization.
+
+**Viewing actions in histui:**
+
+The histui TUI detail view shows all actions with their keys:
+
+```
+Extensions:
+  Actions:
+    default (no label) [click body to invoke]
+    reply: Reply
+```
 
 ### [audio]
 

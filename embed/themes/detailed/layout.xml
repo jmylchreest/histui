@@ -10,6 +10,7 @@
       </box>
     </box>
     <stack-count />
+    <default-action-indicator />
   </header>
   <body />
   <progress />

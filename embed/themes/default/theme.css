@@ -219,7 +219,10 @@ window {
 
 .notification-body link {
     color: @accent_color;
-    /* Note: GTK4 doesn't support :hover on link elements */
+}
+
+.notification-body link:hover {
+    text-decoration: underline;
 }
 
 /* =============================================================================
@@ -304,6 +307,38 @@ window {
 
 .notification-action:hover {
     background-color: alpha(@window_fg_color, 0.1);
+}
+
+/* =============================================================================
+ * DEFAULT ACTION INDICATOR
+ * Subtle corner badge indicating the notification is clickable (has "default" action).
+ * Uses ribbon-135 from effects.css with shimmer animation.
+ * ============================================================================= */
+
+/* Apply ribbon-135 base styling (from effects.css) and add shimmer animation */
+.notification-default-action-indicator {
+    /* Inherit ribbon-135 positioning and gradient via class in layout or override here */
+    margin-left: auto;
+    margin-top: -12px;
+    margin-right: -12px;
+
+    min-width: 20px;
+    min-height: 20px;
+
+    font-size: 0;
+    color: transparent;
+
+    /* Use ribbon gradient - inherits --ribbon-color from effects.css */
+    background-image: linear-gradient(
+        135deg,
+        transparent 50%,
+        var(--ribbon-color) 50%
+    );
+
+    border-top-right-radius: 12px;
+
+    /* Shimmer animation for visual feedback */
+    animation: ribbon-shimmer-135 3s ease-in-out infinite;
 }
 
 /* =============================================================================

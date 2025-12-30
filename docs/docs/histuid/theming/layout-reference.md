@@ -72,6 +72,7 @@ These elements display notification content:
 | `<progress />` | Progress bar (if hint provided) | `.notification-progress` |
 | `<actions />` | Action buttons | `.notification-actions` |
 | `<stack-count />` | Badge showing stacked notification count | `.notification-stack-count` |
+| `<default-action-indicator />` | Visual indicator for clickable notifications | `.notification-default-action-indicator` |
 
 ### Container Elements
 
@@ -135,6 +136,69 @@ This is useful for text-focused themes like `minimal` and `compact`.
 | `.notification-image-container` | Wrapper for cropped images |
 | `.notification-image-container.cropped` | Added when image is cropped |
 | `.notification-image-fade` | Gradient overlay on cropped images |
+
+### Default Action Indicator Attributes
+
+```xml
+<default-action-indicator />
+<default-action-indicator symbol="󰍻" />
+```
+
+The `<default-action-indicator />` element displays a visual cue that clicking the notification body will trigger an action. This is useful for notifications from apps like terminal emulators (kitty, alacritty) or messaging apps where clicking should focus the window or open a conversation.
+
+| Attribute | Type | Default | Description |
+|-----------|------|---------|-------------|
+| `symbol` | string | `󰍻` | NerdFont symbol to display (if using text approach) |
+
+**How It Works:**
+
+When a notification includes a "default" action key (a D-Bus notification spec feature), clicking the notification body triggers that action instead of dismissing it. The indicator visually communicates this affordance to users.
+
+**Conditional Display:**
+
+This element only appears when the notification has a "default" action. You can safely include it in all layouts - it will automatically hide when not applicable.
+
+**Styling Approaches:**
+
+The indicator can be styled in two ways:
+
+1. **Corner fold** (default) - A diagonal gradient creates a subtle corner badge:
+```css
+.notification-default-action-indicator {
+    margin-left: auto;
+    margin-top: -12px;
+    margin-right: -12px;
+    min-width: 20px;
+    min-height: 20px;
+    font-size: 0;
+    background-image: linear-gradient(135deg, transparent 50%, alpha(@accent_bg_color, 0.6) 50%);
+    border-top-right-radius: 12px;
+}
+```
+
+2. **Inline symbol** - Display the symbol text alongside other header elements:
+```xml
+<header>
+    <icon size="48" />
+    <summary />
+    <default-action-indicator symbol="󰍻" />
+</header>
+```
+```css
+.notification-default-action-indicator {
+    font-size: 14px;
+    color: alpha(@accent_color, 0.6);
+}
+```
+
+**Related CSS Classes:**
+
+The popup container also receives these classes when a default action exists:
+- `.has-default-action` - Notification has a "default" action key
+- `.is-clickable` - Semantic alias (same as above)
+- `.has-visible-actions` - Notification has non-default action buttons to display
+
+See [CSS Reference](/docs/histuid/theming/css-reference#action-state-classes) for styling examples.
 
 ### Box Attributes
 
@@ -292,9 +356,10 @@ Elements are automatically hidden when their content is empty:
 - `<body />` - Hidden if notification has no body text
 - `<progress />` - Hidden if no progress hint is set
 - `<image />` - Hidden if no image is attached
-- `<actions />` - Hidden if no action buttons are defined
+- `<actions />` - Hidden if no visible action buttons (excludes "default" action and empty labels)
 - `<stack-count />` - Hidden if notification isn't stacked
 - `<timestamp />` - Always displays relative time ("2m ago")
+- `<default-action-indicator />` - Hidden if notification has no "default" action
 
 You don't need to handle these cases in your layout.
 

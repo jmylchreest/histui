@@ -19,14 +19,18 @@ Complete reference for histuid CSS selectors and GTK4 CSS properties.
 │   ├── .urgency-critical              <- Critical urgency
 │   ├── .translucent                   <- Transparent background
 │   ├── .app-{name}                    <- Per-app styling hook
-│   └── .category-{name}               <- Per-category styling hook
+│   ├── .category-{name}               <- Per-category styling hook
+│   ├── .has-default-action            <- Clickable notification
+│   ├── .is-clickable                  <- Alias for has-default-action
+│   └── .has-visible-actions           <- Has displayable action buttons
 │
 ├── .notification-header               <- Horizontal container
 │   ├── .notification-icon             <- App icon (48x48)
 │   ├── .notification-summary          <- Title
 │   ├── .notification-appname          <- App name
 │   ├── .notification-timestamp        <- Time
-│   └── .notification-stack-count      <- Badge
+│   ├── .notification-stack-count      <- Badge
+│   └── .notification-default-action-indicator <- Clickable hint
 │
 ├── .notification-body                 <- Body text
 │   └── link                           <- Hyperlinks
@@ -66,13 +70,14 @@ Complete reference for histuid CSS selectors and GTK4 CSS properties.
 
 ## Widget Classes
 
-| Class                      | Element                      |
-|----------------------------|------------------------------|
-| `.notification-icon`       | Application icon             |
-| `.notification-action`     | Individual action button     |
-| `.notification-progress`   | Progress bar                 |
-| `.notification-image`      | Embedded image               |
-| `.notification-stack-count`| Stacked notification badge   |
+| Class                                    | Element                        |
+|------------------------------------------|--------------------------------|
+| `.notification-icon`                     | Application icon               |
+| `.notification-action`                   | Individual action button       |
+| `.notification-progress`                 | Progress bar                   |
+| `.notification-image`                    | Embedded image                 |
+| `.notification-stack-count`              | Stacked notification badge     |
+| `.notification-default-action-indicator` | Clickable notification hint    |
 
 ## Image Classes
 
@@ -157,10 +162,88 @@ Applied to `.notification-popup`:
 |--------------------|--------------------------------|
 | `.has-body`        | Notification has body text     |
 | `.has-icon`        | Notification has an icon       |
-| `.has-actions`     | Notification has action buttons|
+| `.has-actions`     | Notification has any actions   |
 | `.has-progress`    | Notification has progress bar  |
 | `.is-resident`     | Resident notification          |
 | `.is-transient`    | Transient notification         |
+
+## Action State Classes {#action-state-classes}
+
+These classes indicate what actions are available on a notification:
+
+| Class                  | When Applied                                              |
+|------------------------|-----------------------------------------------------------|
+| `.has-actions`         | Notification has any action keys (including "default")    |
+| `.has-default-action`  | Notification has a "default" action (clickable body)      |
+| `.is-clickable`        | Semantic alias for `.has-default-action`                  |
+| `.has-visible-actions` | Notification has buttons to display (non-default, non-empty) |
+
+### Understanding Notification Actions
+
+D-Bus notifications can include actions - clickable buttons or affordances. Actions are key/label pairs:
+
+- **Key**: The action identifier (sent back to the app when triggered)
+- **Label**: The text shown to the user (may be empty)
+- **"default" key**: Special action triggered by clicking the notification body
+
+**Example: Kitty terminal notification**
+```
+Actions: ["default", ""]  # Empty label, but clicking body focuses kitty window
+```
+
+**Example: Discord notification**
+```
+Actions: ["default", "", "reply", "Reply"]  # Default action + "Reply" button
+```
+
+### Styling the Default Action Indicator
+
+The `<default-action-indicator />` element creates a visual hint that clicking the notification body does something.
+
+**Note:** GTK4 CSS doesn't support `::before`/`::after` pseudo-elements or `transform`. The built-in themes use a diagonal gradient approach:
+
+```css
+/* Corner fold/ribbon using diagonal gradient */
+.notification-default-action-indicator {
+    /* Position at top-right corner */
+    margin-left: auto;
+    margin-top: -12px;
+    margin-right: -12px;
+
+    /* Triangle size */
+    min-width: 20px;
+    min-height: 20px;
+
+    /* Hide the symbol text */
+    font-size: 0;
+    color: transparent;
+
+    /* Diagonal gradient creates corner fold effect */
+    background-image: linear-gradient(
+        135deg,
+        transparent 50%,
+        alpha(@accent_bg_color, 0.6) 50%
+    );
+
+    /* Match popup corner radius */
+    border-top-right-radius: 12px;
+}
+```
+
+Alternatively, style the entire notification when clickable:
+
+```css
+/* Subtle cursor change on hover for clickable notifications */
+.notification-popup.is-clickable:hover {
+    cursor: pointer;
+    border-color: @accent_color;
+}
+
+/* Add a subtle accent bar */
+.notification-popup.has-default-action {
+    border-left: 3px solid alpha(@accent_color, 0.5);
+}
+```
 
 ## Progress Classes
 

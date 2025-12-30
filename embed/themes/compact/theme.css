@@ -7,6 +7,9 @@
  *   layerrule = ignorealpha 0.5, histui-notification
  */
 
+/* Import shared effects library (animations + gradients + ribbons) */
+@import "effects.css";
+
 /* =============================================================================
  * FONT CONFIGURATION
  * ============================================================================= */
@@ -206,6 +209,38 @@ window {
 
 .notification-action:hover {
     background-color: alpha(@window_fg_color, 0.1);
+}
+
+/* =============================================================================
+ * DEFAULT ACTION INDICATOR - Compact version
+ * Uses ribbon-135 from effects.css with smaller sizing.
+ * ============================================================================= */
+
+.notification-default-action-indicator {
+    /* Smaller ribbon for compact theme */
+    --ribbon-size: 16px;
+    --ribbon-padding: 8px;
+
+    /* Position at top-right corner */
+    margin-left: auto;
+    margin-top: -8px;
+    margin-right: -10px;
+
+    min-width: var(--ribbon-size);
+    min-height: var(--ribbon-size);
+
+    font-size: 0;
+    color: transparent;
+
+    /* Use ribbon gradient from effects.css */
+    background-image: linear-gradient(
+        135deg,
+        transparent 50%,
+        var(--ribbon-color) 50%
+    );
+
+    /* Smaller radius for compact theme */
+    border-top-right-radius: 8px;
 }
 
 /* =============================================================================

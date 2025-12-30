@@ -1229,11 +1229,20 @@ func (m Model) renderDetail(n model.Notification) string {
 			extLines = append(extLines, "  Stack Tag: "+n.Extensions.StackTag)
 		}
 		if len(n.Extensions.Actions) > 0 {
-			var actionLabels []string
+			extLines = append(extLines, "  Actions:")
 			for _, a := range n.Extensions.Actions {
-				actionLabels = append(actionLabels, a.Label)
+				actionLine := fmt.Sprintf("    %s", a.Key)
+				if a.Label != "" {
+					actionLine += fmt.Sprintf(": %s", a.Label)
+				} else {
+					actionLine += " (no label)"
+				}
+				// Mark special keys
+				if a.Key == "default" {
+					actionLine += " [click body to invoke]"
+				}
+				extLines = append(extLines, actionLine)
 			}
-			extLines = append(extLines, "  Actions: "+strings.Join(actionLabels, ", "))
 		}
 		if n.Extensions.DesktopEntry != "" {
 			extLines = append(extLines, "  Desktop: "+n.Extensions.DesktopEntry)

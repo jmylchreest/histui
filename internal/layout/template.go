@@ -31,32 +31,34 @@ type Element struct {
 type ElementType string
 
 const (
-	ElementTypeHeader     ElementType = "header"
-	ElementTypeBody       ElementType = "body"
-	ElementTypeActions    ElementType = "actions"
-	ElementTypeProgress   ElementType = "progress"
-	ElementTypeIcon       ElementType = "icon"
-	ElementTypeSummary    ElementType = "summary"
-	ElementTypeAppName    ElementType = "appname"
-	ElementTypeTimestamp  ElementType = "timestamp"
-	ElementTypeStackCount ElementType = "stack-count"
-	ElementTypeImage      ElementType = "image"
-	ElementTypeBox        ElementType = "box"
+	ElementTypeHeader                 ElementType = "header"
+	ElementTypeBody                   ElementType = "body"
+	ElementTypeActions                ElementType = "actions"
+	ElementTypeProgress               ElementType = "progress"
+	ElementTypeIcon                   ElementType = "icon"
+	ElementTypeSummary                ElementType = "summary"
+	ElementTypeAppName                ElementType = "appname"
+	ElementTypeTimestamp              ElementType = "timestamp"
+	ElementTypeStackCount             ElementType = "stack-count"
+	ElementTypeImage                  ElementType = "image"
+	ElementTypeBox                    ElementType = "box"
+	ElementTypeDefaultActionIndicator ElementType = "default-action-indicator"
 )
 
 // ValidElements lists all recognized element types.
 var ValidElements = map[string]ElementType{
-	"header":      ElementTypeHeader,
-	"body":        ElementTypeBody,
-	"actions":     ElementTypeActions,
-	"progress":    ElementTypeProgress,
-	"icon":        ElementTypeIcon,
-	"summary":     ElementTypeSummary,
-	"appname":     ElementTypeAppName,
-	"timestamp":   ElementTypeTimestamp,
-	"stack-count": ElementTypeStackCount,
-	"image":       ElementTypeImage,
-	"box":         ElementTypeBox,
+	"header":                   ElementTypeHeader,
+	"body":                     ElementTypeBody,
+	"actions":                  ElementTypeActions,
+	"progress":                 ElementTypeProgress,
+	"icon":                     ElementTypeIcon,
+	"summary":                  ElementTypeSummary,
+	"appname":                  ElementTypeAppName,
+	"timestamp":                ElementTypeTimestamp,
+	"stack-count":              ElementTypeStackCount,
+	"image":                    ElementTypeImage,
+	"box":                      ElementTypeBox,
+	"default-action-indicator": ElementTypeDefaultActionIndicator,
 }
 
 // LayoutConfig represents the parsed layout structure ready for UI building.
