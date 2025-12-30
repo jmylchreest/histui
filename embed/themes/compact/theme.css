@@ -213,34 +213,29 @@ window {
 
 /* =============================================================================
  * DEFAULT ACTION INDICATOR - Compact version
- * Uses ribbon-135 from effects.css with smaller sizing.
+ * Narrow vertical bar indicating notification is clickable.
  * ============================================================================= */
 
 .notification-default-action-indicator {
-    /* Smaller ribbon for compact theme */
-    --ribbon-size: 16px;
-    --ribbon-padding: 8px;
-
-    /* Position at top-right corner */
+    /* Position at right side of header */
     margin-left: auto;
-    margin-top: -8px;
-    margin-right: -10px;
 
-    min-width: var(--ribbon-size);
-    min-height: var(--ribbon-size);
-
+    /* Hide the symbol text */
     font-size: 0;
     color: transparent;
 
-    /* Use ribbon gradient from effects.css */
-    background-image: linear-gradient(
-        135deg,
-        transparent 50%,
-        var(--ribbon-color) 50%
-    );
+    /* Smaller vertical bar for compact theme */
+    min-width: 3px;
+    min-height: 18px;
 
-    /* Smaller radius for compact theme */
-    border-top-right-radius: 8px;
+    /* Accent color - subtle */
+    background-color: alpha(@accent_bg_color, 0.4);
+
+    /* Rounded ends */
+    border-radius: 2px;
+
+    /* Subtle pulse animation */
+    animation: indicator-pulse 3s ease-in-out infinite;
 }
 
 /* =============================================================================

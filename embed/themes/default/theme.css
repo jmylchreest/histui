@@ -311,34 +311,31 @@ window {
 
 /* =============================================================================
  * DEFAULT ACTION INDICATOR
- * Subtle corner badge indicating the notification is clickable (has "default" action).
- * Uses ribbon-135 from effects.css with shimmer animation.
+ * Narrow vertical bar indicating the notification is clickable (has "default" action).
+ * Uses indicator-pulse animation from effects.css.
  * ============================================================================= */
 
-/* Apply ribbon-135 base styling (from effects.css) and add shimmer animation */
+/* Default action indicator - narrow vertical bar showing notification is clickable */
 .notification-default-action-indicator {
-    /* Inherit ribbon-135 positioning and gradient via class in layout or override here */
+    /* Position at right side of header */
     margin-left: auto;
-    margin-top: -12px;
-    margin-right: -12px;
 
-    min-width: 20px;
-    min-height: 20px;
-
+    /* Hide the symbol text */
     font-size: 0;
     color: transparent;
 
-    /* Use ribbon gradient - inherits --ribbon-color from effects.css */
-    background-image: linear-gradient(
-        135deg,
-        transparent 50%,
-        var(--ribbon-color) 50%
-    );
+    /* Narrow vertical bar */
+    min-width: 4px;
+    min-height: 24px;
 
-    border-top-right-radius: 12px;
+    /* Accent color - subtle transparency */
+    background-color: alpha(@accent_bg_color, 0.4);
 
-    /* Shimmer animation for visual feedback */
-    animation: ribbon-shimmer-135 3s ease-in-out infinite;
+    /* Rounded ends */
+    border-radius: 2px;
+
+    /* Subtle pulse animation */
+    animation: indicator-pulse 3s ease-in-out infinite;
 }
 
 /* =============================================================================
