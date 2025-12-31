@@ -7,11 +7,6 @@ const config: Config = {
   tagline: 'A lightweight notification daemon and history browser for Wayland',
   favicon: 'img/favicon.ico',
 
-  // Future flags for Docusaurus v4 compatibility
-  future: {
-    v4: true,
-  },
-
   // GitHub Pages deployment
   url: 'https://jmylchreest.github.io',
   baseUrl: '/histui/',
