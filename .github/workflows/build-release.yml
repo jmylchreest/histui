@@ -442,9 +442,6 @@ jobs:
     if: needs.prepare.outputs.is_release == 'true'
     permissions:
       contents: write
-    defaults:
-      run:
-        working-directory: docs
     steps:
       - name: Checkout code
         uses: actions/checkout@v5
@@ -460,16 +457,18 @@ jobs:
           cache-dependency-path: docs/package-lock.json
 
       - name: Install dependencies
+        working-directory: docs
         run: npm ci
 
       - name: Create documentation version
+        working-directory: docs
         run: npm run docusaurus docs:version ${{ needs.prepare.outputs.version }}
 
       - name: Commit version files
         run: |
           git config --local user.email "github-actions[bot]@users.noreply.github.com"
           git config --local user.name "github-actions[bot]"
-          git add versioned_docs versioned_sidebars versions.json
+          git add docs/versioned_docs docs/versioned_sidebars docs/versions.json
           git commit -m "docs: add version ${{ needs.prepare.outputs.version }}" || echo "No changes to commit"
           git push
 

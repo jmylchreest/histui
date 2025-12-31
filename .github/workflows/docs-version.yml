@@ -31,9 +31,6 @@ jobs:
   version:
     name: Create Documentation Version
     runs-on: ubuntu-latest
-    defaults:
-      run:
-        working-directory: docs
     steps:
       - name: Validate tag format
         run: |
@@ -52,7 +49,6 @@ jobs:
 
       - name: Verify tag exists
         run: |
-          cd ..
           if ! git rev-parse "${{ inputs.tag }}" >/dev/null 2>&1; then
             echo "Error: Tag ${{ inputs.tag }} does not exist"
             exit 1
@@ -67,6 +63,7 @@ jobs:
           cache-dependency-path: docs/package-lock.json
 
       - name: Install dependencies
+        working-directory: docs
         run: npm ci
 
       - name: Extract version from tag
@@ -79,6 +76,7 @@ jobs:
 
       - name: Check if version already exists
         id: check
+        working-directory: docs
         run: |
           VERSION="${{ steps.version.outputs.VERSION }}"
           if [ -f "versions.json" ] && grep -q "\"$VERSION\"" versions.json; then
@@ -91,6 +89,7 @@ jobs:
 
       - name: Create documentation version
         if: steps.check.outputs.exists != 'true'
+        working-directory: docs
         run: npm run docusaurus docs:version ${{ steps.version.outputs.VERSION }}
 
       - name: Commit version files
@@ -98,7 +97,7 @@ jobs:
         run: |
           git config --local user.email "github-actions[bot]@users.noreply.github.com"
           git config --local user.name "github-actions[bot]"
-          git add versioned_docs versioned_sidebars versions.json
+          git add docs/versioned_docs docs/versioned_sidebars docs/versions.json
           git commit -m "docs: add version ${{ steps.version.outputs.VERSION }}"
           git push
 
