@@ -29,8 +29,7 @@ Complete reference for histuid CSS selectors and GTK4 CSS properties.
 │   ├── .notification-summary          <- Title
 │   ├── .notification-appname          <- App name
 │   ├── .notification-timestamp        <- Time
-│   ├── .notification-stack-count      <- Badge
-│   └── .notification-default-action-indicator <- Clickable hint
+│   └── .notification-stack-count      <- Badge
 │
 ├── .notification-body                 <- Body text
 │   └── link                           <- Hyperlinks
@@ -77,7 +76,6 @@ Complete reference for histuid CSS selectors and GTK4 CSS properties.
 | `.notification-progress`                 | Progress bar                   |
 | `.notification-image`                    | Embedded image                 |
 | `.notification-stack-count`              | Stacked notification badge     |
-| `.notification-default-action-indicator` | Clickable notification hint    |
 
 ## Image Classes
 
@@ -198,50 +196,36 @@ Actions: ["default", "", "reply", "Reply"]  # Default action + "Reply" button
 
 ### Styling the Default Action Indicator
 
-The `<default-action-indicator />` element creates a visual hint that clicking the notification body does something.
-
-**Note:** GTK4 CSS doesn't support `::before`/`::after` pseudo-elements or `transform`. The built-in themes use a diagonal gradient approach:
+The default action indicator is now CSS-based, using the `.has-default-action` class that's automatically added to clickable notifications. The built-in themes use a right-hand inset shadow effect:
 
 ```css
-/* Corner fold/ribbon using diagonal gradient */
-.notification-default-action-indicator {
-    /* Position at top-right corner */
-    margin-left: auto;
-    margin-top: -12px;
-    margin-right: -12px;
+/* Right-hand indicator using inset shadow */
+.notification-popup.has-default-action {
+    /* Customize indicator color (optional - defaults to accent) */
+    --indicator-color: alpha(@accent_bg_color, 0.35);
 
-    /* Triangle size */
-    min-width: 20px;
-    min-height: 20px;
-
-    /* Hide the symbol text */
-    font-size: 0;
-    color: transparent;
-
-    /* Diagonal gradient creates corner fold effect */
-    background-image: linear-gradient(
-        135deg,
-        transparent 50%,
-        alpha(@accent_bg_color, 0.6) 50%
-    );
-
-    /* Match popup corner radius */
-    border-top-right-radius: 12px;
+    /* Inset shadow on right side */
+    box-shadow:
+        0 4px 12px alpha(black, 0.15),
+        inset -20px 0 16px -12px var(--indicator-color);
 }
 ```
 
-Alternatively, style the entire notification when clickable:
+The `--indicator-color` variable is defined in `effects.css` and can be overridden per-theme. For example, the catppuccin theme uses mauve:
+
+```css
+.notification-popup.has-default-action {
+    --indicator-color: alpha(var(--ctp-mauve), 0.4);
+}
+```
+
+Additional styling options:
 
 ```css
 /* Subtle cursor change on hover for clickable notifications */
 .notification-popup.is-clickable:hover {
     cursor: pointer;
     border-color: @accent_color;
-}
-
-/* Add a subtle accent bar */
-.notification-popup.has-default-action {
-    border-left: 3px solid alpha(@accent_color, 0.5);
 }
 ```
 

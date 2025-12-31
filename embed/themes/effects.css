@@ -46,6 +46,7 @@
  *
  * 7. INDICATOR BAR EFFECTS
  *    - indicator-pulse (opacity pulse for indicator bars)
+ *    - right-hand-indicator (inset shadow on right side)
  *
  * 8. STACK COUNT FLASH ANIMATION
  *    - stack-count-flash (temporary highlight when count increases)
@@ -1219,6 +1220,29 @@
 /* Animation utility class */
 .anim-indicator-pulse {
     animation: indicator-pulse 3s ease-in-out infinite;
+}
+
+/* --- Right-Hand Indicator Effect --- */
+/* Inset shadow on right side indicating interactive/clickable elements.
+ * Color can be customized via --indicator-color variable.
+ *
+ * Usage:
+ *   .notification-popup.has-default-action {
+ *       --indicator-color: alpha(@accent_bg_color, 0.35);
+ *   }
+ *   Or apply the class directly for the default accent color.
+ */
+
+/* Default indicator color variable */
+* {
+    --indicator-color: alpha(@accent_bg_color, 0.35);
+}
+
+/* Right-hand indicator - inset shadow extending into the element */
+.right-hand-indicator {
+    box-shadow:
+        0 4px 12px alpha(black, 0.15),
+        inset -20px 0 16px -12px var(--indicator-color);
 }
 
 

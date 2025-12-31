@@ -234,9 +234,9 @@ When you configure a mouse button to `do-action`, clicking the notification:
 
 **Visual indicator:**
 
-Notifications with a "default" action display a subtle corner indicator (when using a theme that includes `<default-action-indicator />`). This signals to users that the notification is "clickable."
+Notifications with a "default" action display a subtle right-hand indicator (an inset shadow effect). This signals to users that the notification is "clickable." The indicator is styled via the `.has-default-action` CSS class.
 
-See the [CSS Reference](/docs/histuid/theming/css-reference#action-state-classes) for styling options and the [Layout Reference](/docs/histuid/theming/layout-reference#default-action-indicator-attributes) for theme customization.
+See the [CSS Reference](/docs/histuid/theming/css-reference#styling-the-default-action-indicator) for styling options.
 
 **Viewing actions in histui:**
 

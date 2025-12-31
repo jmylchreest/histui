@@ -72,7 +72,6 @@ These elements display notification content:
 | `<progress />` | Progress bar (if hint provided) | `.notification-progress` |
 | `<actions />` | Action buttons | `.notification-actions` |
 | `<stack-count />` | Badge showing stacked notification count | `.notification-stack-count` |
-| `<default-action-indicator />` | Visual indicator for clickable notifications | `.notification-default-action-indicator` |
 
 ### Stack Count Attributes
 
@@ -198,68 +197,35 @@ This is useful for text-focused themes like `minimal` and `compact`.
 | `.notification-image-container.cropped` | Added when image is cropped |
 | `.notification-image-fade` | Gradient overlay on cropped images |
 
-### Default Action Indicator Attributes
+### Default Action Indicator (CSS-based)
 
-```xml
-<default-action-indicator />
-<default-action-indicator symbol="󰍻" />
-```
+When a notification includes a "default" action key (a D-Bus notification spec feature), clicking the notification body triggers that action instead of dismissing it. This is common for notifications from terminal emulators (kitty, alacritty) or messaging apps where clicking should focus the window or open a conversation.
 
-The `<default-action-indicator />` element displays a visual cue that clicking the notification body will trigger an action. This is useful for notifications from apps like terminal emulators (kitty, alacritty) or messaging apps where clicking should focus the window or open a conversation.
+**CSS Classes:**
 
-| Attribute | Type | Default | Description |
-|-----------|------|---------|-------------|
-| `symbol` | string | `󰍻` | NerdFont symbol to display (if using text approach) |
-
-**How It Works:**
-
-When a notification includes a "default" action key (a D-Bus notification spec feature), clicking the notification body triggers that action instead of dismissing it. The indicator visually communicates this affordance to users.
-
-**Conditional Display:**
-
-This element only appears when the notification has a "default" action. You can safely include it in all layouts - it will automatically hide when not applicable.
-
-**Styling Approaches:**
-
-The indicator can be styled in two ways:
-
-1. **Corner fold** (default) - A diagonal gradient creates a subtle corner badge:
-```css
-.notification-default-action-indicator {
-    margin-left: auto;
-    margin-top: -12px;
-    margin-right: -12px;
-    min-width: 20px;
-    min-height: 20px;
-    font-size: 0;
-    background-image: linear-gradient(135deg, transparent 50%, alpha(@accent_bg_color, 0.6) 50%);
-    border-top-right-radius: 12px;
-}
-```
-
-2. **Inline symbol** - Display the symbol text alongside other header elements:
-```xml
-<header>
-    <icon size="48" />
-    <summary />
-    <default-action-indicator symbol="󰍻" />
-</header>
-```
-```css
-.notification-default-action-indicator {
-    font-size: 14px;
-    color: alpha(@accent_color, 0.6);
-}
-```
-
-**Related CSS Classes:**
-
-The popup container also receives these classes when a default action exists:
+The popup container automatically receives these classes when a default action exists:
 - `.has-default-action` - Notification has a "default" action key
 - `.is-clickable` - Semantic alias (same as above)
-- `.has-visible-actions` - Notification has non-default action buttons to display
 
-See [CSS Reference](/docs/histuid/theming/css-reference#action-state-classes) for styling examples.
+**Styling the Indicator:**
+
+The default themes use a right-hand inset shadow effect from `effects.css`:
+
+```css
+.notification-popup.has-default-action {
+    /* Customize the indicator color (optional) */
+    --indicator-color: alpha(@accent_bg_color, 0.35);
+
+    /* Inset shadow on right side */
+    box-shadow:
+        0 4px 12px alpha(black, 0.15),
+        inset -20px 0 16px -12px var(--indicator-color);
+}
+```
+
+The `--indicator-color` variable defaults to `alpha(@accent_bg_color, 0.35)` in `effects.css`. Override it in your theme to use a different color (e.g., catppuccin themes use mauve).
+
+See [CSS Reference](/docs/histuid/theming/css-reference#action-state-classes) for more styling examples.
 
 ### Box Attributes
 
@@ -347,7 +313,6 @@ Smaller icon, right-aligned, with floating dot indicators:
   <header>
     <summary />
     <stack-count format="dots" overlay="top-right" />
-    <default-action-indicator />
     <icon size="24" />
   </header>
   <body />
@@ -426,9 +391,10 @@ Elements are automatically hidden when their content is empty:
 - `<actions />` - Hidden if no visible action buttons (excludes "default" action and empty labels)
 - `<stack-count />` - Hidden if notification isn't stacked
 - `<timestamp />` - Always displays relative time ("2m ago")
-- `<default-action-indicator />` - Hidden if notification has no "default" action
 
 You don't need to handle these cases in your layout.
+
+**Note:** The default action indicator is now CSS-based. The `.has-default-action` class is automatically added to the popup when a notification has a default action. See [Default Action Indicator](#default-action-indicator-css-based) for styling details.
 
 ## Nesting Elements
 

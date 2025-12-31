@@ -336,29 +336,15 @@ window {
 
 /* =============================================================================
  * DEFAULT ACTION INDICATOR
- * Narrow vertical bar indicating notification is clickable.
+ * Uses right-hand-indicator effect from effects.css.
+ * Indicates the notification is clickable (has a default action).
  * ============================================================================= */
 
-.notification-default-action-indicator {
-    /* Position at right side of header */
-    margin-left: auto;
-
-    /* Hide the symbol text */
-    font-size: 0;
-    color: transparent;
-
-    /* Narrow vertical bar */
-    min-width: 4px;
-    min-height: 24px;
-
-    /* Accent color - subtle */
-    background-color: alpha(@accent_bg_color, 0.4);
-
-    /* Rounded ends */
-    border-radius: 2px;
-
-    /* Subtle pulse animation */
-    animation: indicator-pulse 3s ease-in-out infinite;
+.notification-popup.has-default-action {
+    /* Use default --indicator-color from effects.css */
+    box-shadow:
+        0 4px 12px alpha(black, 0.15),
+        inset -20px 0 16px -12px var(--indicator-color);
 }
 
 /* =============================================================================

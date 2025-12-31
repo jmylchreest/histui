@@ -758,43 +758,14 @@ func (p *Popup) buildActions() gtk.Widgetter {
 	return p.actionBox
 }
 
-// buildDefaultActionIndicator creates a visual indicator that the notification has a default action.
-// This element is only visible when the notification has a "default" action key,
-// indicating that clicking the notification body will trigger an action.
-// The indicator can be customized via the "symbol" attribute in layout.xml:
-//
-//	<default-action-indicator symbol="󰍻"/>  <!-- Custom symbol -->
-//	<default-action-indicator/>               <!-- Uses default: 󰍻 -->
-//
-// Theme authors can use the CSS class ".notification-default-action-indicator" to style it,
-// or use ".is-clickable" / ".has-default-action" on the parent container for broader styling.
-func (p *Popup) buildDefaultActionIndicator(elem layout.LayoutElement) gtk.Widgetter {
-	// Check if notification has a "default" action
-	actions := p.notification.ParsedActions()
-	hasDefaultAction := false
-	for _, a := range actions {
-		if a.Key == "default" {
-			hasDefaultAction = true
-			break
-		}
-	}
-
-	// Don't show indicator if no default action
-	if !hasDefaultAction {
-		return nil
-	}
-
-	// Get symbol from attributes, default to a clickable indicator icon
-	symbol := "󰍻" // nf-md-cursor_default_click_outline
-	if s, ok := elem.Attributes["symbol"]; ok && s != "" {
-		symbol = s
-	}
-
-	label := gtk.NewLabel(symbol)
-	label.AddCSSClass("notification-default-action-indicator")
-	label.SetTooltipText("Click notification to activate")
-
-	return label
+// buildDefaultActionIndicator is deprecated - the default action indicator is now
+// handled via CSS using the .has-default-action class on the popup container.
+// The right-hand-indicator effect from effects.css provides the visual feedback.
+// This function returns nil; the layout element is kept for backwards compatibility.
+func (p *Popup) buildDefaultActionIndicator(_ layout.LayoutElement) gtk.Widgetter {
+	// Indicator is now CSS-only via .has-default-action class
+	// See: effects.css (right-hand-indicator) and theme.css
+	return nil
 }
 
 // buildProgress creates the progress bar.
