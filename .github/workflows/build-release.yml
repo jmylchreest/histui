@@ -415,11 +415,13 @@ jobs:
       - name: Generate histui PKGBUILD
         run: |
           VERSION="${{ needs.prepare.outputs.version }}"
+          COMMIT="${{ github.sha }}"
           mkdir -p aur/histui
 
           sed -e "s/{{VERSION}}/${VERSION}/g" \
               -e "s/{{AUR_MAINTAINER}}/${{ secrets.AUR_MAINTAINER }}/g" \
               -e "s/{{SHA256_SOURCE}}/${{ steps.checksums.outputs.SHA256_SOURCE }}/g" \
+              -e "s/{{COMMIT}}/${COMMIT}/g" \
               contrib/aur/histui/PKGBUILD.template > aur/histui/PKGBUILD
 
           echo "=== Generated histui PKGBUILD ==="

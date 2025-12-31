@@ -23,14 +23,19 @@ build() {
     export CGO_CXXFLAGS="${CXXFLAGS}"
     export CGO_LDFLAGS="${LDFLAGS}"
 
+    # Build metadata
+    local _commit="{{COMMIT}}"
+    local _buildtime="$(date -u +%Y-%m-%dT%H:%M:%SZ)"
+    local _ldflags="-s -w -X main.version=${pkgver} -X main.commit=${_commit} -X main.buildTime=${_buildtime}"
+
     # histui CLI - pure Go, no CGO needed
     CGO_ENABLED=0 go build \
-        -ldflags "-s -w -X main.version=${pkgver}" \
+        -ldflags "${_ldflags}" \
         -o histui ./cmd/histui
 
     # histuid daemon - requires CGO for GTK4 bindings
     CGO_ENABLED=1 go build \
-        -ldflags "-s -w -X main.version=${pkgver}" \
+        -ldflags "${_ldflags}" \
         -o histuid ./cmd/histuid
 }
 
