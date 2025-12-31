@@ -36,13 +36,20 @@ const config: Config = {
           sidebarPath: './sidebars.ts',
           editUrl: 'https://github.com/jmylchreest/histui/tree/main/docs/',
           // Versioning configuration
-          lastVersion: 'current',
+          // lastVersion is set dynamically - see versions.json for available versions
+          // The first entry in versions.json is the latest release
+          includeCurrentVersion: true,
           versions: {
             current: {
-              label: 'Latest',
-              path: '',
+              label: 'main',
+              path: 'next',
+              banner: 'unreleased',
             },
+            // Released versions are configured dynamically via onBrokenLinks
+            // The workflow updates lastVersion when creating new releases
           },
+          // Default to latest released version (first in versions.json)
+          lastVersion: require('./versions.json')[0] || 'current',
         },
         blog: false, // Disable blog
         theme: {
