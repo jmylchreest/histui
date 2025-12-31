@@ -8,6 +8,8 @@ import (
 	"image/color"
 	"image/png"
 	"log/slog"
+	"net/http"
+	_ "net/http/pprof" // Register pprof handlers
 	"os"
 	"os/signal"
 	"path/filepath"
@@ -53,6 +55,7 @@ func main() {
 	monitorMode := pflag.Bool("monitor", false, "Run in monitor mode (passive, no popups/sounds, works alongside another notification daemon)")
 	showVersion := pflag.Bool("version", false, "Show version and exit")
 	logLevel := pflag.String("log-level", "", "Log level: debug, info, warn, error (default: info)")
+	pprofAddr := pflag.String("pprof", "", "Enable pprof profiling server on address (e.g., 'localhost:6060')")
 
 	// Config override flags (for testing different display positions)
 	// These are bound to Viper config keys
@@ -73,6 +76,19 @@ func main() {
 	if *showVersion {
 		println("histuid version", version)
 		os.Exit(0)
+	}
+
+	// Start pprof server if requested (for memory/CPU profiling)
+	if *pprofAddr != "" {
+		go func() {
+			// pprof handlers are automatically registered at /debug/pprof/
+			// Access heap profile: curl http://localhost:6060/debug/pprof/heap > heap.out
+			// Then analyze: go tool pprof heap.out
+			if err := http.ListenAndServe(*pprofAddr, nil); err != nil {
+				slog.Error("pprof server failed", "error", err)
+			}
+		}()
+		slog.Info("pprof profiling enabled", "addr", *pprofAddr)
 	}
 
 	// Determine log level: flag > config > default (info)

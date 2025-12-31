@@ -14,7 +14,7 @@ function HeroSection() {
         </h1>
         <p className={styles.pronunciation}>/his-too-ee/</p>
         <p className={styles.tagline}>
-          A lightweight notification daemon and history browser for Wayland.
+          A highly configurable notification daemon and history browser for Wayland.
           Capture, display, and query your desktop notifications with style.
         </p>
 

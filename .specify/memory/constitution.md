@@ -283,7 +283,7 @@ Use `slog` (Go stdlib) for any diagnostic output:
 ### Phase 4 (Future): histui-daemon
 - Separate project implementing org.freedesktop.Notifications
 - Outputs history in histui-compatible format
-- Lightweight alternative to dunst/mako
+- Highly configurable alternative to dunst/mako
 - Native integration with histui store
 
 ## Development Workflow

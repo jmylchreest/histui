@@ -13,6 +13,8 @@ histuid includes a comprehensive library of CSS effects that you can use in your
 The effects library includes:
 - **Animations** - Keyframe animations for pulsing, glowing, and attention effects
 - **Gradients** - Reusable gradient classes for fades and overlays
+- **Indicators** - Visual indicators for interactive elements
+- **Utility Classes** - Ready-to-use animation and effect classes
 
 ## Interactive Demo
 
@@ -88,10 +90,27 @@ Dynamic shadow animations for depth and emphasis.
 | Animation | Duration | Best For |
 |-----------|----------|----------|
 | `shadow-breathe` | 3s | Ambient shadow pulsing |
+| `shadow-breathe-color` | 3s | Shadow pulsing with currentColor |
 | `shadow-float` | 2s | Floating card effect |
 | `shadow-dramatic` | 2s | Intense shadow emphasis |
 | `shadow-drop` | 2s | Drop shadow animation |
 | `inner-glow` | 2s | Inset glow effect |
+
+**Intense Shadow Variants** - Extra dramatic versions with more layers and higher opacity:
+
+| Animation | Duration | Best For |
+|-----------|----------|----------|
+| `shadow-breathe-intense` | 3s | Very prominent stacked shadows |
+| `shadow-float-intense` | 2s | Dramatic lift with depth |
+| `shadow-dramatic-intense` | 2s | Maximum visibility with glow |
+
+**Text Shadow Animations** - Apply to text elements for drop shadow effects:
+
+| Animation | Duration | Best For |
+|-----------|----------|----------|
+| `text-shadow-breathe` | 3s | Pulsing text drop shadow |
+| `text-shadow-float` | 2s | Text lift effect |
+| `text-shadow-dramatic` | 2s | Intense text shadow with glow |
 
 ### Attention Effects
 
@@ -115,6 +134,47 @@ Pulsing and fading border effects.
 | `border-pulse` | 2s | Pulsing border width |
 | `border-color-pulse` | 2s | Border color pulsing |
 | `border-fade` | 3s | Subtle border fade |
+
+### Indicator Bar Effects
+
+Visual indicators for interactive elements and status markers.
+
+| Animation/Class | Duration | Best For |
+|-----------------|----------|----------|
+| `indicator-pulse` | 3s | Subtle opacity pulse for indicator bars |
+| `.right-hand-indicator` | static | Inset shadow on right side |
+
+**Usage example for default action indicators:**
+
+```css
+.notification-default-action-indicator {
+    background-color: alpha(@accent_bg_color, 0.7);
+    min-width: 4px;
+    min-height: 24px;
+    border-radius: 2px;
+    animation: indicator-pulse 3s ease-in-out infinite;
+}
+
+/* Right-hand indicator with custom color */
+.notification-popup.has-default-action {
+    --indicator-color: alpha(@accent_bg_color, 0.35);
+}
+```
+
+### Stack Count Flash
+
+Temporary highlight animation when notification stack count increases.
+
+| Animation | Duration | Best For |
+|-----------|----------|----------|
+| `stack-count-flash` | 0.6s | Highlight when count changes |
+
+```css
+/* Applied automatically to stack count badge when count increases */
+.stack-count-flash {
+    animation: stack-count-flash 0.6s ease-out forwards;
+}
+```
 
 ### Color Variants
 
@@ -146,6 +206,19 @@ These gradients indicate truncated or cropped content:
 | `.gradient-fade-top` | Fades to background at top | Scroll indicators |
 | `.gradient-fade-left` | Fades to background on left | Horizontal scrolling |
 | `.gradient-fade-right` | Fades to background on right | Horizontal scrolling |
+| `.gradient-fade-bottom-subtle` | Subtle bottom fade (less aggressive) | Light overlays |
+| `.gradient-fade-top-subtle` | Subtle top fade | Light overlays |
+
+### Overlay Gradients
+
+Gradients for darkening content or adding color overlays:
+
+| Class | Description | Use Case |
+|-------|-------------|----------|
+| `.gradient-darken-bottom` | Dark overlay from bottom | Text over images |
+| `.gradient-darken-top` | Dark overlay from top | Text over images |
+| `.gradient-accent-bottom` | Accent color overlay from bottom | Branding, emphasis |
+| `.gradient-error-bottom` | Error color overlay from bottom | Critical notifications |
 
 ### Using Gradient Classes
 

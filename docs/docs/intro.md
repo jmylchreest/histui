@@ -1,6 +1,6 @@
 ---
 title: Introduction
-description: A lightweight notification daemon and history browser for Wayland
+description: A highly configurable notification daemon and history browser for Wayland
 sidebar_position: 1
 slug: /
 ---

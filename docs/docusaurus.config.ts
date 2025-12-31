@@ -4,7 +4,7 @@ import type * as Preset from '@docusaurus/preset-classic';
 
 const config: Config = {
   title: 'histui',
-  tagline: 'A lightweight notification daemon and history browser for Wayland',
+  tagline: 'A highly configurable notification daemon and history browser for Wayland',
   favicon: 'img/favicon.ico',
 
   // GitHub Pages deployment
