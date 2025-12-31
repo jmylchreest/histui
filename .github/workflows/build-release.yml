@@ -461,7 +461,13 @@ jobs:
         working-directory: docs
 
       - name: Create documentation version
-        run: npm run docusaurus docs:version ${{ needs.prepare.outputs.version }}
+        run: |
+          VERSION="${{ needs.prepare.outputs.version }}"
+          if [ -f versions.json ] && grep -q "\"${VERSION}\"" versions.json; then
+            echo "Version ${VERSION} already exists in documentation, skipping"
+          else
+            npm run docusaurus docs:version "${VERSION}"
+          fi
         working-directory: docs
 
       - name: Commit version files
