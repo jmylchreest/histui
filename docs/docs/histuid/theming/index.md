@@ -135,4 +135,5 @@ You can edit your theme in real-time without restarting the daemon.
 - [Manifest Reference](/docs/histuid/theming/manifest-reference) - Complete manifest.toml configuration reference
 - [Icon Aliases](/docs/histuid/theming/icon-aliases) - Map application names to icons and Nerd Font symbols
 - [Theme Examples](/docs/histuid/theming/examples) - Ready-to-use themes
+- [Dynamic Themes with Tinct](/docs/histuid/theming/tinct-integration) - Wallpaper-matched colors using Tinct
 - [Advanced Theming](/docs/histuid/theming/advanced) - Theme pack structure, animations, and compositor integration

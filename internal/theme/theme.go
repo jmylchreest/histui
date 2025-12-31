@@ -70,6 +70,9 @@ type Theme struct {
 	Symbols  map[string]string // Theme-specific symbols (canonical name -> glyph character)
 	GtkIcons map[string]string // Theme-specific GTK icons (canonical name -> GTK icon name)
 	IconsDir string            // Path to theme's icons/ folder (for custom icon images)
+
+	// Import tracking for hot-reload
+	ImportedFiles []string // List of imported file paths (for watching)
 }
 
 // NewTheme creates a new Theme by loading a CSS file.
@@ -85,16 +88,18 @@ func NewTheme(name, path string) (*Theme, error) {
 		return nil, err
 	}
 
-	// Process @import statements
+	// Process @import statements and track imported files
 	baseDir := filepath.Dir(path)
-	processedCSS := ProcessImports(string(css), baseDir, nil)
+	var importedFiles []string
+	processedCSS := ProcessImportsWithTracking(string(css), baseDir, nil, &importedFiles)
 
 	return &Theme{
-		Name:    name,
-		Path:    path,
-		Dir:     baseDir,
-		CSS:     processedCSS,
-		ModTime: info.ModTime(),
+		Name:          name,
+		Path:          path,
+		Dir:           baseDir,
+		CSS:           processedCSS,
+		ModTime:       info.ModTime(),
+		ImportedFiles: importedFiles,
 	}, nil
 }
 
@@ -253,6 +258,13 @@ func (t *Theme) GetSoundConfig(urgency int) *SoundConfig {
 //   - @import "mytheme/theme.css";     - imports user theme "mytheme" (or embedded if not found)
 //   - @import "_base.css";             - imports embedded partial "_base.css"
 func ProcessImports(css string, baseDir string, seen map[string]bool) string {
+	return ProcessImportsWithTracking(css, baseDir, seen, nil)
+}
+
+// ProcessImportsWithTracking is like ProcessImports but also tracks imported file paths.
+// The importedFiles slice will be populated with absolute paths of all imported files
+// (excluding embedded imports). This is useful for hot-reload watching.
+func ProcessImportsWithTracking(css string, baseDir string, seen map[string]bool, importedFiles *[]string) string {
 	if seen == nil {
 		seen = make(map[string]bool)
 	}
@@ -287,7 +299,7 @@ func ProcessImports(css string, baseDir string, seen map[string]bool) string {
 		fullMatch := match[0]
 
 		// Resolve the import
-		resolved := resolveImport(importPath, baseDir, userThemesDir, seen)
+		resolved := resolveImportWithTracking(importPath, baseDir, userThemesDir, seen, importedFiles)
 		resolvedImports = append(resolvedImports, resolved)
 
 		// Replace with unique placeholder
@@ -307,8 +319,9 @@ func ProcessImports(css string, baseDir string, seen map[string]bool) string {
 	return result
 }
 
-// resolveImport resolves a single @import statement and returns the replacement content.
-func resolveImport(importPath, baseDir, userThemesDir string, seen map[string]bool) string {
+// resolveImportWithTracking resolves a single @import statement and returns the replacement content.
+// If importedFiles is non-nil, absolute paths of resolved files (not embedded) are appended.
+func resolveImportWithTracking(importPath, baseDir, userThemesDir string, seen map[string]bool, importedFiles *[]string) string {
 	if importLogger != nil {
 		importLogger.Debug("resolving import", "import_path", importPath)
 	}
@@ -338,8 +351,13 @@ func resolveImport(importPath, baseDir, userThemesDir string, seen map[string]bo
 		if importLogger != nil {
 			importLogger.Debug("import resolved (relative)", "path", fullPath, "size", len(importedCSS))
 		}
+		// Track the imported file
+		if importedFiles != nil {
+			absPath, _ := filepath.Abs(fullPath)
+			*importedFiles = append(*importedFiles, absPath)
+		}
 		importedBaseDir := filepath.Dir(fullPath)
-		processedImport := ProcessImports(string(importedCSS), importedBaseDir, seen)
+		processedImport := ProcessImportsWithTracking(string(importedCSS), importedBaseDir, seen, importedFiles)
 		return "/* imported: " + importPath + " */\n" + processedImport
 	} else if importLogger != nil {
 		importLogger.Debug("relative path failed", "path", fullPath, "error", err)
@@ -355,16 +373,21 @@ func resolveImport(importPath, baseDir, userThemesDir string, seen map[string]bo
 			if importLogger != nil {
 				importLogger.Debug("import resolved (user)", "path", userPath, "size", len(importedCSS))
 			}
+			// Track the imported file
+			if importedFiles != nil {
+				absPath, _ := filepath.Abs(userPath)
+				*importedFiles = append(*importedFiles, absPath)
+			}
 			seen[userPath] = true
 			importedBaseDir := filepath.Dir(userPath)
-			processedImport := ProcessImports(string(importedCSS), importedBaseDir, seen)
+			processedImport := ProcessImportsWithTracking(string(importedCSS), importedBaseDir, seen, importedFiles)
 			return "/* imported (user): " + importPath + " */\n" + processedImport
 		} else if importLogger != nil {
 			importLogger.Debug("user themes path failed", "path", userPath, "error", err)
 		}
 	}
 
-	// Try embedded themes
+	// Try embedded themes (not tracked - they can't be modified by user)
 	if importLogger != nil {
 		importLogger.Debug("trying embedded import", "import_path", importPath)
 	}
@@ -372,7 +395,7 @@ func resolveImport(importPath, baseDir, userThemesDir string, seen map[string]bo
 		if importLogger != nil {
 			importLogger.Debug("import resolved (embedded)", "path", importPath, "size", len(embeddedCSS))
 		}
-		processedImport := ProcessImports(embeddedCSS, "", seen)
+		processedImport := ProcessImportsWithTracking(embeddedCSS, "", seen, importedFiles)
 		return "/* imported (embedded): " + importPath + " */\n" + processedImport
 	}
 
@@ -420,8 +443,9 @@ func resolveEmbeddedImport(importPath string) (string, bool) {
 	return "", false
 }
 
-// Reload reloads the theme from disk.
+// Reload reloads the theme from disk if the main file has changed.
 // Returns true if the content changed.
+// Use ForceReload to reload regardless of modification time (e.g., when imported files change).
 func (t *Theme) Reload() (bool, error) {
 	if t.IsDefault {
 		return false, nil
@@ -437,20 +461,52 @@ func (t *Theme) Reload() (bool, error) {
 		return false, nil
 	}
 
+	return t.ForceReload()
+}
+
+// ForceReload reloads the theme from disk regardless of modification time.
+// This is useful when imported files have changed.
+// Returns true if the content changed.
+func (t *Theme) ForceReload() (bool, error) {
+	if t.IsDefault {
+		return false, nil
+	}
+
 	css, err := os.ReadFile(t.Path)
 	if err != nil {
 		return false, err
 	}
 
-	// Process @import statements
+	info, err := os.Stat(t.Path)
+	if err != nil {
+		return false, err
+	}
+
+	// Process @import statements and track imported files
 	baseDir := filepath.Dir(t.Path)
-	processedCSS := ProcessImports(string(css), baseDir, nil)
+	var importedFiles []string
+	processedCSS := ProcessImportsWithTracking(string(css), baseDir, nil, &importedFiles)
 
 	oldCSS := t.CSS
 	t.CSS = processedCSS
 	t.ModTime = info.ModTime()
+	t.ImportedFiles = importedFiles
 
 	return oldCSS != t.CSS, nil
+}
+
+// IsImportedFile checks if the given path is an imported file for this theme.
+func (t *Theme) IsImportedFile(path string) bool {
+	absPath, err := filepath.Abs(path)
+	if err != nil {
+		return false
+	}
+	for _, imp := range t.ImportedFiles {
+		if imp == absPath {
+			return true
+		}
+	}
+	return false
 }
 
 // ThemeInfo provides basic theme information for listing.
