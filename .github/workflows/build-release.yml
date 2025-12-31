@@ -477,5 +477,9 @@ jobs:
     name: Deploy Documentation
     needs: [prepare, version-docs]
     if: needs.prepare.outputs.is_release == 'true'
+    permissions:
+      contents: read
+      pages: write
+      id-token: write
     uses: ./.github/workflows/docs.yml
     secrets: inherit
