@@ -714,7 +714,7 @@ func (p *Popup) buildActions() gtk.Widgetter {
 	}
 
 	// Filter to only visible actions (non-empty label, not "default" key)
-	var visibleActions []dbus.Action
+	visibleActions := make([]dbus.Action, 0, len(actions))
 	for _, a := range actions {
 		// Skip "default" action - it's triggered by clicking notification body
 		if a.Key == "default" {

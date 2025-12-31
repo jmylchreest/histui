@@ -289,7 +289,7 @@ func ProcessImportsWithTracking(css string, baseDir string, seen map[string]bool
 	// This prevents resolved content from being matched by subsequent replacements
 	importPlaceholder := "\x00IMPORT_%d\x00"
 	result := cssWithPlaceholders
-	var resolvedImports []string
+	resolvedImports := make([]string, 0, len(imports))
 
 	for i, match := range imports {
 		if len(match) < 2 {
