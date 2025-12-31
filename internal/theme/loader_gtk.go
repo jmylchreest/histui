@@ -94,6 +94,9 @@ func (l *Loader) LoadTheme(name string) error {
 	l.mu.Lock()
 	defer l.mu.Unlock()
 
+	// Enable import debugging
+	SetImportLogger(l.logger)
+
 	if name == "" {
 		name = DefaultThemeName
 	}

@@ -2,6 +2,8 @@
 package theme
 
 import (
+	"fmt"
+	"log/slog"
 	"os"
 	"path/filepath"
 	"regexp"
@@ -11,8 +13,46 @@ import (
 	"github.com/pelletier/go-toml/v2"
 )
 
+// importLogger is used for debugging import resolution.
+// Set via SetImportLogger to enable debug logging.
+var importLogger *slog.Logger
+
+// SetImportLogger sets the logger for import debugging.
+func SetImportLogger(logger *slog.Logger) {
+	importLogger = logger
+}
+
 // importRegex matches @import "file.css"; or @import 'file.css'; or @import url("file.css");
 var importRegex = regexp.MustCompile(`@import\s+(?:url\s*\(\s*)?["']([^"']+)["']\s*\)?;?`)
+
+// commentRegex matches CSS block comments /* ... */
+var commentRegex = regexp.MustCompile(`/\*[\s\S]*?\*/`)
+
+// commentPlaceholder is used to temporarily replace comments during import processing.
+const commentPlaceholder = "\x00COMMENT_%d\x00"
+
+// replaceCommentsWithPlaceholders replaces CSS comments with numbered placeholders.
+// Returns the modified CSS and a slice of the original comments.
+func replaceCommentsWithPlaceholders(css string) (string, []string) {
+	var comments []string
+	i := 0
+	result := commentRegex.ReplaceAllStringFunc(css, func(match string) string {
+		comments = append(comments, match)
+		placeholder := fmt.Sprintf(commentPlaceholder, i)
+		i++
+		return placeholder
+	})
+	return result, comments
+}
+
+// restoreComments replaces placeholders with original comments.
+func restoreComments(css string, comments []string) string {
+	for i, comment := range comments {
+		placeholder := fmt.Sprintf(commentPlaceholder, i)
+		css = strings.Replace(css, placeholder, comment, 1)
+	}
+	return css
+}
 
 // Theme represents a CSS theme with metadata.
 type Theme struct {
@@ -220,56 +260,126 @@ func ProcessImports(css string, baseDir string, seen map[string]bool) string {
 	// Get user themes directory for fallback resolution
 	userThemesDir, _ := ThemesDir()
 
-	return importRegex.ReplaceAllStringFunc(css, func(match string) string {
-		// Extract the file path from the @import statement
-		submatch := importRegex.FindStringSubmatch(match)
-		if len(submatch) < 2 {
-			return match // Keep original if parsing fails
+	if importLogger != nil {
+		importLogger.Debug("processing imports", "base_dir", baseDir, "user_themes_dir", userThemesDir)
+	}
+
+	// Replace comments with placeholders to avoid matching @import inside comments
+	cssWithPlaceholders, comments := replaceCommentsWithPlaceholders(css)
+
+	// Find all imports in the placeholder-replaced CSS
+	imports := importRegex.FindAllStringSubmatch(cssWithPlaceholders, -1)
+	if len(imports) == 0 {
+		return css // No imports found, return original
+	}
+
+	// Step 1: Replace each import with a unique placeholder
+	// This prevents resolved content from being matched by subsequent replacements
+	importPlaceholder := "\x00IMPORT_%d\x00"
+	result := cssWithPlaceholders
+	var resolvedImports []string
+
+	for i, match := range imports {
+		if len(match) < 2 {
+			continue
 		}
+		importPath := match[1]
+		fullMatch := match[0]
 
-		importPath := submatch[1]
+		// Resolve the import
+		resolved := resolveImport(importPath, baseDir, userThemesDir, seen)
+		resolvedImports = append(resolvedImports, resolved)
 
-		// Resolve the path relative to current file
-		var fullPath string
-		if filepath.IsAbs(importPath) {
-			fullPath = importPath
-		} else {
-			fullPath = filepath.Join(baseDir, importPath)
+		// Replace with unique placeholder
+		placeholder := fmt.Sprintf(importPlaceholder, i)
+		result = strings.Replace(result, fullMatch, placeholder, 1)
+	}
+
+	// Step 2: Replace import placeholders with resolved content
+	for i, resolved := range resolvedImports {
+		placeholder := fmt.Sprintf(importPlaceholder, i)
+		result = strings.Replace(result, placeholder, resolved, 1)
+	}
+
+	// Restore comments from placeholders
+	result = restoreComments(result, comments)
+
+	return result
+}
+
+// resolveImport resolves a single @import statement and returns the replacement content.
+func resolveImport(importPath, baseDir, userThemesDir string, seen map[string]bool) string {
+	if importLogger != nil {
+		importLogger.Debug("resolving import", "import_path", importPath)
+	}
+
+	// Resolve the path relative to current file
+	var fullPath string
+	if filepath.IsAbs(importPath) {
+		fullPath = importPath
+	} else {
+		fullPath = filepath.Join(baseDir, importPath)
+	}
+
+	// Prevent circular imports
+	if seen[fullPath] {
+		if importLogger != nil {
+			importLogger.Debug("circular import prevented", "path", fullPath)
 		}
+		return "/* circular import prevented: " + importPath + " */"
+	}
+	seen[fullPath] = true
 
-		// Prevent circular imports
-		if seen[fullPath] {
-			return "/* circular import prevented: " + importPath + " */"
+	// Try to read the imported file from disk (relative to current file)
+	if importLogger != nil {
+		importLogger.Debug("trying relative path", "full_path", fullPath)
+	}
+	if importedCSS, err := os.ReadFile(fullPath); err == nil {
+		if importLogger != nil {
+			importLogger.Debug("import resolved (relative)", "path", fullPath, "size", len(importedCSS))
 		}
-		seen[fullPath] = true
+		importedBaseDir := filepath.Dir(fullPath)
+		processedImport := ProcessImports(string(importedCSS), importedBaseDir, seen)
+		return "/* imported: " + importPath + " */\n" + processedImport
+	} else if importLogger != nil {
+		importLogger.Debug("relative path failed", "path", fullPath, "error", err)
+	}
 
-		// Try to read the imported file from disk (relative to current file)
-		if importedCSS, err := os.ReadFile(fullPath); err == nil {
-			importedBaseDir := filepath.Dir(fullPath)
-			processedImport := ProcessImports(string(importedCSS), importedBaseDir, seen)
-			return "/* imported: " + importPath + " */\n" + processedImport
+	// Try user themes directory
+	if userThemesDir != "" && !filepath.IsAbs(importPath) {
+		userPath := filepath.Join(userThemesDir, importPath)
+		if importLogger != nil {
+			importLogger.Debug("trying user themes path", "user_path", userPath)
 		}
-
-		// Try user themes directory (e.g., "mytheme/theme.css" -> ~/.config/histui/themes/mytheme/theme.css)
-		if userThemesDir != "" && !filepath.IsAbs(importPath) {
-			userPath := filepath.Join(userThemesDir, importPath)
-			if importedCSS, err := os.ReadFile(userPath); err == nil {
-				seen[userPath] = true // Also mark user path as seen
-				importedBaseDir := filepath.Dir(userPath)
-				processedImport := ProcessImports(string(importedCSS), importedBaseDir, seen)
-				return "/* imported (user): " + importPath + " */\n" + processedImport
+		if importedCSS, err := os.ReadFile(userPath); err == nil {
+			if importLogger != nil {
+				importLogger.Debug("import resolved (user)", "path", userPath, "size", len(importedCSS))
 			}
+			seen[userPath] = true
+			importedBaseDir := filepath.Dir(userPath)
+			processedImport := ProcessImports(string(importedCSS), importedBaseDir, seen)
+			return "/* imported (user): " + importPath + " */\n" + processedImport
+		} else if importLogger != nil {
+			importLogger.Debug("user themes path failed", "path", userPath, "error", err)
 		}
+	}
 
-		// Try embedded themes
-		if embeddedCSS, found := resolveEmbeddedImport(importPath); found {
-			// Recursively process imports in the embedded CSS
-			processedImport := ProcessImports(embeddedCSS, "", seen)
-			return "/* imported (embedded): " + importPath + " */\n" + processedImport
+	// Try embedded themes
+	if importLogger != nil {
+		importLogger.Debug("trying embedded import", "import_path", importPath)
+	}
+	if embeddedCSS, found := resolveEmbeddedImport(importPath); found {
+		if importLogger != nil {
+			importLogger.Debug("import resolved (embedded)", "path", importPath, "size", len(embeddedCSS))
 		}
+		processedImport := ProcessImports(embeddedCSS, "", seen)
+		return "/* imported (embedded): " + importPath + " */\n" + processedImport
+	}
 
-		return "/* import failed: " + importPath + " - file not found */"
-	})
+	if importLogger != nil {
+		importLogger.Warn("import failed", "path", importPath)
+	}
+	return "/* import failed: " + importPath + " - file not found */"
 }
 
 // resolveEmbeddedImport attempts to resolve an import path to embedded CSS.
