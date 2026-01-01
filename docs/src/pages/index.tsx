@@ -10,7 +10,7 @@ function HeroSection() {
     <section className={styles.hero}>
       <div className={styles.heroInner}>
         <h1 className={styles.title}>
-          hist<span className={styles.titleAccent}>ui</span>
+          his<span className={styles.titleAccent}>tui</span>
         </h1>
         <p className={styles.pronunciation}>/his-too-ee/</p>
         <p className={styles.tagline}>
