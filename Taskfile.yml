@@ -182,6 +182,47 @@ tasks:
     cmds:
       - go mod tidy
 
+  # Dependency upgrades
+  upgrade:
+    desc: Upgrade all Go and npm dependencies (compatible versions)
+    cmds:
+      - task: upgrade:go
+      - task: upgrade:npm
+
+  upgrade:force:
+    desc: Upgrade all Go and npm dependencies (latest, may break compatibility)
+    cmds:
+      - task: upgrade:go:force
+      - task: upgrade:npm:force
+
+  upgrade:go:
+    desc: Upgrade Go dependencies (compatible minor/patch versions)
+    cmds:
+      - go get -u ./...
+      - go mod tidy
+
+  upgrade:go:force:
+    desc: Upgrade Go dependencies to latest (may break compatibility)
+    cmds:
+      - go get -u all
+      - go mod tidy
+      - 'echo "Note: Major version upgrades may require manual import path changes"'
+
+  upgrade:npm:
+    desc: Upgrade npm dependencies (within semver ranges)
+    dir: docs
+    cmds:
+      - npm update
+      - npm audit fix --force || true
+
+  upgrade:npm:force:
+    desc: Upgrade npm dependencies to latest (ignores semver, may break compatibility)
+    dir: docs
+    cmds:
+      - npx npm-check-updates -u
+      - npm install
+      - 'echo "Note: Breaking changes may require code updates"'
+
   clean:
     desc: Clean build artifacts
     cmds:
@@ -295,14 +336,13 @@ tasks:
   # See contrib/generate-icon-aliases/README.md for details.
 
   generate:icons:
-    desc: Generate icon aliases (full workflow - fetch, suggest, AI, category fallbacks, output)
+    desc: Generate icon aliases (full workflow - fetch, AI apps, AI categories, output)
     dir: contrib/generate-icon-aliases
     cmds:
       - task: generate:icons:build
       - task: generate:icons:fetch
       - task: generate:icons:suggest-if-api-key
       - task: generate:icons:ai
-      - task: generate:icons:category-fallbacks-if-api-key
       - task: generate:icons:output
       - echo ""
       - echo "Done! Updated embed/aliases_default.toml"
@@ -352,61 +392,25 @@ tasks:
         echo "Updated kb-patterns.toml from upstream sources"
 
   generate:icons:ai:
-    desc: Generate AI app mappings (requires OPENROUTER_API_KEY)
+    desc: Generate AI app mappings for brands and categories (requires OPENROUTER_API_KEY)
     dir: contrib/generate-icon-aliases
     deps: [generate:icons:build]
     cmds:
       - |
         if [ -z "$OPENROUTER_API_KEY" ]; then
           echo "OPENROUTER_API_KEY not set - skipping AI generation"
-          echo "Using existing kb-ai.json (if available)"
+          echo "Using existing kb-ai-apps.json and kb-ai-categories.json (if available)"
           exit 0
         fi
         VERBOSE_FLAG=""
         if [ "${VERBOSE:-false}" = "true" ]; then
           VERBOSE_FLAG="--verbose"
         fi
-        echo "Generating AI app mappings..."
-        ./generate-icon-aliases --generate-kb $VERBOSE_FLAG
-
-  generate:icons:category-fallbacks-if-api-key:
-    desc: Assign low-confidence apps to category fallbacks if OPENROUTER_API_KEY is set
-    dir: contrib/generate-icon-aliases
-    deps: [generate:icons:build]
-    cmds:
-      - |
-        if [ -z "$OPENROUTER_API_KEY" ]; then
-          echo "OPENROUTER_API_KEY not set - skipping category fallback assignment"
-          echo "Using existing kb-category-assignments.json (if available)"
-          exit 0
-        fi
-        VERBOSE_FLAG=""
-        if [ "${VERBOSE:-false}" = "true" ]; then
-          VERBOSE_FLAG="--verbose"
-        fi
-        echo "Assigning low-confidence apps to category fallbacks..."
-        ./generate-icon-aliases --assign-category-fallbacks $VERBOSE_FLAG
-
-  generate:icons:category-fallbacks:
-    desc: Assign low-confidence apps to category fallbacks (requires OPENROUTER_API_KEY)
-    dir: contrib/generate-icon-aliases
-    deps: [generate:icons:build]
-    cmds:
-      - |
-        if [ -z "$OPENROUTER_API_KEY" ]; then
-          echo "Error: OPENROUTER_API_KEY not set"
-          echo "Set it with: export OPENROUTER_API_KEY=your-key"
-          exit 1
-        fi
-        VERBOSE_FLAG=""
-        if [ "${VERBOSE:-false}" = "true" ]; then
-          VERBOSE_FLAG="--verbose"
-        fi
-        echo "Assigning low-confidence apps to category fallbacks..."
-        ./generate-icon-aliases --assign-category-fallbacks $VERBOSE_FLAG
+        echo "Generating AI app mappings for brand icons..."
+        ./generate-icon-aliases --ai-apps $VERBOSE_FLAG
         echo ""
-        echo "Generated kb-category-assignments.json"
-        echo "Run 'task generate:icons:output' to regenerate aliases with category fallbacks"
+        echo "Generating AI app mappings for categories..."
+        ./generate-icon-aliases --ai-categories $VERBOSE_FLAG
 
   generate:icons:output:
     desc: Generate final icon-aliases.toml output
@@ -462,5 +466,5 @@ tasks:
     cmds:
       - rm -f generate-icon-aliases
       - rm -rf .cache
-      - rm -f kb-patterns.toml kb-ai.json gtk-icons.json kb-category-suggestions.toml kb-category-assignments.json
+      - rm -f kb-patterns.toml kb-ai-apps.json kb-ai-categories.json gtk-icons.json kb-category-suggestions.toml
       - echo "Cleaned generated files and cache"
