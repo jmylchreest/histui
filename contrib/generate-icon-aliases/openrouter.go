@@ -8,6 +8,7 @@ import (
 	"net/http"
 	"os"
 	"path/filepath"
+	"sort"
 	"strings"
 	"time"
 )
@@ -36,20 +37,18 @@ const openRouterURL = "https://openrouter.ai/api/v1/chat/completions"
 //
 // See: https://openrouter.ai/models and https://openrouter.ai/docs/features/web-search
 
-const defaultModel = "anthropic/claude-sonnet-4"
-
 // OpenRouterClient handles API calls to OpenRouter.
 type OpenRouterClient struct {
 	APIKey    string
 	Model     string
-	WebSearch bool    // Enable web search for current data
-	UseCache  bool    // Enable caching of API responses
+	WebSearch bool // Enable web search for current data
+	UseCache  bool // Enable caching of API responses
 	Verbose   bool
 	Config    *Config // Configuration with prompts
 
 	// Cache tracking
-	cacheHits   int
-	apiCalls    int
+	cacheHits int
+	apiCalls  int
 }
 
 // NewOpenRouterClient creates a new client from environment variables and config.
@@ -93,22 +92,22 @@ func NewOpenRouterClient(model string, webSearch, useCache bool, config *Config,
 
 // APIDebugInfo captures request/response details for debugging.
 type APIDebugInfo struct {
-	Timestamp         string            `json:"timestamp"`
-	Model             string            `json:"model"`
-	RequestURL        string            `json:"request_url"`
-	RequestHeaders    map[string]string `json:"request_headers"`
-	RequestBody       json.RawMessage   `json:"request_body"`
-	StatusCode        int               `json:"status_code"`
-	StatusText        string            `json:"status_text"`
-	ResponseHeaders   map[string]string `json:"response_headers"`
-	ResponseBody      string            `json:"response_body"`
-	ResponseBodyLen   int               `json:"response_body_len"`
-	ContentLength     int64             `json:"content_length"`      // From Content-Length header (-1 if not set)
-	TransferEncoding  []string          `json:"transfer_encoding"`   // chunked, etc.
-	ConnectionClosed  bool              `json:"connection_closed"`   // Was Connection: close sent?
-	Duration          string            `json:"duration"`
-	ReadError         string            `json:"read_error,omitempty"`
-	Error             string            `json:"error,omitempty"`
+	Timestamp        string            `json:"timestamp"`
+	Model            string            `json:"model"`
+	RequestURL       string            `json:"request_url"`
+	RequestHeaders   map[string]string `json:"request_headers"`
+	RequestBody      json.RawMessage   `json:"request_body"`
+	StatusCode       int               `json:"status_code"`
+	StatusText       string            `json:"status_text"`
+	ResponseHeaders  map[string]string `json:"response_headers"`
+	ResponseBody     string            `json:"response_body"`
+	ResponseBodyLen  int               `json:"response_body_len"`
+	ContentLength    int64             `json:"content_length"`    // From Content-Length header (-1 if not set)
+	TransferEncoding []string          `json:"transfer_encoding"` // chunked, etc.
+	ConnectionClosed bool              `json:"connection_closed"` // Was Connection: close sent?
+	Duration         string            `json:"duration"`
+	ReadError        string            `json:"read_error,omitempty"`
+	Error            string            `json:"error,omitempty"`
 }
 
 // saveDebugResponse saves a failed API response to a debug file for investigation.
@@ -227,7 +226,7 @@ func (c *OpenRouterClient) call(req ChatRequest) (string, *APIDebugInfo, error) 
 		debugInfo.Error = err.Error()
 		return "", debugInfo, fmt.Errorf("API call failed: %w", err)
 	}
-	defer resp.Body.Close()
+	defer func() { _ = resp.Body.Close() }()
 
 	// Capture connection-level details before reading body
 	debugInfo.StatusCode = resp.StatusCode
@@ -332,7 +331,7 @@ func appGenSchema() *JSONSchema {
 }
 
 // GenerateAppNames generates Linux app identifiers for icons.
-func (c *OpenRouterClient) GenerateAppNames(icons []struct{ Name, Type string }, useCache bool) (*AppGenResult, error) {
+func (c *OpenRouterClient) GenerateAppNames(icons []struct{ Name, Type string }, extraApps []string, useCache bool) (*AppGenResult, error) {
 	// Check cache first
 	cacheKey := AppGenCacheKey(icons)
 	if useCache {
@@ -353,7 +352,7 @@ func (c *OpenRouterClient) GenerateAppNames(icons []struct{ Name, Type string },
 		iconList = append(iconList, fmt.Sprintf("- %s (%s)", icon.Name, icon.Type))
 	}
 
-	prompt, err := c.Config.RenderAppGenPrompt(iconList)
+	prompt, err := c.Config.RenderAppGenPrompt(iconList, extraApps)
 	if err != nil {
 		return nil, fmt.Errorf("render app gen prompt: %w", err)
 	}
@@ -457,7 +456,7 @@ func progressTicker(phase string, batchNum, totalBatches int) func() {
 //
 // Icons with ForceApps skip AI generation entirely and use the forced list.
 // Icons with ExtraApps have those apps appended to AI-generated results.
-func (c *OpenRouterClient) GenerateAppMappings(icons []struct{ Name, Type, Description string }, matched map[string]*MatchedIcon) (*KnowledgeBase, error) {
+func (c *OpenRouterClient) GenerateAppMappings(icons []struct{ Name, Type, Description string }, matched map[string]*MatchedIcon, extraApps []string) (*KnowledgeBase, error) {
 	appGenBatch := c.Config.OpenRouter.AppGenBatchSize
 
 	kb := &KnowledgeBase{
@@ -532,7 +531,7 @@ func (c *OpenRouterClient) GenerateAppMappings(icons []struct{ Name, Type, Descr
 		}
 
 		stop := progressTicker("app-gen", batchNum, appGenBatches)
-		result, err := c.GenerateAppNames(iconList, c.UseCache)
+		result, err := c.GenerateAppNames(iconList, extraApps, c.UseCache)
 		stop()
 
 		if err != nil {
@@ -670,127 +669,180 @@ func (c *OpenRouterClient) GenerateCategorySuggestions(prompt string, cacheKey s
 	return result.Suggestions, nil
 }
 
-// CategoryAssignment represents an app assigned to a category.
-type CategoryAssignment struct {
-	App        string  `json:"app"`
-	Category   string  `json:"category"`
-	Confidence float64 `json:"confidence"`
-	Reason     string  `json:"reason"`
+// CategoryAppGenResult represents the AI response for category app generation.
+type CategoryAppGenResult struct {
+	Mappings []CategoryAppMapping `json:"mappings"`
 }
 
-// CategoryAssignResult is the structured output for category assignments.
-type CategoryAssignResult struct {
-	Assignments []CategoryAssignment `json:"assignments"`
+// CategoryAppMapping represents a single category's app list.
+type CategoryAppMapping struct {
+	Category string  `json:"category"`
+	Apps     []KBApp `json:"apps"`
 }
 
-// LowConfidenceApp represents an app that needs category assignment.
-type LowConfidenceApp struct {
-	ID         string  // App identifier
-	IconName   string  // Original icon it was assigned to
-	Confidence float64 // Original confidence score
-}
-
-// GenerateCategoryAssignments calls the AI to assign apps to categories.
-func (c *OpenRouterClient) GenerateCategoryAssignments(apps []LowConfidenceApp, categories *CategoriesConfig, useCache bool) (*CategoryAssignResult, error) {
-	if len(apps) == 0 {
-		return &CategoryAssignResult{}, nil
+// GenerateCategoryAppMappings generates app mappings for categories using AI.
+func (c *OpenRouterClient) GenerateCategoryAppMappings(categories *CategoriesConfig) (*KnowledgeBase, error) {
+	kb := &KnowledgeBase{
+		Version:     1,
+		GeneratedAt: time.Now().UTC().Format(time.RFC3339),
+		Model:       c.Model,
+		Icons:       make(map[string]KBIcon),
 	}
 
-	// Format apps for the prompt
-	var appLines []string
-	for _, app := range apps {
-		appLines = append(appLines, fmt.Sprintf("- %s (%s, %.2f)", app.ID, app.IconName, app.Confidence))
+	// Get sorted category names for deterministic batching
+	var categoryNames []string
+	for name := range categories.Categories {
+		categoryNames = append(categoryNames, name)
+	}
+	sort.Strings(categoryNames)
+
+	// Determine batch size
+	batchSize := c.Config.OpenRouter.CategoryBatchSize
+	if batchSize <= 0 {
+		batchSize = 250 // Default
 	}
 
-	// Render prompt
-	prompt, err := c.Config.RenderCategoryAssignPrompt(categories, appLines)
-	if err != nil {
-		return nil, fmt.Errorf("render category assign prompt: %w", err)
+	// Calculate batches
+	totalBatches := (len(categoryNames) + batchSize - 1) / batchSize
+	if totalBatches == 0 {
+		totalBatches = 1
 	}
 
-	// Generate cache key from apps list
-	cacheKey := CategoryAssignCacheKey(apps)
+	fmt.Printf("Generating app names for %d categories in %d batches (batch size: %d)...\n",
+		len(categoryNames), totalBatches, batchSize)
 
-	// Check cache first
-	if useCache {
-		if cached, ok := loadCache("catassign", cacheKey, c.Model); ok {
-			var result CategoryAssignResult
-			if err := json.Unmarshal([]byte(cached), &result); err == nil {
-				c.cacheHits++
-				fmt.Printf("[CACHE HIT] Category assignment batch\n")
-				return &result, nil
+	var cacheHits, apiCalls int
+
+	// Process each batch
+	for batchNum := 0; batchNum < totalBatches; batchNum++ {
+		start := batchNum * batchSize
+		end := start + batchSize
+		if end > len(categoryNames) {
+			end = len(categoryNames)
+		}
+		batchCategoryNames := categoryNames[start:end]
+
+		// Create a subset CategoriesConfig for this batch
+		batchCategories := &CategoriesConfig{
+			Meta:       categories.Meta,
+			Categories: make(map[string]CategoryDefinition),
+		}
+		for _, name := range batchCategoryNames {
+			batchCategories.Categories[name] = categories.Categories[name]
+		}
+
+		// Render the prompt for this batch
+		prompt, err := c.Config.RenderCategoryAppGenPrompt(batchCategories)
+		if err != nil {
+			return nil, fmt.Errorf("render prompt for batch %d: %w", batchNum+1, err)
+		}
+
+		// Generate cache key for this batch
+		cacheKey := CategoryAppGenCacheKey(batchCategories)
+
+		// Check cache first
+		if c.UseCache {
+			if cached, ok := loadCache("catappgen", cacheKey, c.Model); ok {
+				cacheHits++
+				var result CategoryAppGenResult
+				if err := json.Unmarshal([]byte(cached), &result); err == nil {
+					for _, mapping := range result.Mappings {
+						if cat, catOk := categories.Categories[mapping.Category]; catOk {
+							kb.Icons[mapping.Category] = KBIcon{
+								Type:  "category",
+								Glyph: cat.Glyph,
+								Apps:  mapping.Apps,
+							}
+						}
+					}
+					continue // Skip API call for this batch
+				}
+			}
+		}
+
+		// Call API for this batch
+		apiCalls++
+		fmt.Printf("    [API CALL] category app generation batch %d/%d\n", batchNum+1, totalBatches)
+
+		req := ChatRequest{
+			Model: c.Model,
+			Messages: []ChatMessage{
+				{Role: "user", Content: prompt},
+			},
+			MaxTokens: c.Config.OpenRouter.MaxTokens,
+		}
+
+		stop := progressTicker("cat-app-gen", batchNum+1, totalBatches)
+
+		startTime := time.Now()
+		content, debugInfo, err := c.call(req)
+		elapsed := time.Since(startTime)
+		stop()
+
+		if err != nil {
+			if debugInfo != nil {
+				debugInfo.Error = err.Error()
+				debugPath := saveDebugResponse("cat-app-gen-error", debugInfo)
+				if debugPath != "" {
+					fmt.Fprintf(os.Stderr, "[DEBUG] Error details saved to: %s\n", debugPath)
+				}
+			}
+			return nil, fmt.Errorf("batch %d: %w", batchNum+1, err)
+		}
+
+		fmt.Printf("  [cat-app-gen] Batch %d/%d - completed in %s \n", batchNum+1, totalBatches, elapsed.Round(time.Second))
+
+		// Save to cache
+		if c.UseCache {
+			if err := saveCache("catappgen", cacheKey, c.Model, content); err != nil && c.Verbose {
+				fmt.Printf("    (warning: failed to save cache: %v)\n", err)
+			}
+		}
+
+		// Parse response
+		var result CategoryAppGenResult
+		if err := json.Unmarshal([]byte(content), &result); err != nil {
+			if debugInfo != nil {
+				debugInfo.Error = fmt.Sprintf("JSON parse error: %v", err)
+				debugPath := saveDebugResponse("cat-app-gen-parse-error", debugInfo)
+				if debugPath != "" {
+					fmt.Fprintf(os.Stderr, "[DEBUG] Parse error details saved to: %s\n", debugPath)
+				}
+			}
+			return nil, fmt.Errorf("parse category app mappings batch %d: %w", batchNum+1, err)
+		}
+
+		// Convert result to KnowledgeBase format
+		for _, mapping := range result.Mappings {
+			if cat, ok := categories.Categories[mapping.Category]; ok {
+				kb.Icons[mapping.Category] = KBIcon{
+					Type:  "category",
+					Glyph: cat.Glyph,
+					Apps:  mapping.Apps,
+				}
 			}
 		}
 	}
 
-	c.apiCalls++
-	fmt.Printf("[API CALL] Assigning %d apps to categories...\n", len(apps))
+	fmt.Printf("Generated app mappings for %d categories\n", len(kb.Icons))
 
-	req := ChatRequest{
-		Model: c.Model,
-		Messages: []ChatMessage{
-			{Role: "user", Content: prompt},
-		},
-		ResponseFormat: &ResponseFormat{
-			Type: "json_object",
-		},
-		Temperature: 0.2,
-		MaxTokens:   c.Config.OpenRouter.MaxTokens,
-	}
-
-	start := time.Now()
-	content, debugInfo, err := c.call(req)
-	elapsed := time.Since(start)
-	if err != nil {
-		fmt.Printf("[API CALL] Failed after %s\n", elapsed.Round(time.Millisecond))
-		if debugInfo != nil {
-			debugPath := saveDebugResponse("category-assign-error", debugInfo)
-			if debugPath != "" {
-				fmt.Fprintf(os.Stderr, "[DEBUG] API error details saved to: %s\n", debugPath)
-			}
-		}
-		return nil, err
-	}
-
-	fmt.Printf("[API CALL] Completed in %s\n", elapsed.Round(time.Millisecond))
-
-	// Save to cache
-	if useCache {
-		if err := saveCache("catassign", cacheKey, c.Model, content); err != nil && c.Verbose {
-			fmt.Printf("    (warning: failed to save cache: %v)\n", err)
-		}
-	}
-
-	// Parse response
-	var result CategoryAssignResult
-	if err := json.Unmarshal([]byte(content), &result); err != nil {
-		if debugInfo != nil {
-			debugInfo.Error = fmt.Sprintf("JSON parse error: %v", err)
-			debugPath := saveDebugResponse("category-assign-parse-error", debugInfo)
-			if debugPath != "" {
-				fmt.Fprintf(os.Stderr, "[DEBUG] Parse error details saved to: %s\n", debugPath)
-			}
-		}
-		return nil, fmt.Errorf("parse category assignments: %w", err)
-	}
-
-	return &result, nil
+	return kb, nil
 }
 
-// CategoryAssignCacheKey generates a cache key for category assignment.
-func CategoryAssignCacheKey(apps []LowConfidenceApp) string {
-	// Create a deterministic key from the app list
-	var parts []string
-	for _, app := range apps {
-		parts = append(parts, fmt.Sprintf("%s:%s:%.2f", app.ID, app.IconName, app.Confidence))
+// CategoryAppGenCacheKey generates a cache key for category app generation.
+func CategoryAppGenCacheKey(categories *CategoriesConfig) string {
+	// Create a deterministic key from the category names
+	var names []string
+	for name := range categories.Categories {
+		names = append(names, name)
 	}
 	// Sort for determinism
-	for i := 0; i < len(parts)-1; i++ {
-		for j := i + 1; j < len(parts); j++ {
-			if parts[i] > parts[j] {
-				parts[i], parts[j] = parts[j], parts[i]
+	for i := 0; i < len(names)-1; i++ {
+		for j := i + 1; j < len(names); j++ {
+			if names[i] > names[j] {
+				names[i], names[j] = names[j], names[i]
 			}
 		}
 	}
-	return strings.Join(parts, ",")
+	return strings.Join(names, ",")
 }

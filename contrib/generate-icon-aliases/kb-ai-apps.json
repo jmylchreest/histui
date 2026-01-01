@@ -1,0 +1,3442 @@
+{
+  "version": 1,
+  "generated_at": "2026-01-01T22:32:26Z",
+  "model": "xiaomi/mimo-v2-flash:free:online",
+  "icons": {
+    "amazon": {
+      "type": "app",
+      "glyph": "fa-amazon",
+      "apps": [{"id":"amazon-music","confidence":0.8,"source":"flatpak"},{"id":"amazon-photos","confidence":0.8,"source":"flatpak"}]
+    },
+    "android": {
+      "type": "app",
+      "glyph": "md-android",
+      "apps": [{"id":"gnome-builder","confidence":0.6,"source":"package"},{"id":"scrcpy","confidence":0.8,"source":"package"}]
+    },
+    "androidstudio": {
+      "type": "app",
+      "glyph": "dev-androidstudio",
+      "apps": [{"id":"android-studio","confidence":1,"source":"package"}]
+    },
+    "angular": {
+      "type": "app",
+      "glyph": "md-angular",
+      "apps": [{"id":"angular","confidence":1,"source":"package"},{"id":"angular-cli","confidence":1,"source":"package"}]
+    },
+    "apple-safari": {
+      "type": "app",
+      "glyph": "md-apple_safari",
+      "apps": [{"id":"epiphany","confidence":0.6,"source":"package"}]
+    },
+    "archive": {
+      "type": "category",
+      "glyph": "md-archive",
+      "apps": [{"id":"ark","confidence":1,"source":"package"},{"id":"engrampa","confidence":1,"source":"package"},{"id":"file-roller","confidence":1,"source":"package"},{"id":"p7zip","confidence":0.7,"source":"package"}]
+    },
+    "atom": {
+      "type": "app",
+      "glyph": "md-atom",
+      "apps": [{"id":"atom","confidence":1,"source":"package"}]
+    },
+    "aws": {
+      "type": "app",
+      "glyph": "fa-aws",
+      "apps": [{"id":"aws-cli","confidence":1,"source":"package"},{"id":"aws-vault","confidence":0.8,"source":"package"}]
+    },
+    "azure": {
+      "type": "app",
+      "glyph": "dev-azure",
+      "apps": [{"id":"azure-cli","confidence":1,"source":"package"}]
+    },
+    "bash": {
+      "type": "app",
+      "glyph": "dev-bash",
+      "apps": [{"id":"bash","confidence":1,"source":"package"},{"id":"fish","confidence":0.8,"source":"package"},{"id":"zsh","confidence":0.8,"source":"package"}]
+    },
+    "blender": {
+      "type": "app",
+      "glyph": "md-blender",
+      "apps": [{"id":"blender","confidence":1,"source":"package"},{"id":"org.blender.Blender","confidence":0.9,"source":"flatpak"}]
+    },
+    "browser": {
+      "type": "category",
+      "glyph": "cod-browser",
+      "apps": [{"id":"epiphany","confidence":1,"source":"package"},{"id":"konqueror","confidence":1,"source":"package"},{"id":"midori","confidence":0.7,"source":"package"},{"id":"min","confidence":0.7,"source":"package"}]
+    },
+    "c": {
+      "type": "app",
+      "glyph": "dev-c",
+      "apps": [{"id":"clang","confidence":0.9,"source":"package"},{"id":"gcc","confidence":1,"source":"package"}]
+    },
+    "calculator": {
+      "type": "category",
+      "glyph": "md-calculator",
+      "apps": [{"id":"gnome-calculator","confidence":1,"source":"package"},{"id":"kcalc","confidence":1,"source":"package"},{"id":"qalculate","confidence":0.7,"source":"package"}]
+    },
+    "calendar": {
+      "type": "category",
+      "glyph": "md-calendar",
+      "apps": [{"id":"gnome-calendar","confidence":1,"source":"package"},{"id":"korganizer","confidence":1,"source":"package"},{"id":"orage","confidence":0.7,"source":"package"}]
+    },
+    "chrome": {
+      "type": "app",
+      "glyph": "fa-chrome",
+      "apps": [{"id":"brave","confidence":0.8,"source":"package"},{"id":"chromium","confidence":0.9,"source":"package"},{"id":"google-chrome","confidence":1,"source":"package"},{"id":"microsoft-edge-dev","confidence":0.8,"source":"package"},{"id":"opera","confidence":0.8,"source":"package"},{"id":"vivaldi","confidence":0.8,"source":"package"}]
+    },
+    "cmake": {
+      "type": "app",
+      "glyph": "dev-cmake",
+      "apps": [{"id":"cmake","confidence":1,"source":"package"}]
+    },
+    "code": {
+      "type": "category",
+      "glyph": "fa-code",
+      "apps": [{"id":"atom","confidence":0.7,"source":"package"},{"id":"code","confidence":1,"source":"package"},{"id":"geany","confidence":0.7,"source":"package"},{"id":"sublime-text","confidence":0.7,"source":"package"},{"id":"zed","confidence":0.7,"source":"package"}]
+    },
+    "codepen": {
+      "type": "app",
+      "glyph": "md-codepen",
+      "apps": [{"id":"codepen-desktop","confidence":0.8,"source":"flatpak"}]
+    },
+    "csharp": {
+      "type": "app",
+      "glyph": "dev-csharp",
+      "apps": [{"id":"dotnet-sdk","confidence":0.9,"source":"package"},{"id":"mono","confidence":1,"source":"package"}]
+    },
+    "css": {
+      "type": "app",
+      "glyph": "fa-css3_alt",
+      "apps": [{"id":"gimp","confidence":0.5,"source":"category"}]
+    },
+    "database": {
+      "type": "category",
+      "glyph": "md-database",
+      "apps": [{"id":"adminer","confidence":0.7,"source":"package"},{"id":"dbeaver","confidence":1,"source":"package"},{"id":"mysql-workbench","confidence":0.7,"source":"package"},{"id":"pgadmin","confidence":0.7,"source":"package"}]
+    },
+    "debian": {
+      "type": "app",
+      "glyph": "md-debian",
+      "apps": [{"id":"apt","confidence":0.9,"source":"package"},{"id":"dpkg","confidence":1,"source":"package"},{"id":"synaptic","confidence":0.8,"source":"package"}]
+    },
+    "discord": {
+      "type": "app",
+      "glyph": "md-discord",
+      "apps": [{"id":"abaddon","confidence":0.7,"source":"package"},{"id":"armcord","confidence":0.7,"source":"package"},{"id":"com.discordapp.Discord","confidence":0.9,"source":"flatpak"},{"id":"dev.vencord.Vesktop","confidence":0.8,"source":"flatpak"},{"id":"discord","confidence":1,"source":"package"},{"id":"discord-canary","confidence":0.9,"source":"package"},{"id":"discord-canary-electron-bin","confidence":0.7,"source":"package"},{"id":"discord-ptb","confidence":0.9,"source":"package"},{"id":"discord-screenaudio","confidence":0.7,"source":"package"},{"id":"discord_arch_electron","confidence":0.7,"source":"package"},{"id":"discordo","confidence":0.7,"source":"package"},{"id":"dissent","confidence":0.7,"source":"package"},{"id":"legcord","confidence":0.7,"source":"package"},{"id":"librediscord","confidence":0.7,"source":"package"},{"id":"ripcord","confidence":0.7,"source":"package"},{"id":"vesktop","confidence":0.7,"source":"package"},{"id":"webcord","confidence":0.7,"source":"package"}]
+    },
+    "docker": {
+      "type": "app",
+      "glyph": "md-docker",
+      "apps": [{"id":"com.docker.docker","confidence":0.9,"source":"flatpak"},{"id":"docker","confidence":1,"source":"package"},{"id":"lens","confidence":0.7,"source":"package"},{"id":"podman","confidence":0.7,"source":"package"},{"id":"portainer","confidence":0.7,"source":"package"}]
+    },
+    "download": {
+      "type": "category",
+      "glyph": "md-download",
+      "apps": [{"id":"jdownloader","confidence":0.7,"source":"package"},{"id":"persepolis","confidence":0.7,"source":"package"},{"id":"uget","confidence":1,"source":"package"},{"id":"wget","confidence":0.7,"source":"package"}]
+    },
+    "dropbox": {
+      "type": "app",
+      "glyph": "md-dropbox",
+      "apps": [{"id":"dropbox","confidence":1,"source":"package"},{"id":"maestral","confidence":0.7,"source":"package"}]
+    },
+    "eclipse": {
+      "type": "app",
+      "glyph": "dev-eclipse",
+      "apps": [{"id":"eclipse","confidence":1,"source":"package"}]
+    },
+    "edge": {
+      "type": "app",
+      "glyph": "fa-edge",
+      "apps": [{"id":"microsoft-edge-beta","confidence":0.9,"source":"package"},{"id":"microsoft-edge-dev","confidence":0.9,"source":"package"},{"id":"microsoft-edge-stable","confidence":1,"source":"package"}]
+    },
+    "electron": {
+      "type": "app",
+      "glyph": "dev-electron",
+      "apps": [{"id":"electron","confidence":1,"source":"package"}]
+    },
+    "emacs": {
+      "type": "app",
+      "glyph": "dev-emacs",
+      "apps": [{"id":"doom-emacs","confidence":0.8,"source":"package"},{"id":"emacs","confidence":1,"source":"package"},{"id":"emacs-nativecomp","confidence":0.9,"source":"package"}]
+    },
+    "email": {
+      "type": "category",
+      "glyph": "md-email",
+      "apps": [{"id":"evolution","confidence":0.7,"source":"package"},{"id":"geary","confidence":0.7,"source":"package"},{"id":"mailspring","confidence":0.7,"source":"package"},{"id":"thunderbird","confidence":1,"source":"package"}]
+    },
+    "facebook": {
+      "type": "app",
+      "glyph": "md-facebook",
+      "apps": [{"id":"facebook-messenger","confidence":0.8,"source":"flatpak"}]
+    },
+    "fedex": {
+      "type": "app",
+      "glyph": "fa-fedex",
+      "apps": [{"id":"fedex","confidence":0.5,"source":"category"}]
+    },
+    "fedora": {
+      "type": "app",
+      "glyph": "md-fedora",
+      "apps": [{"id":"fedora","confidence":0.5,"source":"category"}]
+    },
+    "figma": {
+      "type": "app",
+      "glyph": "fa-figma",
+      "apps": [{"id":"com.figma.Figma","confidence":0.9,"source":"flatpak"},{"id":"figma","confidence":1,"source":"package"},{"id":"figma-linux","confidence":0.7,"source":"package"}]
+    },
+    "filezilla": {
+      "type": "app",
+      "glyph": "dev-filezilla",
+      "apps": [{"id":"filezilla","confidence":1,"source":"package"},{"id":"filezilla-client","confidence":0.9,"source":"package"},{"id":"org.filezilla.FileZilla","confidence":0.9,"source":"flatpak"}]
+    },
+    "firebase": {
+      "type": "app",
+      "glyph": "md-firebase",
+      "apps": [{"id":"firebase","confidence":0.5,"source":"category"}]
+    },
+    "firefox": {
+      "type": "app",
+      "glyph": "md-firefox",
+      "apps": [{"id":"firefox","confidence":1,"source":"package"},{"id":"firefox-esr","confidence":0.9,"source":"package"},{"id":"floorp","confidence":0.7,"source":"package"},{"id":"librewolf","confidence":0.7,"source":"package"},{"id":"org.mozilla.firefox","confidence":0.9,"source":"flatpak"},{"id":"waterfox","confidence":0.7,"source":"package"}]
+    },
+    "first-order": {
+      "type": "app",
+      "glyph": "fa-first_order_alt",
+      "apps": [{"id":"first-order","confidence":0.5,"source":"category"}]
+    },
+    "first-order-alt": {
+      "type": "app",
+      "glyph": "fa-first_order_alt",
+      "apps": [{"id":"first-order-alt","confidence":0.5,"source":"category"}]
+    },
+    "firstdraft": {
+      "type": "app",
+      "glyph": "fa-firstdraft",
+      "apps": [{"id":"firstdraft","confidence":0.5,"source":"category"}]
+    },
+    "flask": {
+      "type": "app",
+      "glyph": "md-flask",
+      "apps": [{"id":"flask","confidence":0.5,"source":"category"}]
+    },
+    "flickr": {
+      "type": "app",
+      "glyph": "fa-flickr",
+      "apps": [{"id":"flickr","confidence":0.5,"source":"category"}]
+    },
+    "flipboard": {
+      "type": "app",
+      "glyph": "fa-flipboard",
+      "apps": [{"id":"flipboard","confidence":0.5,"source":"category"}]
+    },
+    "flutter": {
+      "type": "app",
+      "glyph": "dev-flutter",
+      "apps": [{"id":"flutter","confidence":0.5,"source":"category"}]
+    },
+    "fly": {
+      "type": "app",
+      "glyph": "fa-fly",
+      "apps": [{"id":"fly","confidence":0.5,"source":"category"}]
+    },
+    "font-awesome": {
+      "type": "app",
+      "glyph": "md-font_awesome",
+      "apps": [{"id":"font-awesome","confidence":0.5,"source":"category"}]
+    },
+    "fonticons": {
+      "type": "app",
+      "glyph": "fa-fonticons",
+      "apps": [{"id":"fonticons","confidence":0.5,"source":"category"}]
+    },
+    "fonticons-fi": {
+      "type": "app",
+      "glyph": "fa-fonticons_fi",
+      "apps": [{"id":"fonticons-fi","confidence":0.5,"source":"category"}]
+    },
+    "fort-awesome": {
+      "type": "app",
+      "glyph": "fa-fort_awesome",
+      "apps": [{"id":"fort-awesome","confidence":0.5,"source":"category"}]
+    },
+    "fort-awesome-alt": {
+      "type": "app",
+      "glyph": "fa-fort_awesome_alt",
+      "apps": [{"id":"fort-awesome-alt","confidence":0.5,"source":"category"}]
+    },
+    "fortran": {
+      "type": "app",
+      "glyph": "dev-fortran",
+      "apps": [{"id":"fortran","confidence":0.5,"source":"category"}]
+    },
+    "forumbee": {
+      "type": "app",
+      "glyph": "fa-forumbee",
+      "apps": [{"id":"forumbee","confidence":0.5,"source":"category"}]
+    },
+    "foundation": {
+      "type": "app",
+      "glyph": "dev-foundation",
+      "apps": [{"id":"foundation","confidence":0.5,"source":"category"}]
+    },
+    "foursquare": {
+      "type": "app",
+      "glyph": "fa-foursquare",
+      "apps": [{"id":"foursquare","confidence":0.5,"source":"category"}]
+    },
+    "framermotion": {
+      "type": "app",
+      "glyph": "dev-framermotion",
+      "apps": [{"id":"framermotion","confidence":0.5,"source":"category"}]
+    },
+    "framework7": {
+      "type": "app",
+      "glyph": "dev-framework7",
+      "apps": [{"id":"framework7","confidence":0.5,"source":"category"}]
+    },
+    "free-code-camp": {
+      "type": "app",
+      "glyph": "fa-free_code_camp",
+      "apps": [{"id":"free-code-camp","confidence":0.5,"source":"category"}]
+    },
+    "freebsd": {
+      "type": "app",
+      "glyph": "md-freebsd",
+      "apps": [{"id":"freebsd","confidence":0.5,"source":"category"}]
+    },
+    "fsharp": {
+      "type": "app",
+      "glyph": "dev-fsharp",
+      "apps": [{"id":"fsharp","confidence":0.5,"source":"category"}]
+    },
+    "fulcrum": {
+      "type": "app",
+      "glyph": "fa-fulcrum",
+      "apps": [{"id":"fulcrum","confidence":0.5,"source":"category"}]
+    },
+    "galactic-republic": {
+      "type": "app",
+      "glyph": "fa-galactic_republic",
+      "apps": [{"id":"galactic-republic","confidence":0.5,"source":"category"}]
+    },
+    "galactic-senate": {
+      "type": "app",
+      "glyph": "fa-galactic_senate",
+      "apps": [{"id":"galactic-senate","confidence":0.5,"source":"category"}]
+    },
+    "game": {
+      "type": "category",
+      "glyph": "cod-game",
+      "apps": [{"id":"bottles","confidence":0.7,"source":"package"},{"id":"heroicgameslauncher","confidence":0.7,"source":"package"},{"id":"lutris","confidence":0.7,"source":"package"},{"id":"steam","confidence":1,"source":"package"}]
+    },
+    "gatling": {
+      "type": "app",
+      "glyph": "dev-gatling",
+      "apps": [{"id":"gatling","confidence":0.5,"source":"category"}]
+    },
+    "gatsby": {
+      "type": "app",
+      "glyph": "dev-gatsby",
+      "apps": [{"id":"gatsby","confidence":0.5,"source":"category"}]
+    },
+    "gazebo": {
+      "type": "app",
+      "glyph": "dev-gazebo",
+      "apps": [{"id":"gazebo","confidence":0.5,"source":"category"}]
+    },
+    "gcc": {
+      "type": "app",
+      "glyph": "dev-gcc",
+      "apps": [{"id":"gcc","confidence":1,"source":"package"},{"id":"gcc-13","confidence":0.9,"source":"package"},{"id":"gcc-14","confidence":0.9,"source":"package"}]
+    },
+    "gentoo": {
+      "type": "app",
+      "glyph": "md-gentoo",
+      "apps": [{"id":"gentoo","confidence":0.5,"source":"category"}]
+    },
+    "get-pocket": {
+      "type": "app",
+      "glyph": "fa-get_pocket",
+      "apps": [{"id":"get-pocket","confidence":0.5,"source":"category"}]
+    },
+    "gg": {
+      "type": "app",
+      "glyph": "fa-gg",
+      "apps": [{"id":"gg","confidence":0.5,"source":"category"}]
+    },
+    "gg-circle": {
+      "type": "app",
+      "glyph": "fa-gg_circle",
+      "apps": [{"id":"gg-circle","confidence":0.5,"source":"category"}]
+    },
+    "ghost": {
+      "type": "app",
+      "glyph": "md-ghost",
+      "apps": [{"id":"ghost","confidence":0.5,"source":"category"}]
+    },
+    "gimp": {
+      "type": "app",
+      "glyph": "dev-gimp",
+      "apps": [{"id":"gimp","confidence":1,"source":"package"},{"id":"inkscape","confidence":0.7,"source":"package"},{"id":"krita","confidence":0.7,"source":"package"},{"id":"org.gimp.GIMP","confidence":0.9,"source":"flatpak"}]
+    },
+    "git": {
+      "type": "app",
+      "glyph": "md-git",
+      "apps": [{"id":"git","confidence":1,"source":"package"},{"id":"gitg","confidence":0.7,"source":"package"},{"id":"gittyup","confidence":0.7,"source":"package"},{"id":"lazygit","confidence":0.7,"source":"package"}]
+    },
+    "git-alt": {
+      "type": "app",
+      "glyph": "fa-git_alt",
+      "apps": [{"id":"git-alt","confidence":0.5,"source":"category"}]
+    },
+    "gitbook": {
+      "type": "app",
+      "glyph": "dev-gitbook",
+      "apps": [{"id":"gitbook","confidence":0.5,"source":"category"}]
+    },
+    "github": {
+      "type": "app",
+      "glyph": "fa-github",
+      "apps": [{"id":"gh","confidence":0.7,"source":"package"},{"id":"gitg","confidence":0.7,"source":"package"},{"id":"github-desktop","confidence":1,"source":"package"},{"id":"io.github.shiftey.Desktop","confidence":0.9,"source":"flatpak"},{"id":"lazygit","confidence":0.7,"source":"package"}]
+    },
+    "github-alt": {
+      "type": "app",
+      "glyph": "fa-github_alt",
+      "apps": [{"id":"github-alt","confidence":0.5,"source":"category"}]
+    },
+    "github-inverted": {
+      "type": "app",
+      "glyph": "cod-github_inverted",
+      "apps": [{"id":"github-inverted","confidence":0.5,"source":"category"}]
+    },
+    "githubactions": {
+      "type": "app",
+      "glyph": "dev-githubactions",
+      "apps": [{"id":"githubactions","confidence":0.5,"source":"category"}]
+    },
+    "githubcodespaces": {
+      "type": "app",
+      "glyph": "dev-githubcodespaces",
+      "apps": [{"id":"githubcodespaces","confidence":0.5,"source":"category"}]
+    },
+    "gitkraken": {
+      "type": "app",
+      "glyph": "fa-gitkraken",
+      "apps": [{"id":"com.gitkraken.GitKraken","confidence":0.9,"source":"flatpak"},{"id":"git-kraken","confidence":0.9,"source":"package"},{"id":"gitkraken","confidence":1,"source":"package"}]
+    },
+    "gitlab": {
+      "type": "app",
+      "glyph": "fa-gitlab",
+      "apps": [{"id":"gitlab","confidence":0.5,"source":"category"}]
+    },
+    "gitpod": {
+      "type": "app",
+      "glyph": "dev-gitpod",
+      "apps": [{"id":"gitpod","confidence":0.5,"source":"category"}]
+    },
+    "gitter": {
+      "type": "app",
+      "glyph": "fa-gitter",
+      "apps": [{"id":"gitter","confidence":0.5,"source":"category"}]
+    },
+    "glide": {
+      "type": "app",
+      "glyph": "fa-glide",
+      "apps": [{"id":"glide","confidence":0.5,"source":"category"}]
+    },
+    "glide-g": {
+      "type": "app",
+      "glyph": "fa-glide_g",
+      "apps": [{"id":"glide-g","confidence":0.5,"source":"category"}]
+    },
+    "gmail": {
+      "type": "app",
+      "glyph": "md-gmail",
+      "apps": [{"id":"gmail","confidence":0.5,"source":"category"}]
+    },
+    "gnome": {
+      "type": "app",
+      "glyph": "md-gnome",
+      "apps": [{"id":"gnome","confidence":0.5,"source":"category"}]
+    },
+    "go": {
+      "type": "app",
+      "glyph": "dev-go",
+      "apps": [{"id":"go","confidence":1,"source":"package"},{"id":"goland","confidence":0.7,"source":"package"}]
+    },
+    "godot": {
+      "type": "app",
+      "glyph": "dev-godot",
+      "apps": [{"id":"godot","confidence":1,"source":"package"},{"id":"godot3","confidence":0.8,"source":"package"},{"id":"godot4","confidence":0.8,"source":"package"},{"id":"org.godotengine.Godot","confidence":0.9,"source":"flatpak"}]
+    },
+    "gofore": {
+      "type": "app",
+      "glyph": "fa-gofore",
+      "apps": [{"id":"gofore","confidence":0.5,"source":"category"}]
+    },
+    "goland": {
+      "type": "app",
+      "glyph": "dev-goland",
+      "apps": [{"id":"com.jetbrains.GoLand","confidence":0.9,"source":"flatpak"},{"id":"goland","confidence":1,"source":"package"}]
+    },
+    "goodreads": {
+      "type": "app",
+      "glyph": "fa-goodreads",
+      "apps": [{"id":"goodreads","confidence":0.5,"source":"category"}]
+    },
+    "goodreads-g": {
+      "type": "app",
+      "glyph": "fa-goodreads_g",
+      "apps": [{"id":"goodreads-g","confidence":0.5,"source":"category"}]
+    },
+    "google": {
+      "type": "app",
+      "glyph": "md-google",
+      "apps": [{"id":"google","confidence":0.5,"source":"category"}]
+    },
+    "google-analytics": {
+      "type": "app",
+      "glyph": "md-google_analytics",
+      "apps": [{"id":"google-analytics","confidence":0.5,"source":"category"}]
+    },
+    "google-assistant": {
+      "type": "app",
+      "glyph": "md-google_assistant",
+      "apps": [{"id":"google-assistant","confidence":0.5,"source":"category"}]
+    },
+    "google-cardboard": {
+      "type": "app",
+      "glyph": "md-google_cardboard",
+      "apps": [{"id":"google-cardboard","confidence":0.5,"source":"category"}]
+    },
+    "google-chrome": {
+      "type": "app",
+      "glyph": "md-google_chrome",
+      "apps": [{"id":"brave","confidence":0.7,"source":"package"},{"id":"brave-browser","confidence":0.7,"source":"package"},{"id":"chromium","confidence":0.8,"source":"package"},{"id":"chromium-browser","confidence":0.8,"source":"package"},{"id":"com.google.Chrome","confidence":0.9,"source":"flatpak"},{"id":"google-chrome","confidence":1,"source":"package"},{"id":"opera","confidence":0.7,"source":"package"},{"id":"vivaldi","confidence":0.7,"source":"package"}]
+    },
+    "google-drive": {
+      "type": "app",
+      "glyph": "md-google_drive",
+      "apps": [{"id":"google-drive","confidence":0.5,"source":"category"}]
+    },
+    "google-earth": {
+      "type": "app",
+      "glyph": "md-google_earth",
+      "apps": [{"id":"earth","confidence":0.9,"source":"package"},{"id":"google-earth","confidence":1,"source":"package"}]
+    },
+    "google-fit": {
+      "type": "app",
+      "glyph": "md-google_fit",
+      "apps": [{"id":"google-fit","confidence":0.5,"source":"category"}]
+    },
+    "google-glass": {
+      "type": "app",
+      "glyph": "md-google_glass",
+      "apps": [{"id":"google-glass","confidence":0.5,"source":"category"}]
+    },
+    "google-hangouts": {
+      "type": "app",
+      "glyph": "md-google_hangouts",
+      "apps": [{"id":"google-hangouts","confidence":0.5,"source":"category"}]
+    },
+    "google-keep": {
+      "type": "app",
+      "glyph": "md-google_keep",
+      "apps": [{"id":"google-keep","confidence":0.5,"source":"category"}]
+    },
+    "google-maps": {
+      "type": "app",
+      "glyph": "md-google_maps",
+      "apps": [{"id":"google-maps","confidence":0.5,"source":"category"}]
+    },
+    "google-play": {
+      "type": "app",
+      "glyph": "md-google_play",
+      "apps": [{"id":"google-play","confidence":0.5,"source":"category"}]
+    },
+    "google-plus": {
+      "type": "app",
+      "glyph": "md-google_plus",
+      "apps": [{"id":"google-plus","confidence":0.5,"source":"category"}]
+    },
+    "google-translate": {
+      "type": "app",
+      "glyph": "md-google_translate",
+      "apps": [{"id":"google-translate","confidence":0.5,"source":"category"}]
+    },
+    "google-wallet": {
+      "type": "app",
+      "glyph": "fa-google_wallet",
+      "apps": [{"id":"google-wallet","confidence":0.5,"source":"category"}]
+    },
+    "googlecloud": {
+      "type": "app",
+      "glyph": "dev-googlecloud",
+      "apps": [{"id":"googlecloud","confidence":0.5,"source":"category"}]
+    },
+    "gradle": {
+      "type": "app",
+      "glyph": "dev-gradle",
+      "apps": [{"id":"gradle","confidence":0.5,"source":"category"}]
+    },
+    "grafana": {
+      "type": "app",
+      "glyph": "dev-grafana",
+      "apps": [{"id":"grafana","confidence":1,"source":"package"},{"id":"org.grafana.Grafana","confidence":0.9,"source":"flatpak"}]
+    },
+    "grails": {
+      "type": "app",
+      "glyph": "dev-grails",
+      "apps": [{"id":"grails","confidence":0.5,"source":"category"}]
+    },
+    "graphql": {
+      "type": "app",
+      "glyph": "md-graphql",
+      "apps": [{"id":"graphql","confidence":0.5,"source":"category"}]
+    },
+    "gratipay": {
+      "type": "app",
+      "glyph": "fa-gratipay",
+      "apps": [{"id":"gratipay","confidence":0.5,"source":"category"}]
+    },
+    "grav": {
+      "type": "app",
+      "glyph": "fa-grav",
+      "apps": [{"id":"grav","confidence":0.5,"source":"category"}]
+    },
+    "gripfire": {
+      "type": "app",
+      "glyph": "fa-gripfire",
+      "apps": [{"id":"gripfire","confidence":0.5,"source":"category"}]
+    },
+    "groovy": {
+      "type": "app",
+      "glyph": "dev-groovy",
+      "apps": [{"id":"groovy","confidence":0.5,"source":"category"}]
+    },
+    "grpc": {
+      "type": "app",
+      "glyph": "dev-grpc",
+      "apps": [{"id":"grpc","confidence":0.5,"source":"category"}]
+    },
+    "grunt": {
+      "type": "app",
+      "glyph": "fa-grunt",
+      "apps": [{"id":"grunt","confidence":0.5,"source":"category"}]
+    },
+    "gulp": {
+      "type": "app",
+      "glyph": "fa-gulp",
+      "apps": [{"id":"gulp","confidence":0.5,"source":"category"}]
+    },
+    "hacker-news": {
+      "type": "app",
+      "glyph": "fa-hacker_news",
+      "apps": [{"id":"hacker-news","confidence":0.5,"source":"category"}]
+    },
+    "hackerrank": {
+      "type": "app",
+      "glyph": "fa-hackerrank",
+      "apps": [{"id":"hackerrank","confidence":0.5,"source":"category"}]
+    },
+    "hadoop": {
+      "type": "app",
+      "glyph": "dev-hadoop",
+      "apps": [{"id":"hadoop","confidence":0.5,"source":"category"}]
+    },
+    "handlebars": {
+      "type": "app",
+      "glyph": "dev-handlebars",
+      "apps": [{"id":"handlebars","confidence":0.5,"source":"category"}]
+    },
+    "hardhat": {
+      "type": "app",
+      "glyph": "dev-hardhat",
+      "apps": [{"id":"hardhat","confidence":0.5,"source":"category"}]
+    },
+    "harvester": {
+      "type": "app",
+      "glyph": "dev-harvester",
+      "apps": [{"id":"harvester","confidence":0.5,"source":"category"}]
+    },
+    "haskell": {
+      "type": "app",
+      "glyph": "dev-haskell",
+      "apps": [{"id":"haskell","confidence":0.5,"source":"category"}]
+    },
+    "haxe": {
+      "type": "app",
+      "glyph": "dev-haxe",
+      "apps": [{"id":"haxe","confidence":0.5,"source":"category"}]
+    },
+    "helm": {
+      "type": "app",
+      "glyph": "dev-helm",
+      "apps": [{"id":"helm","confidence":1,"source":"package"},{"id":"kubernetes-helm","confidence":0.9,"source":"package"}]
+    },
+    "heroku": {
+      "type": "app",
+      "glyph": "dev-heroku",
+      "apps": [{"id":"heroku","confidence":0.5,"source":"category"}]
+    },
+    "hibernate": {
+      "type": "app",
+      "glyph": "dev-hibernate",
+      "apps": [{"id":"hibernate","confidence":0.5,"source":"category"}]
+    },
+    "hips": {
+      "type": "app",
+      "glyph": "fa-hips",
+      "apps": [{"id":"hips","confidence":0.5,"source":"category"}]
+    },
+    "hire-a-helper": {
+      "type": "app",
+      "glyph": "fa-hire_a_helper",
+      "apps": [{"id":"hire-a-helper","confidence":0.5,"source":"category"}]
+    },
+    "home-assistant": {
+      "type": "app",
+      "glyph": "md-home_assistant",
+      "apps": [{"id":"home-assistant","confidence":1,"source":"package"},{"id":"io.homeassistant.HomeAssistant","confidence":0.9,"source":"flatpak"}]
+    },
+    "homebrew": {
+      "type": "app",
+      "glyph": "dev-homebrew",
+      "apps": [{"id":"homebrew","confidence":0.5,"source":"category"}]
+    },
+    "hooli": {
+      "type": "app",
+      "glyph": "fa-hooli",
+      "apps": [{"id":"hooli","confidence":0.5,"source":"category"}]
+    },
+    "hornbill": {
+      "type": "app",
+      "glyph": "fa-hornbill",
+      "apps": [{"id":"hornbill","confidence":0.5,"source":"category"}]
+    },
+    "hotjar": {
+      "type": "app",
+      "glyph": "fa-hotjar",
+      "apps": [{"id":"hotjar","confidence":0.5,"source":"category"}]
+    },
+    "houzz": {
+      "type": "app",
+      "glyph": "fa-houzz",
+      "apps": [{"id":"houzz","confidence":0.5,"source":"category"}]
+    },
+    "html5": {
+      "type": "app",
+      "glyph": "fa-html5",
+      "apps": [{"id":"html5","confidence":0.5,"source":"category"}]
+    },
+    "hubspot": {
+      "type": "app",
+      "glyph": "fa-hubspot",
+      "apps": [{"id":"hubspot","confidence":0.5,"source":"category"}]
+    },
+    "hugo": {
+      "type": "app",
+      "glyph": "dev-hugo",
+      "apps": [{"id":"hugo","confidence":1,"source":"package"}]
+    },
+    "hulu": {
+      "type": "app",
+      "glyph": "md-hulu",
+      "apps": [{"id":"hulu","confidence":0.5,"source":"category"}]
+    },
+    "humble-bundle": {
+      "type": "app",
+      "glyph": "md-humble_bundle",
+      "apps": [{"id":"humble-bundle","confidence":0.5,"source":"category"}]
+    },
+    "ifttt": {
+      "type": "app",
+      "glyph": "dev-ifttt",
+      "apps": [{"id":"ifttt","confidence":0.5,"source":"category"}]
+    },
+    "illustrator": {
+      "type": "app",
+      "glyph": "dev-illustrator",
+      "apps": [{"id":"illustrator","confidence":0.5,"source":"category"}]
+    },
+    "image": {
+      "type": "category",
+      "glyph": "md-image",
+      "apps": [{"id":"eog","confidence":1,"source":"package"},{"id":"gimp","confidence":0.7,"source":"package"},{"id":"gwenview","confidence":1,"source":"package"},{"id":"inkscape","confidence":0.7,"source":"package"}]
+    },
+    "imdb": {
+      "type": "app",
+      "glyph": "fa-imdb",
+      "apps": [{"id":"imdb","confidence":0.5,"source":"category"}]
+    },
+    "influxdb": {
+      "type": "app",
+      "glyph": "dev-influxdb",
+      "apps": [{"id":"influxdb","confidence":1,"source":"package"},{"id":"org.influxdb.InfluxDB","confidence":0.9,"source":"flatpak"}]
+    },
+    "inkscape": {
+      "type": "app",
+      "glyph": "dev-inkscape",
+      "apps": [{"id":"inkscape","confidence":1,"source":"package"},{"id":"org.inkscape.Inkscape","confidence":0.9,"source":"flatpak"}]
+    },
+    "insomnia": {
+      "type": "app",
+      "glyph": "dev-insomnia",
+      "apps": [{"id":"insomnia","confidence":1,"source":"package"},{"id":"rest.insomnia.Insomnia","confidence":0.9,"source":"flatpak"}]
+    },
+    "instagram": {
+      "type": "app",
+      "glyph": "md-instagram",
+      "apps": [{"id":"instagram","confidence":0.5,"source":"category"}]
+    },
+    "intellij": {
+      "type": "app",
+      "glyph": "dev-intellij",
+      "apps": [{"id":"com.jetbrains.IntelliJ-IDEA-Community","confidence":0.9,"source":"flatpak"},{"id":"com.jetbrains.IntelliJ-IDEA-Ultimate","confidence":0.9,"source":"flatpak"},{"id":"intellij","confidence":1,"source":"package"}]
+    },
+    "intercom": {
+      "type": "app",
+      "glyph": "fa-intercom",
+      "apps": [{"id":"intercom","confidence":0.5,"source":"category"}]
+    },
+    "internet-explorer": {
+      "type": "app",
+      "glyph": "fa-internet_explorer",
+      "apps": [{"id":"internet-explorer","confidence":0.5,"source":"category"}]
+    },
+    "invision": {
+      "type": "app",
+      "glyph": "fa-invision",
+      "apps": [{"id":"invision","confidence":0.5,"source":"category"}]
+    },
+    "ionic": {
+      "type": "app",
+      "glyph": "dev-ionic",
+      "apps": [{"id":"ionic","confidence":0.5,"source":"category"}]
+    },
+    "ioxhost": {
+      "type": "app",
+      "glyph": "fa-ioxhost",
+      "apps": [{"id":"ioxhost","confidence":0.5,"source":"category"}]
+    },
+    "itch-io": {
+      "type": "app",
+      "glyph": "fa-itch_io",
+      "apps": [{"id":"io.itch.itch","confidence":0.9,"source":"flatpak"},{"id":"itch","confidence":0.9,"source":"package"},{"id":"itch-io","confidence":1,"source":"package"}]
+    },
+    "itunes": {
+      "type": "app",
+      "glyph": "fa-itunes",
+      "apps": [{"id":"itunes","confidence":0.5,"source":"category"}]
+    },
+    "itunes-note": {
+      "type": "app",
+      "glyph": "fa-itunes_note",
+      "apps": [{"id":"itunes-note","confidence":0.5,"source":"category"}]
+    },
+    "jaegertracing": {
+      "type": "app",
+      "glyph": "dev-jaegertracing",
+      "apps": [{"id":"jaegertracing","confidence":0.5,"source":"category"}]
+    },
+    "jamstack": {
+      "type": "app",
+      "glyph": "dev-jamstack",
+      "apps": [{"id":"jamstack","confidence":0.5,"source":"category"}]
+    },
+    "jasmine": {
+      "type": "app",
+      "glyph": "dev-jasmine",
+      "apps": [{"id":"jasmine","confidence":0.5,"source":"category"}]
+    },
+    "java": {
+      "type": "app",
+      "glyph": "fa-java",
+      "apps": [{"id":"eclipse","confidence":0.7,"source":"package"},{"id":"intellij-idea","confidence":0.7,"source":"package"},{"id":"java-runtime","confidence":1,"source":"package"},{"id":"openjdk","confidence":1,"source":"package"}]
+    },
+    "javascript": {
+      "type": "app",
+      "glyph": "dev-javascript",
+      "apps": [{"id":"javascript","confidence":0.5,"source":"category"}]
+    },
+    "jedi-order": {
+      "type": "app",
+      "glyph": "fa-jedi_order",
+      "apps": [{"id":"jedi-order","confidence":0.5,"source":"category"}]
+    },
+    "jeet": {
+      "type": "app",
+      "glyph": "dev-jeet",
+      "apps": [{"id":"jeet","confidence":0.5,"source":"category"}]
+    },
+    "jekyll": {
+      "type": "app",
+      "glyph": "dev-jekyll",
+      "apps": [{"id":"jekyll","confidence":0.5,"source":"category"}]
+    },
+    "jenkins": {
+      "type": "app",
+      "glyph": "fa-jenkins",
+      "apps": [{"id":"jenkins","confidence":1,"source":"package"},{"id":"jenkins-lts","confidence":0.9,"source":"package"}]
+    },
+    "jest": {
+      "type": "app",
+      "glyph": "dev-jest",
+      "apps": [{"id":"jest","confidence":0.5,"source":"category"}]
+    },
+    "jetbrains": {
+      "type": "app",
+      "glyph": "dev-jetbrains",
+      "apps": [{"id":"jetbrains","confidence":0.5,"source":"category"}]
+    },
+    "jetpackcompose": {
+      "type": "app",
+      "glyph": "dev-jetpackcompose",
+      "apps": [{"id":"jetpackcompose","confidence":0.5,"source":"category"}]
+    },
+    "jira": {
+      "type": "app",
+      "glyph": "md-jira",
+      "apps": [{"id":"jira","confidence":0.5,"source":"category"}]
+    },
+    "jiraalign": {
+      "type": "app",
+      "glyph": "dev-jiraalign",
+      "apps": [{"id":"jiraalign","confidence":0.5,"source":"category"}]
+    },
+    "joget": {
+      "type": "app",
+      "glyph": "fa-joget",
+      "apps": [{"id":"joget","confidence":0.5,"source":"category"}]
+    },
+    "joomla": {
+      "type": "app",
+      "glyph": "fa-joomla",
+      "apps": [{"id":"joomla","confidence":0.5,"source":"category"}]
+    },
+    "jquery": {
+      "type": "app",
+      "glyph": "md-jquery",
+      "apps": [{"id":"jquery","confidence":0.5,"source":"category"}]
+    },
+    "js": {
+      "type": "app",
+      "glyph": "fa-js",
+      "apps": [{"id":"js","confidence":0.5,"source":"category"}]
+    },
+    "jsfiddle": {
+      "type": "app",
+      "glyph": "md-jsfiddle",
+      "apps": [{"id":"jsfiddle","confidence":0.5,"source":"category"}]
+    },
+    "json": {
+      "type": "app",
+      "glyph": "dev-json",
+      "apps": [{"id":"json","confidence":0.5,"source":"category"}]
+    },
+    "jule": {
+      "type": "app",
+      "glyph": "dev-jule",
+      "apps": [{"id":"jule","confidence":0.5,"source":"category"}]
+    },
+    "julia": {
+      "type": "app",
+      "glyph": "dev-julia",
+      "apps": [{"id":"julia","confidence":1,"source":"package"}]
+    },
+    "junit": {
+      "type": "app",
+      "glyph": "dev-junit",
+      "apps": [{"id":"junit","confidence":0.5,"source":"category"}]
+    },
+    "jupyter": {
+      "type": "app",
+      "glyph": "dev-jupyter",
+      "apps": [{"id":"jupyter","confidence":1,"source":"package"},{"id":"jupyter-notebook","confidence":0.9,"source":"package"},{"id":"jupyterlab","confidence":0.9,"source":"package"},{"id":"org.jupyter.JupyterLab","confidence":0.9,"source":"flatpak"}]
+    },
+    "k3os": {
+      "type": "app",
+      "glyph": "dev-k3os",
+      "apps": [{"id":"k3os","confidence":0.5,"source":"category"}]
+    },
+    "k3s": {
+      "type": "app",
+      "glyph": "dev-k3s",
+      "apps": [{"id":"k3s","confidence":0.5,"source":"category"}]
+    },
+    "k6": {
+      "type": "app",
+      "glyph": "dev-k6",
+      "apps": [{"id":"k6","confidence":0.5,"source":"category"}]
+    },
+    "kaggle": {
+      "type": "app",
+      "glyph": "fa-kaggle",
+      "apps": [{"id":"kaggle","confidence":0.5,"source":"category"}]
+    },
+    "karatelabs": {
+      "type": "app",
+      "glyph": "dev-karatelabs",
+      "apps": [{"id":"karatelabs","confidence":0.5,"source":"category"}]
+    },
+    "karma": {
+      "type": "app",
+      "glyph": "dev-karma",
+      "apps": [{"id":"karma","confidence":0.5,"source":"category"}]
+    },
+    "kdeneon": {
+      "type": "app",
+      "glyph": "dev-kdeneon",
+      "apps": [{"id":"kdeneon","confidence":0.5,"source":"category"}]
+    },
+    "keras": {
+      "type": "app",
+      "glyph": "dev-keras",
+      "apps": [{"id":"keras","confidence":0.5,"source":"category"}]
+    },
+    "keybase": {
+      "type": "app",
+      "glyph": "fa-keybase",
+      "apps": [{"id":"io.keybase.Keybase","confidence":0.9,"source":"flatpak"},{"id":"keybase","confidence":1,"source":"package"}]
+    },
+    "keycdn": {
+      "type": "app",
+      "glyph": "fa-keycdn",
+      "apps": [{"id":"keycdn","confidence":0.5,"source":"category"}]
+    },
+    "kibana": {
+      "type": "app",
+      "glyph": "dev-kibana",
+      "apps": [{"id":"kibana","confidence":1,"source":"package"},{"id":"org.kibana.Kibana","confidence":0.9,"source":"flatpak"}]
+    },
+    "kickstarter": {
+      "type": "app",
+      "glyph": "md-kickstarter",
+      "apps": [{"id":"kickstarter","confidence":0.5,"source":"category"}]
+    },
+    "kickstarter-k": {
+      "type": "app",
+      "glyph": "fa-kickstarter_k",
+      "apps": [{"id":"kickstarter-k","confidence":0.5,"source":"category"}]
+    },
+    "knexjs": {
+      "type": "app",
+      "glyph": "dev-knexjs",
+      "apps": [{"id":"knexjs","confidence":0.5,"source":"category"}]
+    },
+    "knockout": {
+      "type": "app",
+      "glyph": "dev-knockout",
+      "apps": [{"id":"knockout","confidence":0.5,"source":"category"}]
+    },
+    "kodi": {
+      "type": "app",
+      "glyph": "md-kodi",
+      "apps": [{"id":"kodi","confidence":1,"source":"package"},{"id":"org.kodi.Kodi","confidence":0.9,"source":"flatpak"}]
+    },
+    "korvue": {
+      "type": "app",
+      "glyph": "fa-korvue",
+      "apps": [{"id":"korvue","confidence":0.5,"source":"category"}]
+    },
+    "kotlin": {
+      "type": "app",
+      "glyph": "dev-kotlin",
+      "apps": [{"id":"kotlin","confidence":1,"source":"package"}]
+    },
+    "krakenjs": {
+      "type": "app",
+      "glyph": "dev-krakenjs",
+      "apps": [{"id":"krakenjs","confidence":0.5,"source":"category"}]
+    },
+    "ktor": {
+      "type": "app",
+      "glyph": "dev-ktor",
+      "apps": [{"id":"ktor","confidence":0.5,"source":"category"}]
+    },
+    "kubernetes": {
+      "type": "app",
+      "glyph": "dev-kubernetes",
+      "apps": [{"id":"kubeadm","confidence":0.9,"source":"package"},{"id":"kubectl","confidence":0.9,"source":"package"},{"id":"kubernetes","confidence":1,"source":"package"}]
+    },
+    "labview": {
+      "type": "app",
+      "glyph": "dev-labview",
+      "apps": [{"id":"labview","confidence":0.5,"source":"category"}]
+    },
+    "laravel": {
+      "type": "app",
+      "glyph": "fa-laravel",
+      "apps": [{"id":"laravel","confidence":0.5,"source":"category"}]
+    },
+    "lastfm": {
+      "type": "app",
+      "glyph": "fa-lastfm",
+      "apps": [{"id":"lastfm","confidence":0.5,"source":"category"}]
+    },
+    "lastpass": {
+      "type": "app",
+      "glyph": "md-lastpass",
+      "apps": [{"id":"com.lastpass.LastPass","confidence":0.9,"source":"flatpak"},{"id":"lastpass","confidence":1,"source":"package"}]
+    },
+    "latex": {
+      "type": "app",
+      "glyph": "dev-latex",
+      "apps": [{"id":"latex","confidence":0.5,"source":"category"}]
+    },
+    "leanpub": {
+      "type": "app",
+      "glyph": "fa-leanpub",
+      "apps": [{"id":"leanpub","confidence":0.5,"source":"category"}]
+    },
+    "less": {
+      "type": "app",
+      "glyph": "fa-less",
+      "apps": [{"id":"less","confidence":0.5,"source":"category"}]
+    },
+    "line": {
+      "type": "app",
+      "glyph": "fa-line",
+      "apps": [{"id":"line","confidence":0.5,"source":"category"}]
+    },
+    "linkedin": {
+      "type": "app",
+      "glyph": "md-linkedin",
+      "apps": [{"id":"linkedin","confidence":0.5,"source":"category"}]
+    },
+    "linkedin-in": {
+      "type": "app",
+      "glyph": "fa-linkedin_in",
+      "apps": [{"id":"linkedin-in","confidence":0.5,"source":"category"}]
+    },
+    "linode": {
+      "type": "app",
+      "glyph": "fa-linode",
+      "apps": [{"id":"linode","confidence":0.5,"source":"category"}]
+    },
+    "linux": {
+      "type": "app",
+      "glyph": "md-linux",
+      "apps": [{"id":"linux","confidence":0.5,"source":"category"}]
+    },
+    "linux-mint": {
+      "type": "app",
+      "glyph": "md-linux_mint",
+      "apps": [{"id":"linux-mint","confidence":0.5,"source":"category"}]
+    },
+    "liquibase": {
+      "type": "app",
+      "glyph": "dev-liquibase",
+      "apps": [{"id":"liquibase","confidence":0.5,"source":"category"}]
+    },
+    "livewire": {
+      "type": "app",
+      "glyph": "dev-livewire",
+      "apps": [{"id":"livewire","confidence":0.5,"source":"category"}]
+    },
+    "llvm": {
+      "type": "app",
+      "glyph": "dev-llvm",
+      "apps": [{"id":"llvm","confidence":1,"source":"package"},{"id":"llvm-15","confidence":0.9,"source":"package"},{"id":"llvm-16","confidence":0.9,"source":"package"},{"id":"llvm-17","confidence":0.9,"source":"package"}]
+    },
+    "lodash": {
+      "type": "app",
+      "glyph": "dev-lodash",
+      "apps": [{"id":"lodash","confidence":0.5,"source":"category"}]
+    },
+    "logo-github": {
+      "type": "app",
+      "glyph": "cod-github",
+      "apps": [{"id":"logo-github","confidence":0.5,"source":"category"}]
+    },
+    "logstash": {
+      "type": "app",
+      "glyph": "dev-logstash",
+      "apps": [{"id":"logstash","confidence":1,"source":"package"},{"id":"org.logstash.Logstash","confidence":0.9,"source":"flatpak"}]
+    },
+    "lua": {
+      "type": "app",
+      "glyph": "dev-lua",
+      "apps": [{"id":"lua","confidence":1,"source":"package"}]
+    },
+    "lumen": {
+      "type": "app",
+      "glyph": "dev-lumen",
+      "apps": [{"id":"lumen","confidence":0.5,"source":"category"}]
+    },
+    "lumx": {
+      "type": "app",
+      "glyph": "md-lumx",
+      "apps": [{"id":"lumx","confidence":0.5,"source":"category"}]
+    },
+    "lyft": {
+      "type": "app",
+      "glyph": "fa-lyft",
+      "apps": [{"id":"lyft","confidence":0.5,"source":"category"}]
+    },
+    "magento": {
+      "type": "app",
+      "glyph": "fa-magento",
+      "apps": [{"id":"magento","confidence":0.5,"source":"category"}]
+    },
+    "mailchimp": {
+      "type": "app",
+      "glyph": "fa-mailchimp",
+      "apps": [{"id":"mailchimp","confidence":0.5,"source":"category"}]
+    },
+    "mandalorian": {
+      "type": "app",
+      "glyph": "fa-mandalorian",
+      "apps": [{"id":"mandalorian","confidence":0.5,"source":"category"}]
+    },
+    "mariadb": {
+      "type": "app",
+      "glyph": "dev-mariadb",
+      "apps": [{"id":"mariadb","confidence":1,"source":"package"},{"id":"org.mariadb.Server","confidence":0.9,"source":"flatpak"}]
+    },
+    "markdown": {
+      "type": "app",
+      "glyph": "fa-markdown",
+      "apps": [{"id":"markdown","confidence":0.5,"source":"category"}]
+    },
+    "mastodon": {
+      "type": "app",
+      "glyph": "fa-mastodon",
+      "apps": [{"id":"mastodon","confidence":0.5,"source":"category"}]
+    },
+    "material-ui": {
+      "type": "app",
+      "glyph": "md-material_ui",
+      "apps": [{"id":"material-ui","confidence":0.5,"source":"category"}]
+    },
+    "materializecss": {
+      "type": "app",
+      "glyph": "dev-materializecss",
+      "apps": [{"id":"materializecss","confidence":0.5,"source":"category"}]
+    },
+    "materialui": {
+      "type": "app",
+      "glyph": "dev-materialui",
+      "apps": [{"id":"materialui","confidence":0.5,"source":"category"}]
+    },
+    "matlab": {
+      "type": "app",
+      "glyph": "dev-matlab",
+      "apps": [{"id":"matlab","confidence":0.5,"source":"category"}]
+    },
+    "matplotlib": {
+      "type": "app",
+      "glyph": "dev-matplotlib",
+      "apps": [{"id":"matplotlib","confidence":0.5,"source":"category"}]
+    },
+    "matrix": {
+      "type": "category",
+      "glyph": "md-matrix",
+      "apps": [{"id":"element-desktop","confidence":1,"source":"package"},{"id":"fractal","confidence":0.8,"source":"package"},{"id":"nheko","confidence":0.8,"source":"package"}]
+    },
+    "maven": {
+      "type": "app",
+      "glyph": "dev-maven",
+      "apps": [{"id":"maven","confidence":1,"source":"package"},{"id":"maven3","confidence":0.9,"source":"package"}]
+    },
+    "maxcdn": {
+      "type": "app",
+      "glyph": "fa-maxcdn",
+      "apps": [{"id":"maxcdn","confidence":0.5,"source":"category"}]
+    },
+    "maya": {
+      "type": "app",
+      "glyph": "dev-maya",
+      "apps": [{"id":"maya","confidence":0.5,"source":"category"}]
+    },
+    "mdb": {
+      "type": "app",
+      "glyph": "fa-mdb",
+      "apps": [{"id":"mdb","confidence":0.5,"source":"category"}]
+    },
+    "medapps": {
+      "type": "app",
+      "glyph": "fa-medapps",
+      "apps": [{"id":"medapps","confidence":0.5,"source":"category"}]
+    },
+    "medium": {
+      "type": "app",
+      "glyph": "fa-medium",
+      "apps": [{"id":"medium","confidence":0.5,"source":"category"}]
+    },
+    "medrt": {
+      "type": "app",
+      "glyph": "fa-medrt",
+      "apps": [{"id":"medrt","confidence":0.5,"source":"category"}]
+    },
+    "meetup": {
+      "type": "app",
+      "glyph": "fa-meetup",
+      "apps": [{"id":"meetup","confidence":0.5,"source":"category"}]
+    },
+    "megaport": {
+      "type": "app",
+      "glyph": "fa-megaport",
+      "apps": [{"id":"megaport","confidence":0.5,"source":"category"}]
+    },
+    "mendeley": {
+      "type": "app",
+      "glyph": "fa-mendeley",
+      "apps": [{"id":"mendeley","confidence":0.5,"source":"category"}]
+    },
+    "meteor": {
+      "type": "app",
+      "glyph": "md-meteor",
+      "apps": [{"id":"meteor","confidence":0.5,"source":"category"}]
+    },
+    "microsoft": {
+      "type": "app",
+      "glyph": "md-microsoft",
+      "apps": [{"id":"microsoft","confidence":0.5,"source":"category"}]
+    },
+    "microsoft-dynamics": {
+      "type": "app",
+      "glyph": "md-microsoft_dynamics_365",
+      "apps": [{"id":"microsoft-dynamics","confidence":0.5,"source":"category"}]
+    },
+    "microsoftsqlserver": {
+      "type": "app",
+      "glyph": "dev-microsoftsqlserver",
+      "apps": [{"id":"microsoftsqlserver","confidence":0.5,"source":"category"}]
+    },
+    "midi": {
+      "type": "app",
+      "glyph": "md-midi",
+      "apps": [{"id":"midi","confidence":0.5,"source":"category"}]
+    },
+    "minecraft": {
+      "type": "app",
+      "glyph": "md-minecraft",
+      "apps": [{"id":"com.mojang.Minecraft","confidence":0.9,"source":"flatpak"},{"id":"minecraft","confidence":1,"source":"package"},{"id":"minecraft-launcher","confidence":0.9,"source":"package"},{"id":"multimc","confidence":0.7,"source":"package"},{"id":"prismlauncher","confidence":0.7,"source":"package"}]
+    },
+    "minitab": {
+      "type": "app",
+      "glyph": "dev-minitab",
+      "apps": [{"id":"minitab","confidence":0.5,"source":"category"}]
+    },
+    "mithril": {
+      "type": "app",
+      "glyph": "dev-mithril",
+      "apps": [{"id":"mithril","confidence":0.5,"source":"category"}]
+    },
+    "mix": {
+      "type": "app",
+      "glyph": "fa-mix",
+      "apps": [{"id":"mix","confidence":0.5,"source":"category"}]
+    },
+    "mixcloud": {
+      "type": "app",
+      "glyph": "fa-mixcloud",
+      "apps": [{"id":"mixcloud","confidence":0.5,"source":"category"}]
+    },
+    "mizuni": {
+      "type": "app",
+      "glyph": "fa-mizuni",
+      "apps": [{"id":"mizuni","confidence":0.5,"source":"category"}]
+    },
+    "mobx": {
+      "type": "app",
+      "glyph": "dev-mobx",
+      "apps": [{"id":"mobx","confidence":0.5,"source":"category"}]
+    },
+    "mocha": {
+      "type": "app",
+      "glyph": "dev-mocha",
+      "apps": [{"id":"mocha","confidence":0.5,"source":"category"}]
+    },
+    "modx": {
+      "type": "app",
+      "glyph": "fa-modx",
+      "apps": [{"id":"modx","confidence":0.5,"source":"category"}]
+    },
+    "moleculer": {
+      "type": "app",
+      "glyph": "dev-moleculer",
+      "apps": [{"id":"moleculer","confidence":0.5,"source":"category"}]
+    },
+    "monero": {
+      "type": "app",
+      "glyph": "fa-monero",
+      "apps": [{"id":"monero","confidence":1,"source":"package"},{"id":"monero-gui","confidence":0.9,"source":"package"}]
+    },
+    "mongodb": {
+      "type": "app",
+      "glyph": "dev-mongodb",
+      "apps": [{"id":"mongodb","confidence":1,"source":"package"},{"id":"mongodb-compass","confidence":0.7,"source":"package"}]
+    },
+    "mongoose": {
+      "type": "app",
+      "glyph": "dev-mongoose",
+      "apps": [{"id":"mongoose","confidence":0.5,"source":"category"}]
+    },
+    "moodle": {
+      "type": "app",
+      "glyph": "dev-moodle",
+      "apps": [{"id":"moodle","confidence":0.5,"source":"category"}]
+    },
+    "msdos": {
+      "type": "app",
+      "glyph": "dev-msdos",
+      "apps": [{"id":"msdos","confidence":0.5,"source":"category"}]
+    },
+    "mysql": {
+      "type": "app",
+      "glyph": "dev-mysql",
+      "apps": [{"id":"dbeaver","confidence":0.7,"source":"package"},{"id":"mysql","confidence":1,"source":"package"},{"id":"mysql-workbench","confidence":0.7,"source":"package"}]
+    },
+    "nano": {
+      "type": "app",
+      "glyph": "dev-nano",
+      "apps": [{"id":"nano","confidence":1,"source":"package"}]
+    },
+    "napster": {
+      "type": "app",
+      "glyph": "fa-napster",
+      "apps": [{"id":"napster","confidence":0.5,"source":"category"}]
+    },
+    "nativescript": {
+      "type": "app",
+      "glyph": "md-nativescript",
+      "apps": [{"id":"nativescript","confidence":0.5,"source":"category"}]
+    },
+    "neo4j": {
+      "type": "app",
+      "glyph": "dev-neo4j",
+      "apps": [{"id":"neo4j","confidence":1,"source":"package"}]
+    },
+    "neos": {
+      "type": "app",
+      "glyph": "fa-neos",
+      "apps": [{"id":"neos","confidence":0.5,"source":"category"}]
+    },
+    "neovim": {
+      "type": "app",
+      "glyph": "dev-neovim",
+      "apps": [{"id":"neovim","confidence":1,"source":"package"},{"id":"nvim","confidence":0.9,"source":"package"}]
+    },
+    "nestjs": {
+      "type": "app",
+      "glyph": "dev-nestjs",
+      "apps": [{"id":"nestjs","confidence":0.5,"source":"category"}]
+    },
+    "netflix": {
+      "type": "app",
+      "glyph": "md-netflix",
+      "apps": [{"id":"netflix","confidence":0.5,"source":"category"}]
+    },
+    "netlify": {
+      "type": "app",
+      "glyph": "dev-netlify",
+      "apps": [{"id":"netlify","confidence":0.5,"source":"category"}]
+    },
+    "networkx": {
+      "type": "app",
+      "glyph": "dev-networkx",
+      "apps": [{"id":"networkx","confidence":1,"source":"package"}]
+    },
+    "nextjs": {
+      "type": "app",
+      "glyph": "dev-nextjs",
+      "apps": [{"id":"nextjs","confidence":1,"source":"package"}]
+    },
+    "nginx": {
+      "type": "app",
+      "glyph": "dev-nginx",
+      "apps": [{"id":"nginx","confidence":1,"source":"package"}]
+    },
+    "ngrx": {
+      "type": "app",
+      "glyph": "dev-ngrx",
+      "apps": [{"id":"ngrx","confidence":1,"source":"package"}]
+    },
+    "nhibernate": {
+      "type": "app",
+      "glyph": "dev-nhibernate",
+      "apps": [{"id":"nhibernate","confidence":1,"source":"package"}]
+    },
+    "nim": {
+      "type": "app",
+      "glyph": "dev-nim",
+      "apps": [{"id":"nim","confidence":1,"source":"package"}]
+    },
+    "nimble": {
+      "type": "app",
+      "glyph": "dev-nimble",
+      "apps": [{"id":"nimble","confidence":1,"source":"package"}]
+    },
+    "nimblr": {
+      "type": "app",
+      "glyph": "fa-nimblr",
+      "apps": [{"id":"nimblr","confidence":1,"source":"package"}]
+    },
+    "nintendo-switch": {
+      "type": "app",
+      "glyph": "md-nintendo_switch",
+      "apps": [{"id":"nintendo-switch","confidence":1,"source":"package"}]
+    },
+    "nixos": {
+      "type": "app",
+      "glyph": "dev-nixos",
+      "apps": [{"id":"nixos","confidence":1,"source":"package"}]
+    },
+    "node": {
+      "type": "app",
+      "glyph": "fa-node",
+      "apps": [{"id":"node","confidence":1,"source":"package"}]
+    },
+    "node-js": {
+      "type": "app",
+      "glyph": "fa-node_js",
+      "apps": [{"id":"node-js","confidence":1,"source":"package"}]
+    },
+    "nodejs": {
+      "type": "app",
+      "glyph": "md-nodejs",
+      "apps": [{"id":"nodejs","confidence":1,"source":"package"}]
+    },
+    "nodemon": {
+      "type": "app",
+      "glyph": "dev-nodemon",
+      "apps": [{"id":"nodemon","confidence":1,"source":"package"}]
+    },
+    "nodewebkit": {
+      "type": "app",
+      "glyph": "dev-nodewebkit",
+      "apps": [{"id":"nodewebkit","confidence":1,"source":"package"}]
+    },
+    "nomad": {
+      "type": "app",
+      "glyph": "dev-nomad",
+      "apps": [{"id":"nomad","confidence":1,"source":"package"}]
+    },
+    "norg": {
+      "type": "app",
+      "glyph": "dev-norg",
+      "apps": [{"id":"norg","confidence":1,"source":"package"}]
+    },
+    "notion": {
+      "type": "app",
+      "glyph": "dev-notion",
+      "apps": [{"id":"ferdium","confidence":0.5,"source":"category"},{"id":"notion","confidence":1,"source":"package"}]
+    },
+    "npm": {
+      "type": "app",
+      "glyph": "md-npm",
+      "apps": [{"id":"npm","confidence":1,"source":"package"}]
+    },
+    "ns8": {
+      "type": "app",
+      "glyph": "fa-ns8",
+      "apps": [{"id":"ns8","confidence":1,"source":"package"}]
+    },
+    "nuget": {
+      "type": "app",
+      "glyph": "dev-nuget",
+      "apps": [{"id":"nuget","confidence":1,"source":"package"}]
+    },
+    "numpy": {
+      "type": "app",
+      "glyph": "dev-numpy",
+      "apps": [{"id":"numpy","confidence":1,"source":"package"}]
+    },
+    "nutritionix": {
+      "type": "app",
+      "glyph": "fa-nutritionix",
+      "apps": [{"id":"nutritionix","confidence":1,"source":"package"}]
+    },
+    "nuxt": {
+      "type": "app",
+      "glyph": "dev-nuxtjs",
+      "apps": [{"id":"nuxt","confidence":1,"source":"package"}]
+    },
+    "nuxtjs": {
+      "type": "app",
+      "glyph": "dev-nuxtjs",
+      "apps": [{"id":"nuxtjs","confidence":1,"source":"package"}]
+    },
+    "oauth": {
+      "type": "app",
+      "glyph": "dev-oauth",
+      "apps": [{"id":"oauth","confidence":1,"source":"package"}]
+    },
+    "objectivec": {
+      "type": "app",
+      "glyph": "dev-objectivec",
+      "apps": [{"id":"objectivec","confidence":1,"source":"package"}]
+    },
+    "ocaml": {
+      "type": "app",
+      "glyph": "dev-ocaml",
+      "apps": [{"id":"ocaml","confidence":1,"source":"package"}]
+    },
+    "odnoklassniki": {
+      "type": "app",
+      "glyph": "md-odnoklassniki",
+      "apps": [{"id":"odnoklassniki","confidence":1,"source":"package"}]
+    },
+    "office": {
+      "type": "app",
+      "glyph": "md-microsoft_office",
+      "apps": [{"id":"office","confidence":1,"source":"package"}]
+    },
+    "ohmyzsh": {
+      "type": "app",
+      "glyph": "dev-ohmyzsh",
+      "apps": [{"id":"ohmyzsh","confidence":1,"source":"package"}]
+    },
+    "okta": {
+      "type": "app",
+      "glyph": "dev-okta",
+      "apps": [{"id":"okta","confidence":1,"source":"package"}]
+    },
+    "old-republic": {
+      "type": "app",
+      "glyph": "fa-old_republic",
+      "apps": [{"id":"old-republic","confidence":1,"source":"package"}]
+    },
+    "onepassword": {
+      "type": "app",
+      "glyph": "md-onepassword",
+      "apps": [{"id":"onepassword","confidence":1,"source":"package"}]
+    },
+    "openal": {
+      "type": "app",
+      "glyph": "dev-openal",
+      "apps": [{"id":"openal","confidence":1,"source":"package"}]
+    },
+    "openapi": {
+      "type": "app",
+      "glyph": "dev-openapi",
+      "apps": [{"id":"openapi","confidence":1,"source":"package"}]
+    },
+    "opencart": {
+      "type": "app",
+      "glyph": "fa-opencart",
+      "apps": [{"id":"opencart","confidence":1,"source":"package"}]
+    },
+    "opencl": {
+      "type": "app",
+      "glyph": "dev-opencl",
+      "apps": [{"id":"opencl","confidence":1,"source":"package"}]
+    },
+    "opencv": {
+      "type": "app",
+      "glyph": "dev-opencv",
+      "apps": [{"id":"opencv","confidence":1,"source":"package"}]
+    },
+    "opengl": {
+      "type": "app",
+      "glyph": "dev-opengl",
+      "apps": [{"id":"opengl","confidence":1,"source":"package"}]
+    },
+    "openid": {
+      "type": "app",
+      "glyph": "md-openid",
+      "apps": [{"id":"openid","confidence":1,"source":"package"}]
+    },
+    "openstack": {
+      "type": "app",
+      "glyph": "dev-openstack",
+      "apps": [{"id":"openstack","confidence":1,"source":"package"}]
+    },
+    "opensuse": {
+      "type": "app",
+      "glyph": "dev-opensuse",
+      "apps": [{"id":"opensuse","confidence":1,"source":"package"}]
+    },
+    "opentelemetry": {
+      "type": "app",
+      "glyph": "dev-opentelemetry",
+      "apps": [{"id":"opentelemetry","confidence":1,"source":"package"}]
+    },
+    "opera": {
+      "type": "app",
+      "glyph": "md-opera",
+      "apps": [{"id":"opera","confidence":1,"source":"package"}]
+    },
+    "optin-monster": {
+      "type": "app",
+      "glyph": "fa-optin_monster",
+      "apps": [{"id":"optin-monster","confidence":1,"source":"package"}]
+    },
+    "oracle": {
+      "type": "app",
+      "glyph": "dev-oracle",
+      "apps": [{"id":"oracle","confidence":1,"source":"package"}]
+    },
+    "orcid": {
+      "type": "app",
+      "glyph": "fa-orcid",
+      "apps": [{"id":"orcid","confidence":1,"source":"package"}]
+    },
+    "ory": {
+      "type": "app",
+      "glyph": "dev-ory",
+      "apps": [{"id":"ory","confidence":1,"source":"package"}]
+    },
+    "osi": {
+      "type": "app",
+      "glyph": "fa-osi",
+      "apps": [{"id":"osi","confidence":1,"source":"package"}]
+    },
+    "p5js": {
+      "type": "app",
+      "glyph": "dev-p5js",
+      "apps": [{"id":"p5js","confidence":1,"source":"package"}]
+    },
+    "packer": {
+      "type": "app",
+      "glyph": "dev-packer",
+      "apps": [{"id":"packer","confidence":1,"source":"package"}]
+    },
+    "page4": {
+      "type": "app",
+      "glyph": "fa-page4",
+      "apps": [{"id":"page4","confidence":1,"source":"package"}]
+    },
+    "pagelines": {
+      "type": "app",
+      "glyph": "fa-pagelines",
+      "apps": [{"id":"pagelines","confidence":1,"source":"package"}]
+    },
+    "palfed": {
+      "type": "app",
+      "glyph": "fa-palfed",
+      "apps": [{"id":"palfed","confidence":1,"source":"package"}]
+    },
+    "pandas": {
+      "type": "app",
+      "glyph": "dev-pandas",
+      "apps": [{"id":"pandas","confidence":1,"source":"package"}]
+    },
+    "pandora": {
+      "type": "app",
+      "glyph": "md-pandora",
+      "apps": [{"id":"pandora","confidence":1,"source":"package"}]
+    },
+    "passport": {
+      "type": "app",
+      "glyph": "md-passport",
+      "apps": [{"id":"passport","confidence":1,"source":"package"}]
+    },
+    "patreon": {
+      "type": "app",
+      "glyph": "md-patreon",
+      "apps": [{"id":"patreon","confidence":1,"source":"package"}]
+    },
+    "paypal": {
+      "type": "app",
+      "glyph": "fa-paypal",
+      "apps": [{"id":"paypal","confidence":1,"source":"package"}]
+    },
+    "periscope": {
+      "type": "app",
+      "glyph": "fa-periscope",
+      "apps": [{"id":"periscope","confidence":1,"source":"package"}]
+    },
+    "perl": {
+      "type": "app",
+      "glyph": "dev-perl",
+      "apps": [{"id":"perl","confidence":1,"source":"package"}]
+    },
+    "pfsense": {
+      "type": "app",
+      "glyph": "dev-pfsense",
+      "apps": [{"id":"pfsense","confidence":1,"source":"package"}]
+    },
+    "phabricator": {
+      "type": "app",
+      "glyph": "fa-phabricator",
+      "apps": [{"id":"phabricator","confidence":1,"source":"package"}]
+    },
+    "phalcon": {
+      "type": "app",
+      "glyph": "dev-phalcon",
+      "apps": [{"id":"phalcon","confidence":1,"source":"package"}]
+    },
+    "phoenix": {
+      "type": "app",
+      "glyph": "dev-phoenix",
+      "apps": [{"id":"phoenix","confidence":1,"source":"package"}]
+    },
+    "phoenix-framework": {
+      "type": "app",
+      "glyph": "fa-phoenix_framework",
+      "apps": [{"id":"phoenix-framework","confidence":1,"source":"package"}]
+    },
+    "phoenix-squadron": {
+      "type": "app",
+      "glyph": "fa-phoenix_squadron",
+      "apps": [{"id":"phoenix-squadron","confidence":1,"source":"package"}]
+    },
+    "photonengine": {
+      "type": "app",
+      "glyph": "dev-photonengine",
+      "apps": [{"id":"photonengine","confidence":1,"source":"package"}]
+    },
+    "photoshop": {
+      "type": "app",
+      "glyph": "dev-photoshop",
+      "apps": [{"id":"photoshop","confidence":1,"source":"package"}]
+    },
+    "php": {
+      "type": "app",
+      "glyph": "fa-php",
+      "apps": [{"id":"php","confidence":1,"source":"package"}]
+    },
+    "phpstorm": {
+      "type": "app",
+      "glyph": "dev-phpstorm",
+      "apps": [{"id":"phpstorm","confidence":1,"source":"package"}]
+    },
+    "pied-piper": {
+      "type": "app",
+      "glyph": "fa-pied_piper_hat",
+      "apps": [{"id":"pied-piper","confidence":1,"source":"package"}]
+    },
+    "pied-piper-alt": {
+      "type": "app",
+      "glyph": "fa-pied_piper_alt",
+      "apps": [{"id":"pied-piper-alt","confidence":1,"source":"package"}]
+    },
+    "pied-piper-hat": {
+      "type": "app",
+      "glyph": "fa-pied_piper_hat",
+      "apps": [{"id":"pied-piper-hat","confidence":1,"source":"package"}]
+    },
+    "pied-piper-pp": {
+      "type": "app",
+      "glyph": "fa-pied_piper_pp",
+      "apps": [{"id":"pied-piper-pp","confidence":1,"source":"package"}]
+    },
+    "pinterest": {
+      "type": "app",
+      "glyph": "md-pinterest",
+      "apps": [{"id":"pinterest","confidence":1,"source":"package"}]
+    },
+    "pinterest-p": {
+      "type": "app",
+      "glyph": "fa-pinterest_p",
+      "apps": [{"id":"pinterest-p","confidence":1,"source":"package"}]
+    },
+    "playstation": {
+      "type": "app",
+      "glyph": "fa-playstation",
+      "apps": [{"id":"playstation","confidence":1,"source":"package"}]
+    },
+    "playwright": {
+      "type": "app",
+      "glyph": "dev-playwright",
+      "apps": [{"id":"playwright","confidence":1,"source":"package"}]
+    },
+    "plex": {
+      "type": "app",
+      "glyph": "md-plex",
+      "apps": [{"id":"plex","confidence":1,"source":"package"}]
+    },
+    "plotly": {
+      "type": "app",
+      "glyph": "dev-plotly",
+      "apps": [{"id":"plotly","confidence":1,"source":"package"}]
+    },
+    "pnpm": {
+      "type": "app",
+      "glyph": "dev-pnpm",
+      "apps": [{"id":"pnpm","confidence":1,"source":"package"}]
+    },
+    "podman": {
+      "type": "app",
+      "glyph": "dev-podman",
+      "apps": [{"id":"podman","confidence":1,"source":"package"}]
+    },
+    "poetry": {
+      "type": "app",
+      "glyph": "dev-poetry",
+      "apps": [{"id":"poetry","confidence":1,"source":"package"}]
+    },
+    "polygon": {
+      "type": "app",
+      "glyph": "dev-polygon",
+      "apps": [{"id":"polygon","confidence":1,"source":"package"}]
+    },
+    "polymer": {
+      "type": "app",
+      "glyph": "md-polymer",
+      "apps": [{"id":"polymer","confidence":1,"source":"package"}]
+    },
+    "portainer": {
+      "type": "app",
+      "glyph": "dev-portainer",
+      "apps": [{"id":"portainer","confidence":1,"source":"package"}]
+    },
+    "postcss": {
+      "type": "app",
+      "glyph": "dev-postcss",
+      "apps": [{"id":"postcss","confidence":1,"source":"package"}]
+    },
+    "postgresql": {
+      "type": "app",
+      "glyph": "dev-postgresql",
+      "apps": [{"id":"postgresql","confidence":1,"source":"package"}]
+    },
+    "postman": {
+      "type": "app",
+      "glyph": "dev-postman",
+      "apps": [{"id":"postman","confidence":1,"source":"package"}]
+    },
+    "powershell": {
+      "type": "app",
+      "glyph": "md-powershell",
+      "apps": [{"id":"powershell","confidence":1,"source":"package"}]
+    },
+    "premierepro": {
+      "type": "app",
+      "glyph": "dev-premierepro",
+      "apps": [{"id":"premierepro","confidence":1,"source":"package"}]
+    },
+    "prisma": {
+      "type": "app",
+      "glyph": "dev-prisma",
+      "apps": [{"id":"prisma","confidence":1,"source":"package"}]
+    },
+    "processing": {
+      "type": "app",
+      "glyph": "dev-processing",
+      "apps": [{"id":"processing","confidence":1,"source":"package"}]
+    },
+    "product-hunt": {
+      "type": "app",
+      "glyph": "fa-product_hunt",
+      "apps": [{"id":"product-hunt","confidence":1,"source":"package"}]
+    },
+    "prolog": {
+      "type": "app",
+      "glyph": "dev-prolog",
+      "apps": [{"id":"prolog","confidence":1,"source":"package"}]
+    },
+    "prometheus": {
+      "type": "app",
+      "glyph": "dev-prometheus",
+      "apps": [{"id":"prometheus","confidence":1,"source":"package"}]
+    },
+    "protractor": {
+      "type": "app",
+      "glyph": "dev-protractor",
+      "apps": [{"id":"protractor","confidence":1,"source":"package"}]
+    },
+    "pulsar": {
+      "type": "app",
+      "glyph": "dev-pulsar",
+      "apps": [{"id":"pulsar","confidence":1,"source":"package"}]
+    },
+    "pulumi": {
+      "type": "app",
+      "glyph": "dev-pulumi",
+      "apps": [{"id":"pulumi","confidence":1,"source":"package"}]
+    },
+    "puppeteer": {
+      "type": "app",
+      "glyph": "dev-puppeteer",
+      "apps": [{"id":"puppeteer","confidence":1,"source":"package"}]
+    },
+    "purescript": {
+      "type": "app",
+      "glyph": "dev-purescript",
+      "apps": [{"id":"purescript","confidence":1,"source":"package"}]
+    },
+    "pushed": {
+      "type": "app",
+      "glyph": "fa-pushed",
+      "apps": [{"id":"pushed","confidence":1,"source":"package"}]
+    },
+    "putty": {
+      "type": "app",
+      "glyph": "dev-putty",
+      "apps": [{"id":"putty","confidence":1,"source":"package"}]
+    },
+    "pycharm": {
+      "type": "app",
+      "glyph": "dev-pycharm",
+      "apps": [{"id":"pycharm","confidence":1,"source":"package"}]
+    },
+    "pypi": {
+      "type": "app",
+      "glyph": "dev-pypi",
+      "apps": [{"id":"pypi","confidence":1,"source":"package"}]
+    },
+    "pyscript": {
+      "type": "app",
+      "glyph": "dev-pyscript",
+      "apps": [{"id":"pyscript","confidence":1,"source":"package"}]
+    },
+    "pytest": {
+      "type": "app",
+      "glyph": "dev-pytest",
+      "apps": [{"id":"pytest","confidence":1,"source":"package"}]
+    },
+    "python": {
+      "type": "app",
+      "glyph": "fa-python",
+      "apps": [{"id":"python","confidence":1,"source":"package"}]
+    },
+    "pytorch": {
+      "type": "app",
+      "glyph": "dev-pytorch",
+      "apps": [{"id":"pytorch","confidence":1,"source":"package"}]
+    },
+    "qodana": {
+      "type": "app",
+      "glyph": "dev-qodana",
+      "apps": [{"id":"qodana","confidence":1,"source":"package"}]
+    },
+    "qq": {
+      "type": "app",
+      "glyph": "fa-qq",
+      "apps": [{"id":"qq","confidence":1,"source":"package"}]
+    },
+    "qqchat": {
+      "type": "app",
+      "glyph": "md-qqchat",
+      "apps": [{"id":"qqchat","confidence":1,"source":"package"}]
+    },
+    "qt": {
+      "type": "app",
+      "glyph": "dev-qt",
+      "apps": [{"id":"qt","confidence":1,"source":"package"}]
+    },
+    "quarkus": {
+      "type": "app",
+      "glyph": "dev-quarkus",
+      "apps": [{"id":"quarkus","confidence":1,"source":"package"}]
+    },
+    "quasar": {
+      "type": "app",
+      "glyph": "dev-quasar",
+      "apps": [{"id":"quasar","confidence":1,"source":"package"}]
+    },
+    "quinscape": {
+      "type": "app",
+      "glyph": "fa-quinscape",
+      "apps": [{"id":"quinscape","confidence":1,"source":"package"}]
+    },
+    "quora": {
+      "type": "app",
+      "glyph": "fa-quora",
+      "apps": [{"id":"quora","confidence":1,"source":"package"}]
+    },
+    "qwik": {
+      "type": "app",
+      "glyph": "dev-qwik",
+      "apps": [{"id":"qwik","confidence":1,"source":"package"}]
+    },
+    "r": {
+      "type": "app",
+      "glyph": "dev-r",
+      "apps": [{"id":"r","confidence":1,"source":"package"}]
+    },
+    "r-project": {
+      "type": "app",
+      "glyph": "fa-r_project",
+      "apps": [{"id":"r-project","confidence":1,"source":"package"}]
+    },
+    "rabbitmq": {
+      "type": "app",
+      "glyph": "dev-rabbitmq",
+      "apps": [{"id":"rabbitmq","confidence":1,"source":"package"}]
+    },
+    "rails": {
+      "type": "app",
+      "glyph": "dev-rails",
+      "apps": [{"id":"rails","confidence":1,"source":"package"}]
+    },
+    "railway": {
+      "type": "app",
+      "glyph": "dev-railway",
+      "apps": [{"id":"railway","confidence":1,"source":"package"}]
+    },
+    "rancher": {
+      "type": "app",
+      "glyph": "dev-rancher",
+      "apps": [{"id":"rancher","confidence":1,"source":"package"}]
+    },
+    "raspberry-pi": {
+      "type": "app",
+      "glyph": "fa-raspberry_pi",
+      "apps": [{"id":"raspberry-pi","confidence":1,"source":"package"}]
+    },
+    "ravelry": {
+      "type": "app",
+      "glyph": "fa-ravelry",
+      "apps": [{"id":"ravelry","confidence":1,"source":"package"}]
+    },
+    "reach": {
+      "type": "app",
+      "glyph": "dev-reach",
+      "apps": [{"id":"reach","confidence":1,"source":"package"}]
+    },
+    "react": {
+      "type": "app",
+      "glyph": "md-react",
+      "apps": [{"id":"react","confidence":1,"source":"package"}]
+    },
+    "reactbootstrap": {
+      "type": "app",
+      "glyph": "dev-reactbootstrap",
+      "apps": [{"id":"reactbootstrap","confidence":1,"source":"package"}]
+    },
+    "reacteurope": {
+      "type": "app",
+      "glyph": "fa-reacteurope",
+      "apps": [{"id":"reacteurope","confidence":1,"source":"package"}]
+    },
+    "reactnavigation": {
+      "type": "app",
+      "glyph": "dev-reactnavigation",
+      "apps": [{"id":"reactnavigation","confidence":1,"source":"package"}]
+    },
+    "reactrouter": {
+      "type": "app",
+      "glyph": "dev-reactrouter",
+      "apps": [{"id":"reactrouter","confidence":1,"source":"package"}]
+    },
+    "readme": {
+      "type": "app",
+      "glyph": "fa-readme",
+      "apps": [{"id":"readme","confidence":1,"source":"package"}]
+    },
+    "readthedocs": {
+      "type": "app",
+      "glyph": "dev-readthedocs",
+      "apps": [{"id":"readthedocs","confidence":1,"source":"package"}]
+    },
+    "realm": {
+      "type": "app",
+      "glyph": "dev-realm",
+      "apps": [{"id":"realm","confidence":1,"source":"package"}]
+    },
+    "rebel": {
+      "type": "app",
+      "glyph": "fa-rebel",
+      "apps": [{"id":"rebel","confidence":1,"source":"package"}]
+    },
+    "rect": {
+      "type": "app",
+      "glyph": "dev-rect",
+      "apps": [{"id":"rect","confidence":1,"source":"package"}]
+    },
+    "red-river": {
+      "type": "app",
+      "glyph": "fa-red_river",
+      "apps": [{"id":"red-river","confidence":1,"source":"package"}]
+    },
+    "reddit": {
+      "type": "app",
+      "glyph": "md-reddit",
+      "apps": [{"id":"reddit","confidence":1,"source":"package"}]
+    },
+    "reddit-alien": {
+      "type": "app",
+      "glyph": "fa-reddit_alien",
+      "apps": [{"id":"reddit-alien","confidence":1,"source":"package"}]
+    },
+    "redhat": {
+      "type": "app",
+      "glyph": "fa-redhat",
+      "apps": [{"id":"redhat","confidence":1,"source":"package"}]
+    },
+    "redis": {
+      "type": "app",
+      "glyph": "dev-redis",
+      "apps": [{"id":"redis","confidence":1,"source":"package"}]
+    },
+    "redux": {
+      "type": "app",
+      "glyph": "dev-redux",
+      "apps": [{"id":"redux","confidence":1,"source":"package"}]
+    },
+    "renpy": {
+      "type": "app",
+      "glyph": "dev-renpy",
+      "apps": [{"id":"renpy","confidence":1,"source":"package"}]
+    },
+    "renren": {
+      "type": "app",
+      "glyph": "fa-renren",
+      "apps": [{"id":"renren","confidence":1,"source":"package"}]
+    },
+    "replit": {
+      "type": "app",
+      "glyph": "dev-replit",
+      "apps": [{"id":"replit","confidence":1,"source":"package"}]
+    },
+    "replyd": {
+      "type": "app",
+      "glyph": "fa-replyd",
+      "apps": [{"id":"replyd","confidence":1,"source":"package"}]
+    },
+    "researchgate": {
+      "type": "app",
+      "glyph": "fa-researchgate",
+      "apps": [{"id":"researchgate","confidence":1,"source":"package"}]
+    },
+    "resolving": {
+      "type": "app",
+      "glyph": "fa-resolving",
+      "apps": [{"id":"resolving","confidence":1,"source":"package"}]
+    },
+    "rev": {
+      "type": "app",
+      "glyph": "fa-rev",
+      "apps": [{"id":"rev","confidence":1,"source":"package"}]
+    },
+    "rider": {
+      "type": "app",
+      "glyph": "dev-rider",
+      "apps": [{"id":"rider","confidence":1,"source":"package"}]
+    },
+    "rocketchat": {
+      "type": "app",
+      "glyph": "fa-rocketchat",
+      "apps": [{"id":"rocketchat","confidence":1,"source":"package"}]
+    },
+    "rockrms": {
+      "type": "app",
+      "glyph": "fa-rockrms",
+      "apps": [{"id":"rockrms","confidence":1,"source":"package"}]
+    },
+    "rocksdb": {
+      "type": "app",
+      "glyph": "dev-rocksdb",
+      "apps": [{"id":"rocksdb","confidence":1,"source":"package"}]
+    },
+    "rockylinux": {
+      "type": "app",
+      "glyph": "dev-rockylinux",
+      "apps": [{"id":"rockylinux","confidence":1,"source":"package"}]
+    },
+    "rollup": {
+      "type": "app",
+      "glyph": "dev-rollup",
+      "apps": [{"id":"rollup","confidence":1,"source":"package"}]
+    },
+    "ros": {
+      "type": "app",
+      "glyph": "dev-ros",
+      "apps": [{"id":"ros","confidence":1,"source":"package"}]
+    },
+    "rspec": {
+      "type": "app",
+      "glyph": "dev-rspec",
+      "apps": [{"id":"rspec","confidence":1,"source":"package"}]
+    },
+    "rstudio": {
+      "type": "app",
+      "glyph": "dev-rstudio",
+      "apps": [{"id":"rstudio","confidence":1,"source":"package"}]
+    },
+    "ruby": {
+      "type": "app",
+      "glyph": "dev-ruby",
+      "apps": [{"id":"ruby","confidence":1,"source":"package"}]
+    },
+    "rubymine": {
+      "type": "app",
+      "glyph": "dev-rubymine",
+      "apps": [{"id":"rubymine","confidence":1,"source":"package"}]
+    },
+    "rust": {
+      "type": "app",
+      "glyph": "dev-rust",
+      "apps": [{"id":"rust","confidence":1,"source":"package"}]
+    },
+    "rxjs": {
+      "type": "app",
+      "glyph": "dev-rxjs",
+      "apps": [{"id":"rxjs","confidence":1,"source":"package"}]
+    },
+    "safari": {
+      "type": "app",
+      "glyph": "fa-safari",
+      "apps": [{"id":"safari","confidence":1,"source":"package"}]
+    },
+    "salesforce": {
+      "type": "app",
+      "glyph": "md-salesforce",
+      "apps": [{"id":"salesforce","confidence":1,"source":"package"}]
+    },
+    "sanity": {
+      "type": "app",
+      "glyph": "dev-sanity",
+      "apps": [{"id":"sanity","confidence":1,"source":"package"}]
+    },
+    "sass": {
+      "type": "app",
+      "glyph": "md-sass",
+      "apps": [{"id":"sass","confidence":1,"source":"package"}]
+    },
+    "scala": {
+      "type": "app",
+      "glyph": "dev-scala",
+      "apps": [{"id":"scala","confidence":1,"source":"package"}]
+    },
+    "scalingo": {
+      "type": "app",
+      "glyph": "dev-scalingo",
+      "apps": [{"id":"scalingo","confidence":1,"source":"package"}]
+    },
+    "schlix": {
+      "type": "app",
+      "glyph": "fa-schlix",
+      "apps": [{"id":"schlix","confidence":1,"source":"package"}]
+    },
+    "scikitlearn": {
+      "type": "app",
+      "glyph": "dev-scikitlearn",
+      "apps": [{"id":"scikitlearn","confidence":1,"source":"package"}]
+    },
+    "scribd": {
+      "type": "app",
+      "glyph": "fa-scribd",
+      "apps": [{"id":"scribd","confidence":1,"source":"package"}]
+    },
+    "sdl": {
+      "type": "app",
+      "glyph": "dev-sdl",
+      "apps": [{"id":"sdl","confidence":1,"source":"package"}]
+    },
+    "searchengin": {
+      "type": "app",
+      "glyph": "fa-searchengin",
+      "apps": [{"id":"searchengin","confidence":1,"source":"package"}]
+    },
+    "selenium": {
+      "type": "app",
+      "glyph": "dev-selenium",
+      "apps": [{"id":"selenium","confidence":1,"source":"package"}]
+    },
+    "sellcast": {
+      "type": "app",
+      "glyph": "fa-sellcast",
+      "apps": [{"id":"sellcast","confidence":1,"source":"package"}]
+    },
+    "sellsy": {
+      "type": "app",
+      "glyph": "fa-sellsy",
+      "apps": [{"id":"sellsy","confidence":1,"source":"package"}]
+    },
+    "sema": {
+      "type": "app",
+      "glyph": "dev-sema",
+      "apps": [{"id":"sema","confidence":1,"source":"package"}]
+    },
+    "sentry": {
+      "type": "app",
+      "glyph": "dev-sentry",
+      "apps": [{"id":"sentry","confidence":1,"source":"package"}]
+    },
+    "sequelize": {
+      "type": "app",
+      "glyph": "dev-sequelize",
+      "apps": [{"id":"sequelize","confidence":1,"source":"package"}]
+    },
+    "servicestack": {
+      "type": "app",
+      "glyph": "fa-servicestack",
+      "apps": [{"id":"servicestack","confidence":1,"source":"package"}]
+    },
+    "settings": {
+      "type": "category",
+      "glyph": "md-cog",
+      "apps": [{"id":"gnome-control-center","confidence":1,"source":"package"},{"id":"systemsettings","confidence":1,"source":"package"},{"id":"xfce4-settings-manager","confidence":1,"source":"package"}]
+    },
+    "shirtsinbulk": {
+      "type": "app",
+      "glyph": "fa-shirtsinbulk",
+      "apps": [{"id":"shirtsinbulk","confidence":1,"source":"package"}]
+    },
+    "shopware": {
+      "type": "app",
+      "glyph": "fa-shopware",
+      "apps": [{"id":"shopware","confidence":1,"source":"package"}]
+    },
+    "shotgrid": {
+      "type": "app",
+      "glyph": "dev-shotgrid",
+      "apps": [{"id":"shotgrid","confidence":1,"source":"package"}]
+    },
+    "signal": {
+      "type": "app",
+      "glyph": "md-message_lock",
+      "apps": [{"id":"ferdium","confidence":0.5,"source":"category"},{"id":"org.signal.Signal","confidence":0.9,"source":"flatpak"},{"id":"rambox","confidence":0.5,"source":"category"},{"id":"signal-desktop","confidence":1,"source":"package"}]
+    },
+    "simplybuilt": {
+      "type": "app",
+      "glyph": "fa-simplybuilt",
+      "apps": [{"id":"simplybuilt","confidence":1,"source":"package"}]
+    },
+    "sistrix": {
+      "type": "app",
+      "glyph": "fa-sistrix",
+      "apps": [{"id":"sistrix","confidence":1,"source":"package"}]
+    },
+    "sith": {
+      "type": "app",
+      "glyph": "fa-sith",
+      "apps": [{"id":"sith","confidence":1,"source":"package"}]
+    },
+    "sketch": {
+      "type": "app",
+      "glyph": "fa-sketch",
+      "apps": [{"id":"sketch","confidence":1,"source":"package"}]
+    },
+    "skyatlas": {
+      "type": "app",
+      "glyph": "fa-skyatlas",
+      "apps": [{"id":"skyatlas","confidence":1,"source":"package"}]
+    },
+    "skype": {
+      "type": "app",
+      "glyph": "md-skype",
+      "apps": [{"id":"skype","confidence":1,"source":"package"}]
+    },
+    "skype-business": {
+      "type": "app",
+      "glyph": "md-skype_business",
+      "apps": [{"id":"skype-business","confidence":1,"source":"package"}]
+    },
+    "slack": {
+      "type": "app",
+      "glyph": "md-slack",
+      "apps": [{"id":"slack","confidence":1,"source":"package"}]
+    },
+    "slideshare": {
+      "type": "app",
+      "glyph": "fa-slideshare",
+      "apps": [{"id":"slideshare","confidence":1,"source":"package"}]
+    },
+    "snapchat": {
+      "type": "app",
+      "glyph": "md-snapchat",
+      "apps": [{"id":"snapchat","confidence":1,"source":"package"}]
+    },
+    "socketio": {
+      "type": "app",
+      "glyph": "dev-socketio",
+      "apps": [{"id":"socketio","confidence":1,"source":"package"}]
+    },
+    "solidity": {
+      "type": "app",
+      "glyph": "dev-solidity",
+      "apps": [{"id":"solidity","confidence":1,"source":"package"}]
+    },
+    "solidjs": {
+      "type": "app",
+      "glyph": "dev-solidjs",
+      "apps": [{"id":"solidjs","confidence":1,"source":"package"}]
+    },
+    "sonarqube": {
+      "type": "app",
+      "glyph": "dev-sonarqube",
+      "apps": [{"id":"sonarqube","confidence":1,"source":"package"}]
+    },
+    "soundcloud": {
+      "type": "app",
+      "glyph": "md-soundcloud",
+      "apps": [{"id":"soundcloud","confidence":1,"source":"package"}]
+    },
+    "sourcetree": {
+      "type": "app",
+      "glyph": "fa-sourcetree",
+      "apps": [{"id":"sourcetree","confidence":1,"source":"package"}]
+    },
+    "spack": {
+      "type": "app",
+      "glyph": "dev-spack",
+      "apps": [{"id":"spack","confidence":1,"source":"package"}]
+    },
+    "speakap": {
+      "type": "app",
+      "glyph": "fa-speakap",
+      "apps": [{"id":"speakap","confidence":1,"source":"package"}]
+    },
+    "speaker-deck": {
+      "type": "app",
+      "glyph": "fa-speaker_deck",
+      "apps": [{"id":"speaker-deck","confidence":1,"source":"package"}]
+    },
+    "splunk": {
+      "type": "app",
+      "glyph": "dev-splunk",
+      "apps": [{"id":"splunk","confidence":1,"source":"package"}]
+    },
+    "spotify": {
+      "type": "app",
+      "glyph": "md-spotify",
+      "apps": [{"id":"spotify","confidence":1,"source":"package"}]
+    },
+    "spring": {
+      "type": "app",
+      "glyph": "dev-spring",
+      "apps": [{"id":"spring","confidence":1,"source":"package"}]
+    },
+    "spss": {
+      "type": "app",
+      "glyph": "dev-spss",
+      "apps": [{"id":"spss","confidence":1,"source":"package"}]
+    },
+    "spyder": {
+      "type": "app",
+      "glyph": "dev-spyder",
+      "apps": [{"id":"spyder","confidence":1,"source":"package"}]
+    },
+    "sqlalchemy": {
+      "type": "app",
+      "glyph": "dev-sqlalchemy",
+      "apps": [{"id":"sqlalchemy","confidence":1,"source":"package"}]
+    },
+    "sqldeveloper": {
+      "type": "app",
+      "glyph": "dev-sqldeveloper",
+      "apps": [{"id":"sqldeveloper","confidence":1,"source":"package"}]
+    },
+    "sqlite": {
+      "type": "app",
+      "glyph": "dev-sqlite",
+      "apps": [{"id":"sqlite","confidence":1,"source":"package"}]
+    },
+    "square-behance": {
+      "type": "app",
+      "glyph": "fa-behance_square",
+      "apps": [{"id":"square-behance","confidence":1,"source":"package"}]
+    },
+    "square-dribbble": {
+      "type": "app",
+      "glyph": "fa-square_dribbble",
+      "apps": [{"id":"square-dribbble","confidence":1,"source":"package"}]
+    },
+    "square-facebook": {
+      "type": "app",
+      "glyph": "fa-facebook_square",
+      "apps": [{"id":"square-facebook","confidence":1,"source":"package"}]
+    },
+    "square-font-awesome": {
+      "type": "app",
+      "glyph": "fa-square_font_awesome_stroke",
+      "apps": [{"id":"square-font-awesome","confidence":1,"source":"package"}]
+    },
+    "square-font-awesome-stroke": {
+      "type": "app",
+      "glyph": "fa-square_font_awesome_stroke",
+      "apps": [{"id":"square-font-awesome-stroke","confidence":1,"source":"package"}]
+    },
+    "square-git": {
+      "type": "app",
+      "glyph": "fa-git_square",
+      "apps": [{"id":"square-git","confidence":1,"source":"package"}]
+    },
+    "square-github": {
+      "type": "app",
+      "glyph": "fa-github_square",
+      "apps": [{"id":"square-github","confidence":1,"source":"package"}]
+    },
+    "square-google-plus": {
+      "type": "app",
+      "glyph": "fa-google_plus_square",
+      "apps": [{"id":"square-google-plus","confidence":1,"source":"package"}]
+    },
+    "square-hacker-news": {
+      "type": "app",
+      "glyph": "fa-square_hacker_news",
+      "apps": [{"id":"square-hacker-news","confidence":1,"source":"package"}]
+    },
+    "square-js": {
+      "type": "app",
+      "glyph": "fa-square_js",
+      "apps": [{"id":"square-js","confidence":1,"source":"package"}]
+    },
+    "square-lastfm": {
+      "type": "app",
+      "glyph": "fa-lastfm_square",
+      "apps": [{"id":"square-lastfm","confidence":1,"source":"package"}]
+    },
+    "square-odnoklassniki": {
+      "type": "app",
+      "glyph": "fa-odnoklassniki_square",
+      "apps": [{"id":"square-odnoklassniki","confidence":1,"source":"package"}]
+    },
+    "square-pinterest": {
+      "type": "app",
+      "glyph": "fa-pinterest_square",
+      "apps": [{"id":"square-pinterest","confidence":1,"source":"package"}]
+    },
+    "square-reddit": {
+      "type": "app",
+      "glyph": "fa-reddit_square",
+      "apps": [{"id":"square-reddit","confidence":1,"source":"package"}]
+    },
+    "square-snapchat": {
+      "type": "app",
+      "glyph": "fa-snapchat_square",
+      "apps": [{"id":"square-snapchat","confidence":1,"source":"package"}]
+    },
+    "square-steam": {
+      "type": "app",
+      "glyph": "fa-square_steam",
+      "apps": [{"id":"square-steam","confidence":1,"source":"package"}]
+    },
+    "square-tumblr": {
+      "type": "app",
+      "glyph": "fa-square_tumblr",
+      "apps": [{"id":"square-tumblr","confidence":1,"source":"package"}]
+    },
+    "square-twitter": {
+      "type": "app",
+      "glyph": "fa-square_twitter",
+      "apps": [{"id":"square-twitter","confidence":1,"source":"package"}]
+    },
+    "square-viadeo": {
+      "type": "app",
+      "glyph": "fa-square_viadeo",
+      "apps": [{"id":"square-viadeo","confidence":1,"source":"package"}]
+    },
+    "square-vimeo": {
+      "type": "app",
+      "glyph": "fa-square_vimeo",
+      "apps": [{"id":"square-vimeo","confidence":1,"source":"package"}]
+    },
+    "square-whatsapp": {
+      "type": "app",
+      "glyph": "fa-square_whatsapp",
+      "apps": [{"id":"square-whatsapp","confidence":1,"source":"package"}]
+    },
+    "square-xing": {
+      "type": "app",
+      "glyph": "fa-square_xing",
+      "apps": [{"id":"square-xing","confidence":1,"source":"package"}]
+    },
+    "square-youtube": {
+      "type": "app",
+      "glyph": "fa-square_youtube",
+      "apps": [{"id":"square-youtube","confidence":1,"source":"package"}]
+    },
+    "squarespace": {
+      "type": "app",
+      "glyph": "fa-squarespace",
+      "apps": [{"id":"squarespace","confidence":1,"source":"package"}]
+    },
+    "ssh": {
+      "type": "app",
+      "glyph": "md-ssh",
+      "apps": [{"id":"ssh","confidence":1,"source":"package"}]
+    },
+    "stack-exchange": {
+      "type": "app",
+      "glyph": "md-stack_exchange",
+      "apps": [{"id":"stack-exchange","confidence":1,"source":"package"}]
+    },
+    "stack-overflow": {
+      "type": "app",
+      "glyph": "md-stack_overflow",
+      "apps": [{"id":"stack-overflow","confidence":1,"source":"package"}]
+    },
+    "stackoverflow": {
+      "type": "app",
+      "glyph": "dev-stackoverflow",
+      "apps": [{"id":"stackoverflow","confidence":1,"source":"package"}]
+    },
+    "stackpath": {
+      "type": "app",
+      "glyph": "fa-stackpath",
+      "apps": [{"id":"stackpath","confidence":1,"source":"package"}]
+    },
+    "stata": {
+      "type": "app",
+      "glyph": "dev-stata",
+      "apps": [{"id":"stata","confidence":1,"source":"package"}]
+    },
+    "staylinked": {
+      "type": "app",
+      "glyph": "fa-staylinked",
+      "apps": [{"id":"staylinked","confidence":1,"source":"package"}]
+    },
+    "steam": {
+      "type": "app",
+      "glyph": "md-steam",
+      "apps": [{"id":"steam","confidence":1,"source":"package"}]
+    },
+    "steam-symbol": {
+      "type": "app",
+      "glyph": "fa-steam_symbol",
+      "apps": [{"id":"steam-symbol","confidence":1,"source":"package"}]
+    },
+    "sticker-mule": {
+      "type": "app",
+      "glyph": "fa-sticker_mule",
+      "apps": [{"id":"sticker-mule","confidence":1,"source":"package"}]
+    },
+    "storybook": {
+      "type": "app",
+      "glyph": "dev-storybook",
+      "apps": [{"id":"storybook","confidence":1,"source":"package"}]
+    },
+    "strava": {
+      "type": "app",
+      "glyph": "fa-strava",
+      "apps": [{"id":"strava","confidence":1,"source":"package"}]
+    },
+    "streamlit": {
+      "type": "app",
+      "glyph": "dev-streamlit",
+      "apps": [{"id":"streamlit","confidence":1,"source":"package"}]
+    },
+    "stripe": {
+      "type": "app",
+      "glyph": "fa-stripe",
+      "apps": [{"id":"com.stripe.cli","confidence":0.6,"source":"flatpak"},{"id":"stripe-cli","confidence":0.6,"source":"package"}]
+    },
+    "stripe-s": {
+      "type": "app",
+      "glyph": "fa-stripe_s",
+      "apps": [{"id":"stripe-cli","confidence":0.6,"source":"package"}]
+    },
+    "studiovinari": {
+      "type": "app",
+      "glyph": "fa-studiovinari",
+      "apps": [{"id":"studiovinari","confidence":0.5,"source":"category"}]
+    },
+    "stumbleupon": {
+      "type": "app",
+      "glyph": "fa-stumbleupon",
+      "apps": [{"id":"stumbleupon","confidence":0.5,"source":"category"}]
+    },
+    "stumbleupon-circle": {
+      "type": "app",
+      "glyph": "fa-stumbleupon_circle",
+      "apps": [{"id":"stumbleupon","confidence":0.5,"source":"category"}]
+    },
+    "stylus": {
+      "type": "app",
+      "glyph": "dev-stylus",
+      "apps": [{"id":"stylus","confidence":0.5,"source":"category"}]
+    },
+    "subversion": {
+      "type": "app",
+      "glyph": "dev-subversion",
+      "apps": [{"id":"kdesvn","confidence":0.6,"source":"package"},{"id":"rapidsvn","confidence":0.6,"source":"package"},{"id":"subversion","confidence":1,"source":"package"}]
+    },
+    "supabase": {
+      "type": "app",
+      "glyph": "dev-supabase",
+      "apps": [{"id":"supabase","confidence":0.8,"source":"binary"},{"id":"supabase-cli","confidence":0.8,"source":"package"}]
+    },
+    "superpowers": {
+      "type": "app",
+      "glyph": "fa-superpowers",
+      "apps": [{"id":"superpowers","confidence":0.5,"source":"category"}]
+    },
+    "supple": {
+      "type": "app",
+      "glyph": "fa-supple",
+      "apps": [{"id":"supple","confidence":0.5,"source":"category"}]
+    },
+    "suse": {
+      "type": "app",
+      "glyph": "fa-suse",
+      "apps": [{"id":"yast","confidence":0.9,"source":"binary"},{"id":"yast2","confidence":0.9,"source":"package"},{"id":"yast2-control-center","confidence":0.8,"source":"package"}]
+    },
+    "svelte": {
+      "type": "app",
+      "glyph": "dev-svelte",
+      "apps": [{"id":"create-svelte","confidence":0.5,"source":"package"},{"id":"svelte-language-server","confidence":0.6,"source":"package"}]
+    },
+    "swagger": {
+      "type": "app",
+      "glyph": "dev-swagger",
+      "apps": [{"id":"swagger-cli","confidence":0.7,"source":"package"},{"id":"swagger-editor","confidence":0.8,"source":"flatpak"},{"id":"swagger-ui","confidence":0.7,"source":"package"}]
+    },
+    "swift": {
+      "type": "app",
+      "glyph": "fa-swift",
+      "apps": [{"id":"swift","confidence":1,"source":"binary"},{"id":"swift-studio","confidence":0.8,"source":"package"},{"id":"swiftlang","confidence":1,"source":"package"}]
+    },
+    "swiper": {
+      "type": "app",
+      "glyph": "dev-swiper",
+      "apps": [{"id":"swiper","confidence":0.5,"source":"category"}]
+    },
+    "symfony": {
+      "type": "app",
+      "glyph": "fa-symfony",
+      "apps": [{"id":"symfony","confidence":0.9,"source":"package"},{"id":"symfony-cli","confidence":0.9,"source":"binary"}]
+    },
+    "tailwindcss": {
+      "type": "app",
+      "glyph": "dev-tailwindcss",
+      "apps": [{"id":"tailwindcss","confidence":0.9,"source":"binary"},{"id":"tailwindcss-cli","confidence":0.9,"source":"package"}]
+    },
+    "tauri": {
+      "type": "app",
+      "glyph": "dev-tauri",
+      "apps": [{"id":"cargo-tauri","confidence":0.8,"source":"package"},{"id":"tauri","confidence":0.8,"source":"package"}]
+    },
+    "teamspeak": {
+      "type": "app",
+      "glyph": "fa-teamspeak",
+      "apps": [{"id":"com.teamspeak.TeamSpeak","confidence":0.9,"source":"flatpak"},{"id":"teamspeak","confidence":1,"source":"binary"},{"id":"teamspeak3","confidence":1,"source":"package"}]
+    },
+    "teamviewer": {
+      "type": "app",
+      "glyph": "md-teamviewer",
+      "apps": [{"id":"com.teamviewer.TeamViewer","confidence":0.9,"source":"flatpak"},{"id":"teamviewer","confidence":1,"source":"package"},{"id":"teamviewer","confidence":1,"source":"binary"}]
+    },
+    "telegram": {
+      "type": "app",
+      "glyph": "fa-telegram",
+      "apps": [{"id":"fluffychat","confidence":0.7,"source":"flatpak"},{"id":"materialgram","confidence":0.7,"source":"package"},{"id":"org.telegram.desktop","confidence":0.9,"source":"flatpak"},{"id":"telegram","confidence":1,"source":"binary"},{"id":"telegram-cli","confidence":0.6,"source":"package"},{"id":"telegram-desktop","confidence":1,"source":"package"}]
+    },
+    "tencent-weibo": {
+      "type": "app",
+      "glyph": "fa-tencent_weibo",
+      "apps": [{"id":"tencent-weibo","confidence":0.5,"source":"category"}]
+    },
+    "tensorflow": {
+      "type": "app",
+      "glyph": "dev-tensorflow",
+      "apps": [{"id":"python-tensorflow","confidence":0.9,"source":"package"},{"id":"tensorflow","confidence":0.9,"source":"package"},{"id":"tensorflow-gpu","confidence":0.9,"source":"package"}]
+    },
+    "terminal": {
+      "type": "category",
+      "glyph": "fa-terminal",
+      "apps": [{"id":"alacritty","confidence":0.7,"source":"package"},{"id":"ghostty","confidence":0.7,"source":"package"},{"id":"gnome-terminal","confidence":1,"source":"package"},{"id":"kitty","confidence":0.7,"source":"package"},{"id":"konsole","confidence":1,"source":"package"}]
+    },
+    "terraform": {
+      "type": "app",
+      "glyph": "dev-terraform",
+      "apps": [{"id":"terraform","confidence":1,"source":"binary"},{"id":"terraform-ls","confidence":0.8,"source":"package"},{"id":"terragrunt","confidence":0.7,"source":"package"}]
+    },
+    "tex": {
+      "type": "app",
+      "glyph": "dev-tex",
+      "apps": [{"id":"pdflatex","confidence":1,"source":"binary"},{"id":"texlive","confidence":1,"source":"package"},{"id":"texmaker","confidence":0.9,"source":"package"},{"id":"texstudio","confidence":0.9,"source":"package"}]
+    },
+    "the-red-yeti": {
+      "type": "app",
+      "glyph": "fa-the_red_yeti",
+      "apps": [{"id":"the-red-yeti","confidence":0.5,"source":"category"}]
+    },
+    "thealgorithms": {
+      "type": "app",
+      "glyph": "dev-thealgorithms",
+      "apps": [{"id":"thealgorithms","confidence":0.5,"source":"category"}]
+    },
+    "themeco": {
+      "type": "app",
+      "glyph": "fa-themeco",
+      "apps": [{"id":"themeco","confidence":0.5,"source":"category"}]
+    },
+    "themeisle": {
+      "type": "app",
+      "glyph": "fa-themeisle",
+      "apps": [{"id":"themeisle","confidence":0.5,"source":"category"}]
+    },
+    "think-peaks": {
+      "type": "app",
+      "glyph": "fa-think_peaks",
+      "apps": [{"id":"think-peaks","confidence":0.5,"source":"category"}]
+    },
+    "threedsmax": {
+      "type": "app",
+      "glyph": "dev-threedsmax",
+      "apps": [{"id":"3dsmax","confidence":0.5,"source":"category"}]
+    },
+    "threejs": {
+      "type": "app",
+      "glyph": "dev-threejs",
+      "apps": [{"id":"threejs","confidence":0.5,"source":"category"}]
+    },
+    "titaniumsdk": {
+      "type": "app",
+      "glyph": "dev-titaniumsdk",
+      "apps": [{"id":"alloy","confidence":0.7,"source":"package"},{"id":"titanium","confidence":0.8,"source":"package"}]
+    },
+    "tomcat": {
+      "type": "app",
+      "glyph": "dev-tomcat",
+      "apps": [{"id":"tomcat","confidence":1,"source":"binary"},{"id":"tomcat10","confidence":1,"source":"package"},{"id":"tomcat9","confidence":1,"source":"package"}]
+    },
+    "tor": {
+      "type": "app",
+      "glyph": "linux-tor",
+      "apps": [{"id":"org.torproject.torbrowser","confidence":0.9,"source":"flatpak"},{"id":"tor","confidence":1,"source":"package"},{"id":"tor","confidence":1,"source":"binary"},{"id":"tor-browser","confidence":1,"source":"package"}]
+    },
+    "tortoisegit": {
+      "type": "app",
+      "glyph": "dev-tortoisegit",
+      "apps": [{"id":"tortoisegit","confidence":0.5,"source":"category"}]
+    },
+    "towergit": {
+      "type": "app",
+      "glyph": "dev-towergit",
+      "apps": [{"id":"gittower","confidence":0.8,"source":"package"},{"id":"tower","confidence":0.8,"source":"package"}]
+    },
+    "trade-federation": {
+      "type": "app",
+      "glyph": "fa-trade_federation",
+      "apps": [{"id":"trade-federation","confidence":0.5,"source":"category"}]
+    },
+    "traefikmesh": {
+      "type": "app",
+      "glyph": "dev-traefikmesh",
+      "apps": [{"id":"traefik","confidence":0.9,"source":"package"},{"id":"traefik2","confidence":0.9,"source":"package"}]
+    },
+    "traefikproxy": {
+      "type": "app",
+      "glyph": "dev-traefikproxy",
+      "apps": [{"id":"traefik","confidence":0.9,"source":"package"},{"id":"traefik2","confidence":0.9,"source":"package"}]
+    },
+    "travis": {
+      "type": "app",
+      "glyph": "dev-travis",
+      "apps": [{"id":"travis","confidence":0.8,"source":"binary"},{"id":"travis-cli","confidence":0.8,"source":"package"}]
+    },
+    "trello": {
+      "type": "app",
+      "glyph": "md-trello",
+      "apps": [{"id":"com.trello.Trello","confidence":0.8,"source":"flatpak"},{"id":"trello","confidence":0.8,"source":"package"},{"id":"trello-cli","confidence":0.6,"source":"package"}]
+    },
+    "trpc": {
+      "type": "app",
+      "glyph": "dev-trpc",
+      "apps": [{"id":"trpc","confidence":0.5,"source":"category"}]
+    },
+    "tumblr": {
+      "type": "app",
+      "glyph": "fa-tumblr",
+      "apps": [{"id":"tumblr","confidence":0.8,"source":"package"},{"id":"tumblr-cli","confidence":0.6,"source":"package"}]
+    },
+    "twitch": {
+      "type": "app",
+      "glyph": "md-twitch",
+      "apps": [{"id":"obs-studio","confidence":0.7,"source":"package"},{"id":"streamlink","confidence":0.9,"source":"package"},{"id":"twire","confidence":0.8,"source":"flatpak"},{"id":"twitch","confidence":0.8,"source":"package"},{"id":"twitch-cli","confidence":0.7,"source":"package"}]
+    },
+    "twitter": {
+      "type": "app",
+      "glyph": "md-twitter",
+      "apps": [{"id":"cawbird","confidence":0.9,"source":"package"},{"id":"corebird","confidence":0.8,"source":"package"},{"id":"fritter","confidence":0.8,"source":"flatpak"},{"id":"twidere","confidence":0.7,"source":"flatpak"},{"id":"twitter","confidence":0.8,"source":"package"}]
+    },
+    "typescript": {
+      "type": "app",
+      "glyph": "dev-typescript",
+      "apps": [{"id":"tsc","confidence":1,"source":"binary"},{"id":"typescript","confidence":1,"source":"package"},{"id":"typescript-language-server","confidence":0.9,"source":"package"}]
+    },
+    "typo3": {
+      "type": "app",
+      "glyph": "fa-typo3",
+      "apps": [{"id":"typo3","confidence":0.8,"source":"package"}]
+    },
+    "uber": {
+      "type": "app",
+      "glyph": "fa-uber",
+      "apps": [{"id":"uber","confidence":0.8,"source":"package"},{"id":"uber-cli","confidence":0.6,"source":"package"}]
+    },
+    "ubuntu": {
+      "type": "app",
+      "glyph": "md-ubuntu",
+      "apps": [{"id":"gnome-software","confidence":0.8,"source":"package"},{"id":"ubuntu-desktop","confidence":1,"source":"package"},{"id":"ubuntu-settings","confidence":1,"source":"package"},{"id":"ubuntu-software","confidence":1,"source":"package"}]
+    },
+    "uikit": {
+      "type": "app",
+      "glyph": "fa-uikit",
+      "apps": [{"id":"uikit","confidence":0.5,"source":"category"}]
+    },
+    "umbraco": {
+      "type": "app",
+      "glyph": "md-umbraco",
+      "apps": [{"id":"umbraco","confidence":0.8,"source":"package"}]
+    },
+    "unifiedmodelinglanguage": {
+      "type": "app",
+      "glyph": "dev-uml",
+      "apps": [{"id":"draw.io","confidence":0.9,"source":"flatpak"},{"id":"plantuml","confidence":0.9,"source":"package"},{"id":"staruml","confidence":0.8,"source":"package"},{"id":"umbrello","confidence":0.9,"source":"package"}]
+    },
+    "uniregistry": {
+      "type": "app",
+      "glyph": "fa-uniregistry",
+      "apps": [{"id":"uniregistry","confidence":0.5,"source":"category"}]
+    },
+    "unity": {
+      "type": "app",
+      "glyph": "md-unity",
+      "apps": [{"id":"unity","confidence":1,"source":"package"},{"id":"unity-editor","confidence":1,"source":"binary"},{"id":"unity-hub","confidence":1,"source":"package"}]
+    },
+    "unix": {
+      "type": "app",
+      "glyph": "dev-unix",
+      "apps": [{"id":"kernel","confidence":1,"source":"package"},{"id":"linux","confidence":1,"source":"package"}]
+    },
+    "unreal": {
+      "type": "app",
+      "glyph": "md-unreal",
+      "apps": [{"id":"unreal-editor","confidence":1,"source":"binary"},{"id":"unreal-engine","confidence":1,"source":"package"}]
+    },
+    "unrealengine": {
+      "type": "app",
+      "glyph": "dev-unrealengine",
+      "apps": [{"id":"unreal-editor","confidence":1,"source":"binary"},{"id":"unreal-engine","confidence":1,"source":"package"}]
+    },
+    "untappd": {
+      "type": "app",
+      "glyph": "fa-untappd",
+      "apps": [{"id":"untappd","confidence":0.8,"source":"package"}]
+    },
+    "ups": {
+      "type": "app",
+      "glyph": "fa-ups",
+      "apps": [{"id":"apcupsd","confidence":0.9,"source":"package"},{"id":"nut","confidence":0.9,"source":"package"},{"id":"ups","confidence":0.8,"source":"package"}]
+    },
+    "usb": {
+      "type": "app",
+      "glyph": "md-usb",
+      "apps": [{"id":"gnome-disk-utility","confidence":0.8,"source":"package"},{"id":"lsusb","confidence":1,"source":"binary"},{"id":"usbutils","confidence":1,"source":"package"},{"id":"usbview","confidence":0.9,"source":"package"}]
+    },
+    "usps": {
+      "type": "app",
+      "glyph": "fa-usps",
+      "apps": [{"id":"usps","confidence":0.5,"source":"category"}]
+    },
+    "ussunnah": {
+      "type": "app",
+      "glyph": "fa-ussunnah",
+      "apps": [{"id":"ussunnah","confidence":0.5,"source":"category"}]
+    },
+    "uwsgi": {
+      "type": "app",
+      "glyph": "dev-uwsgi",
+      "apps": [{"id":"uwsgi","confidence":1,"source":"package"},{"id":"uwsgi-core","confidence":1,"source":"package"}]
+    },
+    "v8": {
+      "type": "app",
+      "glyph": "dev-v8",
+      "apps": [{"id":"nodejs","confidence":0.8,"source":"package"},{"id":"v8","confidence":0.9,"source":"package"}]
+    },
+    "vaadin": {
+      "type": "app",
+      "glyph": "fa-vaadin",
+      "apps": [{"id":"vaadin","confidence":0.8,"source":"package"}]
+    },
+    "vagrant": {
+      "type": "app",
+      "glyph": "dev-vagrant",
+      "apps": [{"id":"vagrant","confidence":1,"source":"binary"},{"id":"vagrant","confidence":1,"source":"package"}]
+    },
+    "vala": {
+      "type": "app",
+      "glyph": "dev-vala",
+      "apps": [{"id":"vala","confidence":1,"source":"package"},{"id":"valac","confidence":1,"source":"binary"}]
+    },
+    "vault": {
+      "type": "app",
+      "glyph": "dev-vault",
+      "apps": [{"id":"vault","confidence":1,"source":"binary"},{"id":"vault","confidence":1,"source":"package"},{"id":"vault-cli","confidence":0.9,"source":"package"}]
+    },
+    "vercel": {
+      "type": "app",
+      "glyph": "dev-vercel",
+      "apps": [{"id":"vercel","confidence":0.9,"source":"binary"},{"id":"vercel-cli","confidence":0.9,"source":"package"}]
+    },
+    "vertx": {
+      "type": "app",
+      "glyph": "dev-vertx",
+      "apps": [{"id":"vertx","confidence":0.8,"source":"package"}]
+    },
+    "viacoin": {
+      "type": "app",
+      "glyph": "fa-viacoin",
+      "apps": [{"id":"viacoin","confidence":0.5,"source":"category"}]
+    },
+    "viadeo": {
+      "type": "app",
+      "glyph": "fa-viadeo",
+      "apps": [{"id":"viadeo","confidence":0.5,"source":"category"}]
+    },
+    "viber": {
+      "type": "app",
+      "glyph": "fa-viber",
+      "apps": [{"id":"com.viber.Viber","confidence":0.9,"source":"flatpak"},{"id":"viber","confidence":1,"source":"package"},{"id":"viber","confidence":1,"source":"binary"}]
+    },
+    "video": {
+      "type": "category",
+      "glyph": "md-video",
+      "apps": [{"id":"kdenlive","confidence":0.7,"source":"package"},{"id":"pitivi","confidence":0.7,"source":"package"},{"id":"shotcut","confidence":0.7,"source":"package"},{"id":"totem","confidence":1,"source":"package"}]
+    },
+    "vim": {
+      "type": "app",
+      "glyph": "dev-vim",
+      "apps": [{"id":"gvim","confidence":0.9,"source":"package"},{"id":"neovim","confidence":0.9,"source":"package"},{"id":"vim","confidence":1,"source":"package"},{"id":"vim","confidence":1,"source":"binary"}]
+    },
+    "vimeo": {
+      "type": "app",
+      "glyph": "md-vimeo",
+      "apps": [{"id":"vimeo","confidence":0.8,"source":"package"},{"id":"vimeo-cli","confidence":0.6,"source":"package"}]
+    },
+    "vimeo-v": {
+      "type": "app",
+      "glyph": "fa-vimeo_v",
+      "apps": [{"id":"vimeo","confidence":0.8,"source":"package"}]
+    },
+    "vine": {
+      "type": "app",
+      "glyph": "fa-vine",
+      "apps": [{"id":"vine","confidence":0.5,"source":"category"}]
+    },
+    "visualbasic": {
+      "type": "app",
+      "glyph": "dev-visualbasic",
+      "apps": [{"id":"visual-basic","confidence":0.5,"source":"category"}]
+    },
+    "visualstudio": {
+      "type": "app",
+      "glyph": "dev-visualstudio",
+      "apps": [{"id":"code","confidence":0.9,"source":"binary"},{"id":"code-insiders","confidence":0.8,"source":"package"},{"id":"visual-studio-code","confidence":0.9,"source":"package"},{"id":"vscode","confidence":0.9,"source":"binary"},{"id":"vscodium","confidence":0.8,"source":"package"}]
+    },
+    "vite": {
+      "type": "app",
+      "glyph": "dev-vite",
+      "apps": [{"id":"vite","confidence":0.9,"source":"package"},{"id":"vite","confidence":0.9,"source":"binary"}]
+    },
+    "vitejs": {
+      "type": "app",
+      "glyph": "dev-vite",
+      "apps": [{"id":"vite","confidence":0.9,"source":"package"}]
+    },
+    "vitess": {
+      "type": "app",
+      "glyph": "dev-vitess",
+      "apps": [{"id":"vitess","confidence":0.8,"source":"package"}]
+    },
+    "vitest": {
+      "type": "app",
+      "glyph": "dev-vitest",
+      "apps": [{"id":"vitest","confidence":0.9,"source":"package"},{"id":"vitest","confidence":0.9,"source":"binary"}]
+    },
+    "vk": {
+      "type": "app",
+      "glyph": "fa-vk",
+      "apps": [{"id":"vk","confidence":0.8,"source":"package"},{"id":"vk-cli","confidence":0.6,"source":"package"}]
+    },
+    "vlc": {
+      "type": "app",
+      "glyph": "md-vlc",
+      "apps": [{"id":"cvlc","confidence":0.9,"source":"binary"},{"id":"org.videolan.VLC","confidence":0.9,"source":"flatpak"},{"id":"qvlc","confidence":0.9,"source":"binary"},{"id":"vlc","confidence":1,"source":"package"},{"id":"vlc","confidence":1,"source":"binary"}]
+    },
+    "vnv": {
+      "type": "app",
+      "glyph": "fa-vnv",
+      "apps": [{"id":"vnv","confidence":0.5,"source":"category"}]
+    },
+    "vpn": {
+      "type": "category",
+      "glyph": "md-vpn",
+      "apps": [{"id":"mullvad","confidence":0.7,"source":"package"},{"id":"openvpn","confidence":1,"source":"package"},{"id":"protonvpn","confidence":0.7,"source":"package"},{"id":"wireguard","confidence":0.7,"source":"package"}]
+    },
+    "vscode": {
+      "type": "app",
+      "glyph": "dev-vscode",
+      "apps": [{"id":"code","confidence":1,"source":"binary"},{"id":"code-insiders","confidence":0.9,"source":"package"},{"id":"code-oss","confidence":0.9,"source":"package"},{"id":"visual-studio-code","confidence":1,"source":"package"},{"id":"vscode","confidence":1,"source":"binary"},{"id":"vscode-url-handler","confidence":0.8,"source":"package"},{"id":"vscodium","confidence":0.9,"source":"package"}]
+    },
+    "vsphere": {
+      "type": "app",
+      "glyph": "dev-vsphere",
+      "apps": [{"id":"vsphere","confidence":0.8,"source":"package"}]
+    },
+    "vuejs": {
+      "type": "app",
+      "glyph": "md-vuejs",
+      "apps": [{"id":"vue","confidence":0.9,"source":"package"},{"id":"vue-cli","confidence":0.9,"source":"package"},{"id":"vue-language-server","confidence":0.8,"source":"package"}]
+    },
+    "vuestorefront": {
+      "type": "app",
+      "glyph": "dev-vuestorefront",
+      "apps": [{"id":"vuestorefront","confidence":0.8,"source":"package"}]
+    },
+    "vuetify": {
+      "type": "app",
+      "glyph": "dev-vuetify",
+      "apps": [{"id":"vuetify","confidence":0.8,"source":"package"}]
+    },
+    "vyper": {
+      "type": "app",
+      "glyph": "dev-vyper",
+      "apps": [{"id":"vyper","confidence":0.9,"source":"package"},{"id":"vyper","confidence":0.9,"source":"binary"}]
+    },
+    "wasm": {
+      "type": "app",
+      "glyph": "dev-wasm",
+      "apps": [{"id":"wasm-bindgen","confidence":0.9,"source":"package"},{"id":"wasm-pack","confidence":0.9,"source":"package"},{"id":"wasmtime","confidence":0.9,"source":"package"}]
+    },
+    "waze": {
+      "type": "app",
+      "glyph": "fa-waze",
+      "apps": [{"id":"waze","confidence":0.8,"source":"package"}]
+    },
+    "webflow": {
+      "type": "app",
+      "glyph": "dev-webflow",
+      "apps": [{"id":"webflow","confidence":0.8,"source":"package"}]
+    },
+    "weblate": {
+      "type": "app",
+      "glyph": "dev-weblate",
+      "apps": [{"id":"weblate","confidence":0.9,"source":"package"},{"id":"weblate","confidence":0.9,"source":"binary"}]
+    },
+    "webpack": {
+      "type": "app",
+      "glyph": "md-webpack",
+      "apps": [{"id":"webpack","confidence":0.9,"source":"package"},{"id":"webpack","confidence":0.9,"source":"binary"},{"id":"webpack-cli","confidence":0.9,"source":"package"}]
+    },
+    "webstorm": {
+      "type": "app",
+      "glyph": "dev-webstorm",
+      "apps": [{"id":"webstorm","confidence":1,"source":"package"},{"id":"webstorm","confidence":1,"source":"binary"}]
+    },
+    "wechat": {
+      "type": "app",
+      "glyph": "md-wechat",
+      "apps": [{"id":"com.tencent.wechat","confidence":0.9,"source":"flatpak"},{"id":"wechat","confidence":1,"source":"package"},{"id":"wechat","confidence":1,"source":"binary"}]
+    },
+    "weebly": {
+      "type": "app",
+      "glyph": "fa-weebly",
+      "apps": [{"id":"weebly","confidence":0.8,"source":"package"}]
+    },
+    "weibo": {
+      "type": "app",
+      "glyph": "fa-weibo",
+      "apps": [{"id":"weibo","confidence":0.8,"source":"package"}]
+    },
+    "weixin": {
+      "type": "app",
+      "glyph": "fa-weixin",
+      "apps": [{"id":"com.tencent.wechat","confidence":0.9,"source":"flatpak"},{"id":"wechat","confidence":1,"source":"package"}]
+    },
+    "whatsapp": {
+      "type": "app",
+      "glyph": "md-whatsapp",
+      "apps": [{"id":"elecwhat","confidence":0.8,"source":"github"},{"id":"ferdium","confidence":0.7,"source":"flatpak"},{"id":"franz","confidence":0.7,"source":"flatpak"},{"id":"org.whatsapp.WhatsApp","confidence":0.9,"source":"flatpak"},{"id":"rambox","confidence":0.7,"source":"flatpak"},{"id":"whatsapp","confidence":1,"source":"package"},{"id":"whatsapp-desktop","confidence":1,"source":"package"},{"id":"whatsapp-nativefier","confidence":0.8,"source":"package"},{"id":"whatsapp-web","confidence":0.8,"source":"package"}]
+    },
+    "whmcs": {
+      "type": "app",
+      "glyph": "fa-whmcs",
+      "apps": [{"id":"whmcs","confidence":0.8,"source":"package"}]
+    },
+    "wii": {
+      "type": "app",
+      "glyph": "md-nintendo_wii",
+      "apps": [{"id":"dolphin","confidence":0.9,"source":"binary"},{"id":"dolphin-emu","confidence":0.9,"source":"package"}]
+    },
+    "wiiu": {
+      "type": "app",
+      "glyph": "md-nintendo_wiiu",
+      "apps": [{"id":"cemu","confidence":0.9,"source":"package"},{"id":"cemu","confidence":0.9,"source":"binary"}]
+    },
+    "wikipedia": {
+      "type": "app",
+      "glyph": "md-wikipedia",
+      "apps": [{"id":"wiki","confidence":0.8,"source":"package"},{"id":"wikipedia","confidence":0.8,"source":"package"}]
+    },
+    "wikipedia-w": {
+      "type": "app",
+      "glyph": "fa-wikipedia_w",
+      "apps": [{"id":"wikipedia","confidence":0.8,"source":"package"}]
+    },
+    "windows": {
+      "type": "app",
+      "glyph": "fa-windows",
+      "apps": [{"id":"lutris","confidence":0.8,"source":"package"},{"id":"playonlinux","confidence":0.9,"source":"package"},{"id":"wine","confidence":1,"source":"package"},{"id":"wine-staging","confidence":0.9,"source":"package"},{"id":"wine64","confidence":0.9,"source":"binary"}]
+    },
+    "windows11": {
+      "type": "app",
+      "glyph": "dev-windows11",
+      "apps": [{"id":"wine","confidence":1,"source":"package"},{"id":"wine-staging","confidence":0.9,"source":"package"}]
+    },
+    "wix": {
+      "type": "app",
+      "glyph": "fa-wix",
+      "apps": [{"id":"wix","confidence":0.8,"source":"package"}]
+    },
+    "wizards-of-the-coast": {
+      "type": "app",
+      "glyph": "fa-wizards_of_the_coast",
+      "apps": [{"id":"wizards-of-the-coast","confidence":0.5,"source":"category"}]
+    },
+    "wolf-pack-battalion": {
+      "type": "app",
+      "glyph": "fa-wolf_pack_battalion",
+      "apps": [{"id":"wolf-pack-battalion","confidence":0.5,"source":"category"}]
+    },
+    "woocommerce": {
+      "type": "app",
+      "glyph": "dev-woocommerce",
+      "apps": [{"id":"woocommerce","confidence":0.8,"source":"package"}]
+    },
+    "wordpress": {
+      "type": "app",
+      "glyph": "md-wordpress",
+      "apps": [{"id":"wordpress","confidence":1,"source":"package"},{"id":"wordpress-cli","confidence":0.9,"source":"package"},{"id":"wp-cli","confidence":0.9,"source":"binary"}]
+    },
+    "wordpress-simple": {
+      "type": "app",
+      "glyph": "fa-wordpress_simple",
+      "apps": [{"id":"wordpress","confidence":0.9,"source":"package"}]
+    },
+    "wpbeginner": {
+      "type": "app",
+      "glyph": "fa-wpbeginner",
+      "apps": [{"id":"wpbeginner","confidence":0.5,"source":"category"}]
+    },
+    "wpexplorer": {
+      "type": "app",
+      "glyph": "fa-wpexplorer",
+      "apps": [{"id":"wpexplorer","confidence":0.5,"source":"category"}]
+    },
+    "wpforms": {
+      "type": "app",
+      "glyph": "fa-wpforms",
+      "apps": [{"id":"wpforms","confidence":0.8,"source":"package"}]
+    },
+    "wpressr": {
+      "type": "app",
+      "glyph": "fa-wpressr",
+      "apps": [{"id":"wpressr","confidence":0.5,"source":"category"}]
+    },
+    "xamarin": {
+      "type": "app",
+      "glyph": "md-xamarin",
+      "apps": [{"id":"mono","confidence":0.8,"source":"package"},{"id":"xamarin","confidence":0.8,"source":"package"}]
+    },
+    "xbox": {
+      "type": "app",
+      "glyph": "fa-xbox",
+      "apps": [{"id":"xbox","confidence":0.8,"source":"package"},{"id":"xbox-game-bar","confidence":0.8,"source":"package"}]
+    },
+    "xcode": {
+      "type": "app",
+      "glyph": "dev-xcode",
+      "apps": [{"id":"xcode","confidence":0.8,"source":"package"}]
+    },
+    "xd": {
+      "type": "app",
+      "glyph": "dev-xd",
+      "apps": [{"id":"xd","confidence":0.5,"source":"category"}]
+    },
+    "xing": {
+      "type": "app",
+      "glyph": "fa-xing",
+      "apps": [{"id":"xing","confidence":0.8,"source":"package"}]
+    },
+    "xml": {
+      "type": "app",
+      "glyph": "md-xml",
+      "apps": [{"id":"libxml2","confidence":0.9,"source":"package"},{"id":"xml","confidence":0.9,"source":"binary"},{"id":"xmlstarlet","confidence":0.9,"source":"package"}]
+    },
+    "xmpp": {
+      "type": "app",
+      "glyph": "md-xmpp",
+      "apps": [{"id":"dino","confidence":0.9,"source":"package"},{"id":"gajim","confidence":0.9,"source":"package"},{"id":"mcabber","confidence":0.8,"source":"package"},{"id":"pidgin","confidence":0.9,"source":"package"},{"id":"profanity","confidence":0.8,"source":"package"}]
+    },
+    "y-combinator": {
+      "type": "app",
+      "glyph": "fa-y_combinator",
+      "apps": [{"id":"y-combinator","confidence":0.8,"source":"package"}]
+    },
+    "yahoo": {
+      "type": "app",
+      "glyph": "fa-yahoo",
+      "apps": [{"id":"yahoo","confidence":0.8,"source":"package"}]
+    },
+    "yaml": {
+      "type": "app",
+      "glyph": "dev-yaml",
+      "apps": [{"id":"yaml-language-server","confidence":0.9,"source":"package"},{"id":"yamllint","confidence":0.9,"source":"package"},{"id":"yq","confidence":0.9,"source":"package"}]
+    },
+    "yammer": {
+      "type": "app",
+      "glyph": "fa-yammer",
+      "apps": [{"id":"yammer","confidence":0.8,"source":"package"}]
+    },
+    "yandex": {
+      "type": "app",
+      "glyph": "fa-yandex",
+      "apps": [{"id":"yandex-browser","confidence":0.9,"source":"package"},{"id":"yandex-disk","confidence":0.9,"source":"package"}]
+    },
+    "yandex-international": {
+      "type": "app",
+      "glyph": "fa-yandex_international",
+      "apps": [{"id":"yandex-browser","confidence":0.9,"source":"package"}]
+    },
+    "yarn": {
+      "type": "app",
+      "glyph": "fa-yarn",
+      "apps": [{"id":"yarn","confidence":1,"source":"package"},{"id":"yarn","confidence":1,"source":"binary"}]
+    },
+    "yelp": {
+      "type": "app",
+      "glyph": "fa-yelp",
+      "apps": [{"id":"yelp","confidence":1,"source":"package"},{"id":"yelp","confidence":1,"source":"binary"}]
+    },
+    "yii": {
+      "type": "app",
+      "glyph": "dev-yii",
+      "apps": [{"id":"yii","confidence":0.8,"source":"package"}]
+    },
+    "yoast": {
+      "type": "app",
+      "glyph": "fa-yoast",
+      "apps": [{"id":"yoast","confidence":0.8,"source":"package"}]
+    },
+    "youtube": {
+      "type": "app",
+      "glyph": "md-youtube",
+      "apps": [{"id":"mpv","confidence":0.7,"source":"package"},{"id":"vlc","confidence":0.7,"source":"package"},{"id":"youtube","confidence":0.8,"source":"package"},{"id":"youtube-dl","confidence":0.9,"source":"package"},{"id":"yt-dlp","confidence":0.9,"source":"package"}]
+    },
+    "youtube-gaming": {
+      "type": "app",
+      "glyph": "md-youtube_gaming",
+      "apps": [{"id":"youtube-gaming","confidence":0.8,"source":"package"}]
+    },
+    "youtube-tv": {
+      "type": "app",
+      "glyph": "md-youtube_tv",
+      "apps": [{"id":"youtube-tv","confidence":0.8,"source":"package"}]
+    },
+    "yugabytedb": {
+      "type": "app",
+      "glyph": "dev-yugabytedb",
+      "apps": [{"id":"yugabyte-db","confidence":0.9,"source":"package"},{"id":"yugabyted","confidence":0.9,"source":"binary"}]
+    },
+    "yunohost": {
+      "type": "app",
+      "glyph": "dev-yunohost",
+      "apps": [{"id":"yunohost","confidence":0.9,"source":"package"}]
+    },
+    "zend": {
+      "type": "app",
+      "glyph": "dev-zend",
+      "apps": [{"id":"zend","confidence":0.8,"source":"package"}]
+    },
+    "zhihu": {
+      "type": "app",
+      "glyph": "fa-zhihu",
+      "apps": [{"id":"zhihu","confidence":0.8,"source":"package"}]
+    },
+    "zig": {
+      "type": "app",
+      "glyph": "dev-zig",
+      "apps": [{"id":"zig","confidence":1,"source":"package"},{"id":"zig","confidence":1,"source":"binary"}]
+    }
+  }
+}

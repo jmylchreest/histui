@@ -11,7 +11,7 @@ import (
 
 // PatternConfig represents the kb-patterns.toml file structure.
 type PatternConfig struct {
-	Meta  PatternMeta               `toml:"meta"`
+	Meta  PatternMeta            `toml:"meta"`
 	Icons map[string]IconPattern `toml:"icons"`
 }
 
@@ -37,8 +37,8 @@ type IconPattern struct {
 
 // MatchedIcon represents a glyph matched to a canonical icon.
 type MatchedIcon struct {
-	CanonicalName string   // e.g., "discord", "email"
-	Type          string   // "app" or "category"
+	CanonicalName string // e.g., "discord", "email"
+	Type          string // "app" or "category"
 	Description   string
 	GlyphName     string   // e.g., "md-discord"
 	GlyphCode     string   // e.g., "F066F"
@@ -46,6 +46,66 @@ type MatchedIcon struct {
 	SearchTerms   []string // Terms from upstream metadata
 	ForceApps     []string // Force these apps (skips AI generation)
 	ExtraApps     []string // Add these apps to AI-generated list
+}
+
+// ExtraApp represents a detailed app entry with context for AI research.
+type ExtraApp struct {
+	Name        string `toml:"name"`
+	Description string `toml:"description,omitempty"`
+	URL         string `toml:"url,omitempty"`
+}
+
+// ExtraAppsConfig represents the extra-apps.toml file structure.
+type ExtraAppsConfig struct {
+	Apps struct {
+		Include  []string   `toml:"include"`
+		Detailed []ExtraApp `toml:"detailed,omitempty"`
+	} `toml:"apps"`
+}
+
+// FormatForPrompt returns a formatted string for inclusion in the AI prompt.
+func (c *ExtraAppsConfig) FormatForPrompt() []string {
+	var result []string
+
+	// Simple includes
+	for _, app := range c.Apps.Include {
+		if app != "" {
+			result = append(result, app)
+		}
+	}
+
+	// Detailed entries with context
+	for _, app := range c.Apps.Detailed {
+		entry := app.Name
+		if app.Description != "" {
+			entry += " - " + app.Description
+		}
+		if app.URL != "" {
+			entry += " (see: " + app.URL + ")"
+		}
+		result = append(result, entry)
+	}
+
+	return result
+}
+
+// LoadExtraApps loads the extra apps configuration from a TOML file.
+func LoadExtraApps(path string) (*ExtraAppsConfig, error) {
+	data, err := os.ReadFile(path)
+	if err != nil {
+		if os.IsNotExist(err) {
+			// No extra apps file - return empty config
+			return &ExtraAppsConfig{}, nil
+		}
+		return nil, fmt.Errorf("read extra apps file: %w", err)
+	}
+
+	var config ExtraAppsConfig
+	if err := toml.Unmarshal(data, &config); err != nil {
+		return nil, fmt.Errorf("parse extra apps file: %w", err)
+	}
+
+	return &config, nil
 }
 
 // LoadPatterns loads the pattern configuration from a TOML file.
@@ -99,9 +159,41 @@ func LoadPatternsWithManual(autoPath, manualPath string) (*PatternConfig, error)
 		return nil, fmt.Errorf("load manual patterns: %w", err)
 	}
 
-	// Merge: manual entries completely replace auto entries
-	for name, icon := range manual.Icons {
-		auto.Icons[name] = icon
+	// Merge: manual entries override specific fields, not entire entries
+	for name, manualIcon := range manual.Icons {
+		if autoIcon, exists := auto.Icons[name]; exists {
+			// Merge fields: manual overrides auto for non-empty fields
+			if len(manualIcon.Patterns) > 0 {
+				autoIcon.Patterns = manualIcon.Patterns
+			}
+			if len(manualIcon.SearchTerms) > 0 {
+				autoIcon.SearchTerms = manualIcon.SearchTerms
+			}
+			if manualIcon.Type != "" {
+				autoIcon.Type = manualIcon.Type
+			}
+			if manualIcon.Description != "" {
+				autoIcon.Description = manualIcon.Description
+			}
+			if manualIcon.Upstream != "" {
+				autoIcon.Upstream = manualIcon.Upstream
+			}
+			if manualIcon.Priority != 0 {
+				autoIcon.Priority = manualIcon.Priority
+			}
+			// ForceApps replaces entirely (intentional override)
+			if len(manualIcon.ForceApps) > 0 {
+				autoIcon.ForceApps = manualIcon.ForceApps
+			}
+			// ExtraApps appends to existing
+			if len(manualIcon.ExtraApps) > 0 {
+				autoIcon.ExtraApps = append(autoIcon.ExtraApps, manualIcon.ExtraApps...)
+			}
+			auto.Icons[name] = autoIcon
+		} else {
+			// New entry from manual file
+			auto.Icons[name] = manualIcon
+		}
 	}
 
 	return auto, nil
@@ -125,16 +217,8 @@ func MatchGlyphsToIcons(patterns *PatternConfig, glyphs map[string]GlyphInfo, ve
 			for glyphName, glyphInfo := range glyphs {
 				glyphLower := strings.ToLower(glyphName)
 
-				// Check if pattern matches
-				var matches bool
-				if strings.HasSuffix(pattern, "*") {
-					// Prefix match
-					prefix := strings.TrimSuffix(patternLower, "*")
-					matches = strings.HasPrefix(glyphLower, prefix)
-				} else {
-					// Substring match
-					matches = strings.Contains(glyphLower, patternLower)
-				}
+				// Check if pattern matches using separator-agnostic matching
+				matches := matchGlyphPattern(patternLower, glyphLower)
 
 				if matches {
 					// Calculate priority based on match quality
@@ -188,12 +272,17 @@ func MatchGlyphsToIcons(patterns *PatternConfig, glyphs map[string]GlyphInfo, ve
 	return result
 }
 
-// GetIconsForAppGeneration returns a list of icons suitable for AI app generation.
+// GetIconsForAppGeneration returns a list of app-type icons suitable for AI app generation.
+// Only includes icons with Type == "app" (brand icons, not category icons).
 // Sorted by canonical name for deterministic output.
 func GetIconsForAppGeneration(matched map[string]*MatchedIcon) []struct{ Name, Type, Description string } {
 	var icons []struct{ Name, Type, Description string }
 
 	for name, icon := range matched {
+		// Only include app-type icons (brand icons), not category icons
+		if icon.Type != "app" {
+			continue
+		}
 		icons = append(icons, struct{ Name, Type, Description string }{
 			Name:        name,
 			Type:        icon.Type,
@@ -402,4 +491,34 @@ func isLikelyBrandIcon(name string) bool {
 	}
 
 	return false
+}
+
+// matchGlyphPattern matches a pattern against a glyph name, treating separators
+// (hyphens, underscores) as equivalent. This handles naming differences between
+// upstream icon sources (Font Awesome uses hyphens) and Nerd Fonts (uses underscores).
+//
+// Examples:
+//   - "fa-shield-halved" matches "fa-shield_halved"
+//   - "md-discord" matches "md_discord"
+//   - "nf-fa-user" matches "nf_fa_user"
+func matchGlyphPattern(pattern, glyphName string) bool {
+	// Convert both to use a common separator for comparison
+	patternNorm := normalizeSeparators(pattern)
+	glyphNorm := normalizeSeparators(glyphName)
+
+	// Handle wildcard patterns (e.g., "md-discord*")
+	if strings.HasSuffix(pattern, "*") {
+		prefix := strings.TrimSuffix(patternNorm, "*")
+		return strings.HasPrefix(glyphNorm, prefix)
+	}
+
+	// Check for exact match or substring match
+	return glyphNorm == patternNorm || strings.Contains(glyphNorm, patternNorm)
+}
+
+// normalizeSeparators replaces all separator characters (hyphens, underscores)
+// with a common separator for comparison purposes.
+func normalizeSeparators(s string) string {
+	// Replace both hyphens and underscores with underscores
+	return strings.ReplaceAll(s, "-", "_")
 }

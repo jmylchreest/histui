@@ -1,0 +1,147 @@
+{
+  "version": 1,
+  "generated_at": "2026-01-01T22:32:28Z",
+  "model": "xiaomi/mimo-v2-flash:free:online",
+  "icons": {
+    "archive": {
+      "type": "category",
+      "glyph": "",
+      "apps": [{"id":"ark","confidence":1,"source":"package"},{"id":"engrampa","confidence":1,"source":"package"},{"id":"file-roller","confidence":1,"source":"package"},{"id":"org.gnome.FileRoller","confidence":1,"source":"flatpak"},{"id":"org.kde.ark","confidence":1,"source":"flatpak"},{"id":"org.mate.Engrampa","confidence":1,"source":"flatpak"},{"id":"org.peazip.peazip","confidence":0.9,"source":"flatpak"},{"id":"peazip","confidence":0.9,"source":"package"},{"id":"xarchiver","confidence":0.9,"source":"package"}]
+    },
+    "audio": {
+      "type": "category",
+      "glyph": "",
+      "apps": [{"id":"ardour","confidence":1,"source":"package"},{"id":"audacious","confidence":1,"source":"package"},{"id":"audacity","confidence":1,"source":"package"},{"id":"celluloid","confidence":0.8,"source":"package"},{"id":"deezermusic","confidence":0.8,"source":"flatpak"},{"id":"io.github.celluloid_player.Celluloid","confidence":0.8,"source":"flatpak"},{"id":"lollypop","confidence":0.9,"source":"package"},{"id":"org.ardour.Ardour","confidence":1,"source":"flatpak"},{"id":"org.atheme.audacious","confidence":1,"source":"flatpak"},{"id":"org.audacityteam.Audacity","confidence":1,"source":"flatpak"},{"id":"org.gnome.Lollypop","confidence":0.9,"source":"flatpak"},{"id":"org.gnome.Rhythmbox","confidence":1,"source":"flatpak"},{"id":"rhythmbox","confidence":1,"source":"package"}]
+    },
+    "backup": {
+      "type": "category",
+      "glyph": "",
+      "apps": [{"id":"com.github.teejee2008.timeshift","confidence":1,"source":"flatpak"},{"id":"deja-dup","confidence":1,"source":"package"},{"id":"org.gnome.DejaDup","confidence":1,"source":"flatpak"},{"id":"org.syncthing.Syncthing","confidence":0.9,"source":"flatpak"},{"id":"rsync","confidence":0.6,"source":"package"},{"id":"syncthing","confidence":0.9,"source":"package"},{"id":"syncthing-gtk","confidence":0.9,"source":"package"},{"id":"timeshift","confidence":1,"source":"package"}]
+    },
+    "browser": {
+      "type": "category",
+      "glyph": "",
+      "apps": [{"id":"brave","confidence":0.9,"source":"flatpak"},{"id":"chromium-browser","confidence":1,"source":"package"},{"id":"com.google.Chrome","confidence":1,"source":"flatpak"},{"id":"epiphany","confidence":1,"source":"package"},{"id":"firefox","confidence":1,"source":"package"},{"id":"google-chrome","confidence":1,"source":"package"},{"id":"org.chromium.Chromium","confidence":1,"source":"flatpak"},{"id":"org.gnome.Epiphany","confidence":1,"source":"flatpak"},{"id":"org.mozilla.firefox","confidence":1,"source":"flatpak"},{"id":"vivaldi","confidence":0.9,"source":"package"}]
+    },
+    "calculator": {
+      "type": "category",
+      "glyph": "",
+      "apps": [{"id":"galculator","confidence":0.9,"source":"package"},{"id":"gnome-calculator","confidence":1,"source":"package"},{"id":"kcalc","confidence":1,"source":"package"},{"id":"net.sourceforge.qalculate","confidence":0.9,"source":"flatpak"},{"id":"org.gnome.Calculator","confidence":1,"source":"flatpak"},{"id":"org.kde.kcalc","confidence":1,"source":"flatpak"},{"id":"qalculate","confidence":0.9,"source":"package"}]
+    },
+    "calendar": {
+      "type": "category",
+      "glyph": "",
+      "apps": [{"id":"evolution","confidence":0.9,"source":"package"},{"id":"gnome-calendar","confidence":1,"source":"package"},{"id":"korganizer","confidence":1,"source":"package"},{"id":"orage","confidence":0.9,"source":"package"},{"id":"org.gnome.Calendar","confidence":1,"source":"flatpak"},{"id":"org.gnome.Evolution","confidence":0.9,"source":"flatpak"},{"id":"org.kde.korganizer","confidence":1,"source":"flatpak"},{"id":"org.mozilla.Thunderbird","confidence":0.9,"source":"flatpak"},{"id":"thunderbird","confidence":0.9,"source":"package"}]
+    },
+    "code": {
+      "type": "category",
+      "glyph": "",
+      "apps": [{"id":"codium","confidence":1,"source":"flatpak"},{"id":"com.visualstudio.code","confidence":1,"source":"flatpak"},{"id":"com.vscodium.codium","confidence":1,"source":"flatpak"},{"id":"geany","confidence":1,"source":"package"},{"id":"gnome-builder","confidence":1,"source":"package"},{"id":"kate","confidence":1,"source":"package"},{"id":"org.geany.Geany","confidence":1,"source":"flatpak"},{"id":"org.gnome.Builder","confidence":1,"source":"flatpak"},{"id":"org.kde.kate","confidence":1,"source":"flatpak"},{"id":"sublime-text","confidence":1,"source":"package"},{"id":"vscode","confidence":1,"source":"flatpak"}]
+    },
+    "database": {
+      "type": "category",
+      "glyph": "",
+      "apps": [{"id":"com.mysql.mysql-workbench","confidence":1,"source":"flatpak"},{"id":"dbeaver-ce","confidence":1,"source":"flatpak"},{"id":"mysql-workbench","confidence":1,"source":"package"},{"id":"org.jkiss.dbeaver","confidence":1,"source":"flatpak"},{"id":"org.pgadmin.pgadmin4","confidence":1,"source":"flatpak"},{"id":"org.sqlitebrowser.sqlitebrowser","confidence":0.9,"source":"flatpak"},{"id":"pgadmin4","confidence":1,"source":"flatpak"},{"id":"sqlitebrowser","confidence":0.9,"source":"package"}]
+    },
+    "download": {
+      "type": "category",
+      "glyph": "",
+      "apps": [{"id":"com.github.motrix.Motrix","confidence":0.9,"source":"flatpak"},{"id":"com.github.persepolis_download_manager.persepolis","confidence":1,"source":"flatpak"},{"id":"com.github.transmissionbt.Transmission","confidence":0.9,"source":"flatpak"},{"id":"motrix","confidence":0.9,"source":"flatpak"},{"id":"org.kde.uget","confidence":1,"source":"flatpak"},{"id":"persepolis","confidence":1,"source":"package"},{"id":"transmission-gtk","confidence":0.9,"source":"package"},{"id":"uget-gtk","confidence":1,"source":"package"}]
+    },
+    "email": {
+      "type": "category",
+      "glyph": "",
+      "apps": [{"id":"com.mailspring.MailSpring","confidence":0.9,"source":"flatpak"},{"id":"evolution","confidence":1,"source":"package"},{"id":"geary","confidence":1,"source":"package"},{"id":"kmail","confidence":0.9,"source":"package"},{"id":"mailspring","confidence":0.9,"source":"flatpak"},{"id":"org.gnome.Evolution","confidence":1,"source":"flatpak"},{"id":"org.gnome.Geary","confidence":1,"source":"flatpak"},{"id":"org.kde.kmail","confidence":0.9,"source":"flatpak"},{"id":"org.mozilla.Thunderbird","confidence":1,"source":"flatpak"},{"id":"thunderbird","confidence":1,"source":"package"}]
+    },
+    "file-manager": {
+      "type": "category",
+      "glyph": "",
+      "apps": [{"id":"dolphin","confidence":1,"source":"package"},{"id":"nautilus","confidence":1,"source":"package"},{"id":"nemo","confidence":1,"source":"package"},{"id":"org.gnome.Nautilus","confidence":1,"source":"flatpak"},{"id":"org.kde.dolphin","confidence":1,"source":"flatpak"},{"id":"org.lxde.pcmanfm","confidence":0.9,"source":"flatpak"},{"id":"org.nemo.Nemo","confidence":1,"source":"flatpak"},{"id":"org.xfce.thunar","confidence":1,"source":"flatpak"},{"id":"pcmanfm","confidence":0.9,"source":"package"},{"id":"thunar","confidence":1,"source":"package"}]
+    },
+    "firewall": {
+      "type": "category",
+      "glyph": "",
+      "apps": [{"id":"firewalld","confidence":0.8,"source":"package"},{"id":"gufw","confidence":1,"source":"package"},{"id":"kcmshell5","confidence":0.8,"source":"package"},{"id":"org.gufw.GUFw","confidence":1,"source":"flatpak"}]
+    },
+    "game": {
+      "type": "category",
+      "glyph": "",
+      "apps": [{"id":"com.heroicgameslauncher.Heroic","confidence":1,"source":"flatpak"},{"id":"com.valvesoftware.Steam","confidence":1,"source":"flatpak"},{"id":"heroic","confidence":1,"source":"flatpak"},{"id":"lutris","confidence":1,"source":"package"},{"id":"net.lutris.Lutris","confidence":1,"source":"flatpak"},{"id":"org.prismlauncher.PrismLauncher","confidence":0.9,"source":"flatpak"},{"id":"prismlauncher","confidence":0.9,"source":"package"},{"id":"steam","confidence":1,"source":"package"}]
+    },
+    "git": {
+      "type": "category",
+      "glyph": "",
+      "apps": [{"id":"com.github.gittyup.gittyup","confidence":1,"source":"flatpak"},{"id":"com.github.jesseduffield.lazygit","confidence":0.9,"source":"flatpak"},{"id":"git-cola","confidence":0.9,"source":"package"},{"id":"gitg","confidence":1,"source":"package"},{"id":"gittyup","confidence":1,"source":"flatpak"},{"id":"lazygit","confidence":0.9,"source":"package"},{"id":"org.gnome.gitg","confidence":1,"source":"flatpak"}]
+    },
+    "image": {
+      "type": "category",
+      "glyph": "",
+      "apps": [{"id":"eog","confidence":1,"source":"package"},{"id":"gimp","confidence":1,"source":"package"},{"id":"gwenview","confidence":1,"source":"package"},{"id":"inkscape","confidence":1,"source":"package"},{"id":"nomacs","confidence":0.9,"source":"flatpak"},{"id":"org.gimp.GIMP","confidence":1,"source":"flatpak"},{"id":"org.gnome.eog","confidence":1,"source":"flatpak"},{"id":"org.inkscape.Inkscape","confidence":1,"source":"flatpak"},{"id":"org.kde.gwenview","confidence":1,"source":"flatpak"}]
+    },
+    "messaging": {
+      "type": "category",
+      "glyph": "",
+      "apps": [{"id":"com.discordapp.Discord","confidence":1,"source":"flatpak"},{"id":"com.slack.Slack","confidence":1,"source":"flatpak"},{"id":"discord","confidence":1,"source":"flatpak"},{"id":"org.signal.Signal","confidence":1,"source":"flatpak"},{"id":"org.telegram.desktop","confidence":1,"source":"flatpak"},{"id":"signal-desktop","confidence":1,"source":"flatpak"},{"id":"slack","confidence":1,"source":"flatpak"},{"id":"telegram-desktop","confidence":1,"source":"flatpak"},{"id":"whatsapp-for-linux","confidence":0.9,"source":"flatpak"}]
+    },
+    "notes": {
+      "type": "category",
+      "glyph": "",
+      "apps": [{"id":"com.logseq.Logseq","confidence":1,"source":"flatpak"},{"id":"gnote","confidence":1,"source":"package"},{"id":"joplin","confidence":1,"source":"flatpak"},{"id":"logseq","confidence":1,"source":"flatpak"},{"id":"md.obsidian.Obsidian","confidence":1,"source":"flatpak"},{"id":"net.cozic.joplin_desktop","confidence":1,"source":"flatpak"},{"id":"obsidian","confidence":1,"source":"flatpak"},{"id":"org.gnome.Gnote","confidence":1,"source":"flatpak"},{"id":"zim","confidence":0.9,"source":"package"}]
+    },
+    "office": {
+      "type": "category",
+      "glyph": "",
+      "apps": [{"id":"abiword","confidence":0.9,"source":"package"},{"id":"calligra","confidence":1,"source":"package"},{"id":"gnumeric","confidence":0.9,"source":"package"},{"id":"libreoffice","confidence":1,"source":"package"},{"id":"onlyoffice-desktopeditors","confidence":1,"source":"flatpak"},{"id":"org.kde.calligra","confidence":1,"source":"flatpak"},{"id":"org.libreoffice.LibreOffice","confidence":1,"source":"flatpak"},{"id":"org.onlyoffice.desktopeditors","confidence":1,"source":"flatpak"}]
+    },
+    "password": {
+      "type": "category",
+      "glyph": "",
+      "apps": [{"id":"1password","confidence":0.9,"source":"flatpak"},{"id":"bitwarden","confidence":1,"source":"flatpak"},{"id":"com.bitwarden.desktop","confidence":1,"source":"flatpak"},{"id":"com.onepassword.OnePassword","confidence":0.9,"source":"flatpak"},{"id":"keepassxc","confidence":1,"source":"package"},{"id":"org.keepassxc.KeePassXC","confidence":1,"source":"flatpak"},{"id":"seahorse","confidence":0.8,"source":"package"}]
+    },
+    "screenshot": {
+      "type": "category",
+      "glyph": "",
+      "apps": [{"id":"com.obsproject.Studio","confidence":0.9,"source":"flatpak"},{"id":"flameshot","confidence":1,"source":"package"},{"id":"gnome-screenshot","confidence":1,"source":"package"},{"id":"obs-studio","confidence":0.9,"source":"package"},{"id":"org.flameshot.Flameshot","confidence":1,"source":"flatpak"},{"id":"org.gnome.Screenshot","confidence":1,"source":"flatpak"},{"id":"org.kde.spectacle","confidence":1,"source":"flatpak"},{"id":"spectacle","confidence":1,"source":"package"}]
+    },
+    "settings": {
+      "type": "category",
+      "glyph": "",
+      "apps": [{"id":"gnome-control-center","confidence":1,"source":"package"},{"id":"lxqt-config","confidence":0.9,"source":"package"},{"id":"mate-control-center","confidence":0.9,"source":"package"},{"id":"org.gnome.Settings","confidence":1,"source":"flatpak"},{"id":"org.kde.systemsettings","confidence":1,"source":"flatpak"},{"id":"systemsettings5","confidence":1,"source":"package"}]
+    },
+    "social": {
+      "type": "category",
+      "glyph": "",
+      "apps": [{"id":"cawbird","confidence":1,"source":"package"},{"id":"com.github.mohankey.tweaks","confidence":0.8,"source":"flatpak"},{"id":"tweaks","confidence":0.8,"source":"flatpak"},{"id":"uk.co.ibboard.cawbird","confidence":1,"source":"flatpak"}]
+    },
+    "system-monitor": {
+      "type": "category",
+      "glyph": "",
+      "apps": [{"id":"btop","confidence":0.9,"source":"package"},{"id":"com.github.stsdc.monitor","confidence":0.9,"source":"flatpak"},{"id":"gnome-system-monitor","confidence":1,"source":"package"},{"id":"htop","confidence":0.8,"source":"package"},{"id":"iotop","confidence":0.8,"source":"package"},{"id":"kdisk","confidence":0.9,"source":"package"},{"id":"org.gnome.SystemMonitor","confidence":1,"source":"flatpak"}]
+    },
+    "terminal": {
+      "type": "category",
+      "glyph": "",
+      "apps": [{"id":"alacritty","confidence":1,"source":"package"},{"id":"gnome-terminal","confidence":1,"source":"package"},{"id":"kitty","confidence":1,"source":"package"},{"id":"konsole","confidence":1,"source":"package"},{"id":"org.alacritty.Alacritty","confidence":1,"source":"flatpak"},{"id":"org.gnome.Terminal","confidence":1,"source":"flatpak"},{"id":"org.kde.konsole","confidence":1,"source":"flatpak"},{"id":"org.kitty.kitty","confidence":1,"source":"flatpak"},{"id":"tilix","confidence":0.9,"source":"package"}]
+    },
+    "text-editor": {
+      "type": "category",
+      "glyph": "",
+      "apps": [{"id":"gedit","confidence":1,"source":"package"},{"id":"kate","confidence":1,"source":"package"},{"id":"libreoffice-writer","confidence":0.9,"source":"package"},{"id":"mousepad","confidence":1,"source":"package"},{"id":"org.gnome.gedit","confidence":1,"source":"flatpak"},{"id":"org.kde.kate","confidence":1,"source":"flatpak"},{"id":"org.xfce.mousepad","confidence":1,"source":"flatpak"},{"id":"xedit","confidence":0.8,"source":"package"}]
+    },
+    "torrent": {
+      "type": "category",
+      "glyph": "",
+      "apps": [{"id":"com.github.transmissionbt.Transmission","confidence":1,"source":"flatpak"},{"id":"de.haecker-felix.Fragments","confidence":0.9,"source":"flatpak"},{"id":"deluge","confidence":1,"source":"package"},{"id":"fragments","confidence":0.9,"source":"flatpak"},{"id":"org.deluge-torrent.deluge","confidence":1,"source":"flatpak"},{"id":"org.qbittorrent.qBittorrent","confidence":1,"source":"flatpak"},{"id":"qbittorrent","confidence":1,"source":"package"},{"id":"transmission-gtk","confidence":1,"source":"package"}]
+    },
+    "video": {
+      "type": "category",
+      "glyph": "",
+      "apps": [{"id":"io.mpv.Mpv","confidence":1,"source":"flatpak"},{"id":"kdenlive","confidence":1,"source":"package"},{"id":"mpv","confidence":1,"source":"package"},{"id":"org.gnome.Totem","confidence":1,"source":"flatpak"},{"id":"org.kde.kdenlive","confidence":1,"source":"flatpak"},{"id":"org.pitivi.Pitivi","confidence":0.9,"source":"flatpak"},{"id":"org.videolan.VLC","confidence":1,"source":"flatpak"},{"id":"pitivi","confidence":0.9,"source":"package"},{"id":"totem","confidence":1,"source":"package"},{"id":"vlc","confidence":1,"source":"package"}]
+    },
+    "vpn": {
+      "type": "category",
+      "glyph": "",
+      "apps": [{"id":"com.protonvpn.ProtonVPN","confidence":0.9,"source":"flatpak"},{"id":"mullvad-vpn","confidence":1,"source":"flatpak"},{"id":"net.mullvad.MullvadVPN","confidence":1,"source":"flatpak"},{"id":"network-manager-openvpn-gnome","confidence":0.9,"source":"package"},{"id":"openvpn","confidence":0.8,"source":"package"},{"id":"protonvpn-gui","confidence":0.9,"source":"flatpak"},{"id":"wireguard-tools","confidence":0.8,"source":"package"}]
+    }
+  }
+}

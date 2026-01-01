@@ -2,7 +2,6 @@ package main
 
 import (
 	"bytes"
-	"encoding/json"
 	"fmt"
 	"os"
 	"strings"
@@ -58,16 +57,8 @@ type OpenRouterConfig struct {
 	// AppGenBatchSize is the number of icons to generate apps for per API call
 	AppGenBatchSize int `toml:"app_gen_batch_size"`
 
-	// CategoryAssignBatchSize is the number of apps to assign categories for per API call
-	CategoryAssignBatchSize int `toml:"category_assign_batch_size"`
-
-	// CategoryFallbackThreshold is the confidence threshold below which apps get assigned to categories
-	// Apps with confidence scores below this threshold will be reassigned from brand icons to category fallbacks
-	CategoryFallbackThreshold float64 `toml:"category_fallback_threshold"`
-
-	// CategoryMinConfidence is the minimum confidence for an app to be assigned to a category
-	// Apps below this threshold are filtered out entirely (likely AI errors)
-	CategoryMinConfidence float64 `toml:"category_min_confidence"`
+	// CategoryBatchSize is the number of categories to generate apps for per API call
+	CategoryBatchSize int `toml:"category_batch_size"`
 
 	// RequestTimeout is the timeout for each API request in seconds
 	RequestTimeout int `toml:"request_timeout"`
@@ -99,11 +90,11 @@ type PromptConfig struct {
 	// AppGenPrompt is the prompt template for app name generation
 	AppGenPrompt string `toml:"app_gen_prompt"`
 
+	// CategoryAppGenPrompt is the prompt template for category app generation
+	CategoryAppGenPrompt string `toml:"category_app_gen_prompt"`
+
 	// CategorySuggestPrompt is the prompt template for category icon suggestions
 	CategorySuggestPrompt string `toml:"category_suggest_prompt"`
-
-	// CategoryAssignPrompt is the prompt template for assigning apps to categories
-	CategoryAssignPrompt string `toml:"category_assign_prompt"`
 }
 
 // PromptVars contains variables for prompt templates.
@@ -111,6 +102,7 @@ type PromptVars struct {
 	Year       int
 	Icons      string // newline-separated list of icons
 	Categories string // formatted list of fallback categories
+	ExtraApps  string // extra apps to research and classify
 }
 
 // CategorySuggestVars contains variables for category suggestion prompts.
@@ -122,24 +114,16 @@ type CategorySuggestVars struct {
 	MaxPerCategory    int    // max suggestions per category
 }
 
-// CategoryAssignVars contains variables for category assignment prompts.
-type CategoryAssignVars struct {
-	Categories string // formatted list of available categories
-	Apps       string // formatted list of apps to assign
-}
-
 // DefaultConfig returns the default configuration.
 func DefaultConfig() *Config {
 	return &Config{
 		OpenRouter: OpenRouterConfig{
-			DefaultModel:              "google/gemini-2.5-flash",
-			WebSearch:                 true,
-			AppGenBatchSize:           50,
-			CategoryAssignBatchSize:   100,
-			CategoryFallbackThreshold: 0.7,
-			CategoryMinConfidence:     0.3,
-			RequestTimeout:            600,
-			MaxTokens:                 32000,
+			DefaultModel:      "google/gemini-2.5-flash",
+			WebSearch:         true,
+			AppGenBatchSize:   250,
+			CategoryBatchSize: 250,
+			RequestTimeout:    600,
+			MaxTokens:         32000,
 		},
 		Upstream: UpstreamConfig{
 			FontAwesome:    "https://raw.githubusercontent.com/FortAwesome/Font-Awesome/7.x/metadata/icons.json",
@@ -150,8 +134,8 @@ func DefaultConfig() *Config {
 		},
 		Prompts: PromptConfig{
 			AppGenPrompt:          defaultAppGenPrompt,
+			CategoryAppGenPrompt:  defaultCategoryAppGenPrompt,
 			CategorySuggestPrompt: defaultCategorySuggestPrompt,
-			CategoryAssignPrompt:  defaultCategoryAssignPrompt,
 		},
 		IconPreferences: IconPreferencesConfig{
 			PreferredSets:             []string{"md", "fa", "cod", "dev"},
@@ -178,7 +162,25 @@ Include these identifier types:
 For "app" type icons (brand logos like Discord, Spotify):
 - List the primary app and all known variants/forks
 - Include official variants (discord-canary, spotify-client)
-- Include popular third-party clients (vesktop for Discord)
+- IMPORTANT: Include ALL third-party and unofficial clients (see below)
+
+THIRD-PARTY AND UNOFFICIAL CLIENTS - CRITICAL:
+For ANY service with a brand icon, you MUST search for and include ALL third-party clients.
+These are apps that connect to the same service but aren't made by the original company.
+They should use the service's brand icon because they ARE that service, just via a different app.
+
+Search AUR, Flathub, GitHub, and Linux package repos to find:
+- Web wrappers: Electron/WebView apps that wrap web versions of services
+- Alternative native clients: Reimplementations using the service's API/protocol
+- Terminal/TUI clients: Command-line interfaces for the service
+- Forks: Modified versions of official clients
+
+Examples of what to search for:
+- For "whatsapp": search "whatsapp linux client", "whatsapp wrapper", "whatsapp alternative linux"
+- For "discord": search "discord linux client alternative", "discord gtk", "discord terminal"
+- For "spotify": search "spotify linux client", "spotify tui", "spotify terminal"
+
+Be thorough - popular services often have 5-10+ third-party Linux clients.
 
 For "category" type icons (generic like email, music, video):
 - List the most popular Linux applications in that category
@@ -204,7 +206,13 @@ Confidence scoring:
 
 Icons to map (format: "name (type) - description"):
 {{.Icons}}
-
+{{if .ExtraApps}}
+EXTRA APPS TO RESEARCH:
+The following apps have been specifically requested for classification. Research each one
+and assign it to the most appropriate icon from the list above. Include them in your response
+with the appropriate icon mapping:
+{{.ExtraApps}}
+{{end}}
 Respond with valid JSON only:
 {
   "mappings": [
@@ -273,43 +281,51 @@ Respond with valid JSON. Use EXACT category names as keys (e.g., "messaging" not
   }
 }`
 
-const defaultCategoryAssignPrompt = `You are assigning Linux applications to fallback icon categories.
+const defaultCategoryAppGenPrompt = `You are generating Linux application lists for category fallback icons in a desktop notification system.
+Current year: {{.Year}} - focus on current and actively maintained apps in the Linux ecosystem.
 
-These applications do not have brand-specific icons in Nerd Fonts, so they need to be assigned
-to appropriate category fallbacks for visual representation in a desktop notification system.
+Categories are used as fallback icons when an app doesn't have a brand-specific icon.
+For each category, list ALL Linux applications that fit that category and would emit desktop notifications.
 
-Available categories (assign apps to these EXACT category names):
+Include these identifier types:
+- Package names (apt/pacman/dnf): thunderbird, evolution, geary
+- Flatpak IDs: org.mozilla.Thunderbird, org.gnome.Evolution
+- Snap names: thunderbird
+- Desktop file names: org.mozilla.Thunderbird
+- Binary names: thunderbird-bin
+
+Focus on apps that:
+1. Emit desktop notifications (not CLI-only tools without GUI)
+2. Are actively maintained and used on Linux
+3. Do NOT have a brand-specific icon in Nerd Fonts (the brand icons are handled separately)
+
+Categories to populate (each has a description and example apps):
 {{.Categories}}
 
-Applications to categorize (format: "app_id (current_icon, confidence)"):
-{{.Apps}}
-
-For each application, determine the single most appropriate category based on:
-1. Application purpose (what does it do?)
-2. Category description match (read the category descriptions)
-3. Similar apps in the category examples
+Be thorough and comprehensive. For each category, include:
+- Mainstream apps (the most popular)
+- Alternative/indie apps (niche but used)
+- Newer/modern apps (2023-{{.Year}} releases)
+- Forks and variants
 
 Confidence scoring:
-- 0.9+: Perfect match (app clearly belongs to this category)
-- 0.8: Strong match (category is clearly appropriate)
-- 0.7: Good match (reasonable category assignment)
-- 0.6: Acceptable match (app could fit multiple categories)
-- 0.5: Weak match (category is a fallback, not ideal)
+- 1.0: Perfect match (email client for email category)
+- 0.9: Strong match (calendar in email client)
+- 0.8: Good match (notification daemon for system category)
+- 0.7: Moderate match (file sync tool for backup category)
+- 0.6: Weak match (generic utility)
 
 Respond with valid JSON only:
 {
-  "assignments": [
+  "mappings": [
     {
-      "app": "evolution",
       "category": "email",
-      "confidence": 0.95,
-      "reason": "Email client, direct match to email category"
-    },
-    {
-      "app": "geary",
-      "category": "email",
-      "confidence": 0.90,
-      "reason": "Modern email client"
+      "apps": [
+        {"id": "thunderbird", "confidence": 1.0, "source": "package"},
+        {"id": "org.mozilla.Thunderbird", "confidence": 0.9, "source": "flatpak"},
+        {"id": "evolution", "confidence": 1.0, "source": "package"},
+        {"id": "geary", "confidence": 1.0, "source": "package"}
+      ]
     }
   ]
 }`
@@ -331,7 +347,7 @@ func RenderPrompt(tmpl string, vars PromptVars) (string, error) {
 
 // CategoriesConfig represents the structure of kb-categories.toml.
 type CategoriesConfig struct {
-	Meta       CategoriesMeta               `toml:"meta"`
+	Meta       CategoriesMeta                `toml:"meta"`
 	Categories map[string]CategoryDefinition `toml:"categories"`
 }
 
@@ -394,14 +410,14 @@ func SaveCategories(config *CategoriesConfig, path string) error {
 
 	// Group categories by section for readability
 	sections := map[string][]string{
-		"# Communication":    {"messaging", "email", "social"},
-		"# Media":            {"video", "audio", "image"},
-		"# Productivity":     {"text-editor", "notes", "calendar", "office"},
-		"# System":           {"terminal", "file-manager", "settings", "system-monitor", "archive"},
+		"# Communication":      {"messaging", "email", "social"},
+		"# Media":              {"video", "audio", "image"},
+		"# Productivity":       {"text-editor", "notes", "calendar", "office"},
+		"# System":             {"terminal", "file-manager", "settings", "system-monitor", "archive"},
 		"# Security & Network": {"firewall", "vpn", "password", "backup"},
-		"# Network":          {"download", "torrent", "browser"},
-		"# Development":      {"code", "git", "database"},
-		"# Other":            {"game", "screenshot", "calculator"},
+		"# Network":            {"download", "torrent", "browser"},
+		"# Development":        {"code", "git", "database"},
+		"# Other":              {"game", "screenshot", "calculator"},
 	}
 	sectionOrder := []string{
 		"# Communication", "# Media", "# Productivity", "# System",
@@ -447,9 +463,9 @@ func SaveCategories(config *CategoriesConfig, path string) error {
 
 // writeCategoryEntry writes a single category entry to the buffer.
 func writeCategoryEntry(buf *strings.Builder, catName string, cat CategoryDefinition) {
-	buf.WriteString(fmt.Sprintf("[categories.%s]\n", catName))
-	buf.WriteString(fmt.Sprintf("description = %q\n", cat.Description))
-	buf.WriteString(fmt.Sprintf("examples = %s\n", formatStringSlice(cat.Examples)))
+	_, _ = fmt.Fprintf(buf, "[categories.%s]\n", catName)
+	_, _ = fmt.Fprintf(buf, "description = %q\n", cat.Description)
+	_, _ = fmt.Fprintf(buf, "examples = %s\n", formatStringSlice(cat.Examples))
 
 	// Write symbol with glyph name as comment (using nf- namespace prefix)
 	// Use literal string format to preserve the actual unicode character
@@ -459,14 +475,14 @@ func writeCategoryEntry(buf *strings.Builder, catName string, cat CategoryDefini
 		if !strings.HasPrefix(glyphComment, "nf-") {
 			glyphComment = "nf-" + glyphComment
 		}
-		buf.WriteString(fmt.Sprintf("symbol = \"%s\"  # %s\n", cat.Symbol, glyphComment))
+		_, _ = fmt.Fprintf(buf, "symbol = \"%s\"  # %s\n", cat.Symbol, glyphComment)
 	} else if cat.Symbol != "" {
-		buf.WriteString(fmt.Sprintf("symbol = \"%s\"\n", cat.Symbol))
+		_, _ = fmt.Fprintf(buf, "symbol = \"%s\"\n", cat.Symbol)
 	} else {
 		buf.WriteString("symbol = \"\"\n")
 	}
 
-	buf.WriteString(fmt.Sprintf("gtk_icon = %q\n", cat.GtkIcon))
+	_, _ = fmt.Fprintf(buf, "gtk_icon = %q\n", cat.GtkIcon)
 	buf.WriteString("\n")
 }
 
@@ -542,50 +558,6 @@ type CategorySuggestion struct {
 	Reason     string  `json:"reason"`
 }
 
-// CategoryAssignmentsFile represents the kb-category-assignments.json file.
-type CategoryAssignmentsFile struct {
-	Version     int                                `json:"version"`
-	GeneratedAt string                             `json:"generated_at"`
-	Threshold   float64                            `json:"threshold"`
-	Assignments map[string]CategoryAssignmentEntry `json:"assignments"`
-}
-
-// CategoryAssignmentEntry represents a single app-to-category assignment.
-type CategoryAssignmentEntry struct {
-	Category   string  `json:"category"`
-	Confidence float64 `json:"confidence"`
-	Reason     string  `json:"reason,omitempty"`
-}
-
-// LoadCategoryAssignments loads category assignments from a JSON file.
-func LoadCategoryAssignments(path string) (*CategoryAssignmentsFile, error) {
-	data, err := os.ReadFile(path)
-	if err != nil {
-		return nil, fmt.Errorf("read assignments: %w", err)
-	}
-
-	var file CategoryAssignmentsFile
-	if err := json.Unmarshal(data, &file); err != nil {
-		return nil, fmt.Errorf("parse assignments: %w", err)
-	}
-
-	return &file, nil
-}
-
-// SaveCategoryAssignments saves category assignments to a JSON file.
-func SaveCategoryAssignments(file *CategoryAssignmentsFile, path string) error {
-	data, err := json.MarshalIndent(file, "", "  ")
-	if err != nil {
-		return fmt.Errorf("marshal assignments: %w", err)
-	}
-
-	if err := os.WriteFile(path, data, 0644); err != nil {
-		return fmt.Errorf("write assignments: %w", err)
-	}
-
-	return nil
-}
-
 // FormatCategoriesForPrompt formats categories for inclusion in the AI prompt.
 func FormatCategoriesForPrompt(cats *CategoriesConfig) string {
 	if cats == nil || len(cats.Categories) == 0 {
@@ -613,7 +585,7 @@ func FormatCategoriesForPrompt(cats *CategoriesConfig) string {
 }
 
 // RenderAppGenPrompt renders the app generation prompt with icons and categories.
-func (c *Config) RenderAppGenPrompt(iconList []string) (string, error) {
+func (c *Config) RenderAppGenPrompt(iconList []string, extraApps []string) (string, error) {
 	// Try to load categories from the same directory as config
 	categoriesText := "(Categories file not found)"
 	cats, err := LoadCategories(kbCategoriesFile)
@@ -621,35 +593,30 @@ func (c *Config) RenderAppGenPrompt(iconList []string) (string, error) {
 		categoriesText = FormatCategoriesForPrompt(cats)
 	}
 
+	// Format extra apps
+	extraAppsText := ""
+	if len(extraApps) > 0 {
+		extraAppsText = strings.Join(extraApps, ", ")
+	}
+
 	vars := PromptVars{
 		Year:       time.Now().Year(),
 		Icons:      strings.Join(iconList, "\n"),
 		Categories: categoriesText,
+		ExtraApps:  extraAppsText,
 	}
 	return RenderPrompt(c.Prompts.AppGenPrompt, vars)
 }
 
-// RenderCategoryAssignPrompt renders the category assignment prompt.
-func (c *Config) RenderCategoryAssignPrompt(categories *CategoriesConfig, apps []string) (string, error) {
+// RenderCategoryAppGenPrompt renders the category app generation prompt.
+func (c *Config) RenderCategoryAppGenPrompt(categories *CategoriesConfig) (string, error) {
 	categoriesText := FormatCategoriesForPrompt(categories)
-	appsText := strings.Join(apps, "\n")
 
-	vars := CategoryAssignVars{
+	vars := PromptVars{
+		Year:       time.Now().Year(),
 		Categories: categoriesText,
-		Apps:       appsText,
 	}
-
-	t, err := template.New("category_assign").Parse(c.Prompts.CategoryAssignPrompt)
-	if err != nil {
-		return "", fmt.Errorf("parse template: %w", err)
-	}
-
-	var buf bytes.Buffer
-	if err := t.Execute(&buf, vars); err != nil {
-		return "", fmt.Errorf("execute template: %w", err)
-	}
-
-	return buf.String(), nil
+	return RenderPrompt(c.Prompts.CategoryAppGenPrompt, vars)
 }
 
 // FormatPreferencesForPrompt formats icon preferences for inclusion in the AI prompt.
@@ -681,8 +648,8 @@ func (c *Config) FormatPreferencesForPrompt() string {
 // GlyphMetadata represents a glyph with its metadata for the suggestion prompt.
 type GlyphMetadata struct {
 	Name        string
-	Prefix      string   // md, fa, cod, dev
-	Symbol      string   // the actual unicode character
+	Prefix      string // md, fa, cod, dev
+	Symbol      string // the actual unicode character
 	Description string
 	Tags        []string
 }
@@ -882,7 +849,25 @@ Include these identifier types:
 For "app" type icons (brand logos like Discord, Spotify):
 - List the primary app and all known variants/forks
 - Include official variants (discord-canary, spotify-client)
-- Include popular third-party clients (vesktop for Discord)
+- IMPORTANT: Include ALL third-party and unofficial clients (see below)
+
+THIRD-PARTY AND UNOFFICIAL CLIENTS - CRITICAL:
+For ANY service with a brand icon, you MUST search for and include ALL third-party clients.
+These are apps that connect to the same service but aren't made by the original company.
+They should use the service's brand icon because they ARE that service, just via a different app.
+
+Search AUR, Flathub, GitHub, and Linux package repos to find:
+- Web wrappers: Electron/WebView apps that wrap web versions of services
+- Alternative native clients: Reimplementations using the service's API/protocol
+- Terminal/TUI clients: Command-line interfaces for the service
+- Forks: Modified versions of official clients
+
+Examples of what to search for:
+- For "whatsapp": search "whatsapp linux client", "whatsapp wrapper", "whatsapp alternative linux"
+- For "discord": search "discord linux client alternative", "discord gtk", "discord terminal"
+- For "spotify": search "spotify linux client", "spotify tui", "spotify terminal"
+
+Be thorough - popular services often have 5-10+ third-party Linux clients.
 
 For "category" type icons (generic like email, music, video):
 - List the most popular Linux applications in that category

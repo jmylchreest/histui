@@ -6,9 +6,10 @@
 #
 # Use this file to:
 #   1. Add icons missing from upstream (e.g., Signal has no Nerd Font glyph)
-#   2. Fix misclassifications (e.g., force "signal" to be app, not category)
+#   2. Fix misclassifications (e.g., force "tor" to use linux-tor, not tortoise)
 #   3. Force specific apps to use specific icons (skip AI generation)
-#   4. Add extra patterns for better matching
+#
+# For adding extra apps to research (without pattern overrides), use extra-apps.toml instead.
 #
 # This file is version-controlled and manually maintained.
 # kb-patterns.toml is auto-generated and should not be edited.
@@ -24,11 +25,10 @@
 # description = "Human description"     # What this icon represents
 # upstream = "manual"                   # Always "manual" for this file
 #
-# # Optional: Force specific apps (skips AI generation for this icon)
+# # Optional: Force specific apps (REPLACES AI-generated list entirely)
+# # Takes effect immediately on normal regeneration - no --ai-apps needed.
+# # Use for icons without dedicated Nerd Font glyphs or when you want full control.
 # force_apps = ["app1", "app2", "org.example.App"]
-#
-# # Optional: Add apps to AI-generated list
-# extra_apps = ["additional-app", "another-app"]
 #
 # =============================================================================
 # PATTERN SYNTAX
@@ -56,6 +56,7 @@ patterns = ["md-message_lock", "md-message-lock"]
 type = "app"
 description = "Signal private messenger"
 upstream = "manual"
+# Signal uses a manual icon (no dedicated Nerd Font glyph), so we control the full app list.
 force_apps = [
     "signal",
     "signal-desktop",
@@ -80,26 +81,6 @@ force_apps = [
 #     "io.element.Element",
 # ]
 
-# -----------------------------------------------------------------------------
-# Adding extra apps to AI-generated lists
-# -----------------------------------------------------------------------------
-# If AI misses some apps, add them here without replacing the full list.
-
-# [icons.discord]
-# extra_apps = ["ripcord", "gtkcord4"]  # Added to AI-generated list
-
-# -----------------------------------------------------------------------------
-# Custom category icons
-# -----------------------------------------------------------------------------
-# Define generic icons for app categories.
-
-# [icons.productivity]
-# patterns = ["md-briefcase", "md-office"]
-# type = "category"
-# description = "Productivity and office applications"
-# upstream = "manual"
-# # No force_apps - let AI generate the list
-
 # =============================================================================
 # YOUR OVERRIDES BELOW
 # =============================================================================
@@ -115,10 +96,5 @@ patterns = ["linux-tor"]
 type = "app"
 description = "Tor anonymity network and browser"
 upstream = "manual"
-force_apps = [
-    "tor",
-    "tor-browser",
-    "torbrowser-launcher",
-    "org.torproject.torbrowser-launcher",
-    "start-tor-browser",
-]
+# AI already has all tor apps - no manual overrides needed
+# Keeping this entry to ensure "tor" matches linux-tor icon, not tortoise

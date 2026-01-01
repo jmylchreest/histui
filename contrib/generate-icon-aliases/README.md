@@ -12,18 +12,25 @@ Upstream Metadata ──► kb-patterns.toml ──► Merged Patterns ──►
 (FA, MDI, Devicons)    (auto-generated)         │                  (output)
                                                 │
                        kb-patterns-manual.toml ─┘
-                       (your overrides)
+                       (icon overrides)
                                                 │
-                       kb-ai.json ──────────────┘
-                       (AI app mappings)
+                       extra-apps.toml ─────────┤
+                       (apps to research)       │
+                                                │
+                       kb-ai-apps.json ─────────┤
+                       (brand icon app mappings)│
+                                                │
+                       kb-ai-categories.json ───┘
+                       (category app mappings)
 ```
 
 ## Quick Start
 
 ```bash
 # First time setup
-./generate-icon-aliases --fetch        # Download upstream metadata, generate patterns
-./generate-icon-aliases --generate-kb  # Generate AI app mappings (requires OPENROUTER_API_KEY)
+./generate-icon-aliases --fetch          # Download upstream metadata, generate patterns
+./generate-icon-aliases --ai-apps        # Generate AI app mappings for brand icons
+./generate-icon-aliases --ai-categories  # Generate AI app mappings for categories
 
 # Generate output
 ./generate-icon-aliases --output icon-aliases.toml
@@ -37,11 +44,12 @@ task generate:icons
 | Flag | Description |
 |------|-------------|
 | `--fetch` | Download upstream metadata and regenerate `kb-patterns.toml` |
-| `--generate-kb` | Generate AI app mappings for icons not in `kb-ai.json` |
+| `--ai-apps` | Generate AI app mappings for brand icons (saves to `kb-ai-apps.json`) |
+| `--ai-categories` | Generate AI app mappings for categories (saves to `kb-ai-categories.json`) |
 | `--output PATH` | Output TOML file path (default: `icon-aliases.toml`) |
 | `--verbose` | Show detailed processing information |
-| `--force` | Regenerate AI mappings even if cached |
 | `--no-cache` | Disable caching of API responses |
+| `--clear-cache` | Clear the API response cache before generating |
 
 ## Files
 
@@ -49,8 +57,11 @@ task generate:icons
 |------|------|-------------|
 | `config.toml` | Config | OpenRouter settings, upstream URLs, AI prompts |
 | `kb-patterns.toml` | Auto-generated | Icon patterns from upstream metadata |
-| `kb-patterns-manual.toml` | Manual | Your overrides (version controlled) |
-| `kb-ai.json` | Generated | AI-generated app mappings (cached) |
+| `kb-patterns-manual.toml` | Manual | Icon overrides (version controlled) |
+| `extra-apps.toml` | Manual | Apps to research during AI generation |
+| `kb-ai-apps.json` | Generated | AI-generated app mappings for brand icons |
+| `kb-ai-categories.json` | Generated | AI-generated app mappings for categories |
+| `kb-categories.toml` | Manual | Category definitions with icons |
 | `icon-aliases.toml` | Output | Final output for histui |
 | `glyphnames.json` | Downloaded | Nerd Fonts glyph data |
 
@@ -93,23 +104,50 @@ upstream = "manual"
 force_apps = ["signal", "signal-desktop", "org.signal.Signal"]
 ```
 
-### 3. AI App Generation (`--generate-kb`)
+### 3. AI App Generation
 
-For each icon pattern, AI generates a comprehensive list of Linux applications:
+AI generation is split into two steps:
+
+#### Brand Icons (`--ai-apps`)
+
+For each brand icon (Discord, Firefox, etc.), AI generates a comprehensive list of Linux applications including official clients, forks, and third-party clients:
 
 ```json
 {
   "discord": {
+    "type": "app",
+    "glyph": "md-discord",
     "apps": [
       {"id": "discord", "confidence": 1.0},
       {"id": "com.discordapp.Discord", "confidence": 0.9},
-      {"id": "vesktop", "confidence": 0.7}
+      {"id": "vesktop", "confidence": 0.7},
+      {"id": "webcord", "confidence": 0.7}
     ]
   }
 }
 ```
 
 AI is skipped for icons with `force_apps` in the manual file.
+
+#### Categories (`--ai-categories`)
+
+For each category (email, messaging, etc.), AI generates a list of Linux applications that belong to that category:
+
+```json
+{
+  "email": {
+    "type": "category",
+    "glyph": "md-email",
+    "apps": [
+      {"id": "thunderbird", "confidence": 1.0},
+      {"id": "evolution", "confidence": 1.0},
+      {"id": "geary", "confidence": 1.0}
+    ]
+  }
+}
+```
+
+This ensures apps without brand icons get appropriate category fallback icons.
 
 ### 4. Output (`icon-aliases.toml`)
 
@@ -175,7 +213,7 @@ For `category` icons, AI lists popular apps in that category.
 ### If upstream has the icon
 
 1. Run `--fetch` to update patterns from upstream
-2. Run `--generate-kb` to generate app mappings
+2. Run `--ai-apps` to generate app mappings for brand icons
 3. The icon will appear in output
 
 ### If upstream is missing the icon
@@ -193,12 +231,36 @@ For `category` icons, AI lists popular apps in that category.
 
 ### If AI misses some apps
 
-1. Add `extra_apps` to manual file:
-   ```toml
-   [icons.discord]
-   extra_apps = ["ripcord", "gtkcord4"]
-   ```
-2. These are added to AI-generated list
+Add the app names to `extra-apps.toml`:
+```toml
+[apps]
+include = [
+    "elecwhat",      # WhatsApp third-party client
+    "ripcord",       # Discord/Slack client
+    "gtkcord4",      # Discord GTK client
+]
+```
+
+Then regenerate:
+```bash
+./generate-icon-aliases --ai-apps
+./generate-icon-aliases --output icon-aliases.toml
+```
+
+The AI will research each app and classify it to the appropriate icon.
+
+### For icons without Nerd Font glyphs
+
+Use `force_apps` in `kb-patterns-manual.toml` for complete control:
+```toml
+[icons.signal]
+patterns = ["md-message_lock"]
+type = "app"
+description = "Signal private messenger"
+upstream = "manual"
+force_apps = ["signal", "signal-desktop", "org.signal.Signal"]
+```
+Changes take effect immediately on normal regeneration (no `--ai-apps` needed).
 
 ## Caching
 
@@ -224,8 +286,8 @@ Try a different model in `config.toml`. Claude and Gemini have best JSON reliabi
 
 ### Missing apps in output
 1. Check confidence threshold (apps require ≥0.7, categories ≥0.3)
-2. Add `extra_apps` in manual file
-3. Or use `force_apps` to specify exact list
+2. Add apps to `extra-apps.toml`, then regenerate with `--ai-apps`
+3. Or use `force_apps` in `kb-patterns-manual.toml` for complete control
 
 ## Confidence Thresholds
 

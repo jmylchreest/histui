@@ -60,7 +60,7 @@ func FetchGtkIcons(apiURL string, forceRefresh bool, verbose bool) ([]GtkIconInf
 	if err != nil {
 		return nil, fmt.Errorf("fetch: %w", err)
 	}
-	defer resp.Body.Close()
+	defer func() { _ = resp.Body.Close() }()
 
 	if resp.StatusCode != http.StatusOK {
 		body, _ := io.ReadAll(resp.Body)

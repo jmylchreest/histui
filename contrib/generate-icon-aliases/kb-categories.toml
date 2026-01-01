@@ -17,7 +17,7 @@ version = 2
 [categories.messaging]
 description = "Instant messaging and chat applications"
 examples = ["signal", "telegram", "whatsapp", "slack", "discord"]
-symbol = ""  # nf-fa-comment_dots
+symbol = ""  # nf-fa-comment
 gtk_icon = "chat-message-new-symbolic"
 
 [categories.email]
@@ -30,14 +30,14 @@ gtk_icon = "mail-send-symbolic"
 description = "Social media clients"
 examples = ["tweetdeck", "cawbird", "facebook-messenger"]
 symbol = ""  # nf-fa-users
-gtk_icon = "user-available-symbolic"
+gtk_icon = "system-users-symbolic"
 
 # Media
 [categories.video]
 description = "Video players and editors"
 examples = ["vlc", "mpv", "totem", "kdenlive", "pitivi"]
 symbol = ""  # nf-fa-video
-gtk_icon = "video-display-symbolic"
+gtk_icon = "camera-video-symbolic"
 
 [categories.audio]
 description = "Audio players and editors"
@@ -67,7 +67,7 @@ gtk_icon = "text-x-generic-symbolic"
 [categories.calendar]
 description = "Calendar and scheduling"
 examples = ["gnome-calendar", "korganizer"]
-symbol = ""  # nf-fa-calendar
+symbol = ""  # nf-fa-calendar_days
 gtk_icon = "x-office-calendar-symbolic"
 
 [categories.office]
@@ -87,7 +87,7 @@ gtk_icon = "utilities-terminal-symbolic"
 description = "File managers"
 examples = ["nautilus", "thunar", "dolphin", "nemo"]
 symbol = ""  # nf-fa-folder_open
-gtk_icon = "system-file-manager-symbolic"
+gtk_icon = "folder-open-symbolic"
 
 [categories.settings]
 description = "System settings and preferences"
@@ -98,14 +98,14 @@ gtk_icon = "preferences-system-symbolic"
 [categories.system-monitor]
 description = "System monitors and task managers"
 examples = ["gnome-system-monitor", "htop", "btop"]
-symbol = ""  # nf-fa-gauge_high
-gtk_icon = "system-monitor-symbolic"
+symbol = ""  # nf-fa-chart_line
+gtk_icon = "utilities-terminal-symbolic"
 
 [categories.archive]
 description = "Archive and compression tools"
 examples = ["file-roller", "ark", "engrampa"]
 symbol = ""  # nf-fa-box_archive
-gtk_icon = "package-x-generic-symbolic"
+gtk_icon = "folder-symbolic"
 
 # Security & Network
 [categories.firewall]
@@ -117,7 +117,7 @@ gtk_icon = "security-high-symbolic"
 [categories.vpn]
 description = "VPN clients"
 examples = ["openvpn", "wireguard", "mullvad"]
-symbol = ""  # nf-fa-shield_halved
+symbol = ""  # nf-fa-network_wired
 gtk_icon = "network-vpn-symbolic"
 
 [categories.password]
@@ -129,14 +129,14 @@ gtk_icon = "dialog-password-symbolic"
 [categories.backup]
 description = "Backup and sync tools"
 examples = ["deja-dup", "timeshift", "syncthing"]
-symbol = ""  # nf-fa-cloud_arrow_up
-gtk_icon = "folder-drag-accept-symbolic"
+symbol = ""  # nf-fa-rotate
+gtk_icon = "view-refresh-symbolic"
 
 # Network
 [categories.download]
 description = "Download managers"
 examples = ["uget", "persepolis", "jdownloader"]
-symbol = ""  # nf-fa-cloud_arrow_down
+symbol = ""  # nf-fa-download
 gtk_icon = "folder-download-symbolic"
 
 [categories.torrent]
@@ -156,7 +156,7 @@ gtk_icon = "web-browser-symbolic"
 description = "Code editors and IDEs"
 examples = ["vscode", "sublime", "atom", "geany"]
 symbol = ""  # nf-fa-code
-gtk_icon = "applications-engineering-symbolic"
+gtk_icon = "text-x-generic-symbolic"
 
 [categories.git]
 description = "Git clients and tools"
@@ -175,7 +175,7 @@ gtk_icon = "network-server-symbolic"
 description = "Games and gaming platforms"
 examples = ["steam", "lutris", "heroic"]
 symbol = ""  # nf-fa-gamepad
-gtk_icon = "input-gaming-symbolic"
+gtk_icon = "applications-games-symbolic"
 
 [categories.screenshot]
 description = "Screenshot and screen recording"

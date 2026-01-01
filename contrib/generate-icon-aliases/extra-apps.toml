@@ -1,0 +1,35 @@
+# Extra Apps for Icon Classification
+# ==================================
+#
+# List apps here that you want the AI to research and classify.
+# The AI will figure out which icon each app belongs to.
+#
+# This is simpler than kb-patterns-manual.toml - you just provide app names,
+# and the AI determines the appropriate icon mapping.
+#
+# Use this for:
+#   - Third-party clients the AI missed (e.g., elecwhat for WhatsApp)
+#   - Niche apps not in common package repositories
+#   - Apps with unusual naming that AI might not find
+#
+# Do NOT use this for:
+#   - Apps that need a specific icon override (use kb-patterns-manual.toml)
+#   - Apps where AI keeps getting the wrong icon (use force_apps in manual)
+#
+# After adding apps here, regenerate with:
+#   ./generate-icon-aliases --ai-apps
+#
+# =============================================================================
+
+[apps]
+# Simple app names (AI will research these)
+include = [
+    # "some-app",
+]
+
+# Apps with additional context (name, description, URL for research)
+# The AI will visit the URL to understand what the app does
+[[apps.detailed]]
+name = "elecwhat"
+description = "WhatsApp Electron wrapper client"
+url = "https://github.com/piec/elecwhat"

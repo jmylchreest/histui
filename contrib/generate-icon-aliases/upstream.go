@@ -26,7 +26,7 @@ type UpstreamIcon struct {
 
 // KBPatterns represents the kb-patterns.toml structure.
 type KBPatterns struct {
-	Meta  KBMeta                  `toml:"meta"`
+	Meta  KBMeta                 `toml:"meta"`
 	Icons map[string]KBIconEntry `toml:"icons"`
 }
 
@@ -53,14 +53,14 @@ type KBIconEntry struct {
 type FAMetadata map[string]FAIcon
 
 type FAIcon struct {
-	Styles   []string           `json:"styles"`
-	Label    string             `json:"label"`
-	Search   FASearch           `json:"search"`
-	Unicode  string             `json:"unicode"`
-	Aliases  FAAliases          `json:"aliases,omitempty"`
-	Changes  []string           `json:"changes,omitempty"`
-	Ligature []string           `json:"ligatures,omitempty"`
-	SVG      map[string]FASVG   `json:"svg,omitempty"`
+	Styles   []string         `json:"styles"`
+	Label    string           `json:"label"`
+	Search   FASearch         `json:"search"`
+	Unicode  string           `json:"unicode"`
+	Aliases  FAAliases        `json:"aliases,omitempty"`
+	Changes  []string         `json:"changes,omitempty"`
+	Ligature []string         `json:"ligatures,omitempty"`
+	SVG      map[string]FASVG `json:"svg,omitempty"`
 }
 
 type FASearch struct {
@@ -68,7 +68,7 @@ type FASearch struct {
 }
 
 type FAAliases struct {
-	Names    []string `json:"names,omitempty"`
+	Names    []string   `json:"names,omitempty"`
 	Unicodes FAUnicodes `json:"unicodes,omitempty"`
 }
 
@@ -88,14 +88,14 @@ type FASVG struct {
 type MDIMetadata []MDIIcon
 
 type MDIIcon struct {
-	ID           string   `json:"id"`
-	Name         string   `json:"name"`
-	Codepoint    string   `json:"codepoint"`
-	Aliases      []string `json:"aliases"`
-	Tags         []string `json:"tags"`
-	Author       string   `json:"author"`
-	Version      string   `json:"version"`
-	Deprecated   bool     `json:"deprecated,omitempty"`
+	ID         string   `json:"id"`
+	Name       string   `json:"name"`
+	Codepoint  string   `json:"codepoint"`
+	Aliases    []string `json:"aliases"`
+	Tags       []string `json:"tags"`
+	Author     string   `json:"author"`
+	Version    string   `json:"version"`
+	Deprecated bool     `json:"deprecated,omitempty"`
 }
 
 // Devicons JSON structure (array format)
@@ -195,7 +195,7 @@ func countByType(icons []UpstreamIcon, typ string) int {
 	return count
 }
 
-func fetchFontAwesome(url string, verbose bool) ([]UpstreamIcon, error) {
+func fetchFontAwesome(url string, _ bool) ([]UpstreamIcon, error) {
 	data, err := fetchJSON(url)
 	if err != nil {
 		return nil, err
@@ -238,7 +238,7 @@ func fetchFontAwesome(url string, verbose bool) ([]UpstreamIcon, error) {
 	return icons, nil
 }
 
-func fetchMaterialDesign(url string, verbose bool) ([]UpstreamIcon, error) {
+func fetchMaterialDesign(url string, _ bool) ([]UpstreamIcon, error) {
 	data, err := fetchJSON(url)
 	if err != nil {
 		return nil, err
@@ -292,7 +292,7 @@ func fetchMaterialDesign(url string, verbose bool) ([]UpstreamIcon, error) {
 	return icons, nil
 }
 
-func fetchDevicons(url string, verbose bool) ([]UpstreamIcon, error) {
+func fetchDevicons(url string, _ bool) ([]UpstreamIcon, error) {
 	data, err := fetchJSON(url)
 	if err != nil {
 		return nil, err
@@ -330,7 +330,7 @@ func fetchDevicons(url string, verbose bool) ([]UpstreamIcon, error) {
 	return icons, nil
 }
 
-func fetchCodicons(url string, verbose bool) ([]UpstreamIcon, error) {
+func fetchCodicons(url string, _ bool) ([]UpstreamIcon, error) {
 	data, err := fetchJSON(url)
 	if err != nil {
 		return nil, err
@@ -343,13 +343,13 @@ func fetchCodicons(url string, verbose bool) ([]UpstreamIcon, error) {
 
 	// Known VS Code related icons that should be app type
 	appIcons := map[string]bool{
-		"vscode":           true,
-		"visual-studio":    true,
-		"github":           true,
-		"github-alt":       true,
-		"github-inverted":  true,
-		"azure":            true,
-		"azure-devops":     true,
+		"vscode":          true,
+		"visual-studio":   true,
+		"github":          true,
+		"github-alt":      true,
+		"github-inverted": true,
+		"azure":           true,
+		"azure-devops":    true,
 	}
 
 	var icons []UpstreamIcon
@@ -404,7 +404,7 @@ func fetchJSON(url string) ([]byte, error) {
 	if err != nil {
 		return nil, fmt.Errorf("fetch: %w", err)
 	}
-	defer resp.Body.Close()
+	defer func() { _ = resp.Body.Close() }()
 
 	if resp.StatusCode != http.StatusOK {
 		return nil, fmt.Errorf("http %d: %s", resp.StatusCode, resp.Status)

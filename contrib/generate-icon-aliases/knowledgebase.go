@@ -11,9 +11,10 @@ import (
 )
 
 const (
-	kbDefaultFile = "kb-default.toml" // New TOML format for urgency/category defaults
-	kbAIFile      = "kb-ai.json"
-	minConfidence = 0.7 // Minimum confidence to include an app in brand icon mappings
+	kbDefaultFile      = "kb-default.toml"       // TOML format for urgency/category defaults
+	kbAIAppsFile       = "kb-ai-apps.json"       // AI-generated app mappings for brand icons
+	kbAICategoriesFile = "kb-ai-categories.json" // AI-generated app mappings for categories
+	minConfidence      = 0.7                     // Minimum confidence to include an app in brand icon mappings
 )
 
 // DefaultsConfig represents the kb-default.toml file structure.
@@ -170,28 +171,36 @@ func DeduplicateApps(merged map[string]*MergedIcon, defaultKB, aiKB *KnowledgeBa
 			appLower := strings.ToLower(app)
 
 			// Determine source priority: manual > AI > default
+			// For confidence, check defaultKB (categories) first since it has accurate
+			// per-app confidences, then fall back to aiKB (brand icons)
 			isManual := icon.Source == "manual"
 			isAI := false
 			confidence := icon.Confidence
+			foundConfidence := false
 
-			if !isManual && aiKB != nil {
-				if kbIcon, ok := aiKB.Icons[iconName]; ok {
+			// Check defaultKB (categories) first for per-app confidence
+			if !isManual && defaultKB != nil {
+				if kbIcon, ok := defaultKB.Icons[iconName]; ok {
 					for _, kbApp := range kbIcon.Apps {
 						if strings.ToLower(kbApp.ID) == appLower {
-							isAI = true
 							confidence = kbApp.Confidence
+							foundConfidence = true
 							break
 						}
 					}
 				}
 			}
 
-			// If not from AI or manual, get default KB confidence for this specific app
-			if !isManual && !isAI && defaultKB != nil {
-				if kbIcon, ok := defaultKB.Icons[iconName]; ok {
+			// Then check aiKB (brand icons) - these take priority for isAI flag
+			if !isManual && aiKB != nil {
+				if kbIcon, ok := aiKB.Icons[iconName]; ok {
 					for _, kbApp := range kbIcon.Apps {
 						if strings.ToLower(kbApp.ID) == appLower {
-							confidence = kbApp.Confidence
+							isAI = true
+							// Only use aiKB confidence if not found in defaultKB
+							if !foundConfidence {
+								confidence = kbApp.Confidence
+							}
 							break
 						}
 					}
@@ -355,11 +364,18 @@ func avgConfidence(icon KBIcon, minConf float64) float64 {
 }
 
 // ConvertMergedToAppMapping converts merged icons to AppMapping for the existing generator.
+// Only includes app-type icons (brand icons), not category icons.
 func ConvertMergedToAppMapping(merged map[string]*MergedIcon, glyphs map[string]GlyphInfo, verbose bool) []AppMapping {
 	var mappings []AppMapping
 
 	for iconName, icon := range merged {
 		if len(icon.Apps) == 0 {
+			continue
+		}
+
+		// Only include app-type icons (brand icons), not category icons
+		// Category icons are handled separately in writeTOML
+		if icon.Type == "category" {
 			continue
 		}
 
@@ -437,18 +453,6 @@ func ConvertMergedToAppMapping(merged map[string]*MergedIcon, glyphs map[string]
 
 // Helper functions
 
-func dedupe(apps []string) []string {
-	seen := make(map[string]bool)
-	var result []string
-	for _, app := range apps {
-		if !seen[app] {
-			seen[app] = true
-			result = append(result, app)
-		}
-	}
-	return result
-}
-
 func mergeApps(primary, secondary []string) []string {
 	seen := make(map[string]bool)
 	var result []string
@@ -469,21 +473,6 @@ func mergeApps(primary, secondary []string) []string {
 		}
 	}
 
-	return result
-}
-
-func excludeFrom(apps, exclusions []string) []string {
-	exclude := make(map[string]bool)
-	for _, e := range exclusions {
-		exclude[e] = true
-	}
-
-	var result []string
-	for _, app := range apps {
-		if !exclude[app] {
-			result = append(result, app)
-		}
-	}
 	return result
 }
 

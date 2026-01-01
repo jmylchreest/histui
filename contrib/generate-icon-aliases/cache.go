@@ -150,7 +150,7 @@ func ClearCacheForModel(model string) error {
 }
 
 // CacheStats returns cache statistics across all models.
-func CacheStats() (classifyCount, appGenCount, catSuggestCount int, totalSize int64) {
+func CacheStats() (appGenCount, catSuggestCount int, totalSize int64) {
 	// Walk all model subdirectories
 	_ = filepath.Walk(cacheBaseDir, func(path string, info os.FileInfo, err error) error {
 		if err != nil {
@@ -163,9 +163,7 @@ func CacheStats() (classifyCount, appGenCount, catSuggestCount int, totalSize in
 			return nil
 		}
 
-		if strings.HasPrefix(info.Name(), "classify-") {
-			classifyCount++
-		} else if strings.HasPrefix(info.Name(), "appgen-") {
+		if strings.HasPrefix(info.Name(), "appgen-") {
 			appGenCount++
 		} else if strings.HasPrefix(info.Name(), "catsuggest-") {
 			catSuggestCount++

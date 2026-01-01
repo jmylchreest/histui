@@ -25,9 +25,9 @@ import (
 )
 
 const (
-	glyphNamesURL    = "https://raw.githubusercontent.com/ryanoasis/nerd-fonts/master/glyphnames.json"
-	cacheFile        = "glyphnames.json"
-	nerdFontURL      = "https://github.com/ryanoasis/nerd-fonts/raw/master/patched-fonts/NerdFontsSymbolsOnly/SymbolsNerdFont-Regular.ttf"
+	glyphNamesURL     = "https://raw.githubusercontent.com/ryanoasis/nerd-fonts/master/glyphnames.json"
+	cacheFile         = "glyphnames.json"
+	nerdFontURL       = "https://github.com/ryanoasis/nerd-fonts/raw/master/patched-fonts/NerdFontsSymbolsOnly/SymbolsNerdFont-Regular.ttf"
 	nerdFontCacheFile = "SymbolsNerdFont-Regular.ttf"
 )
 
@@ -64,13 +64,13 @@ type AppMapping struct {
 
 // explicitIconOverrides maps icon keys to specific glyph names when the auto-match fails or is wrong
 var explicitIconOverrides = map[string]string{
-	"tor-browser":        "linux-tor",              // Use Linux Tor icon instead of fuzzy match
-	"message":            "md-chat",                // Chat icon for Matrix clients (Element, Fractal, etc.)
-	"monitor-screenshot": "md-monitor_screenshot",  // Correct screenshot icon
-	"min":                "cod-browser",            // Generic browser icon
-	"desktop-classic":    "cod-desktop_download",   // VM/desktop download icon
-	"image":              "md-file_image",          // Simple file image icon
-	"brave":              "md-shield_half_full",    // Shield for Brave browser
+	"tor-browser":        "linux-tor",             // Use Linux Tor icon instead of fuzzy match
+	"message":            "md-chat",               // Chat icon for Matrix clients (Element, Fractal, etc.)
+	"monitor-screenshot": "md-monitor_screenshot", // Correct screenshot icon
+	"min":                "cod-browser",           // Generic browser icon
+	"desktop-classic":    "cod-desktop_download",  // VM/desktop download icon
+	"image":              "md-file_image",         // Simple file image icon
+	"brave":              "md-shield_half_full",   // Shield for Brave browser
 }
 
 func main() {
@@ -82,7 +82,8 @@ func main() {
 	preferFlag := flag.String("prefer", "md", "Preferred icon set: md (Material Design), fa (Font Awesome), dev (Devicons)")
 
 	// Knowledge base flags
-	generateKBFlag := flag.Bool("generate-kb", false, "Generate AI app mappings using OpenRouter (requires OPENROUTER_API_KEY)")
+	aiAppsFlag := flag.Bool("ai-apps", false, "Generate AI app mappings for brand icons (requires OPENROUTER_API_KEY)")
+	aiCategoriesFlag := flag.Bool("ai-categories", false, "Generate AI app mappings for categories (requires OPENROUTER_API_KEY)")
 	suggestCategoryIconsFlag := flag.Bool("suggest-category-icons", false, "Generate AI icon suggestions for categories (requires OPENROUTER_API_KEY)")
 	openrouterModelFlag := flag.String("openrouter-model", "", "OpenRouter model to use (from config or anthropic/claude-sonnet-4)")
 	webSearchFlag := flag.Bool("web-search", false, "Enable web search for real-time data (adds :online suffix)")
@@ -91,12 +92,10 @@ func main() {
 	patternsFileFlag := flag.String("patterns-file", kbPatternsFile, "Path to auto-generated patterns file")
 	manualPatternsFileFlag := flag.String("manual-patterns-file", kbPatternsManualFile, "Path to manual patterns override file")
 	defaultFileFlag := flag.String("default-file", kbDefaultFile, "Path to default knowledge base file")
-	aiFileFlag := flag.String("ai-file", kbAIFile, "Path to AI knowledge base file")
+	aiAppsFileFlag := flag.String("ai-apps-file", kbAIAppsFile, "Path to AI apps knowledge base file")
+	aiCategoriesFileFlag := flag.String("ai-categories-file", kbAICategoriesFile, "Path to AI categories knowledge base file")
 	categorySuggestionsFileFlag := flag.String("category-suggestions-file", "kb-category-suggestions.toml", "Path to output category icon suggestions")
 	applySuggestionsFlag := flag.Bool("apply-suggestions", false, "Apply top suggestions from kb-category-suggestions.toml to kb-categories.toml")
-	assignCategoryFallbacksFlag := flag.Bool("assign-category-fallbacks", false, "Assign low-confidence apps to category fallbacks using AI")
-	categoryAssignmentsFileFlag := flag.String("category-assignments-file", "kb-category-assignments.json", "Path to category assignments file")
-	thresholdFlag := flag.Float64("threshold", 0, "Override confidence threshold for category assignment (0 = use config default)")
 	categoriesFileFlag := flag.String("categories-file", kbCategoriesFile, "Path to categories file")
 	configFileFlag := flag.String("config", configFile, "Path to config file")
 	writeExampleConfigFlag := flag.Bool("write-example-config", false, "Write an example config file and exit")
@@ -153,7 +152,7 @@ func main() {
 
 		fmt.Println("\n=== Fetch complete ===")
 		fmt.Printf("Generated: %s\n", kbPatternsFile)
-		fmt.Println("Next: Run --generate-kb to create AI app mappings")
+		fmt.Println("Next: Run --ai-apps to create AI app mappings for brand icons")
 		return
 	}
 
@@ -166,8 +165,8 @@ func main() {
 	}
 	fmt.Printf("Loaded %d glyphs from Nerd Fonts\n", len(glyphs))
 
-	// Handle KB generation
-	if *generateKBFlag {
+	// Handle --ai-apps: generate app mappings for brand icons
+	if *aiAppsFlag {
 		// Handle cache clearing
 		if *clearCacheFlag {
 			if err := ClearCache(); err != nil {
@@ -185,6 +184,22 @@ func main() {
 		}
 		fmt.Printf("Loaded %d icon patterns (auto: %s, manual: %s)\n",
 			len(patterns.Icons), *patternsFileFlag, *manualPatternsFileFlag)
+
+		// Load extra apps to research
+		extraAppsConfig, err := LoadExtraApps("extra-apps.toml")
+		if err != nil {
+			fmt.Fprintf(os.Stderr, "Error loading extra apps: %v\n", err)
+			os.Exit(1)
+		}
+		extraApps := extraAppsConfig.FormatForPrompt()
+		if len(extraApps) > 0 {
+			fmt.Printf("Loaded %d extra apps to research\n", len(extraApps))
+			if *verboseFlag {
+				for _, app := range extraApps {
+					fmt.Printf("  - %s\n", app)
+				}
+			}
+		}
 
 		// Match glyphs to canonical icons using patterns
 		fmt.Println("Matching glyphs to canonical icons...")
@@ -205,7 +220,7 @@ func main() {
 		// Show cache stats
 		useCache := !*noCacheFlag
 		if useCache {
-			_, appGenCount, catSuggestCount, totalSize := CacheStats()
+			appGenCount, catSuggestCount, totalSize := CacheStats()
 			if appGenCount > 0 || catSuggestCount > 0 {
 				fmt.Printf("Cache: %d app-gen, %d category-suggest entries (%.1f KB)\n",
 					appGenCount, catSuggestCount, float64(totalSize)/1024)
@@ -225,19 +240,79 @@ func main() {
 		iconsForAppGen := GetIconsForAppGeneration(matchedIcons)
 
 		// Generate app mappings using AI (only app generation, no classification)
-		kb, err := client.GenerateAppMappings(iconsForAppGen, matchedIcons)
+		kb, err := client.GenerateAppMappings(iconsForAppGen, matchedIcons, extraApps)
 		if err != nil {
 			fmt.Fprintf(os.Stderr, "Error generating app mappings: %v\n", err)
 			os.Exit(1)
 		}
 
-		if err := SaveKnowledgeBase(kb, *aiFileFlag); err != nil {
+		if err := SaveKnowledgeBase(kb, *aiAppsFileFlag); err != nil {
 			fmt.Fprintf(os.Stderr, "Error saving knowledge base: %v\n", err)
 			os.Exit(1)
 		}
 
-		fmt.Printf("Saved knowledge base to %s\n", *aiFileFlag)
+		fmt.Printf("Saved knowledge base to %s\n", *aiAppsFileFlag)
 		fmt.Printf("Generated %d icon mappings\n", len(kb.Icons))
+		fmt.Println("Next: Run --ai-categories to generate app mappings for categories")
+		return
+	}
+
+	// Handle --ai-categories: generate app mappings for category icons
+	if *aiCategoriesFlag {
+		fmt.Println("=== Generating Category App Mappings ===")
+
+		// Handle cache clearing
+		if *clearCacheFlag {
+			if err := ClearCache(); err != nil {
+				fmt.Fprintf(os.Stderr, "Error clearing cache: %v\n", err)
+				os.Exit(1)
+			}
+			fmt.Println("Cleared API response cache")
+		}
+
+		// Load categories
+		categories, err := LoadCategories(*categoriesFileFlag)
+		if err != nil {
+			fmt.Fprintf(os.Stderr, "Error loading categories: %v\n", err)
+			fmt.Fprintf(os.Stderr, "Make sure %s exists\n", *categoriesFileFlag)
+			os.Exit(1)
+		}
+		fmt.Printf("Loaded %d categories from %s\n", len(categories.Categories), *categoriesFileFlag)
+
+		// Show cache stats
+		useCache := !*noCacheFlag
+		if useCache {
+			appGenCount, catSuggestCount, totalSize := CacheStats()
+			if appGenCount > 0 || catSuggestCount > 0 {
+				fmt.Printf("Cache: %d app-gen, %d category-suggest entries (%.1f KB)\n",
+					appGenCount, catSuggestCount, float64(totalSize)/1024)
+			}
+		}
+
+		client, err := NewOpenRouterClient(*openrouterModelFlag, *webSearchFlag, useCache, config, *verboseFlag)
+		if err != nil {
+			fmt.Fprintf(os.Stderr, "Error creating OpenRouter client: %v\n", err)
+			os.Exit(1)
+		}
+
+		fmt.Printf("Generating category app mappings using model: %s (web search: %v, cache: %v)\n",
+			client.Model, client.WebSearch, client.UseCache)
+
+		// Generate app mappings for categories
+		kb, err := client.GenerateCategoryAppMappings(categories)
+		if err != nil {
+			fmt.Fprintf(os.Stderr, "Error generating category app mappings: %v\n", err)
+			os.Exit(1)
+		}
+
+		if err := SaveKnowledgeBase(kb, *aiCategoriesFileFlag); err != nil {
+			fmt.Fprintf(os.Stderr, "Error saving knowledge base: %v\n", err)
+			os.Exit(1)
+		}
+
+		fmt.Printf("Saved category knowledge base to %s\n", *aiCategoriesFileFlag)
+		fmt.Printf("Generated %d category mappings\n", len(kb.Icons))
+		fmt.Println("Next: Run without flags to generate final icon-aliases.toml")
 		return
 	}
 
@@ -297,7 +372,7 @@ func main() {
 			} else {
 				fmt.Println(prompt)
 			}
-			fmt.Println("--- End Preview ---\n")
+			fmt.Println("--- End Preview ---")
 		}
 
 		// Generate cache key from inputs
@@ -404,152 +479,6 @@ func main() {
 		return
 	}
 
-	// Handle --assign-category-fallbacks: assign low-confidence apps to categories
-	if *assignCategoryFallbacksFlag {
-		fmt.Println("=== Assigning Category Fallbacks ===")
-
-		// Load AI knowledge base
-		aiKB, err := LoadKnowledgeBase(*aiFileFlag)
-		if err != nil {
-			fmt.Fprintf(os.Stderr, "Error loading AI KB: %v\n", err)
-			fmt.Fprintf(os.Stderr, "Run --generate-kb first to create the AI knowledge base.\n")
-			os.Exit(1)
-		}
-		fmt.Printf("Loaded AI KB (%d icons)\n", len(aiKB.Icons))
-
-		// Load categories
-		categories, err := LoadCategories(*categoriesFileFlag)
-		if err != nil {
-			fmt.Fprintf(os.Stderr, "Error loading categories: %v\n", err)
-			os.Exit(1)
-		}
-		fmt.Printf("Loaded %d categories from %s\n", len(categories.Categories), *categoriesFileFlag)
-
-		// Determine threshold
-		threshold := config.OpenRouter.CategoryFallbackThreshold
-		if *thresholdFlag > 0 {
-			threshold = *thresholdFlag
-		}
-		fmt.Printf("Using confidence threshold: %.2f\n", threshold)
-
-		// Get minimum confidence for category assignment
-		minConfidence := config.OpenRouter.CategoryMinConfidence
-		fmt.Printf("Apps with confidence >= %.2f and < %.2f will be assigned to categories\n", minConfidence, threshold)
-		fmt.Printf("Apps with confidence < %.2f will be filtered out\n", minConfidence)
-
-		// Find low-confidence apps (between minConfidence and threshold)
-		var lowConfidenceApps []LowConfidenceApp
-		var filteredCount int
-		for iconName, icon := range aiKB.Icons {
-			// Skip category-type icons (they're generic, not brand)
-			if icon.Type == "category" {
-				continue
-			}
-			for _, app := range icon.Apps {
-				if app.Confidence < threshold {
-					if app.Confidence >= minConfidence {
-						lowConfidenceApps = append(lowConfidenceApps, LowConfidenceApp{
-							ID:         app.ID,
-							IconName:   iconName,
-							Confidence: app.Confidence,
-						})
-					} else {
-						filteredCount++
-					}
-				}
-			}
-		}
-
-		if filteredCount > 0 {
-			fmt.Printf("Filtered out %d apps with confidence < %.2f\n", filteredCount, minConfidence)
-		}
-
-		if len(lowConfidenceApps) == 0 {
-			fmt.Println("No apps found in confidence range for category assignment")
-			fmt.Println("All apps are either high-confidence brand matches or filtered out")
-			return
-		}
-
-		fmt.Printf("Found %d apps for category assignment (confidence %.2f - %.2f)\n", len(lowConfidenceApps), minConfidence, threshold)
-
-		// Create OpenRouter client
-		useCache := !*noCacheFlag
-		client, err := NewOpenRouterClient(*openrouterModelFlag, *webSearchFlag, useCache, config, *verboseFlag)
-		if err != nil {
-			fmt.Fprintf(os.Stderr, "Error creating OpenRouter client: %v\n", err)
-			os.Exit(1)
-		}
-
-		// Process in batches
-		batchSize := config.OpenRouter.CategoryAssignBatchSize
-		var allAssignments []CategoryAssignment
-
-		for i := 0; i < len(lowConfidenceApps); i += batchSize {
-			end := i + batchSize
-			if end > len(lowConfidenceApps) {
-				end = len(lowConfidenceApps)
-			}
-			batch := lowConfidenceApps[i:end]
-
-			batchNum := (i / batchSize) + 1
-			totalBatches := (len(lowConfidenceApps) + batchSize - 1) / batchSize
-			fmt.Printf("Processing batch %d/%d (%d apps)...\n", batchNum, totalBatches, len(batch))
-
-			result, err := client.GenerateCategoryAssignments(batch, categories, useCache)
-			if err != nil {
-				fmt.Fprintf(os.Stderr, "Error assigning categories: %v\n", err)
-				os.Exit(1)
-			}
-
-			allAssignments = append(allAssignments, result.Assignments...)
-
-			// Rate limiting between batches
-			if end < len(lowConfidenceApps) {
-				time.Sleep(500 * time.Millisecond)
-			}
-		}
-
-		// Save assignments to JSON
-		assignmentsFile := CategoryAssignmentsFile{
-			Version:     1,
-			GeneratedAt: time.Now().UTC().Format(time.RFC3339),
-			Threshold:   threshold,
-			Assignments: make(map[string]CategoryAssignmentEntry),
-		}
-		for _, a := range allAssignments {
-			assignmentsFile.Assignments[a.App] = CategoryAssignmentEntry{
-				Category:   a.Category,
-				Confidence: a.Confidence,
-				Reason:     a.Reason,
-			}
-		}
-
-		if err := SaveCategoryAssignments(&assignmentsFile, *categoryAssignmentsFileFlag); err != nil {
-			fmt.Fprintf(os.Stderr, "Error saving assignments: %v\n", err)
-			os.Exit(1)
-		}
-
-		// Summary
-		fmt.Println("\n=== Summary ===")
-		fmt.Printf("Assigned %d apps to category fallbacks\n", len(allAssignments))
-
-		// Count apps per category
-		categoryCounts := make(map[string]int)
-		for _, a := range allAssignments {
-			categoryCounts[a.Category]++
-		}
-		fmt.Println("\nApps per category:")
-		for cat, count := range categoryCounts {
-			fmt.Printf("  %s: %d\n", cat, count)
-		}
-
-		fmt.Println("\nOutput files:")
-		fmt.Printf("  %s\n", *categoryAssignmentsFileFlag)
-		fmt.Println("\nNext step:")
-		fmt.Println("  task generate:icons:output")
-		return
-	}
-
 	// Fetch font if requested
 	if *fontOutputFlag != "" {
 		if err := fetchFont(*fetchFlag, *fontOutputFlag); err != nil {
@@ -583,21 +512,34 @@ func main() {
 			len(categories.Categories), withSymbols)
 	}
 
-	// Load AI knowledge base (if exists)
-	aiKB, err := LoadKnowledgeBase(*aiFileFlag)
+	// Load AI knowledge bases (brand icons and categories)
+	aiAppsKB, err := LoadKnowledgeBase(*aiAppsFileFlag)
 	if err != nil {
-		fmt.Fprintf(os.Stderr, "Warning: error loading AI KB: %v\n", err)
-	} else if aiKB != nil {
-		fmt.Printf("Loaded AI KB (%d icons, generated %s)\n", len(aiKB.Icons), aiKB.GeneratedAt)
+		fmt.Fprintf(os.Stderr, "Warning: error loading AI apps KB: %v\n", err)
+	} else if aiAppsKB != nil {
+		fmt.Printf("Loaded AI apps KB (%d brand icons, generated %s)\n", len(aiAppsKB.Icons), aiAppsKB.GeneratedAt)
 	}
 
-	// Generate mappings from AI KB
-	var mappings []AppMapping
+	aiCategoriesKB, err := LoadKnowledgeBase(*aiCategoriesFileFlag)
+	if err != nil {
+		if !os.IsNotExist(err) {
+			fmt.Fprintf(os.Stderr, "Warning: error loading AI categories KB: %v\n", err)
+		}
+	} else if aiCategoriesKB != nil {
+		fmt.Printf("Loaded AI categories KB (%d categories, generated %s)\n", len(aiCategoriesKB.Icons), aiCategoriesKB.GeneratedAt)
+	}
 
-	if aiKB != nil {
-		// Use AI KB as the source of app mappings
-		fmt.Println("Using AI knowledge base for app mappings")
-		merged := MergeIconSources(nil, aiKB, *verboseFlag)
+	// Generate mappings from AI KBs
+	var mappings []AppMapping
+	var merged map[string]*MergedIcon
+
+	if aiAppsKB != nil {
+		// Use AI KBs as the source of app mappings
+		fmt.Println("Using AI knowledge bases for app mappings")
+
+		// Merge brand icons KB with categories KB
+		// Brand icons take priority over categories for the same app
+		merged = MergeIconSources(aiCategoriesKB, aiAppsKB, *verboseFlag)
 
 		// Apply manual force_apps overrides (highest priority)
 		manualPatterns, err := LoadPatternsWithManual(*patternsFileFlag, *manualPatternsFileFlag)
@@ -607,34 +549,22 @@ func main() {
 
 		// Deduplicate: ensure each app only maps to one icon (best match wins)
 		fmt.Println("Deduplicating app assignments...")
-		DeduplicateApps(merged, nil, aiKB, *verboseFlag)
+		DeduplicateApps(merged, aiCategoriesKB, aiAppsKB, *verboseFlag)
 
 		// Use full glyphs map for lookup since KB stores full glyph names
 		mappings = ConvertMergedToAppMapping(merged, glyphs, *verboseFlag)
 	} else {
 		// No AI KB found - error
-		fmt.Fprintf(os.Stderr, "Error: No AI knowledge base found.\n")
-		fmt.Fprintf(os.Stderr, "Expected: %s (AI-generated mappings)\n", *aiFileFlag)
-		fmt.Fprintf(os.Stderr, "\nRun with --generate-kb to create the AI knowledge base.\n")
+		fmt.Fprintf(os.Stderr, "Error: No AI apps knowledge base found.\n")
+		fmt.Fprintf(os.Stderr, "Expected: %s (AI-generated brand icon mappings)\n", *aiAppsFileFlag)
+		fmt.Fprintf(os.Stderr, "\nRun with --ai-apps to create the AI knowledge base.\n")
 		os.Exit(1)
 	}
 
 	fmt.Printf("Generated %d app mappings\n", len(mappings))
 
-	// Load category assignments (if exists)
-	var categoryAssignments *CategoryAssignmentsFile
-	categoryAssignments, err = LoadCategoryAssignments(*categoryAssignmentsFileFlag)
-	if err != nil {
-		if !os.IsNotExist(err) {
-			fmt.Fprintf(os.Stderr, "Warning: error loading category assignments: %v\n", err)
-		}
-		// No category assignments file - that's ok, just don't use it
-	} else if categoryAssignments != nil {
-		fmt.Printf("Loaded category assignments (%d apps assigned to categories)\n", len(categoryAssignments.Assignments))
-	}
-
-	// Write TOML output (with defaults, categories, and category assignments merged in)
-	if err := writeTOML(*outputFlag, mappings, defaultsConfig, categories, categoryAssignments, aiKB); err != nil {
+	// Write TOML output (with defaults and categories merged in)
+	if err := writeTOML(*outputFlag, mappings, defaultsConfig, categories, aiAppsKB, merged, aiCategoriesKB); err != nil {
 		fmt.Fprintf(os.Stderr, "Error writing TOML: %v\n", err)
 		os.Exit(1)
 	}
@@ -652,7 +582,7 @@ func fetchFont(fetch bool, outputPath string) error {
 		if err != nil {
 			return fmt.Errorf("fetch failed: %w", err)
 		}
-		defer resp.Body.Close()
+		defer func() { _ = resp.Body.Close() }()
 
 		if resp.StatusCode != http.StatusOK {
 			return fmt.Errorf("fetch failed: HTTP %d", resp.StatusCode)
@@ -695,7 +625,7 @@ func loadGlyphs(fetch bool) (map[string]GlyphInfo, error) {
 		if err != nil {
 			return nil, fmt.Errorf("fetch failed: %w", err)
 		}
-		defer resp.Body.Close()
+		defer func() { _ = resp.Body.Close() }()
 
 		data, err = io.ReadAll(resp.Body)
 		if err != nil {
@@ -726,7 +656,7 @@ func loadGlyphs(fetch bool) (map[string]GlyphInfo, error) {
 // gtkIconForCanonical maps a canonical icon name to an appropriate GTK icon name.
 // For branded apps, we use the app name directly (e.g., "discord" -> "discord").
 // For generic/category icons, we map to freedesktop standard icons.
-func gtkIconForCanonical(canonical string, category string) string {
+func gtkIconForCanonical(canonical string, _ string) string {
 	// Canonical to GTK icon name mappings for generic icons
 	gtkMappings := map[string]string{
 		// Urgency/status icons (freedesktop standard)
@@ -735,45 +665,45 @@ func gtkIconForCanonical(canonical string, category string) string {
 		"urgency-critical": "dialog-warning-symbolic",
 
 		// Generic categories
-		"message":     "mail-message-new-symbolic",
-		"chat":        "user-available-symbolic",
-		"email":       "mail-unread-symbolic",
-		"calendar":    "x-office-calendar-symbolic",
-		"alarm":       "alarm-symbolic",
-		"reminder":    "task-due-symbolic",
-		"download":    "folder-download-symbolic",
-		"upload":      "folder-upload-symbolic",
-		"sync":        "emblem-synchronizing-symbolic",
-		"update":      "software-update-available-symbolic",
-		"error":       "dialog-error-symbolic",
-		"warning":     "dialog-warning-symbolic",
-		"info":        "dialog-information-symbolic",
-		"question":    "dialog-question-symbolic",
-		"security":    "security-high-symbolic",
-		"network":     "network-wireless-symbolic",
-		"bluetooth":   "bluetooth-symbolic",
-		"battery":     "battery-symbolic",
-		"volume":      "audio-volume-high-symbolic",
-		"brightness":  "display-brightness-symbolic",
-		"printer":     "printer-symbolic",
-		"usb":         "drive-removable-media-symbolic",
-		"file":        "text-x-generic-symbolic",
-		"folder":      "folder-symbolic",
-		"image":       "image-x-generic-symbolic",
-		"video":       "video-x-generic-symbolic",
-		"audio":       "audio-x-generic-symbolic",
-		"document":    "x-office-document-symbolic",
-		"spreadsheet": "x-office-spreadsheet-symbolic",
-		"archive":     "package-x-generic-symbolic",
-		"code":        "text-x-script-symbolic",
-		"terminal":    "utilities-terminal-symbolic",
-		"settings":    "preferences-system-symbolic",
-		"system":      "computer-symbolic",
-		"user":        "avatar-default-symbolic",
-		"trash":       "user-trash-symbolic",
-		"search":      "edit-find-symbolic",
-		"lock":        "system-lock-screen-symbolic",
-		"power":       "system-shutdown-symbolic",
+		"message":            "mail-message-new-symbolic",
+		"chat":               "user-available-symbolic",
+		"email":              "mail-unread-symbolic",
+		"calendar":           "x-office-calendar-symbolic",
+		"alarm":              "alarm-symbolic",
+		"reminder":           "task-due-symbolic",
+		"download":           "folder-download-symbolic",
+		"upload":             "folder-upload-symbolic",
+		"sync":               "emblem-synchronizing-symbolic",
+		"update":             "software-update-available-symbolic",
+		"error":              "dialog-error-symbolic",
+		"warning":            "dialog-warning-symbolic",
+		"info":               "dialog-information-symbolic",
+		"question":           "dialog-question-symbolic",
+		"security":           "security-high-symbolic",
+		"network":            "network-wireless-symbolic",
+		"bluetooth":          "bluetooth-symbolic",
+		"battery":            "battery-symbolic",
+		"volume":             "audio-volume-high-symbolic",
+		"brightness":         "display-brightness-symbolic",
+		"printer":            "printer-symbolic",
+		"usb":                "drive-removable-media-symbolic",
+		"file":               "text-x-generic-symbolic",
+		"folder":             "folder-symbolic",
+		"image":              "image-x-generic-symbolic",
+		"video":              "video-x-generic-symbolic",
+		"audio":              "audio-x-generic-symbolic",
+		"document":           "x-office-document-symbolic",
+		"spreadsheet":        "x-office-spreadsheet-symbolic",
+		"archive":            "package-x-generic-symbolic",
+		"code":               "text-x-script-symbolic",
+		"terminal":           "utilities-terminal-symbolic",
+		"settings":           "preferences-system-symbolic",
+		"system":             "computer-symbolic",
+		"user":               "avatar-default-symbolic",
+		"trash":              "user-trash-symbolic",
+		"search":             "edit-find-symbolic",
+		"lock":               "system-lock-screen-symbolic",
+		"power":              "system-shutdown-symbolic",
 		"screenshot":         "applets-screenshooter-symbolic",
 		"monitor_screenshot": "applets-screenshooter-symbolic",
 		"clipboard":          "edit-paste-symbolic",
@@ -803,18 +733,28 @@ type aliasEntry struct {
 	isCategory bool // true if this is a category fallback assignment
 }
 
-func writeTOML(path string, mappings []AppMapping, defaults *DefaultsConfig, categories *CategoriesConfig, categoryAssignments *CategoryAssignmentsFile, aiKB *KnowledgeBase) error {
+func writeTOML(path string, mappings []AppMapping, defaults *DefaultsConfig, categories *CategoriesConfig, aiAppsKB *KnowledgeBase, merged map[string]*MergedIcon, aiCategoriesKB *KnowledgeBase) error {
 	// Build data structures
 	aliases := make(map[string]aliasEntry) // app name → alias entry with confidence
 	apps := make(map[string]appEntry)      // canonical name → icon entry
 	written := make(map[string]string)     // for duplicate detection
 
-	// Build confidence lookup from AI KB
+	// Build confidence lookup from AI KBs
 	appConfidence := make(map[string]float64)
-	if aiKB != nil {
-		for _, icon := range aiKB.Icons {
+	if aiAppsKB != nil {
+		for _, icon := range aiAppsKB.Icons {
 			for _, app := range icon.Apps {
 				appConfidence[strings.ToLower(app.ID)] = app.Confidence
+			}
+		}
+	}
+	if aiCategoriesKB != nil {
+		for _, icon := range aiCategoriesKB.Icons {
+			for _, app := range icon.Apps {
+				// Only add if not already present (brand icons take precedence)
+				if _, exists := appConfidence[strings.ToLower(app.ID)]; !exists {
+					appConfidence[strings.ToLower(app.ID)] = app.Confidence
+				}
 			}
 		}
 	}
@@ -829,11 +769,11 @@ func writeTOML(path string, mappings []AppMapping, defaults *DefaultsConfig, cat
 		canonicalIcons[strings.ToLower(targetIcon)] = true
 	}
 
-	// Build set of apps that have category assignments (they should point to categories, not brand icons)
-	appsWithCategoryAssignment := make(map[string]string)
-	if categoryAssignments != nil {
-		for appName, assignment := range categoryAssignments.Assignments {
-			appsWithCategoryAssignment[strings.ToLower(appName)] = assignment.Category
+	// Build set of category names for detecting category-based aliases
+	categoryNames := make(map[string]bool)
+	if categories != nil {
+		for name := range categories.Categories {
+			categoryNames[name] = true
 		}
 	}
 
@@ -848,38 +788,6 @@ func writeTOML(path string, mappings []AppMapping, defaults *DefaultsConfig, cat
 		for _, appName := range m.AppNames {
 			// Normalize app name to lowercase for consistency
 			normalizedApp := strings.ToLower(appName)
-
-			// Check if this app has a category assignment override
-			if assignedCategory, hasAssignment := appsWithCategoryAssignment[normalizedApp]; hasAssignment {
-				// Skip if the app name equals the category (no alias needed)
-				if normalizedApp == assignedCategory {
-					continue
-				}
-
-				// Check for duplicates
-				if existingTarget, exists := written[normalizedApp]; exists {
-					if existingTarget != assignedCategory {
-						fmt.Fprintf(os.Stderr, "WARNING: duplicate app name %q (already mapped to %q, skipping category %q)\n",
-							appName, existingTarget, assignedCategory)
-					}
-					continue
-				}
-				written[normalizedApp] = assignedCategory
-
-				// Get confidence from category assignments
-				conf := 0.0
-				if categoryAssignments != nil {
-					if entry, ok := categoryAssignments.Assignments[normalizedApp]; ok {
-						conf = entry.Confidence
-					}
-				}
-				aliases[normalizedApp] = aliasEntry{
-					target:     assignedCategory,
-					confidence: conf,
-					isCategory: true,
-				}
-				continue
-			}
 
 			// Skip if app name equals target (no alias needed)
 			if normalizedApp == strings.ToLower(targetIcon) {
@@ -903,30 +811,72 @@ func writeTOML(path string, mappings []AppMapping, defaults *DefaultsConfig, cat
 
 			// Get confidence from AI KB
 			conf := appConfidence[normalizedApp]
+			isCategory := categoryNames[targetIcon]
 			aliases[normalizedApp] = aliasEntry{
 				target:     targetIcon,
 				confidence: conf,
-				isCategory: false,
+				isCategory: isCategory,
 			}
 		}
 	}
 
-	// Add any category-assigned apps that weren't in the mappings
-	// (apps that were only in the AI KB but not in any brand icon mapping)
-	for appName, category := range appsWithCategoryAssignment {
-		if _, exists := written[appName]; !exists {
-			written[appName] = category
-			// Get confidence from category assignments
-			conf := 0.0
-			if categoryAssignments != nil {
-				if entry, ok := categoryAssignments.Assignments[appName]; ok {
-					conf = entry.Confidence
+	// Add category apps as aliases (from merged data, which is deduplicated)
+	// These apps don't have brand icons, so they get assigned to their category
+	if merged != nil {
+		// Build a lookup map for per-app confidence from aiCategoriesKB
+		categoryAppConfidence := make(map[string]map[string]float64) // categoryName -> appName -> confidence
+		if aiCategoriesKB != nil {
+			for catName, icon := range aiCategoriesKB.Icons {
+				categoryAppConfidence[catName] = make(map[string]float64)
+				for _, app := range icon.Apps {
+					categoryAppConfidence[catName][strings.ToLower(app.ID)] = app.Confidence
 				}
 			}
-			aliases[appName] = aliasEntry{
-				target:     category,
-				confidence: conf,
-				isCategory: true,
+		}
+
+		for iconName, icon := range merged {
+			// Only process category-type icons
+			if icon.Type != "category" {
+				continue
+			}
+
+			// Only process if this is a valid category
+			if !categoryNames[iconName] {
+				continue
+			}
+
+			for _, appName := range icon.Apps {
+				normalizedApp := strings.ToLower(appName)
+
+				// Skip if app name equals category name
+				if normalizedApp == iconName {
+					continue
+				}
+
+				// Skip if already mapped (brand icons take precedence)
+				if _, exists := written[normalizedApp]; exists {
+					continue
+				}
+
+				// Skip if app is a canonical icon name
+				if canonicalIcons[normalizedApp] {
+					continue
+				}
+
+				// Look up confidence from original KB
+				confidence := 0.7 // default minimum confidence
+				if catConf, ok := categoryAppConfidence[iconName]; ok {
+					if appConf, ok := catConf[normalizedApp]; ok {
+						confidence = appConf
+					}
+				}
+
+				written[normalizedApp] = iconName
+				aliases[normalizedApp] = aliasEntry{
+					target:     iconName,
+					confidence: confidence,
+					isCategory: true,
+				}
 			}
 		}
 	}
@@ -980,43 +930,53 @@ func writeTOML(path string, mappings []AppMapping, defaults *DefaultsConfig, cat
 	if err != nil {
 		return err
 	}
-	defer f.Close()
+	defer func() { _ = f.Close() }()
 
 	generatedAt := time.Now().UTC().Format(time.RFC3339)
 
+	// Helper to write with error tracking
+	var writeErr error
+	w := func(format string, a ...any) {
+		if writeErr != nil {
+			return
+		}
+		_, writeErr = fmt.Fprintf(f, format, a...)
+	}
+
 	// Write header
-	fmt.Fprintf(f, "# Icon Aliases for histui\n")
-	fmt.Fprintf(f, "#\n")
-	fmt.Fprintf(f, "# DO NOT EDIT THIS FILE DIRECTLY!\n")
-	fmt.Fprintf(f, "#\n")
-	fmt.Fprintf(f, "# This file is auto-generated by: contrib/generate-icon-aliases\n")
-	fmt.Fprintf(f, "# Generated on: %s\n", generatedAt)
-	fmt.Fprintf(f, "# To regenerate:\n")
-	fmt.Fprintf(f, "#   cd contrib/generate-icon-aliases\n")
-	fmt.Fprintf(f, "#   ./generate-icon-aliases\n")
-	fmt.Fprintf(f, "#   task generate:icons  # copies output to embed/aliases_default.toml\n")
-	fmt.Fprintf(f, "#\n")
-	fmt.Fprintf(f, "# Sources:\n")
-	fmt.Fprintf(f, "#   - kb-default.toml (urgency and notification defaults)\n")
-	fmt.Fprintf(f, "#   - kb-categories.toml (category fallback icons)\n")
-	fmt.Fprintf(f, "#   - kb-patterns.toml + kb-ai.json (app brand icons)\n")
-	fmt.Fprintf(f, "#\n")
-	fmt.Fprintf(f, "# Sections:\n")
-	fmt.Fprintf(f, "# [meta]       - File metadata (version, generation date)\n")
-	fmt.Fprintf(f, "# [aliases]    - Maps app names to canonical icon names\n")
-	fmt.Fprintf(f, "# [apps]       - Brand/app icons with symbol + gtk_icon\n")
-	fmt.Fprintf(f, "# [categories] - Category fallback icons (when no brand icon exists)\n")
-	fmt.Fprintf(f, "\n")
+	w("# Icon Aliases for histui\n")
+	w("#\n")
+	w("# DO NOT EDIT THIS FILE DIRECTLY!\n")
+	w("#\n")
+	w("# This file is auto-generated by: contrib/generate-icon-aliases\n")
+	w("# Generated on: %s\n", generatedAt)
+	w("# To regenerate:\n")
+	w("#   cd contrib/generate-icon-aliases\n")
+	w("#   ./generate-icon-aliases\n")
+	w("#   task generate:icons  # copies output to embed/aliases_default.toml\n")
+	w("#\n")
+	w("# Sources:\n")
+	w("#   - kb-default.toml (urgency and notification defaults)\n")
+	w("#   - kb-categories.toml (category fallback icons)\n")
+	w("#   - kb-patterns.toml + kb-ai-apps.json (app brand icons)\n")
+	w("#   - kb-ai-categories.json (category fallback icons)\n")
+	w("#\n")
+	w("# Sections:\n")
+	w("# [meta]       - File metadata (version, generation date)\n")
+	w("# [aliases]    - Maps app names to canonical icon names\n")
+	w("# [apps]       - Brand/app icons with symbol + gtk_icon\n")
+	w("# [categories] - Category fallback icons (when no brand icon exists)\n")
+	w("\n")
 
 	// Write [meta] section
-	fmt.Fprintf(f, "[meta]\n")
-	fmt.Fprintf(f, "version = 1\n")
-	fmt.Fprintf(f, "generated_at = %s\n", tomlString(generatedAt))
-	fmt.Fprintf(f, "generator = \"contrib/generate-icon-aliases\"\n")
-	fmt.Fprintf(f, "\n")
+	w("[meta]\n")
+	w("version = 1\n")
+	w("generated_at = %s\n", tomlString(generatedAt))
+	w("generator = \"contrib/generate-icon-aliases\"\n")
+	w("\n")
 
 	// Write [aliases] section
-	fmt.Fprintf(f, "[aliases]\n")
+	w("[aliases]\n")
 	aliasKeys := sortedAliasKeys(aliases)
 	for _, key := range aliasKeys {
 		entry := aliases[key]
@@ -1029,12 +989,12 @@ func writeTOML(path string, mappings []AppMapping, defaults *DefaultsConfig, cat
 				comment = fmt.Sprintf(" # %.2f", entry.confidence)
 			}
 		}
-		fmt.Fprintf(f, "%s = %s%s\n", tomlKey(key), tomlString(entry.target), comment)
+		w("%s = %s%s\n", tomlKey(key), tomlString(entry.target), comment)
 	}
-	fmt.Fprintf(f, "\n")
+	w("\n")
 
 	// Write [apps] section - brand/app icons
-	fmt.Fprintf(f, "[apps]\n")
+	w("[apps]\n")
 	appKeys := sortedAppKeys(apps)
 	for _, key := range appKeys {
 		entry := apps[key]
@@ -1042,13 +1002,13 @@ func writeTOML(path string, mappings []AppMapping, defaults *DefaultsConfig, cat
 		if entry.glyphName != "" {
 			comment = " # " + entry.glyphName
 		}
-		fmt.Fprintf(f, "%s = { symbol = %s, gtk_icon = %s }%s\n",
+		w("%s = { symbol = %s, gtk_icon = %s }%s\n",
 			tomlKey(key), tomlString(entry.symbol), tomlString(entry.gtkIcon), comment)
 	}
-	fmt.Fprintf(f, "\n")
+	w("\n")
 
 	// Write [categories] section - fallback icons
-	fmt.Fprintf(f, "[categories]\n")
+	w("[categories]\n")
 	catKeys := sortedCatKeys(categoryEntries)
 	for _, key := range catKeys {
 		entry := categoryEntries[key]
@@ -1056,21 +1016,11 @@ func writeTOML(path string, mappings []AppMapping, defaults *DefaultsConfig, cat
 		if entry.glyphName != "" {
 			comment = " # " + entry.glyphName
 		}
-		fmt.Fprintf(f, "%s = { symbol = %s, gtk_icon = %s }%s\n",
+		w("%s = { symbol = %s, gtk_icon = %s }%s\n",
 			tomlKey(key), tomlString(entry.symbol), tomlString(entry.gtkIcon), comment)
 	}
 
-	return nil
-}
-
-// sortedKeys returns sorted keys from a string map
-func sortedKeys(m map[string]string) []string {
-	keys := make([]string, 0, len(m))
-	for k := range m {
-		keys = append(keys, k)
-	}
-	sortStrings(keys)
-	return keys
+	return writeErr
 }
 
 // sortedAliasKeys returns sorted keys from an aliasEntry map
@@ -1108,6 +1058,8 @@ func tomlKey(key string) string {
 	// Check if key needs quoting (contains special chars)
 	needsQuote := false
 	for _, c := range key {
+		// Check if character is alphanumeric or underscore/hyphen (allowed unquoted)
+		//nolint:staticcheck // QF1001: positive form is more readable than De Morgan's law
 		if !((c >= 'a' && c <= 'z') || (c >= 'A' && c <= 'Z') ||
 			(c >= '0' && c <= '9') || c == '_' || c == '-') {
 			needsQuote = true
@@ -1161,13 +1113,6 @@ func printSummary(mappings []AppMapping, outputPath, fontOutputPath string, verb
 	if fontOutputPath != "" {
 		fmt.Printf("  %s\n", fontOutputPath)
 	}
-}
-
-// sanitizeAppName converts an app name to a valid TOML key
-func sanitizeAppName(name string) string {
-	// Replace spaces and special chars with hyphens
-	re := regexp.MustCompile(`[^a-zA-Z0-9._-]`)
-	return strings.ToLower(re.ReplaceAllString(name, "-"))
 }
 
 // WriteCategorySuggestions writes category icon suggestions to a TOML file.
