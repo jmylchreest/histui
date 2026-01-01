@@ -1132,7 +1132,7 @@ func WriteCategorySuggestions(suggestions map[string][]CategorySuggestion, glyph
 	buf.WriteString("#\n\n")
 
 	// Sort categories for consistent output
-	var categoryNames []string
+	categoryNames := make([]string, 0, len(suggestions))
 	for name := range suggestions {
 		categoryNames = append(categoryNames, name)
 	}

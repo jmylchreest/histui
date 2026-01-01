@@ -65,7 +65,7 @@ type ExtraAppsConfig struct {
 
 // FormatForPrompt returns a formatted string for inclusion in the AI prompt.
 func (c *ExtraAppsConfig) FormatForPrompt() []string {
-	var result []string
+	result := make([]string, 0, len(c.Apps.Include)+len(c.Apps.Detailed))
 
 	// Simple includes
 	for _, app := range c.Apps.Include {
@@ -276,7 +276,7 @@ func MatchGlyphsToIcons(patterns *PatternConfig, glyphs map[string]GlyphInfo, ve
 // Only includes icons with Type == "app" (brand icons, not category icons).
 // Sorted by canonical name for deterministic output.
 func GetIconsForAppGeneration(matched map[string]*MatchedIcon) []struct{ Name, Type, Description string } {
-	var icons []struct{ Name, Type, Description string }
+	icons := make([]struct{ Name, Type, Description string }, 0, len(matched))
 
 	for name, icon := range matched {
 		// Only include app-type icons (brand icons), not category icons
@@ -347,7 +347,7 @@ func FindUnmatchedIcons(patterns *PatternConfig, matched map[string]*MatchedIcon
 // It filters to "category" type icons only (not brand-specific app icons) and includes
 // the description and search terms from the patterns.
 func BuildGlyphMetadataForSuggestions(patterns *PatternConfig, glyphs map[string]GlyphInfo) []GlyphMetadata {
-	var result []GlyphMetadata
+	result := make([]GlyphMetadata, 0, len(patterns.Icons))
 
 	// Collect all category-type icons with their matched glyphs
 	for iconName, pattern := range patterns.Icons {
@@ -416,7 +416,7 @@ func BuildGlyphMetadataForSuggestions(patterns *PatternConfig, glyphs map[string
 // BuildAllGlyphMetadata builds metadata for ALL glyphs (not just those with patterns).
 // This is useful for letting AI discover new category icons from the full glyph set.
 func BuildAllGlyphMetadata(glyphs map[string]GlyphInfo, preferredPrefixes []string) []GlyphMetadata {
-	var result []GlyphMetadata
+	result := make([]GlyphMetadata, 0, len(glyphs))
 
 	// Create a set of preferred prefixes for quick lookup
 	prefixOrder := make(map[string]int)

@@ -102,7 +102,7 @@ func saveCache(cacheType, hash, model, content string) error {
 
 // AppGenCacheKey generates a cache key for app generation requests.
 func AppGenCacheKey(icons []struct{ Name, Type string }) string {
-	var items []string
+	items := make([]string, 0, len(icons))
 	for _, icon := range icons {
 		items = append(items, fmt.Sprintf("%s:%s", icon.Name, icon.Type))
 	}

@@ -206,7 +206,7 @@ func fetchFontAwesome(url string, _ bool) ([]UpstreamIcon, error) {
 		return nil, fmt.Errorf("parse json: %w", err)
 	}
 
-	var icons []UpstreamIcon
+	icons := make([]UpstreamIcon, 0, len(metadata))
 	for name, icon := range metadata {
 		// Determine type: "brands" style = app, otherwise category
 		iconType := "category"
@@ -256,7 +256,7 @@ func fetchMaterialDesign(url string, _ bool) ([]UpstreamIcon, error) {
 		"logo":         true,
 	}
 
-	var icons []UpstreamIcon
+	icons := make([]UpstreamIcon, 0, len(metadata))
 	for _, icon := range metadata {
 		if icon.Deprecated {
 			continue
@@ -303,7 +303,7 @@ func fetchDevicons(url string, _ bool) ([]UpstreamIcon, error) {
 		return nil, fmt.Errorf("parse json: %w", err)
 	}
 
-	var icons []UpstreamIcon
+	icons := make([]UpstreamIcon, 0, len(metadata))
 	for _, icon := range metadata {
 		// All Devicons are developer tool/language logos - they're all app type
 		patterns := []string{"dev-" + icon.Name}
@@ -352,7 +352,7 @@ func fetchCodicons(url string, _ bool) ([]UpstreamIcon, error) {
 		"azure-devops":    true,
 	}
 
-	var icons []UpstreamIcon
+	icons := make([]UpstreamIcon, 0, len(metadata))
 	// Codicons maps codepoint -> []names (aliases)
 	for _, names := range metadata {
 		if len(names) == 0 {
@@ -458,7 +458,7 @@ func GenerateKBPatterns(icons []UpstreamIcon, outputPath string, verbose bool) e
 	}
 
 	// Sort keys for deterministic output
-	var names []string
+	names := make([]string, 0, len(iconMap))
 	for name := range iconMap {
 		names = append(names, name)
 	}

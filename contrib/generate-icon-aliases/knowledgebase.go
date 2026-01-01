@@ -366,7 +366,7 @@ func avgConfidence(icon KBIcon, minConf float64) float64 {
 // ConvertMergedToAppMapping converts merged icons to AppMapping for the existing generator.
 // Only includes app-type icons (brand icons), not category icons.
 func ConvertMergedToAppMapping(merged map[string]*MergedIcon, glyphs map[string]GlyphInfo, verbose bool) []AppMapping {
-	var mappings []AppMapping
+	mappings := make([]AppMapping, 0, len(merged))
 
 	for iconName, icon := range merged {
 		if len(icon.Apps) == 0 {

@@ -93,7 +93,7 @@ func FetchGtkIcons(apiURL string, forceRefresh bool, verbose bool) ([]GtkIconInf
 
 // parseGtkIcons extracts icon info from the GitHub tree entries.
 func parseGtkIcons(entries []GitHubTreeEntry) []GtkIconInfo {
-	var icons []GtkIconInfo
+	icons := make([]GtkIconInfo, 0, len(entries)/4) // Estimate: ~25% of entries are symbolic icons
 	seen := make(map[string]bool)
 
 	for _, entry := range entries {

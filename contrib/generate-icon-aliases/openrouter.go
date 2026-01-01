@@ -347,7 +347,7 @@ func (c *OpenRouterClient) GenerateAppNames(icons []struct{ Name, Type string },
 
 	c.apiCalls++
 	fmt.Printf("    [API CALL] app generation batch\n")
-	var iconList []string
+	iconList := make([]string, 0, len(icons))
 	for _, icon := range icons {
 		iconList = append(iconList, fmt.Sprintf("- %s (%s)", icon.Name, icon.Type))
 	}
@@ -690,7 +690,7 @@ func (c *OpenRouterClient) GenerateCategoryAppMappings(categories *CategoriesCon
 	}
 
 	// Get sorted category names for deterministic batching
-	var categoryNames []string
+	categoryNames := make([]string, 0, len(categories.Categories))
 	for name := range categories.Categories {
 		categoryNames = append(categoryNames, name)
 	}
@@ -832,7 +832,7 @@ func (c *OpenRouterClient) GenerateCategoryAppMappings(categories *CategoriesCon
 // CategoryAppGenCacheKey generates a cache key for category app generation.
 func CategoryAppGenCacheKey(categories *CategoriesConfig) string {
 	// Create a deterministic key from the category names
-	var names []string
+	names := make([]string, 0, len(categories.Categories))
 	for name := range categories.Categories {
 		names = append(names, name)
 	}

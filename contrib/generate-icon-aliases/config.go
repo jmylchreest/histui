@@ -402,7 +402,7 @@ func SaveCategories(config *CategoriesConfig, path string) error {
 	buf.WriteString("\n")
 
 	// Sort category names for consistent output
-	var catNames []string
+	catNames := make([]string, 0, len(config.Categories))
 	for name := range config.Categories {
 		catNames = append(catNames, name)
 	}
@@ -564,7 +564,7 @@ func FormatCategoriesForPrompt(cats *CategoriesConfig) string {
 		return "(No categories defined)"
 	}
 
-	var lines []string
+	lines := make([]string, 0, len(cats.Categories))
 	for name, cat := range cats.Categories {
 		examples := strings.Join(cat.Examples, ", ")
 		lines = append(lines, fmt.Sprintf("- %s: %s (e.g., %s)", name, cat.Description, examples))
@@ -657,7 +657,11 @@ type GlyphMetadata struct {
 // FormatGlyphsForPrompt formats glyphs for inclusion in the category suggestion prompt.
 // It filters to only include "category" type glyphs (not brand-specific app icons).
 func FormatGlyphsForPrompt(glyphs []GlyphMetadata, limit int) string {
-	var lines []string
+	capacity := len(glyphs)
+	if limit > 0 && limit < capacity {
+		capacity = limit
+	}
+	lines := make([]string, 0, capacity)
 	for i, g := range glyphs {
 		if limit > 0 && i >= limit {
 			break
@@ -736,7 +740,7 @@ type GtkIconCache struct {
 
 // FormatGtkIconsForPrompt formats GTK icons for inclusion in the category suggestion prompt.
 func FormatGtkIconsForPrompt(icons []GtkIconInfo) string {
-	var lines []string
+	lines := make([]string, 0, len(icons))
 	for _, icon := range icons {
 		lines = append(lines, fmt.Sprintf("%s-symbolic (%s)", icon.Name, icon.Category))
 	}
