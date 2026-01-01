@@ -79,23 +79,6 @@ histuid ships with these bundled themes:
 | `compact`   | Smaller icons (32px), condensed layout           |
 | `detailed`  | Full layout with timestamp                       |
 | `catppuccin`| Catppuccin Mocha/Latte color scheme              |
-| `glass`     | Frosted glass with translucent blur effects      |
-
-:::note Glass theme requirements
-The `glass` theme requires compositor blur support for the full frosted glass effect.
-For **Hyprland 0.53+**, add these layer rules to your config:
-```
-layerrule = blur on, match:namespace histui-notification
-layerrule = ignore_alpha 0.3, match:namespace histui-notification
-layerrule = blur_popups on, match:namespace histui-notification
-```
-For **Hyprland < 0.53** (legacy syntax):
-```
-layerrule = blur, histui-notification
-layerrule = ignorealpha 0.3, histui-notification
-```
-For **Sway**, blur is not natively supported - consider the swayfx fork.
-:::
 
 ## Quick Example
 
