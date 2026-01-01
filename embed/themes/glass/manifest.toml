@@ -1,0 +1,23 @@
+# Glass Theme Manifest
+name = "glass"
+description = "Frosted glass theme with translucent glossy effects - requires compositor blur"
+author = "histui"
+version = "1.0.0"
+
+[icon]
+size = 48
+
+[audio.low]
+path = ""
+volume = 1.0
+repeat_count = 0
+
+[audio.normal]
+path = "sounds/normal.wav"
+volume = 1.0
+repeat_count = 0
+
+[audio.critical]
+path = "sounds/critical.wav"
+volume = 1.0
+repeat_count = 0

@@ -1,0 +1,511 @@
+/* histui Frosted Glass Theme
+ * A frosted, translucent theme with glossy effects designed for compositor blur.
+ *
+ * =============================================================================
+ * COMPOSITOR BLUR SETUP (REQUIRED)
+ * =============================================================================
+ *
+ * This theme requires compositor blur for the full glass effect.
+ * Without blur, the background will be semi-transparent showing content behind.
+ *
+ * Hyprland 0.53+ (new syntax): Add to hyprland.conf:
+ *   layerrule = blur on, match:namespace histui-notification
+ *   layerrule = ignore_alpha 0.3, match:namespace histui-notification
+ *   layerrule = blur_popups on, match:namespace histui-notification
+ *
+ * Hyprland < 0.53 (legacy syntax):
+ *   layerrule = blur, histui-notification
+ *   layerrule = ignorealpha 0.3, histui-notification
+ *
+ * Sway: Blur not natively supported, consider swayfx fork.
+ *
+ * KWin: Enable blur in compositor settings.
+ *
+ * =============================================================================
+ * FROSTED GLASS EFFECT TECHNIQUES
+ * =============================================================================
+ *
+ * 1. Light transparency (0.30-0.40 alpha) with white frost overlay (0.35-0.40)
+ * 2. Top highlight gradient - simulates light reflection on glass surface
+ * 3. Subtle inner glow - adds depth and glossy appearance
+ * 4. Light text shadows - minor enhancement for edge cases
+ * 5. Soft borders - glass-like edge definition
+ * 6. Subtle specular animation - gentle shimmer effect
+ *
+ * =============================================================================
+ */
+
+/* Import shared effects library */
+@import "effects.css";
+
+/* =============================================================================
+ * FONT & VARIABLE CONFIGURATION
+ * ============================================================================= */
+
+* {
+    --histui-font-family: inherit;
+    --histui-font-size: 14px;
+
+    /* Frosted glass effect variables - customize these for different glass tints */
+    --glass-bg-opacity: 0.25;
+    --glass-frost-opacity: 0.35;
+    --glass-border-opacity: 0.30;
+    --glass-highlight-opacity: 0.40;
+    --glass-text-shadow-opacity: 0.6;
+
+    /* Tint color - use window_bg for neutral, or accent_color for tinted glass */
+    --glass-tint: @window_bg_color;
+}
+
+/* =============================================================================
+ * WINDOW - Must be fully transparent
+ * ============================================================================= */
+
+window {
+    background-color: transparent;
+}
+
+/* =============================================================================
+ * GLASS ANIMATIONS
+ * ============================================================================= */
+
+/* Subtle specular highlight shimmer - simulates light moving across glass */
+@keyframes glass-shimmer {
+    0%, 100% {
+        box-shadow:
+            inset 0 1px 0 0 alpha(white, 0.25),
+            inset 0 -1px 0 0 alpha(black, 0.1),
+            0 4px 20px alpha(black, 0.25);
+    }
+    50% {
+        box-shadow:
+            inset 0 1px 0 0 alpha(white, 0.35),
+            inset 0 -1px 0 0 alpha(black, 0.08),
+            0 4px 24px alpha(black, 0.3);
+    }
+}
+
+/* Glossy pulse for interactive elements */
+@keyframes glass-pulse {
+    0%, 100% {
+        box-shadow:
+            inset 0 1px 0 0 alpha(white, 0.2),
+            0 2px 8px alpha(black, 0.2);
+    }
+    50% {
+        box-shadow:
+            inset 0 1px 0 0 alpha(white, 0.4),
+            0 2px 12px alpha(black, 0.25);
+    }
+}
+
+/* =============================================================================
+ * BASE GLASS POPUP CONTAINER
+ * ============================================================================= */
+
+.notification-popup {
+    /* Frosted glass background - layered for depth and milky appearance */
+    background-image:
+        /* Frost layer - white overlay for the milky/frosted look */
+        linear-gradient(
+            to bottom,
+            alpha(white, var(--glass-frost-opacity)),
+            alpha(white, calc(var(--glass-frost-opacity) - 0.05)) 50%,
+            alpha(white, calc(var(--glass-frost-opacity) - 0.10))
+        ),
+        /* Base tint layer */
+        linear-gradient(
+            to bottom,
+            alpha(var(--glass-tint), calc(var(--glass-bg-opacity) + 0.10)),
+            alpha(var(--glass-tint), var(--glass-bg-opacity)) 15%,
+            alpha(var(--glass-tint), var(--glass-bg-opacity)) 85%,
+            alpha(var(--glass-tint), calc(var(--glass-bg-opacity) - 0.05))
+        );
+    background-color: alpha(var(--glass-tint), var(--glass-bg-opacity));
+
+    color: @window_fg_color;
+    border-radius: 16px;
+
+    /* Glass border - subtle with slight inner highlight */
+    border: 1px solid alpha(@window_fg_color, var(--glass-border-opacity));
+
+    /* Layered glass effect shadows */
+    box-shadow:
+        /* Top highlight - glass shine */
+        inset 0 1px 0 0 alpha(white, var(--glass-highlight-opacity)),
+        /* Bottom shadow - depth */
+        inset 0 -1px 0 0 alpha(black, 0.08),
+        /* Outer shadow - elevation */
+        0 4px 20px alpha(black, 0.25),
+        0 8px 32px alpha(black, 0.15);
+
+    padding: 14px;
+    margin: 8px;
+    font-family: var(--histui-font-family);
+    font-size: var(--histui-font-size);
+
+    /* Subtle shimmer animation */
+    animation: glass-shimmer 4s ease-in-out infinite;
+}
+
+/* =============================================================================
+ * TEXT STYLES - Solid text with blur/shadow for readability
+ * ============================================================================= */
+
+.notification-summary {
+    font-weight: bold;
+    font-size: 1.15em;
+    color: @window_fg_color;
+    /* Subtle text shadow - frosted background provides readability */
+    text-shadow:
+        0 1px 2px alpha(black, var(--glass-text-shadow-opacity)),
+        0 0 4px alpha(black, 0.2);
+}
+
+.notification-appname {
+    font-size: 0.85em;
+    color: alpha(@window_fg_color, 0.8);
+    text-shadow: 0 1px 2px alpha(black, 0.5);
+}
+
+.notification-timestamp {
+    font-size: 0.85em;
+    color: alpha(@window_fg_color, 0.7);
+    text-shadow: 0 1px 2px alpha(black, 0.4);
+}
+
+.notification-body {
+    color: @window_fg_color;
+    text-shadow:
+        0 1px 2px alpha(black, 0.6),
+        0 0 4px alpha(black, 0.15);
+}
+
+.notification-body link {
+    color: @accent_color;
+    text-shadow:
+        0 1px 2px alpha(black, 0.5),
+        0 0 4px alpha(@accent_color, 0.2);
+}
+
+.notification-body link:hover {
+    text-decoration: underline;
+    text-shadow:
+        0 1px 2px alpha(black, 0.5),
+        0 0 6px alpha(@accent_color, 0.4);
+}
+
+/* =============================================================================
+ * HEADER
+ * ============================================================================= */
+
+.notification-header {
+    margin-bottom: 8px;
+}
+
+.notification-icon {
+    min-width: 48px;
+    min-height: 48px;
+    margin-right: 12px;
+    color: @accent_color;
+    /* Icon glow effect */
+    -gtk-icon-shadow:
+        0 2px 4px alpha(black, 0.6),
+        0 0 8px alpha(@accent_color, 0.3);
+}
+
+.notification-icon-symbol {
+    font-family: "Symbols Nerd Font", "Symbols Nerd Font Mono", monospace;
+    font-size: 32px;
+    color: @accent_color;
+    min-width: 48px;
+    min-height: 48px;
+    text-shadow:
+        0 2px 4px alpha(black, 0.5),
+        0 0 8px alpha(@accent_color, 0.3);
+}
+
+/* Per-urgency icon styling */
+.notification-popup.urgency-low .notification-icon,
+.notification-popup.urgency-low .notification-icon-symbol {
+    color: alpha(@window_fg_color, 0.7);
+}
+
+.notification-popup.urgency-normal .notification-icon,
+.notification-popup.urgency-normal .notification-icon-symbol {
+    color: @accent_color;
+}
+
+.notification-popup.urgency-critical .notification-icon,
+.notification-popup.urgency-critical .notification-icon-symbol {
+    color: @error_color;
+    text-shadow:
+        0 2px 4px alpha(black, 0.6),
+        0 0 12px alpha(@error_color, 0.5);
+}
+
+.notification-stack-count {
+    /* Glass chip for count */
+    background-color: alpha(@window_fg_color, 0.1);
+    border: 1px solid alpha(@window_fg_color, 0.2);
+    box-shadow:
+        inset 0 1px 0 0 alpha(white, 0.15);
+    color: alpha(@window_fg_color, 0.8);
+    border-radius: 6px;
+    padding: 2px 8px;
+    margin-left: 8px;
+    font-family: "JetBrains Mono", "Fira Code", monospace;
+    font-size: 1.0em;
+    font-weight: bold;
+    text-shadow: 0 1px 2px alpha(black, 0.6);
+}
+
+/* =============================================================================
+ * PROGRESS BAR - Glass style
+ * ============================================================================= */
+
+.notification-progress {
+    margin-top: 10px;
+    min-height: 6px;
+    border-radius: 3px;
+    background-color: alpha(@window_fg_color, 0.1);
+    border: 1px solid alpha(@window_fg_color, 0.15);
+    box-shadow:
+        inset 0 1px 2px alpha(black, 0.2);
+}
+
+.notification-progress > trough > progress {
+    background-image: linear-gradient(
+        to bottom,
+        alpha(@accent_bg_color, 0.9),
+        alpha(@accent_bg_color, 0.7)
+    );
+    border-radius: 2px;
+    box-shadow:
+        inset 0 1px 0 0 alpha(white, 0.3),
+        0 0 8px alpha(@accent_color, 0.4);
+}
+
+.notification-popup.progress-complete .notification-progress > trough > progress {
+    background-image: linear-gradient(
+        to bottom,
+        alpha(@success_color, 0.9),
+        alpha(@success_color, 0.7)
+    );
+    box-shadow:
+        inset 0 1px 0 0 alpha(white, 0.3),
+        0 0 8px alpha(@success_color, 0.4);
+}
+
+/* =============================================================================
+ * IMAGE
+ * ============================================================================= */
+
+.notification-image {
+    border-radius: 8px;
+    margin-top: 10px;
+    box-shadow:
+        0 2px 8px alpha(black, 0.3),
+        inset 0 0 0 1px alpha(white, 0.1);
+}
+
+.notification-image-container {
+    margin-top: 10px;
+    border-radius: 8px;
+}
+
+.notification-image-box .notification-image {
+    margin-top: 0;
+    border-radius: 0;
+}
+
+.notification-image-fade {
+    background-image: linear-gradient(
+        to bottom,
+        alpha(var(--glass-tint), 0.0) 0%,
+        alpha(var(--glass-tint), 0.3) 40%,
+        alpha(var(--glass-tint), 0.6) 70%,
+        alpha(var(--glass-tint), 0.8) 100%
+    );
+    border-bottom-left-radius: 8px;
+    border-bottom-right-radius: 8px;
+    min-height: 28px;
+}
+
+/* =============================================================================
+ * ACTIONS - Glass buttons
+ * ============================================================================= */
+
+.notification-actions {
+    margin-top: 12px;
+    padding-top: 10px;
+    border-top: 1px solid alpha(@window_fg_color, 0.15);
+}
+
+.notification-action {
+    padding: 8px 14px;
+    border-radius: 8px;
+    margin-right: 8px;
+    color: @window_fg_color;
+    background-color: alpha(@window_fg_color, 0.08);
+    border: 1px solid alpha(@window_fg_color, 0.15);
+    box-shadow:
+        inset 0 1px 0 0 alpha(white, 0.15);
+    text-shadow: 0 1px 2px alpha(black, 0.6);
+}
+
+.notification-action:hover {
+    background-color: alpha(@window_fg_color, 0.15);
+    box-shadow:
+        inset 0 1px 0 0 alpha(white, 0.25),
+        0 2px 8px alpha(black, 0.15);
+}
+
+/* =============================================================================
+ * DEFAULT ACTION INDICATOR - Glossy edge glow
+ * ============================================================================= */
+
+.notification-popup.has-default-action {
+    --indicator-color: alpha(@accent_color, 0.4);
+    box-shadow:
+        inset 0 1px 0 0 alpha(white, var(--glass-highlight-opacity)),
+        inset 0 -1px 0 0 alpha(black, 0.08),
+        inset -24px 0 20px -16px var(--indicator-color),
+        0 4px 20px alpha(black, 0.25),
+        0 8px 32px alpha(black, 0.15);
+}
+
+/* =============================================================================
+ * CLOSE BUTTON - Glass style
+ * ============================================================================= */
+
+.notification-close {
+    min-width: 26px;
+    min-height: 26px;
+    padding: 4px;
+    border-radius: 13px;
+    color: alpha(@window_fg_color, 0.6);
+    background-color: alpha(@window_fg_color, 0.05);
+    border: 1px solid alpha(@window_fg_color, 0.1);
+    box-shadow:
+        inset 0 1px 0 0 alpha(white, 0.1);
+    text-shadow: 0 1px 2px alpha(black, 0.5);
+}
+
+.notification-close:hover {
+    background-color: alpha(@error_color, 0.2);
+    border-color: alpha(@error_color, 0.4);
+    color: @error_color;
+    box-shadow:
+        inset 0 1px 0 0 alpha(white, 0.2),
+        0 0 12px alpha(@error_color, 0.3);
+}
+
+/* =============================================================================
+ * URGENCY MODIFIERS
+ * ============================================================================= */
+
+/* Low urgency - more subtle, less prominent */
+.notification-popup.urgency-low {
+    --glass-bg-opacity: 0.18;
+    --glass-frost-opacity: 0.25;
+    --glass-highlight-opacity: 0.25;
+    border-color: alpha(@window_fg_color, 0.20);
+    animation: none;
+}
+
+.notification-popup.urgency-low .notification-summary {
+    font-weight: normal;
+}
+
+/* Normal urgency - default glass styling */
+.notification-popup.urgency-normal {
+    /* Uses default glass styling */
+}
+
+/* Critical urgency - tinted glass with glow */
+.notification-popup.urgency-critical {
+    --glass-tint: @error_color;
+    --glass-bg-opacity: 0.22;
+    --glass-frost-opacity: 0.30;
+    border-color: alpha(@error_color, 0.6);
+    border-width: 2px;
+    box-shadow:
+        inset 0 1px 0 0 alpha(white, 0.30),
+        inset 0 -1px 0 0 alpha(black, 0.1),
+        0 0 20px alpha(@error_color, 0.35),
+        0 4px 20px alpha(black, 0.20);
+    animation: border-glow-error 2s ease-in-out infinite;
+}
+
+.notification-popup.urgency-critical .notification-summary {
+    color: @error_color;
+    text-shadow:
+        0 1px 2px alpha(black, 0.6),
+        0 0 8px alpha(@error_color, 0.4);
+}
+
+/* =============================================================================
+ * STATE CLASSES
+ * ============================================================================= */
+
+.notification-popup.is-transient {
+    --glass-bg-opacity: 0.22;
+    --glass-frost-opacity: 0.30;
+    animation: none;
+}
+
+/* =============================================================================
+ * STACK POSITION CLASSES
+ * ============================================================================= */
+
+box.notification-popup.stack-single {
+    border-radius: 16px;
+    margin: 8px;
+}
+
+box.notification-popup.stack-first {
+    border-top-left-radius: 16px;
+    border-top-right-radius: 16px;
+    border-bottom-left-radius: 0px;
+    border-bottom-right-radius: 0px;
+    margin: 8px 8px 0 8px;
+    padding-bottom: 10px;
+    border-bottom-width: 0;
+}
+
+box.notification-popup.stack-middle {
+    border-radius: 0px;
+    margin: 0 8px;
+    padding-top: 10px;
+    padding-bottom: 10px;
+    border-top: 1px solid alpha(@window_fg_color, 0.15);
+    border-bottom-width: 0;
+}
+
+box.notification-popup.stack-last {
+    border-top-left-radius: 0px;
+    border-top-right-radius: 0px;
+    border-bottom-left-radius: 16px;
+    border-bottom-right-radius: 16px;
+    margin: 0 8px 8px 8px;
+    padding-top: 10px;
+    border-top: 1px solid alpha(@window_fg_color, 0.15);
+}
+
+/* =============================================================================
+ * DARK/LIGHT MODE ADJUSTMENTS
+ * ============================================================================= */
+
+/* Light mode - slightly more opaque for contrast */
+.notification-popup.light-mode {
+    --glass-text-shadow-opacity: 0.25;
+    --glass-frost-opacity: 0.25;
+    --glass-highlight-opacity: 0.50;
+    --glass-bg-opacity: 0.30;
+}
+
+/* Dark mode - default glass styling works well */
+.notification-popup.dark-mode {
+    /* Uses default dark glass styling */
+}
