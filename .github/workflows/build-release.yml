@@ -46,7 +46,7 @@ jobs:
       should_skip: ${{ steps.version.outputs.should_skip }}
     steps:
       - name: Checkout code
-        uses: actions/checkout@v5
+        uses: actions/checkout@v6
         with:
           fetch-depth: 0
           lfs: true
@@ -137,7 +137,7 @@ jobs:
           dnf install -y git git-lfs golang gtk4-devel gtk4-layer-shell-devel libadwaita-devel alsa-lib-devel gobject-introspection-devel gcc
 
       - name: Checkout code
-        uses: actions/checkout@v5
+        uses: actions/checkout@v6
         with:
           fetch-depth: 0
           lfs: true
@@ -224,7 +224,7 @@ jobs:
       contents: write
     steps:
       - name: Checkout code
-        uses: actions/checkout@v5
+        uses: actions/checkout@v6
         with:
           fetch-depth: 0
           lfs: true
@@ -338,7 +338,7 @@ jobs:
     if: needs.prepare.outputs.is_release == 'true'
     steps:
       - name: Checkout code
-        uses: actions/checkout@v5
+        uses: actions/checkout@v6
         with:
           lfs: true
 
@@ -446,7 +446,7 @@ jobs:
       contents: write
     steps:
       - name: Checkout code
-        uses: actions/checkout@v4
+        uses: actions/checkout@v6
         with:
           fetch-depth: 0
           lfs: true
