@@ -6,7 +6,6 @@ import (
 	"image"
 	"image/color"
 	"image/png"
-	"io"
 	"os"
 	"path/filepath"
 	"strings"
@@ -97,41 +96,6 @@ func RasterizeSVGFile(path string, size int, fgColor color.Color) ([]byte, error
 		return nil, err
 	}
 	return RasterizeSVG(data, size, fgColor)
-}
-
-// ConvertToRaster converts any supported image format to raster PNG data.
-// Handles SVG and NerdFont symbols; passes through raster formats unchanged.
-// For raster formats (PNG, JPEG, etc.), returns nil to indicate no conversion needed.
-func ConvertToRaster(path string, data []byte, size int, fgColor color.Color) ([]byte, bool) {
-	// Check if it's SVG
-	if path != "" && isSVGPath(path) {
-		converted, err := RasterizeSVGFile(path, size, fgColor)
-		if err == nil {
-			return converted, true
-		}
-		return nil, false
-	}
-
-	if len(data) > 0 && isSVGData(data) {
-		converted, err := RasterizeSVG(data, size, fgColor)
-		if err == nil {
-			return converted, true
-		}
-		return nil, false
-	}
-
-	// Not SVG - no conversion needed
-	return nil, false
-}
-
-// ConvertToRasterReader is like ConvertToRaster but returns an io.Reader.
-// Returns nil if no conversion was needed (pass original to termimg).
-func ConvertToRasterReader(path string, data []byte, size int, fgColor color.Color) io.Reader {
-	converted, ok := ConvertToRaster(path, data, size, fgColor)
-	if !ok || converted == nil {
-		return nil
-	}
-	return bytes.NewReader(converted)
 }
 
 // rgbToHex converts RGB values to a hex string (without #).

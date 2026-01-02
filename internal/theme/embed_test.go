@@ -48,36 +48,6 @@ func TestGetEmbeddedTheme_NotFound(t *testing.T) {
 	assert.Empty(t, css)
 }
 
-func TestListEmbeddedThemes(t *testing.T) {
-	themes := ListEmbeddedThemes()
-
-	// Should have all bundled themes
-	assert.GreaterOrEqual(t, len(themes), 3)
-	assert.Contains(t, themes, "default", "should contain default theme")
-	assert.Contains(t, themes, "minimal", "should contain minimal theme")
-	assert.Contains(t, themes, "catppuccin", "should contain catppuccin theme")
-}
-
-func TestIsEmbeddedTheme(t *testing.T) {
-	tests := []struct {
-		name     string
-		expected bool
-	}{
-		{"default", true},
-		{"minimal", true},
-		{"catppuccin", true},
-		{"nonexistent", false},
-		{"", false},
-	}
-
-	for _, tt := range tests {
-		t.Run(tt.name, func(t *testing.T) {
-			result := IsEmbeddedTheme(tt.name)
-			assert.Equal(t, tt.expected, result)
-		})
-	}
-}
-
 func TestBundledThemes_HaveRequiredClasses(t *testing.T) {
 	requiredClasses := []string{
 		".notification-popup",
@@ -143,14 +113,4 @@ func TestGetEmbeddedPartial_NotFound(t *testing.T) {
 	css, found := GetEmbeddedPartial("_nonexistent.css")
 	assert.False(t, found)
 	assert.Empty(t, css)
-}
-
-func TestListEmbeddedThemes_ExcludesPartials(t *testing.T) {
-	themes := ListEmbeddedThemes()
-
-	// Should not include partials (files starting with _)
-	for _, name := range themes {
-		assert.False(t, strings.HasPrefix(name, "_"),
-			"theme list should not include partials, found: %s", name)
-	}
 }

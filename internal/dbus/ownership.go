@@ -72,15 +72,6 @@ func getProcessNameByPID(pid uint32) string {
 	return strings.TrimSpace(string(data))
 }
 
-// IsHistuidRunning returns true if histuid is the notification daemon owner.
-func IsHistuidRunning() bool {
-	info, err := GetNotificationDaemonOwner()
-	if err != nil || info == nil {
-		return false
-	}
-	return info.IsHistuid
-}
-
 // GetDaemonStatusLabel returns a status label for the TUI status bar.
 // Returns strings like "[histuid]", "[dunst] STALE", "[--]", etc.
 func GetDaemonStatusLabel() string {

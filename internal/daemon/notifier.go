@@ -3,6 +3,7 @@ package daemon
 
 import (
 	"log/slog"
+	"path/filepath"
 	"sync"
 	"time"
 
@@ -164,33 +165,20 @@ func (n *InternalNotifier) NotifyThemeError(err error) {
 	)
 }
 
-// NotifyDnDChanged sends a notification about DnD state change.
-func (n *InternalNotifier) NotifyDnDChanged(enabled bool, reason string) {
-	var summary, body string
-	if enabled {
-		summary = "Do Not Disturb Enabled"
-		body = "Notifications will be suppressed."
+// NotifyThemeHotReload sends a notification about CSS hot-reload.
+// changedFile is the path of the file that triggered the reload (empty for main theme file).
+func (n *InternalNotifier) NotifyThemeHotReload(themeName string, changedFile string) {
+	var body string
+	if changedFile != "" {
+		// Extract just the filename for cleaner display
+		body = "CSS updated: " + filepath.Base(changedFile)
 	} else {
-		summary = "Do Not Disturb Disabled"
-		body = "Notifications will now be displayed."
-	}
-	if reason != "" {
-		body += " (" + reason + ")"
+		body = "Theme CSS has been hot-reloaded."
 	}
 	n.Notify(
-		"dnd-change",
-		summary,
+		"theme-hotreload",
+		"Theme Hot-Reload",
 		body,
 		NotificationLevelInfo,
-	)
-}
-
-// NotifyAudioError sends a notification about audio playback error.
-func (n *InternalNotifier) NotifyAudioError(err error) {
-	n.Notify(
-		"audio-error",
-		"Audio Error",
-		"Failed to play notification sound: "+err.Error(),
-		NotificationLevelWarning,
 	)
 }

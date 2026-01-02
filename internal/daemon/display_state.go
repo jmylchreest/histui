@@ -22,24 +22,6 @@ const (
 	DisplayStatusClosed
 )
 
-// String returns the string representation of DisplayStatus.
-func (s DisplayStatus) String() string {
-	switch s {
-	case DisplayStatusPending:
-		return "pending"
-	case DisplayStatusActive:
-		return "active"
-	case DisplayStatusExpired:
-		return "expired"
-	case DisplayStatusDismissed:
-		return "dismissed"
-	case DisplayStatusClosed:
-		return "closed"
-	default:
-		return "unknown"
-	}
-}
-
 // DisplayState tracks the state of a notification in the display system.
 // This maps between the histui ULID and the D-Bus notification ID.
 type DisplayState struct {
@@ -95,25 +77,6 @@ func (m *DisplayStateManager) Register(histuiID string, dbusID uint32, expiresAt
 	return state
 }
 
-// GetHistuiIDByDBusID returns the histui ID for a D-Bus ID.
-func (m *DisplayStateManager) GetHistuiIDByDBusID(dbusID uint32) string {
-	m.mu.RLock()
-	defer m.mu.RUnlock()
-	return m.byDBusID[dbusID]
-}
-
-// GetDBusIDByHistuiID returns the D-Bus ID for a histui ID.
-func (m *DisplayStateManager) GetDBusIDByHistuiID(histuiID string) (uint32, bool) {
-	m.mu.RLock()
-	defer m.mu.RUnlock()
-
-	state, exists := m.byHistuiID[histuiID]
-	if !exists {
-		return 0, false
-	}
-	return state.DBusID, true
-}
-
 // RemoveByDBusID removes a display state entry by D-Bus ID.
 func (m *DisplayStateManager) RemoveByDBusID(dbusID uint32) {
 	m.mu.Lock()
@@ -140,32 +103,4 @@ func (m *DisplayStateManager) RemoveByHistuiID(histuiID string) {
 
 	delete(m.byHistuiID, histuiID)
 	delete(m.byDBusID, state.DBusID)
-}
-
-// ActiveNotifications returns all currently active notification histui IDs.
-func (m *DisplayStateManager) ActiveNotifications() []string {
-	m.mu.RLock()
-	defer m.mu.RUnlock()
-
-	var active []string
-	for id, state := range m.byHistuiID {
-		if state.Status == DisplayStatusActive {
-			active = append(active, id)
-		}
-	}
-	return active
-}
-
-// ActiveCount returns the number of active notifications.
-func (m *DisplayStateManager) ActiveCount() int {
-	m.mu.RLock()
-	defer m.mu.RUnlock()
-
-	count := 0
-	for _, state := range m.byHistuiID {
-		if state.Status == DisplayStatusActive {
-			count++
-		}
-	}
-	return count
 }

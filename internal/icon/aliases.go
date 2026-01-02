@@ -62,15 +62,6 @@ type AliasesStats struct {
 	Categories int // Number of category fallback icons
 }
 
-// GetEmbeddedAliasesMeta returns metadata about the embedded aliases file.
-func GetEmbeddedAliasesMeta() (AliasesMeta, error) {
-	file, err := LoadEmbeddedAliasesFile()
-	if err != nil {
-		return AliasesMeta{}, err
-	}
-	return file.Meta, nil
-}
-
 // GetEmbeddedAliasesStats returns metadata and statistics about the embedded aliases file.
 func GetEmbeddedAliasesStats() (AliasesStats, error) {
 	file, err := LoadEmbeddedAliasesFile()

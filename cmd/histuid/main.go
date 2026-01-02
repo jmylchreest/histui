@@ -671,6 +671,11 @@ func runDaemonMode(logger *slog.Logger) {
 			return dbusServer.NotifyInternal(notification)
 		})
 
+		// Set up theme hot-reload notification callback
+		themeLoader.SetHotReloadCallback(func(themeName string, changedFile string) {
+			internalNotifier.NotifyThemeHotReload(themeName, changedFile)
+		})
+
 		// Initialize config watcher for hot-reload
 		configWatcher, err = daemon.NewConfigWatcher(logger)
 		if err != nil {
@@ -692,6 +697,8 @@ func runDaemonMode(logger *slog.Logger) {
 							internalNotifier.NotifyThemeError(err)
 						} else {
 							themeLoader.Apply(nil)
+							// Update watcher to watch new theme's imported files
+							themeLoader.RefreshWatcher()
 							// Reload sounds from new theme
 							loadThemeSounds(themeLoader, audioManager, logger)
 							// Update display manager with theme icon settings

@@ -165,12 +165,12 @@ func dndStatusRun(cmd *cobra.Command, args []string) error {
 	client := dbus.NewDaemonClient(nil)
 	defer func() { _ = client.Close() }()
 
-	enabled, err := client.GetDnD()
+	enabled, err := client.Ping()
 	if err != nil {
 		if !dndOpts.quiet {
-			fmt.Fprintf(os.Stderr, "Failed to get DnD status: %v\n", err)
+			fmt.Println("Do Not Disturb: unknown (daemon not running)")
 		}
-		return err
+		return nil // Not an error, just daemon not running
 	}
 
 	if !dndOpts.quiet {
@@ -178,9 +178,6 @@ func dndStatusRun(cmd *cobra.Command, args []string) error {
 			fmt.Println("Do Not Disturb: enabled")
 		} else {
 			fmt.Println("Do Not Disturb: disabled")
-		}
-		if !client.IsAvailable() {
-			fmt.Println("  (daemon not running)")
 		}
 	}
 

@@ -84,10 +84,9 @@ func runStatus(cmd *cobra.Command, args []string) error {
 	ctx, cancel := context.WithTimeout(context.Background(), 10*time.Second)
 	defer cancel()
 
-	// Load DnD state via D-Bus
-	dndEnabled := false
+	// Load DnD state via D-Bus (Ping returns DnD state)
 	client := dbus.NewDaemonClient(nil)
-	dndEnabled, _ = client.GetDnD()
+	dndEnabled, _ := client.Ping()
 	_ = client.Close()
 
 	// Detect which daemon to use

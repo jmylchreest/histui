@@ -27,7 +27,7 @@ type Watcher struct {
 	absPath   string
 
 	// Callbacks
-	onChangeCallback   func(css string)
+	onChangeCallback   func(css string, changedFile string)
 	onOverrideCallback func(name string, path string)
 
 	// Control channels
@@ -73,8 +73,9 @@ func NewWatcher(theme *Theme, logger *slog.Logger) *Watcher {
 }
 
 // SetChangeCallback sets the callback to invoke when the theme changes.
-// The callback receives the new CSS content.
-func (w *Watcher) SetChangeCallback(callback func(css string)) {
+// The callback receives the new CSS content and the path of the file that changed
+// (empty string if it was the main theme file).
+func (w *Watcher) SetChangeCallback(callback func(css string, changedFile string)) {
 	w.mu.Lock()
 	defer w.mu.Unlock()
 	w.onChangeCallback = callback
@@ -182,6 +183,26 @@ func (w *Watcher) Stop() {
 	}
 
 	w.logger.Debug("theme inotify watcher stopped")
+}
+
+// SetTheme updates the theme being watched and refreshes the watch list.
+// This should be called when the theme changes (e.g., via config reload).
+func (w *Watcher) SetTheme(theme *Theme) {
+	if theme == nil {
+		return
+	}
+
+	w.mu.Lock()
+	w.theme = theme
+	if w.themesDir != "" {
+		w.absPath = filepath.Join(w.themesDir, theme.Name+".css")
+	}
+	w.mu.Unlock()
+
+	// Update watched directories for the new theme
+	w.UpdateWatches()
+
+	w.logger.Debug("theme watcher updated for new theme", "name", theme.Name, "imported_count", len(theme.ImportedFiles))
 }
 
 // UpdateWatches updates the watched directories based on the current theme's imported files.
@@ -310,7 +331,7 @@ func (w *Watcher) handleEvent(event fsnotify.Event) {
 				w.UpdateWatches()
 				if changeCallback != nil {
 					w.logger.Info("hot-reloaded theme", "name", theme.Name)
-					changeCallback(theme.CSS)
+					changeCallback(theme.CSS, "")
 				}
 			}
 			return
@@ -340,7 +361,7 @@ func (w *Watcher) handleEvent(event fsnotify.Event) {
 				w.UpdateWatches()
 				if changeCallback != nil {
 					w.logger.Info("hot-reloaded user theme", "name", theme.Name)
-					changeCallback(theme.CSS)
+					changeCallback(theme.CSS, "")
 				}
 			}
 		}
@@ -361,7 +382,7 @@ func (w *Watcher) handleEvent(event fsnotify.Event) {
 			w.UpdateWatches()
 			if changeCallback != nil {
 				w.logger.Info("hot-reloaded theme (imported file changed)", "name", theme.Name, "imported_file", filepath.Base(eventPath))
-				changeCallback(theme.CSS)
+				changeCallback(theme.CSS, eventPath)
 			}
 		}
 		return

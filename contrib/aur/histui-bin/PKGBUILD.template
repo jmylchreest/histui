@@ -13,11 +13,12 @@ conflicts=('histui')
 
 _github_url="https://github.com/jmylchreest/histui"
 
-# Common sources (systemd units, license)
+# Common sources (systemd units, license, example config)
 source=(
     "histuid.service::${_github_url}/releases/download/v${pkgver}/histuid.service"
     "histuid-monitor.service::${_github_url}/releases/download/v${pkgver}/histuid-monitor.service"
     "LICENSE-${pkgver}::https://raw.githubusercontent.com/jmylchreest/histui/v${pkgver}/LICENSE"
+    "histuid.toml.example::https://raw.githubusercontent.com/jmylchreest/histui/v${pkgver}/docs/static/examples/histuid.toml"
 )
 
 # Architecture-specific binary sources
@@ -30,7 +31,7 @@ source_aarch64=(
     "histuid-${pkgver}-aarch64::${_github_url}/releases/download/v${pkgver}/histuid-linux-arm64"
 )
 
-sha256sums=('{{SHA256_SERVICE}}' '{{SHA256_MONITOR_SERVICE}}' '{{SHA256_LICENSE}}')
+sha256sums=('{{SHA256_SERVICE}}' '{{SHA256_MONITOR_SERVICE}}' '{{SHA256_LICENSE}}' '{{SHA256_EXAMPLE_CONFIG}}')
 sha256sums_x86_64=('{{SHA256_HISTUI_AMD64}}' '{{SHA256_HISTUID_AMD64}}')
 sha256sums_aarch64=('{{SHA256_HISTUI_ARM64}}' '{{SHA256_HISTUID_ARM64}}')
 
@@ -40,4 +41,5 @@ package() {
     install -Dm644 "histuid.service" "${pkgdir}/usr/lib/systemd/user/histuid.service"
     install -Dm644 "histuid-monitor.service" "${pkgdir}/usr/lib/systemd/user/histuid-monitor.service"
     install -Dm644 "LICENSE-${pkgver}" "${pkgdir}/usr/share/licenses/${pkgname}/LICENSE"
+    install -Dm644 "histuid.toml.example" "${pkgdir}/usr/share/doc/${pkgname%-bin}/histuid.toml.example"
 }

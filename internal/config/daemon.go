@@ -505,8 +505,8 @@ func (c *DaemonConfig) Validate() error {
 	}
 
 	// Validate max_visible
-	if c.Display.MaxVisible < 1 || c.Display.MaxVisible > 20 {
-		return fmt.Errorf("max_visible must be between 1 and 20, got %d", c.Display.MaxVisible)
+	if c.Display.MaxVisible < 1 {
+		return fmt.Errorf("max_visible must be at least 1, got %d", c.Display.MaxVisible)
 	}
 
 	// Validate volume

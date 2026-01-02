@@ -370,6 +370,9 @@ jobs:
           # Get source tarball checksum
           SHA256_SOURCE=$(curl -sL "https://github.com/jmylchreest/histui/archive/refs/tags/v${VERSION}.tar.gz" | sha256sum | awk '{print $1}')
 
+          # Get example config checksum
+          SHA256_EXAMPLE_CONFIG=$(curl -sL "https://raw.githubusercontent.com/jmylchreest/histui/v${VERSION}/docs/static/examples/histuid.toml" | sha256sum | awk '{print $1}')
+
           echo "SHA256_HISTUI_AMD64=${SHA256_HISTUI_AMD64}" >> $GITHUB_OUTPUT
           echo "SHA256_HISTUID_AMD64=${SHA256_HISTUID_AMD64}" >> $GITHUB_OUTPUT
           echo "SHA256_HISTUI_ARM64=${SHA256_HISTUI_ARM64}" >> $GITHUB_OUTPUT
@@ -378,6 +381,7 @@ jobs:
           echo "SHA256_MONITOR_SERVICE=${SHA256_MONITOR_SERVICE}" >> $GITHUB_OUTPUT
           echo "SHA256_LICENSE=${SHA256_LICENSE}" >> $GITHUB_OUTPUT
           echo "SHA256_SOURCE=${SHA256_SOURCE}" >> $GITHUB_OUTPUT
+          echo "SHA256_EXAMPLE_CONFIG=${SHA256_EXAMPLE_CONFIG}" >> $GITHUB_OUTPUT
 
           echo "=== Extracted checksums ==="
           cat "$CHECKSUM_FILE"
@@ -397,6 +401,7 @@ jobs:
               -e "s/{{SHA256_SERVICE}}/${{ steps.checksums.outputs.SHA256_SERVICE }}/g" \
               -e "s/{{SHA256_MONITOR_SERVICE}}/${{ steps.checksums.outputs.SHA256_MONITOR_SERVICE }}/g" \
               -e "s/{{SHA256_LICENSE}}/${{ steps.checksums.outputs.SHA256_LICENSE }}/g" \
+              -e "s/{{SHA256_EXAMPLE_CONFIG}}/${{ steps.checksums.outputs.SHA256_EXAMPLE_CONFIG }}/g" \
               contrib/aur/histui-bin/PKGBUILD.template > aur/histui-bin/PKGBUILD
 
           echo "=== Generated histui-bin PKGBUILD ==="

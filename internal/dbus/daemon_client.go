@@ -51,17 +51,7 @@ func NewDaemonClient(logger *slog.Logger) *DaemonClient {
 
 	client.conn = conn
 	client.obj = conn.Object(DaemonInterface, DaemonPath)
-
-	// Check if daemon is actually running by pinging it
-	var alive bool
-	err = client.obj.Call(DaemonInterface+".Ping", 0).Store(&alive)
-	if err != nil {
-		logger.Debug("histuid daemon not responding", "error", err)
-		client.available = false
-	} else {
-		client.available = true
-		logger.Debug("connected to histuid daemon")
-	}
+	client.available = true // Assume available, will be set false on first failed call
 
 	return client
 }
@@ -94,41 +84,26 @@ func (c *DaemonClient) Close() error {
 	return nil
 }
 
-// Ping checks if the daemon is alive.
-func (c *DaemonClient) Ping() error {
+// Ping checks if the daemon is alive and returns the DnD state.
+// Returns (dndEnabled, error). If error is non-nil, daemon is not available.
+func (c *DaemonClient) Ping() (bool, error) {
 	if c.conn == nil {
-		return fmt.Errorf("not connected to D-Bus")
+		return false, fmt.Errorf("not connected to D-Bus")
 	}
 
-	var alive bool
-	err := c.obj.Call(DaemonInterface+".Ping", 0).Store(&alive)
+	var dndEnabled bool
+	err := c.obj.Call(DaemonInterface+".Ping", 0).Store(&dndEnabled)
 	if err != nil {
 		c.mu.Lock()
 		c.available = false
 		c.mu.Unlock()
-		return fmt.Errorf("ping failed: %w", err)
+		return false, fmt.Errorf("ping failed: %w", err)
 	}
 
 	c.mu.Lock()
 	c.available = true
 	c.mu.Unlock()
-	return nil
-}
-
-// GetDnD gets the current DnD state.
-// Returns false if daemon is not running.
-func (c *DaemonClient) GetDnD() (bool, error) {
-	if c.conn == nil {
-		return false, nil
-	}
-
-	var enabled bool
-	err := c.obj.Call(DaemonInterface+".GetDnD", 0).Store(&enabled)
-	if err != nil {
-		// Daemon not running - DnD is effectively disabled
-		return false, nil
-	}
-	return enabled, nil
+	return dndEnabled, nil
 }
 
 // SetDnD sets the Do Not Disturb state.
@@ -140,7 +115,9 @@ func (c *DaemonClient) SetDnD(enabled bool) error {
 
 	err := c.obj.Call(DaemonInterface+".SetDnD", 0, enabled).Err
 	if err != nil {
-		// Daemon not running - no-op
+		c.mu.Lock()
+		c.available = false
+		c.mu.Unlock()
 		return nil
 	}
 	return nil
@@ -155,8 +132,8 @@ func (c *DaemonClient) ToggleDnD() (bool, error) {
 	var newState bool
 	err := c.obj.Call(DaemonInterface+".ToggleDnD", 0).Store(&newState)
 	if err != nil {
-		// Fall back to manual toggle
-		current, _ := c.GetDnD()
+		// Fall back to manual toggle using Ping to get current state
+		current, _ := c.Ping()
 		newState = !current
 		_ = c.SetDnD(newState)
 		return newState, nil

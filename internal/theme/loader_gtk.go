@@ -57,6 +57,9 @@ type Loader struct {
 	display      *gdk.Display
 	fontFamily   string
 	fontSize     int
+
+	// Callback for hot-reload events (called when CSS files change)
+	onHotReload func(themeName string, changedFile string)
 }
 
 // NewLoader creates a new theme loader.
@@ -316,12 +319,17 @@ func (l *Loader) StartHotReload(ctx context.Context) {
 
 	// Handle theme file changes
 	// Must use glib.IdleAdd to marshal GTK operations to the main thread
-	l.watcher.SetChangeCallback(func(css string) {
+	l.watcher.SetChangeCallback(func(css string, changedFile string) {
 		glib.IdleAdd(func() {
 			l.mu.Lock()
 			l.provider.LoadFromString(css)
+			callback := l.onHotReload
+			themeName := l.currentName
 			l.mu.Unlock()
-			l.logger.Info("hot-reloaded theme", "name", l.currentName)
+			l.logger.Info("hot-reloaded theme", "name", themeName)
+			if callback != nil {
+				callback(themeName, changedFile)
+			}
 		})
 	})
 
@@ -334,6 +342,9 @@ func (l *Loader) StartHotReload(ctx context.Context) {
 			l.logger.Info("switching to user override of bundled theme", "name", name, "path", path)
 			if err := l.LoadTheme(name); err != nil {
 				l.logger.Warn("failed to load user override theme", "name", name, "error", err)
+			} else {
+				// Update watcher to watch new theme's imported files
+				l.RefreshWatcher()
 			}
 		})
 	})
@@ -354,48 +365,25 @@ func (l *Loader) StopHotReload() {
 	}
 }
 
-// CurrentTheme returns the name of the currently loaded theme.
-func (l *Loader) CurrentTheme() string {
-	return l.currentName
+// RefreshWatcher updates the watcher to watch the current theme's imported files.
+// This should be called after LoadTheme when hot-reload is already running.
+func (l *Loader) RefreshWatcher() {
+	l.mu.RLock()
+	watcher := l.watcher
+	theme := l.theme
+	l.mu.RUnlock()
+
+	if watcher != nil && theme != nil {
+		watcher.SetTheme(theme)
+	}
 }
 
-// ListThemes returns a list of available theme names.
-// Returns both bundled themes and user themes, with duplicates removed.
-func (l *Loader) ListThemes() []string {
-	seen := make(map[string]bool)
-	var themes []string
-
-	// Add bundled themes first
-	for _, name := range ListEmbeddedThemes() {
-		if !seen[name] {
-			seen[name] = true
-			themes = append(themes, name)
-		}
-	}
-
-	// Add user themes (may include overrides)
-	if l.themesDir != "" {
-		entries, err := os.ReadDir(l.themesDir)
-		if err == nil {
-			for _, entry := range entries {
-				if entry.IsDir() {
-					continue
-				}
-				name := entry.Name()
-				if filepath.Ext(name) == ".css" {
-					themeName := name[:len(name)-4]
-					if !seen[themeName] {
-						seen[themeName] = true
-						themes = append(themes, themeName)
-					}
-				}
-			}
-		} else {
-			l.logger.Debug("failed to read themes directory", "error", err)
-		}
-	}
-
-	return themes
+// SetHotReloadCallback sets a callback to be invoked when theme CSS is hot-reloaded.
+// The callback receives the theme name and the changed file path (empty for main theme file).
+func (l *Loader) SetHotReloadCallback(callback func(themeName string, changedFile string)) {
+	l.mu.Lock()
+	defer l.mu.Unlock()
+	l.onHotReload = callback
 }
 
 // ApplyFontOverrides applies font family and size overrides via a separate CSS provider.

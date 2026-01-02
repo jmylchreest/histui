@@ -62,41 +62,6 @@ func GetEmbeddedPartial(name string) (string, bool) {
 	return string(data), true
 }
 
-// ListEmbeddedThemes returns names of all embedded themes.
-// Themes are stored as directories containing theme.css.
-func ListEmbeddedThemes() []string {
-	var themes []string
-
-	entries, err := fs.ReadDir(EmbeddedThemes, "themes")
-	if err != nil {
-		return BundledThemes // Fallback to known list
-	}
-
-	for _, entry := range entries {
-		// Only directories are valid themes
-		if !entry.IsDir() {
-			continue
-		}
-		name := entry.Name()
-		// Skip hidden directories
-		if strings.HasPrefix(name, ".") {
-			continue
-		}
-		// Verify it has a theme.css or {name}.css
-		if _, found := GetEmbeddedTheme(name); found {
-			themes = append(themes, name)
-		}
-	}
-
-	return themes
-}
-
-// IsEmbeddedTheme checks if a theme name is bundled.
-func IsEmbeddedTheme(name string) bool {
-	_, found := GetEmbeddedTheme(name)
-	return found
-}
-
 // GetEmbeddedLayout retrieves a bundled layout by theme name.
 // Returns the layout XML content and whether it was found.
 // Layouts are stored as: themes/{name}/layout.xml
@@ -150,39 +115,6 @@ func GetEmbeddedIcon(themeName, iconName string) ([]byte, string, bool) {
 	}
 
 	return nil, "", false
-}
-
-// ListEmbeddedIcons lists all icons available for a theme.
-// Returns a list of icon names (without extensions).
-func ListEmbeddedIcons(themeName string) []string {
-	var icons []string
-	iconsDir := "themes/" + themeName + "/icons"
-
-	entries, err := fs.ReadDir(EmbeddedThemes, iconsDir)
-	if err != nil {
-		return icons
-	}
-
-	seen := make(map[string]bool)
-	for _, entry := range entries {
-		if entry.IsDir() {
-			continue
-		}
-		name := entry.Name()
-		// Strip extension to get icon name
-		for _, ext := range []string{".svg", ".png", ".xpm"} {
-			if strings.HasSuffix(name, ext) {
-				iconName := strings.TrimSuffix(name, ext)
-				if !seen[iconName] {
-					seen[iconName] = true
-					icons = append(icons, iconName)
-				}
-				break
-			}
-		}
-	}
-
-	return icons
 }
 
 // ExtractEmbeddedSounds extracts all embedded sounds for a theme to a directory.

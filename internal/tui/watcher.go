@@ -162,7 +162,7 @@ func initDBusSignalChannel() {
 				// If ping fails, reconnect
 				for {
 					time.Sleep(10 * time.Second)
-					if err := client.Ping(); err != nil {
+					if _, err := client.Ping(); err != nil {
 						_ = client.Close()
 						break
 					}

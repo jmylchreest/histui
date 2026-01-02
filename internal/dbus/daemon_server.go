@@ -138,22 +138,13 @@ func (s *DaemonServer) Stop() error {
 	return nil
 }
 
-// Ping checks if the daemon is responsive.
-// D-Bus method: Ping() -> b
+// Ping checks if the daemon is responsive and returns the DnD state.
+// D-Bus method: Ping() -> b (returns DnD enabled state; success implies daemon is alive)
 func (s *DaemonServer) Ping() (bool, *dbus.Error) {
-	s.logger.Debug("Ping called")
-	return true, nil
-}
-
-// GetDnD returns the current Do Not Disturb state.
-// D-Bus method: GetDnD() -> b
-func (s *DaemonServer) GetDnD() (bool, *dbus.Error) {
 	if s.handler == nil {
 		return false, nil
 	}
-	enabled := s.handler.GetDnD()
-	s.logger.Debug("GetDnD called", "enabled", enabled)
-	return enabled, nil
+	return s.handler.GetDnD(), nil
 }
 
 // SetDnD sets the Do Not Disturb state.
@@ -317,13 +308,7 @@ func daemonMethods() []introspect.Method {
 		{
 			Name: "Ping",
 			Args: []introspect.Arg{
-				{Name: "alive", Type: "b", Direction: "out"},
-			},
-		},
-		{
-			Name: "GetDnD",
-			Args: []introspect.Arg{
-				{Name: "enabled", Type: "b", Direction: "out"},
+				{Name: "dnd_enabled", Type: "b", Direction: "out"},
 			},
 		},
 		{

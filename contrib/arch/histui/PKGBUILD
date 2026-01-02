@@ -41,6 +41,9 @@ package() {
     install -Dm644 contrib/histuid-monitor.service "${pkgdir}/usr/lib/systemd/user/histuid-monitor.service"
     install -Dm644 LICENSE "${pkgdir}/usr/share/licenses/${pkgname}/LICENSE"
 
+    # Install example config
+    install -Dm644 docs/static/examples/histuid.toml "${pkgdir}/usr/share/doc/${pkgname}/histuid.toml.example"
+
     # Install shell completions if available
     if [[ -f contrib/completions/histui.bash ]]; then
         install -Dm644 contrib/completions/histui.bash "${pkgdir}/usr/share/bash-completion/completions/histui"
