@@ -98,3 +98,21 @@ description = "Tor anonymity network and browser"
 upstream = "manual"
 # AI already has all tor apps - no manual overrides needed
 # Keeping this entry to ensure "tor" matches linux-tor icon, not tortoise
+
+# -----------------------------------------------------------------------------
+# Steam - Gaming platform
+# -----------------------------------------------------------------------------
+# Steam has a dedicated brand icon. AI was incorrectly putting steam apps in the
+# generic "game" category instead. Force correct mappings.
+
+[icons.steam]
+patterns = ["md-steam", "fa-steam"]
+type = "app"
+description = "Steam gaming platform"
+upstream = "manual"
+force_apps = [
+    "steam",
+    "com.valvesoftware.Steam",
+    "steam-native",
+    "steam-runtime",
+]

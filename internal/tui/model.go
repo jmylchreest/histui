@@ -1673,8 +1673,13 @@ func (m Model) renderPreviewIcon(n model.Notification) string {
 	symbol := ""
 
 	if m.iconResolver != nil {
-		// Try app name first
-		appName := strings.ToLower(n.AppName)
+		// Try app name first, fall back to desktop-entry if empty
+		// Many Flatpak apps (e.g., Discord) send empty app_name but provide desktop-entry hint
+		appName := n.AppName
+		if appName == "" && n.Extensions != nil && n.Extensions.DesktopEntry != "" {
+			appName = n.Extensions.DesktopEntry
+		}
+		appName = strings.ToLower(appName)
 		symbol = m.iconResolver.GetSymbolForApp(appName)
 
 		// Try resolved icon name

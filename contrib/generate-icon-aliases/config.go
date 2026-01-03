@@ -152,12 +152,18 @@ Current year: {{.Year}} - include current and actively maintained apps in the Li
 For each icon, list ALL Linux applications that would use this icon. Be comprehensive.
 
 Include these identifier types:
-- Package names (apt/pacman/dnf): discord, firefox, thunderbird
-- Flatpak IDs: com.discordapp.Discord, org.mozilla.firefox
+- Package names (apt/pacman/dnf): discord, firefox, thunderbird, steam
+- Flatpak IDs: com.discordapp.Discord, org.mozilla.firefox, com.valvesoftware.Steam
 - Snap names: discord, firefox
-- Desktop file names: org.mozilla.firefox, com.discordapp.Discord
-- Binary names: discord, firefox-esr
+- Desktop file names: org.mozilla.firefox, com.discordapp.Discord, com.valvesoftware.Steam
+- Binary names: discord, firefox-esr, steam
+- AppImage names: Discord, Firefox, Steam (the app_name used when launching from AppImage)
 - Common forks/variants: librewolf, waterfox, vesktop, armcord
+
+CRITICAL - Flatpak IDs: For EVERY app that has a Flatpak on Flathub, you MUST include its
+Flatpak reverse-domain ID (e.g., "com.valvesoftware.Steam", "com.discordapp.Discord").
+Search Flathub (flathub.org) to find the correct Flatpak ID for each app if you're unsure.
+Flatpak users are a significant portion of Linux users and their notifications use these IDs.
 
 For "app" type icons (brand logos like Discord, Spotify):
 - List the primary app and all known variants/forks
@@ -843,12 +849,18 @@ Current year: {{.Year}} - include current and actively maintained apps in the Li
 For each icon, list ALL Linux applications that would use this icon. Be comprehensive.
 
 Include these identifier types:
-- Package names (apt/pacman/dnf): discord, firefox, thunderbird
-- Flatpak IDs: com.discordapp.Discord, org.mozilla.firefox
+- Package names (apt/pacman/dnf): discord, firefox, thunderbird, steam
+- Flatpak IDs: com.discordapp.Discord, org.mozilla.firefox, com.valvesoftware.Steam
 - Snap names: discord, firefox
-- Desktop file names: org.mozilla.firefox, com.discordapp.Discord
-- Binary names: discord, firefox-esr
+- Desktop file names: org.mozilla.firefox, com.discordapp.Discord, com.valvesoftware.Steam
+- Binary names: discord, firefox-esr, steam
+- AppImage names: Discord, Firefox, Steam (the app_name used when launching from AppImage)
 - Common forks/variants: librewolf, waterfox, vesktop, armcord
+
+CRITICAL - Flatpak IDs: For EVERY app that has a Flatpak on Flathub, you MUST include its
+Flatpak reverse-domain ID (e.g., "com.valvesoftware.Steam", "com.discordapp.Discord").
+Search Flathub (flathub.org) to find the correct Flatpak ID for each app if you're unsure.
+Flatpak users are a significant portion of Linux users and their notifications use these IDs.
 
 For "app" type icons (brand logos like Discord, Spotify):
 - List the primary app and all known variants/forks

@@ -414,6 +414,12 @@ func (p *Popup) buildIcon(elem layout.LayoutElement) gtk.Widgetter {
 	iconName := p.notification.AppIcon
 	appName := p.notification.AppName
 
+	// Use desktop-entry as fallback when app_name is empty
+	// Many Flatpak apps (e.g., Discord) send empty app_name but provide desktop-entry hint
+	if appName == "" && p.notification.DesktopEntry() != "" {
+		appName = p.notification.DesktopEntry()
+	}
+
 	// Helper to create a symbol font label as fallback
 	createSymbolLabel := func(symbol string) gtk.Widgetter {
 		label := gtk.NewLabel(symbol)
