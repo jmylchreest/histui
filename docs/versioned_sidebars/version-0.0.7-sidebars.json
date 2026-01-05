@@ -77,7 +77,6 @@
         "id": "changelog/index"
       },
       "items": [
-        "changelog/unreleased",
         "changelog/v0.0.7",
         "changelog/v0.0.6",
         "changelog/v0.0.5",
