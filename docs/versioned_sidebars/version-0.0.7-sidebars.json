@@ -68,6 +68,24 @@
         },
         "histui/filtering"
       ]
+    },
+    {
+      "type": "category",
+      "label": "Changelog",
+      "link": {
+        "type": "doc",
+        "id": "changelog/index"
+      },
+      "items": [
+        "changelog/unreleased",
+        "changelog/v0.0.7",
+        "changelog/v0.0.6",
+        "changelog/v0.0.5",
+        "changelog/v0.0.4",
+        "changelog/v0.0.3",
+        "changelog/v0.0.2",
+        "changelog/v0.0.1"
+      ]
     }
   ]
 }
