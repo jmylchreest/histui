@@ -87,6 +87,7 @@ type DisplayConfig struct {
 	Monitor              int      `toml:"monitor" mapstructure:"monitor"`                                 // 0 = all, 1+ = specific monitor
 	NewOnTop             bool     `toml:"new_on_top" mapstructure:"new_on_top"`                           // If true, new notifications appear at top of stack
 	ImageDataPreviewSize ByteSize `toml:"image_data_preview_size" mapstructure:"image_data_preview_size"` // Control image-data display: -1/never, 0/always, or min size like "100 KiB"
+	Layer                string   `toml:"layer" mapstructure:"layer"`                                     // Wayland layer: background, bottom, top, overlay
 }
 
 // TimeoutConfig contains timeout settings per urgency level.
@@ -178,6 +179,16 @@ const (
 	PositionBottomCenter Position = "bottom-center"
 )
 
+// Layer represents a Wayland layer-shell layer.
+type Layer string
+
+const (
+	LayerBackground Layer = "background"
+	LayerBottom     Layer = "bottom"
+	LayerTop        Layer = "top"
+	LayerOverlay    Layer = "overlay"
+)
+
 // ValidPositions returns all valid position values.
 func ValidPositions() []Position {
 	return []Position{
@@ -187,6 +198,16 @@ func ValidPositions() []Position {
 		PositionBottomLeft,
 		PositionBottomRight,
 		PositionBottomCenter,
+	}
+}
+
+// ValidLayers returns all valid layer values.
+func ValidLayers() []Layer {
+	return []Layer{
+		LayerBackground,
+		LayerBottom,
+		LayerTop,
+		LayerOverlay,
 	}
 }
 
@@ -200,6 +221,7 @@ func setDefaults(v *viper.Viper) {
 	v.SetDefault("display.monitor", 0)
 	v.SetDefault("display.new_on_top", false)
 	v.SetDefault("display.image_data_preview_size", "100 KiB") // Filter profile pics (<128x128), show album art
+	v.SetDefault("display.layer", string(LayerTop))            // Top layer (above normal windows)
 
 	// Timeout defaults (as strings for Duration parsing)
 	// "0" = honor client, "-1" or "never" = never expire, positive = override
@@ -330,6 +352,7 @@ func DefaultDaemonConfig() *DaemonConfig {
 			MaxVisible:           5,
 			Monitor:              0,
 			ImageDataPreviewSize: 100 * KiB, // filters profile pics, shows album art
+			Layer:                string(LayerTop),
 		},
 		Timeouts: TimeoutConfig{
 			Low:      Duration(0),                     // Honor client
@@ -502,6 +525,18 @@ func (c *DaemonConfig) Validate() error {
 	}
 	if !validPos {
 		return fmt.Errorf("invalid position %q, must be one of: %v", c.Display.Position, ValidPositions())
+	}
+
+	// Validate layer
+	validLayer := false
+	for _, l := range ValidLayers() {
+		if c.Display.Layer == string(l) {
+			validLayer = true
+			break
+		}
+	}
+	if !validLayer {
+		return fmt.Errorf("invalid layer %q, must be one of: %v", c.Display.Layer, ValidLayers())
 	}
 
 	// Validate max_visible

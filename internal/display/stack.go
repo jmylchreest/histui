@@ -69,7 +69,7 @@ func (s *NotificationStack) createWindow() {
 
 	// Initialize layer-shell
 	layershell.InitForWindow(s.window)
-	layershell.SetLayer(s.window, layershell.LayerShellLayerTop)
+	layershell.SetLayer(s.window, s.configuredLayer())
 	layershell.SetExclusiveZone(s.window, 0) // Don't reserve space
 	layershell.SetKeyboardMode(s.window, layershell.LayerShellKeyboardModeNone)
 
@@ -386,6 +386,20 @@ func (s *NotificationStack) Destroy() {
 	if s.window != nil {
 		s.window.Destroy()
 		s.window = nil
+	}
+}
+
+// configuredLayer returns the layer-shell layer from config.
+func (s *NotificationStack) configuredLayer() layershell.Layer {
+	switch config.Layer(s.config.Display.Layer) {
+	case config.LayerBackground:
+		return layershell.LayerShellLayerBackground
+	case config.LayerBottom:
+		return layershell.LayerShellLayerBottom
+	case config.LayerOverlay:
+		return layershell.LayerShellLayerOverlay
+	default:
+		return layershell.LayerShellLayerTop
 	}
 }
 

@@ -57,6 +57,7 @@ Controls notification popup position and behavior.
 | `monitor` | int | 0 | Display monitor (0 = all, 1+ = specific monitor) |
 | `new_on_top` | bool | false | New notifications appear at top of stack |
 | `image_data_preview_size` | bytesize | "100 KiB" | Minimum size for showing image-data in body |
+| `layer` | string | "top" | Wayland layer-shell layer |
 
 **Valid Positions:**
 
@@ -72,7 +73,53 @@ Notification width and gap are controlled by the theme layout, not configuration
 See [Layout Reference](/docs/histuid/theming/layout-reference) for details.
 :::
 
-**Image Data Preview:**
+#### Wayland Layer
+
+The `layer` setting controls which Wayland layer-shell layer notifications appear on:
+
+| Value | Description |
+|-------|-------------|
+| `background` | Bottom-most layer, below all windows |
+| `bottom` | Above background but below normal windows |
+| `top` | Above normal windows (default, correct for notifications) |
+| `overlay` | Top-most layer, above everything including lock screens |
+
+```toml
+[display]
+layer = "top"  # Default - notifications appear above windows
+
+# Use overlay to show notifications even on lock screen
+layer = "overlay"
+```
+
+:::caution
+Using `overlay` layer means notifications appear above lock screens. Only use this if you want notifications visible when the screen is locked.
+:::
+
+#### Fullscreen Behavior
+
+By default, Hyprland hides the TOP layer (alpha 0) when a fullscreen window is active. This affects all notification daemons on the TOP layer.
+
+**Current solutions:**
+
+1. **Use the overlay layer** - Notifications on the OVERLAY layer remain visible during fullscreen:
+
+```toml
+[display]
+layer = "overlay"
+```
+
+:::caution
+The OVERLAY layer appears above everything, including lock screens. Only use this if you want notifications visible when the screen is locked.
+:::
+
+2. **Accept fullscreen hiding** - Keep `layer = "top"` (default) and notifications will be hidden during fullscreen, which some users prefer for immersive experiences.
+
+**Why layerrules don't help:**
+
+Hyprland's fullscreen fadeout directly sets layer alpha to 0 without checking layerrules. There is no `alpha` or `nofullscreenfade` layerrule - the `no_anim` rule only makes the hiding instant rather than preventing it.
+
+#### Image Data Preview
 
 The `image_data_preview_size` setting controls whether `image-data` from notifications is displayed in the popup body. Many messaging apps (Signal, Discord) send profile pictures via `image-data` which can clutter notifications.
 
@@ -295,6 +342,7 @@ max_visible = 5
 offset_x = 10
 offset_y = 10
 image_data_preview_size = "100 KiB"  # Filter small images like profile pics
+layer = "top"                        # Wayland layer: background, bottom, top, overlay
 
 [timeouts]
 # Honor whatever the application requests (default for low/normal)
