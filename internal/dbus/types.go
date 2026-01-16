@@ -1,6 +1,11 @@
 package dbus
 
 import (
+	"bytes"
+	"image"
+	"image/color"
+	"image/png"
+
 	"github.com/godbus/dbus/v5"
 
 	"github.com/jmylchreest/histui/internal/model"
@@ -217,6 +222,69 @@ func (n *DBusNotification) ImageData() *ImageDataStruct {
 		Channels:      channels,
 		Data:          data,
 	}
+}
+
+// RawSize returns the size of the raw pixel data in bytes.
+func (img *ImageDataStruct) RawSize() int64 {
+	if img == nil {
+		return 0
+	}
+	return int64(len(img.Data))
+}
+
+// ToPNG converts the raw pixel data to PNG format.
+// Returns nil if conversion fails or data is invalid.
+func (img *ImageDataStruct) ToPNG() []byte {
+	if img == nil || len(img.Data) == 0 {
+		return nil
+	}
+
+	width := int(img.Width)
+	height := int(img.Height)
+	rowstride := int(img.Rowstride)
+	hasAlpha := img.HasAlpha
+	channels := int(img.Channels)
+
+	// Validate dimensions
+	if width <= 0 || height <= 0 || width > 4096 || height > 4096 {
+		return nil
+	}
+
+	// Create image
+	goImg := image.NewRGBA(image.Rect(0, 0, width, height))
+
+	// Copy pixel data
+	for y := 0; y < height; y++ {
+		rowStart := y * rowstride
+		for x := 0; x < width; x++ {
+			pixelStart := rowStart + x*channels
+			if pixelStart+channels > len(img.Data) {
+				break
+			}
+
+			var r, g, b, a uint8
+			if channels >= 3 {
+				r = img.Data[pixelStart]
+				g = img.Data[pixelStart+1]
+				b = img.Data[pixelStart+2]
+			}
+			if hasAlpha && channels >= 4 {
+				a = img.Data[pixelStart+3]
+			} else {
+				a = 255
+			}
+
+			goImg.SetRGBA(x, y, color.RGBA{R: r, G: g, B: b, A: a})
+		}
+	}
+
+	// Encode to PNG
+	var buf bytes.Buffer
+	if err := png.Encode(&buf, goImg); err != nil {
+		return nil
+	}
+
+	return buf.Bytes()
 }
 
 // toInt32 converts various integer types to int32.

@@ -145,6 +145,7 @@ type imageSource struct {
 	hintKey  string // Original hint key (for image-path hints)
 	fromDB   bool   // Whether loaded from database
 	imageRef string // Database image ref (if fromDB)
+	size     int64  // Image size in bytes (for display)
 }
 
 // notificationDelegate is a custom list delegate for styling notifications.
@@ -629,13 +630,16 @@ func (m Model) handleListKey(msg tea.KeyMsg) (tea.Model, tea.Cmd) {
 		if item, ok := m.list.SelectedItem().(notificationItem); ok {
 			m.selected = &item.notification
 			m.mode = ModeDetail
-			m.viewport.SetContent(m.renderDetail(item.notification))
-			m.viewport.GotoTop()
 			// Load stacked notifications for Tab cycling
 			m.loadStackedNotifications(item)
-			// Load images for Left/Right cycling
+			// Load images for Left/Right cycling - do this BEFORE rendering detail
+			// so we can calculate proper text width
 			m.detailImages = m.collectImages(item.notification)
 			m.detailImageIndex = 0
+			// Calculate text width accounting for image panel
+			textWidth := m.calculateDetailTextWidth()
+			m.viewport.SetContent(m.renderDetail(item.notification, textWidth))
+			m.viewport.GotoTop()
 		}
 		return m, nil
 
@@ -934,12 +938,15 @@ func (m Model) cycleStackInDetail(msg tea.KeyMsg) (tea.Model, tea.Cmd) {
 	// Update the detail view with the new notification
 	n := m.stackedNotifications[m.stackIndex]
 	m.selected = &n
-	m.viewport.SetContent(m.renderDetail(n))
-	m.viewport.GotoTop()
 
-	// Reload images for the new notification
+	// Reload images BEFORE rendering - needed for text width calculation
 	m.detailImages = m.collectImages(n)
 	m.detailImageIndex = 0
+
+	// Calculate text width accounting for image panel
+	textWidth := m.calculateDetailTextWidth()
+	m.viewport.SetContent(m.renderDetail(n, textWidth))
+	m.viewport.GotoTop()
 
 	return m, func() tea.Msg {
 		return statusMsg{
@@ -1043,11 +1050,13 @@ func (m Model) handleSearchKey(msg tea.KeyMsg) (tea.Model, tea.Cmd) {
 			m.selected = &item.notification
 			m.mode = ModeDetail
 			m.searchInput.Blur()
-			m.viewport.SetContent(m.renderDetail(item.notification))
-			m.viewport.GotoTop()
-			// Load images for Left/Right cycling
+			// Load images BEFORE rendering - needed for text width calculation
 			m.detailImages = m.collectImages(item.notification)
 			m.detailImageIndex = 0
+			// Calculate text width accounting for image panel
+			textWidth := m.calculateDetailTextWidth()
+			m.viewport.SetContent(m.renderDetail(item.notification, textWidth))
+			m.viewport.GotoTop()
 		}
 		return m, nil
 
@@ -1191,7 +1200,8 @@ func isFilterExpression(query string) bool {
 }
 
 // renderDetail renders the detail view for a notification.
-func (m Model) renderDetail(n model.Notification) string {
+// textWidth specifies the maximum width for text wrapping to avoid overlap with image panel.
+func (m Model) renderDetail(n model.Notification, textWidth int) string {
 	var s string
 
 	// Header
@@ -1202,8 +1212,9 @@ func (m Model) renderDetail(n model.Notification) string {
 	labelStyle := lipgloss.NewStyle().
 		Foreground(lipgloss.Color("8"))
 
-	// Build header/metadata section
-	s += headerStyle.Render(n.Summary) + "\n\n"
+	// Build header/metadata section - wrap summary if needed
+	summaryLines := wrapText(n.Summary, textWidth)
+	s += headerStyle.Render(strings.Join(summaryLines, "\n")) + "\n\n"
 	s += labelStyle.Render("App: ") + n.AppName + "\n"
 	s += labelStyle.Render("Time: ") + n.RelativeTime() + "\n"
 	s += labelStyle.Render("Urgency: ") + n.UrgencyName + "\n"
@@ -1211,9 +1222,11 @@ func (m Model) renderDetail(n model.Notification) string {
 		s += labelStyle.Render("Category: ") + n.Category + "\n"
 	}
 
-	// Body - strip pango/HTML markup for plain text display
+	// Body - strip pango/HTML markup for plain text display and wrap to available width
 	s += "\n" + labelStyle.Render("Body:") + "\n"
-	s += stripPangoMarkup(n.Body) + "\n"
+	bodyText := stripPangoMarkup(n.Body)
+	bodyLines := wrapText(bodyText, textWidth)
+	s += strings.Join(bodyLines, "\n") + "\n"
 
 	// Extensions - only show if there's something useful
 	if n.Extensions != nil {
@@ -1223,7 +1236,9 @@ func (m Model) renderDetail(n model.Notification) string {
 			extLines = append(extLines, fmt.Sprintf("  Progress: %d%%", n.Extensions.Progress))
 		}
 		if n.Extensions.URLs != "" {
-			extLines = append(extLines, "  URLs: "+n.Extensions.URLs)
+			// Wrap URLs if they're too long
+			urlLines := wrapText("  URLs: "+n.Extensions.URLs, textWidth)
+			extLines = append(extLines, urlLines...)
 		}
 		if n.Extensions.StackTag != "" {
 			extLines = append(extLines, "  Stack Tag: "+n.Extensions.StackTag)
@@ -1259,7 +1274,10 @@ func (m Model) renderDetail(n model.Notification) string {
 	if len(n.OriginalHints) > 0 {
 		s += "\n" + labelStyle.Render("Original Hints:") + "\n"
 		for key, value := range n.OriginalHints {
-			s += fmt.Sprintf("  %s: %v\n", key, value)
+			// Wrap long hint values
+			hintStr := fmt.Sprintf("  %s: %v", key, value)
+			hintLines := wrapText(hintStr, textWidth)
+			s += strings.Join(hintLines, "\n") + "\n"
 		}
 	}
 
@@ -1437,14 +1455,52 @@ func (m Model) renderPreviewPanel(item notificationItem) string {
 	return borderStyle.Render(content)
 }
 
+// Image panel dimensions for detail view
+const (
+	detailImageCols    = 30 // Image width in terminal columns
+	detailImageRows    = 15 // Image height in terminal rows
+	detailPanelPadding = 2  // Horizontal padding (1 each side)
+	detailPanelBorder  = 2  // Border width (1 each side)
+	detailPanelMargin  = 3  // Right margin from terminal edge
+)
+
+// calculateDetailTextWidth calculates the available text width for detail view
+// when an image panel is present. Returns full terminal width if no images.
+func (m Model) calculateDetailTextWidth() int {
+	if len(m.detailImages) == 0 {
+		// No images, use full width minus some padding
+		return m.width - 4
+	}
+
+	// Calculate image panel width:
+	// - Image width: detailImageCols
+	// - Border: detailPanelBorder
+	// - Padding: detailPanelPadding
+	// - Extra for title (can be up to ~25 chars: "stored-image (1/2) ←/→ cycle")
+	// The actual panel width depends on the longest line in the panel
+	// Use image width + border + padding as minimum, plus some buffer
+	panelWidth := detailImageCols + detailPanelBorder + detailPanelPadding
+	// Add buffer for title text
+	if len(m.detailImages) > 1 {
+		panelWidth += 15 // Space for " (X/Y) ←/→ cycle"
+	}
+
+	// Available text width = terminal width - panel width - margins
+	textWidth := m.width - panelWidth - detailPanelMargin - 2 // 2 for left padding
+	if textWidth < 40 {
+		textWidth = 40 // Minimum reasonable width
+	}
+	return textWidth
+}
+
 // renderImageFromSource renders an image from an imageSource using halfblocks.
 // Uses a larger size than preview (30x15 chars for more detail).
 // Returns empty string if no image is available.
 // Handles SVG conversion automatically via the imgconv module.
 func (m Model) renderImageFromSource(src imageSource, histuiID string) string {
-	// Terminal image dimensions: 30 cols x 15 rows for detail view
-	const imgCols = 30
-	const imgRows = 15
+	// Terminal image dimensions for detail view
+	const imgCols = detailImageCols
+	const imgRows = detailImageRows
 	const imgPixelWidth = imgCols * 2
 	const imgPixelHeight = imgRows * 2
 	// Size for SVG rasterization (higher for better quality)
@@ -1543,7 +1599,7 @@ func (m Model) renderDetailImagePanel(n model.Notification) string {
 	dimStyle := lipgloss.NewStyle().
 		Foreground(lipgloss.Color("8"))
 
-	// Build title with navigation info
+	// Build title with navigation info and size
 	title := src.label
 	if len(m.detailImages) > 1 {
 		title = fmt.Sprintf("%s (%d/%d)", src.label, idx+1, len(m.detailImages))
@@ -1554,7 +1610,11 @@ func (m Model) renderDetailImagePanel(n model.Notification) string {
 	if len(m.detailImages) > 1 {
 		content += " " + dimStyle.Render("←/→ cycle")
 	}
-	content += "\n\n" + imageStr
+	// Show image size
+	if src.size > 0 {
+		content += "\n" + dimStyle.Render(formatImageSize(src.size))
+	}
+	content += "\n" + imageStr
 
 	// Add image list if multiple images
 	if len(m.detailImages) > 1 {
@@ -1577,6 +1637,10 @@ func (m Model) renderDetailImagePanel(n model.Notification) string {
 					}
 				}
 			}
+			// Add size to label
+			if img.size > 0 {
+				label += fmt.Sprintf(" (%s)", formatImageSize(img.size))
+			}
 			content += "\n" + marker + style.Render(label)
 		}
 	}
@@ -1596,12 +1660,13 @@ func (m Model) collectImages(n model.Notification) []imageSource {
 		for _, key := range imageHintKeys {
 			if val, ok := n.OriginalHints[key]; ok {
 				if path, isStr := val.(string); isStr && path != "" {
-					// Verify file exists
-					if _, err := os.Stat(path); err == nil {
+					// Verify file exists and get size
+					if stat, err := os.Stat(path); err == nil {
 						images = append(images, imageSource{
 							label:   "image-path",
 							path:    path,
 							hintKey: key,
+							size:    stat.Size(),
 						})
 					}
 				}
@@ -1614,15 +1679,17 @@ func (m Model) collectImages(n model.Notification) []imageSource {
 		images = append(images, imageSource{
 			label: "embedded",
 			data:  n.Extensions.ImageData,
+			size:  int64(len(n.Extensions.ImageData)),
 		})
 	}
 
 	// 3. Check IconPath (file path to icon)
 	if n.IconPath != "" {
-		if _, err := os.Stat(n.IconPath); err == nil {
+		if stat, err := os.Stat(n.IconPath); err == nil {
 			images = append(images, imageSource{
 				label: "icon",
 				path:  n.IconPath,
+				size:  stat.Size(),
 			})
 		}
 	}
@@ -1631,10 +1698,16 @@ func (m Model) collectImages(n model.Notification) []imageSource {
 	if m.db != nil {
 		// Check for "image" ref
 		if has, _ := m.db.HasImage(n.HistuiID, db.ImageRefImage); has {
+			// Load image to get size
+			var imgSize int64
+			if data, err := m.db.LoadImage(n.HistuiID, db.ImageRefImage); err == nil {
+				imgSize = int64(len(data))
+			}
 			images = append(images, imageSource{
 				label:    "stored-image",
 				fromDB:   true,
 				imageRef: db.ImageRefImage,
+				size:     imgSize,
 			})
 		}
 		// Check for "icon" ref (if not already added from IconPath)
@@ -1648,10 +1721,16 @@ func (m Model) collectImages(n model.Notification) []imageSource {
 				}
 			}
 			if !hasIconPath {
+				// Load image to get size
+				var imgSize int64
+				if data, err := m.db.LoadImage(n.HistuiID, db.ImageRefIcon); err == nil {
+					imgSize = int64(len(data))
+				}
 				images = append(images, imageSource{
 					label:    "stored-icon",
 					fromDB:   true,
 					imageRef: db.ImageRefIcon,
+					size:     imgSize,
 				})
 			}
 		}
@@ -1801,6 +1880,23 @@ func (m Model) renderThemeIcon(iconName string, cols, rows int) string {
 	}
 
 	return strings.Join(lines, "\n")
+}
+
+// formatImageSize formats a byte size into a human-readable string.
+// Uses IEC binary units (KiB, MiB) for consistency with config.
+func formatImageSize(size int64) string {
+	const (
+		KiB = 1024
+		MiB = 1024 * KiB
+	)
+	switch {
+	case size >= MiB:
+		return fmt.Sprintf("%.1f MiB", float64(size)/float64(MiB))
+	case size >= KiB:
+		return fmt.Sprintf("%.1f KiB", float64(size)/float64(KiB))
+	default:
+		return fmt.Sprintf("%d B", size)
+	}
 }
 
 // wrapText wraps text to the specified width.

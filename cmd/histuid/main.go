@@ -2,11 +2,7 @@
 package main
 
 import (
-	"bytes"
 	"context"
-	"image"
-	"image/color"
-	"image/png"
 	"log/slog"
 	"net/http"
 	_ "net/http/pprof" // Register pprof handlers
@@ -518,7 +514,7 @@ func runDaemonMode(logger *slog.Logger) {
 					// Check for image-data hint
 					if imgData := notification.ImageData(); imgData != nil {
 						// Convert to PNG and store
-						pngData := convertImageDataToPNG(imgData)
+						pngData := imgData.ToPNG()
 						if len(pngData) > 0 {
 							if err := database.SaveImage(n.HistuiID, db.ImageRefImage, pngData); err != nil {
 								logger.Warn("failed to save notification image", "error", err)
@@ -933,58 +929,3 @@ func suppressGraphicsDebug() {
 	}
 }
 
-// convertImageDataToPNG converts D-Bus image-data format to PNG bytes.
-// The D-Bus image-data format is: (width, height, rowstride, has_alpha, bits_per_sample, channels, data)
-// This represents raw RGBA or RGB pixel data.
-func convertImageDataToPNG(imgData *dbus.ImageDataStruct) []byte {
-	if imgData == nil || len(imgData.Data) == 0 {
-		return nil
-	}
-
-	width := int(imgData.Width)
-	height := int(imgData.Height)
-	rowstride := int(imgData.Rowstride)
-	hasAlpha := imgData.HasAlpha
-	channels := int(imgData.Channels)
-
-	// Validate dimensions
-	if width <= 0 || height <= 0 || width > 4096 || height > 4096 {
-		return nil
-	}
-
-	// Create image
-	img := image.NewRGBA(image.Rect(0, 0, width, height))
-
-	// Copy pixel data
-	for y := 0; y < height; y++ {
-		rowStart := y * rowstride
-		for x := 0; x < width; x++ {
-			pixelStart := rowStart + x*channels
-			if pixelStart+channels > len(imgData.Data) {
-				break
-			}
-
-			var r, g, b, a uint8
-			if channels >= 3 {
-				r = imgData.Data[pixelStart]
-				g = imgData.Data[pixelStart+1]
-				b = imgData.Data[pixelStart+2]
-			}
-			if hasAlpha && channels >= 4 {
-				a = imgData.Data[pixelStart+3]
-			} else {
-				a = 255
-			}
-
-			img.SetRGBA(x, y, color.RGBA{R: r, G: g, B: b, A: a})
-		}
-	}
-
-	// Encode to PNG
-	var buf bytes.Buffer
-	if err := png.Encode(&buf, img); err != nil {
-		return nil
-	}
-
-	return buf.Bytes()
-}

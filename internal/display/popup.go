@@ -805,19 +805,26 @@ func (p *Popup) buildImage() gtk.Widgetter {
 	var pixbuf *gdkpixbuf.Pixbuf
 
 	// Try image-data if size threshold is met
+	// Threshold is checked against PNG (compressed) size, not raw pixel data
 	if imgData := p.notification.ImageData(); imgData != nil {
-		dataSize := int64(len(imgData.Data))
 		threshold := p.config.Display.ImageDataPreviewSize
 
-		if threshold.ShouldShow(dataSize) {
+		// Convert to PNG to get compressed size for threshold check
+		pngData := imgData.ToPNG()
+		pngSize := int64(len(pngData))
+		rawSize := imgData.RawSize()
+
+		if threshold.ShouldShow(pngSize) {
 			p.logger.Debug("image-data meets size threshold",
-				"data_size", dataSize,
+				"png_size", pngSize,
+				"raw_size", rawSize,
 				"threshold", threshold.Bytes(),
 			)
 			pixbuf = p.createPixbufFromData(imgData)
 		} else {
 			p.logger.Debug("image-data below size threshold, skipping",
-				"data_size", dataSize,
+				"png_size", pngSize,
+				"raw_size", rawSize,
 				"threshold", threshold.Bytes(),
 			)
 		}
