@@ -1,0 +1,279 @@
+---
+sidebar_position: 5
+title: Effects Library
+description: Interactive preview of CSS effects (animations and gradients) available in histuid
+---
+
+import AnimationDemo from '@site/src/components/AnimationDemo';
+
+# Effects Library
+
+histuid includes a comprehensive library of CSS effects that you can use in your themes. All effects are defined in a shared `effects.css` file that can be imported into any theme.
+
+The effects library includes:
+- **Animations** - Keyframe animations for pulsing, glowing, and attention effects
+- **Gradients** - Reusable gradient classes for fades and overlays
+- **Indicators** - Visual indicators for interactive elements
+- **Utility Classes** - Ready-to-use animation and effect classes
+
+## Interactive Demo
+
+Use this interactive demo to preview animations and see how they look on the notification popup. Select an animation and target element to see it in action.
+
+<AnimationDemo />
+
+## Using Effects in Your Theme
+
+### Importing the Library
+
+Add this import at the top of your theme CSS file:
+
+```css
+@import "effects.css";
+```
+
+### Applying Animations
+
+Apply animations using the CSS `animation` property:
+
+```css
+/* Pulsing glow on critical notification titles */
+.notification-popup.urgency-critical .notification-summary {
+    color: @error_color;
+    animation: pulse-error 2s ease-in-out infinite;
+}
+
+/* Sparkle effect on icons */
+.notification-icon {
+    animation: sparkle-accent 2.5s ease-in-out infinite;
+}
+
+/* Floating shadow on the popup */
+.notification-popup {
+    animation: shadow-float 3s ease-in-out infinite;
+}
+```
+
+## Animation Categories
+
+### Pulse & Glow Effects
+
+Text and border glow animations with varying intensities and speeds.
+
+| Animation | Duration | Best For |
+|-----------|----------|----------|
+| `pulse-glow-subtle` | 3s | Subtle ambient effects |
+| `pulse-glow` | 2s | Standard text highlighting |
+| `pulse-glow-intense` | 2s | High-visibility text |
+| `pulse-glow-fast` | 0.8s | Urgent attention |
+| `pulse-glow-slow` | 4s | Background ambient |
+| `border-glow` | 2s | Container borders |
+| `border-glow-intense` | 2s | Strong border emphasis |
+| `ring-glow` | 1.5s | Ring expansion effect |
+
+### Shimmer & Sparkle Effects
+
+Multi-point flickering effects that simulate glitter or sparkle.
+
+| Animation | Duration | Best For |
+|-----------|----------|----------|
+| `shimmer` | 2s | Gentle light flickering |
+| `shimmer-fast` | 0.8s | Rapid attention flash |
+| `sparkle` | 2.5s | Glitter effect on text |
+| `sparkle-intense` | 2s | Strong glitter effect |
+| `box-sparkle` | 3s | Glitter on containers |
+
+### Shadow Effects
+
+Dynamic shadow animations for depth and emphasis.
+
+| Animation | Duration | Best For |
+|-----------|----------|----------|
+| `shadow-breathe` | 3s | Ambient shadow pulsing |
+| `shadow-breathe-color` | 3s | Shadow pulsing with currentColor |
+| `shadow-float` | 2s | Floating card effect |
+| `shadow-dramatic` | 2s | Intense shadow emphasis |
+| `shadow-drop` | 2s | Drop shadow animation |
+| `inner-glow` | 2s | Inset glow effect |
+
+**Intense Shadow Variants** - Extra dramatic versions with more layers and higher opacity:
+
+| Animation | Duration | Best For |
+|-----------|----------|----------|
+| `shadow-breathe-intense` | 3s | Very prominent stacked shadows |
+| `shadow-float-intense` | 2s | Dramatic lift with depth |
+| `shadow-dramatic-intense` | 2s | Maximum visibility with glow |
+
+**Text Shadow Animations** - Apply to text elements for drop shadow effects:
+
+| Animation | Duration | Best For |
+|-----------|----------|----------|
+| `text-shadow-breathe` | 3s | Pulsing text drop shadow |
+| `text-shadow-float` | 2s | Text lift effect |
+| `text-shadow-dramatic` | 2s | Intense text shadow with glow |
+
+### Attention Effects
+
+High-visibility animations for urgent notifications.
+
+| Animation | Duration | Best For |
+|-----------|----------|----------|
+| `attention-pulse` | 1.5s | General attention |
+| `attention-flash` | 2s | Quick flash effect |
+| `heartbeat` | 1.5s | Heartbeat-like pulses |
+| `text-heartbeat` | 1.5s | Text heartbeat effect |
+| `urgent` | 0.6s | Urgent/critical alerts |
+| `text-urgent` | 0.6s | Urgent text emphasis |
+
+### Border Animations
+
+Pulsing and fading border effects.
+
+| Animation | Duration | Best For |
+|-----------|----------|----------|
+| `border-pulse` | 2s | Pulsing border width |
+| `border-color-pulse` | 2s | Border color pulsing |
+| `border-fade` | 3s | Subtle border fade |
+
+### Indicator Bar Effects
+
+Visual indicators for interactive elements and status markers.
+
+| Animation/Class | Duration | Best For |
+|-----------------|----------|----------|
+| `indicator-pulse` | 3s | Subtle opacity pulse for indicator bars |
+| `.right-hand-indicator` | static | Inset shadow on right side |
+
+**Usage example for default action indicators:**
+
+```css
+.notification-default-action-indicator {
+    background-color: alpha(@accent_bg_color, 0.7);
+    min-width: 4px;
+    min-height: 24px;
+    border-radius: 2px;
+    animation: indicator-pulse 3s ease-in-out infinite;
+}
+
+/* Right-hand indicator with custom color */
+.notification-popup.has-default-action {
+    --indicator-color: alpha(@accent_bg_color, 0.35);
+}
+```
+
+### Stack Count Flash
+
+Temporary highlight animation when notification stack count increases.
+
+| Animation | Duration | Best For |
+|-----------|----------|----------|
+| `stack-count-flash` | 0.6s | Highlight when count changes |
+
+```css
+/* Applied automatically to stack count badge when count increases */
+.stack-count-flash {
+    animation: stack-count-flash 0.6s ease-out forwards;
+}
+```
+
+### Color Variants
+
+Pre-defined animations using standard theme colors (error, warning, success, accent).
+
+**Error (Red):**
+- `pulse-error`, `border-glow-error`, `sparkle-error`
+
+**Warning (Yellow):**
+- `pulse-warning`, `border-glow-warning`
+
+**Success (Green):**
+- `pulse-success`, `border-glow-success`
+
+**Accent (Blue):**
+- `pulse-accent`, `border-glow-accent`, `sparkle-accent`
+
+## Gradient Classes
+
+The effects library includes reusable gradient classes for common visual patterns.
+
+### Fade Gradients
+
+These gradients indicate truncated or cropped content:
+
+| Class | Description | Use Case |
+|-------|-------------|----------|
+| `.gradient-fade-bottom` | Fades to background at bottom | Cropped images, long text |
+| `.gradient-fade-top` | Fades to background at top | Scroll indicators |
+| `.gradient-fade-left` | Fades to background on left | Horizontal scrolling |
+| `.gradient-fade-right` | Fades to background on right | Horizontal scrolling |
+| `.gradient-fade-bottom-subtle` | Subtle bottom fade (less aggressive) | Light overlays |
+| `.gradient-fade-top-subtle` | Subtle top fade | Light overlays |
+
+### Overlay Gradients
+
+Gradients for darkening content or adding color overlays:
+
+| Class | Description | Use Case |
+|-------|-------------|----------|
+| `.gradient-darken-bottom` | Dark overlay from bottom | Text over images |
+| `.gradient-darken-top` | Dark overlay from top | Text over images |
+| `.gradient-accent-bottom` | Accent color overlay from bottom | Branding, emphasis |
+| `.gradient-error-bottom` | Error color overlay from bottom | Critical notifications |
+
+### Using Gradient Classes
+
+Apply directly to overlay elements:
+
+```css
+/* Custom image fade overlay */
+.my-image-fade {
+    @extend .gradient-fade-bottom;
+    min-height: 24px;
+    border-bottom-left-radius: 6px;
+    border-bottom-right-radius: 6px;
+}
+```
+
+Or use the gradient values directly:
+
+```css
+.notification-image-fade {
+    background-image: linear-gradient(
+        to bottom,
+        alpha(@window_bg_color, 0.0) 0%,
+        alpha(@window_bg_color, 0.5) 40%,
+        alpha(@window_bg_color, 0.85) 70%,
+        @window_bg_color 100%
+    );
+}
+```
+
+### Built-in Usage
+
+The default theme uses `.gradient-fade-bottom` pattern for:
+- **Cropped notification images** - Shows fade overlay when tall images are cropped to max height
+
+## GTK4 CSS Limitations
+
+:::info Browser vs GTK4
+This demo runs in a web browser which has more CSS capabilities than GTK4. The animations shown here closely approximate GTK4 behavior, but some subtle differences may exist.
+:::
+
+GTK4's CSS support is more limited than web browsers:
+
+- **No transform animations** - `rotate`, `scale`, `translate` are not supported
+- **No pseudo-elements** - `::before` and `::after` are limited
+- **No gradient position animations** - Cannot animate gradient stops
+- **No CSS filters** - `blur()`, `hue-rotate()` not available
+
+The animation library works within these constraints using:
+- `text-shadow` for text glow effects
+- `box-shadow` for container/border effects
+- `opacity` and `border-color` for visibility changes
+
+## Tips
+
+1. **Don't overuse animations** - One or two animated elements per notification is usually enough
+2. **Match urgency to intensity** - Use subtle animations for low urgency, intense for critical
+3. **Consider accessibility** - Some users may prefer reduced motion
+4. **Test with real content** - Animations look different with varying text lengths
