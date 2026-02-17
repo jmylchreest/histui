@@ -1,0 +1,8 @@
+{
+  "label": "histuid Daemon",
+  "position": 4,
+  "link": {
+    "type": "generated-index",
+    "description": "GTK4 notification daemon with history and theming support"
+  }
+}

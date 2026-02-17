@@ -1,0 +1,388 @@
+---
+title: CSS Reference
+description: Complete CSS selector and property reference
+sidebar_position: 2
+---
+
+# CSS Reference
+
+Complete reference for histuid CSS selectors and GTK4 CSS properties.
+
+## Class Hierarchy
+
+```
+.notification-popup                     <- Root container
+│   ├── .light                         <- Light mode
+│   ├── .dark                          <- Dark mode
+│   ├── .urgency-low                   <- Low urgency
+│   ├── .urgency-normal                <- Normal urgency
+│   ├── .urgency-critical              <- Critical urgency
+│   ├── .translucent                   <- Transparent background
+│   ├── .app-{name}                    <- Per-app styling hook
+│   ├── .category-{name}               <- Per-category styling hook
+│   ├── .has-default-action            <- Clickable notification
+│   ├── .is-clickable                  <- Alias for has-default-action
+│   └── .has-visible-actions           <- Has displayable action buttons
+│
+├── .notification-header               <- Horizontal container
+│   ├── .notification-icon             <- App icon (48x48)
+│   ├── .notification-summary          <- Title
+│   ├── .notification-appname          <- App name
+│   ├── .notification-timestamp        <- Time
+│   └── .notification-stack-count      <- Badge
+│
+├── .notification-body                 <- Body text
+│   └── link                           <- Hyperlinks
+│
+├── .notification-progress             <- Progress bar
+│   └── trough > progress              <- Fill
+│
+├── .notification-image                <- Embedded image (non-cropped)
+│
+├── .notification-image-container      <- Container for cropped images
+│   ├── .cropped                       <- Added when image is cropped
+│   ├── .notification-image-box        <- Box holding the image
+│   │   └── .notification-image        <- The image itself
+│   └── .notification-image-fade       <- Gradient overlay for cropped images
+│
+└── .notification-actions              <- Action buttons container
+    └── .notification-action           <- Individual button
+```
+
+## Container Classes
+
+| Class                    | Element                        |
+|--------------------------|--------------------------------|
+| `.notification-popup`    | Main popup container           |
+| `.notification-header`   | Header row (icon + text)       |
+| `.notification-content`  | Content area                   |
+| `.notification-actions`  | Action buttons container       |
+
+## Text Classes
+
+| Class                    | Element                        |
+|--------------------------|--------------------------------|
+| `.notification-summary`  | Title/summary text             |
+| `.notification-body`     | Body text                      |
+| `.notification-appname`  | Application name label         |
+| `.notification-timestamp`| Time label                     |
+
+## Widget Classes
+
+| Class                                    | Element                        |
+|------------------------------------------|--------------------------------|
+| `.notification-icon`                     | Application icon               |
+| `.notification-action`                   | Individual action button       |
+| `.notification-progress`                 | Progress bar                   |
+| `.notification-image`                    | Embedded image                 |
+| `.notification-stack-count`              | Stacked notification badge     |
+
+## Image Classes
+
+Classes for notification images and cropped image handling:
+
+| Class                            | Element                              |
+|----------------------------------|--------------------------------------|
+| `.notification-image`            | The image element itself             |
+| `.notification-image-container`  | Container for cropped images         |
+| `.notification-image-container.cropped` | Applied when image is cropped  |
+| `.notification-image-box`        | Inner box holding the image          |
+| `.notification-image-fade`       | Gradient overlay on cropped images   |
+
+### Image Cropping Behavior
+
+When notification images exceed the maximum height (150px by default):
+1. The image is placed in a `.notification-image-container.cropped` wrapper
+2. A `.notification-image-fade` overlay is added to indicate truncation
+3. The fade uses a gradient that blends to `@window_bg_color`
+
+See [Layout Reference](/docs/histuid/theming/layout-reference#image-element) for more details on image sizing rules.
+
+## Urgency Classes
+
+Applied to `.notification-popup`:
+
+| Class              | When Applied                   |
+|--------------------|--------------------------------|
+| `.urgency-low`     | Low urgency notifications      |
+| `.urgency-normal`  | Normal urgency (default)       |
+| `.urgency-critical`| Critical/high urgency          |
+
+## Per-App Classes
+
+Dynamic classes based on application name (sanitized to valid CSS):
+
+| Class              | Example Apps                   |
+|--------------------|--------------------------------|
+| `.app-discord`     | Discord                        |
+| `.app-firefox`     | Firefox                        |
+| `.app-slack`       | Slack                          |
+| `.app-spotify`     | Spotify                        |
+| `.app-vs-code`     | VS Code (spaces become hyphens)|
+
+Example usage:
+
+```css
+/* Discord - purple accent */
+.notification-popup.app-discord {
+    border-left: 4px solid #5865F2;
+}
+
+/* Slack - brand color */
+.notification-popup.app-slack {
+    border-left: 4px solid #4A154B;
+}
+```
+
+## Category Classes
+
+Based on the [Desktop Notifications Specification](https://specifications.freedesktop.org/notification-spec/):
+
+| Class                         | Category                              |
+|-------------------------------|---------------------------------------|
+| `.category-device`            | Device events                         |
+| `.category-device-added`      | Device was added                      |
+| `.category-device-removed`    | Device was removed                    |
+| `.category-email`             | Email notification                    |
+| `.category-email-arrived`     | New email arrived                     |
+| `.category-im`                | Instant message                       |
+| `.category-im-received`       | IM received                           |
+| `.category-network`           | Network event                         |
+| `.category-network-connected` | Network connected                     |
+| `.category-transfer`          | File transfer                         |
+| `.category-transfer-complete` | Transfer complete                     |
+
+## State Classes
+
+Applied to `.notification-popup`:
+
+| Class              | When Applied                   |
+|--------------------|--------------------------------|
+| `.has-body`        | Notification has body text     |
+| `.has-icon`        | Notification has an icon       |
+| `.has-actions`     | Notification has any actions   |
+| `.has-progress`    | Notification has progress bar  |
+| `.is-resident`     | Resident notification          |
+| `.is-transient`    | Transient notification         |
+
+## Action State Classes {#action-state-classes}
+
+These classes indicate what actions are available on a notification:
+
+| Class                  | When Applied                                              |
+|------------------------|-----------------------------------------------------------|
+| `.has-actions`         | Notification has any action keys (including "default")    |
+| `.has-default-action`  | Notification has a "default" action (clickable body)      |
+| `.is-clickable`        | Semantic alias for `.has-default-action`                  |
+| `.has-visible-actions` | Notification has buttons to display (non-default, non-empty) |
+
+### Understanding Notification Actions
+
+D-Bus notifications can include actions - clickable buttons or affordances. Actions are key/label pairs:
+
+- **Key**: The action identifier (sent back to the app when triggered)
+- **Label**: The text shown to the user (may be empty)
+- **"default" key**: Special action triggered by clicking the notification body
+
+**Example: Kitty terminal notification**
+```
+Actions: ["default", ""]  # Empty label, but clicking body focuses kitty window
+```
+
+**Example: Discord notification**
+```
+Actions: ["default", "", "reply", "Reply"]  # Default action + "Reply" button
+```
+
+### Styling the Default Action Indicator
+
+The default action indicator is now CSS-based, using the `.has-default-action` class that's automatically added to clickable notifications. The built-in themes use a right-hand inset shadow effect:
+
+```css
+/* Right-hand indicator using inset shadow */
+.notification-popup.has-default-action {
+    /* Customize indicator color (optional - defaults to accent) */
+    --indicator-color: alpha(@accent_bg_color, 0.35);
+
+    /* Inset shadow on right side */
+    box-shadow:
+        0 4px 12px alpha(black, 0.15),
+        inset -20px 0 16px -12px var(--indicator-color);
+}
+```
+
+The `--indicator-color` variable is defined in `effects.css` and can be overridden per-theme. For example, the catppuccin theme uses mauve:
+
+```css
+.notification-popup.has-default-action {
+    --indicator-color: alpha(var(--ctp-mauve), 0.4);
+}
+```
+
+Additional styling options:
+
+```css
+/* Subtle cursor change on hover for clickable notifications */
+.notification-popup.is-clickable:hover {
+    cursor: pointer;
+    border-color: @accent_color;
+}
+```
+
+## Progress Classes
+
+When `.has-progress` is applied, one of these is also added:
+
+| Class               | When Applied                  |
+|---------------------|-------------------------------|
+| `.progress-minimal` | Progress 0-24%                |
+| `.progress-low`     | Progress 25-49%               |
+| `.progress-medium`  | Progress 50-74%               |
+| `.progress-high`    | Progress 75-99%               |
+| `.progress-complete`| Progress 100%                 |
+
+## Stack Position Classes
+
+When multiple notifications are displayed, these classes control how they visually connect:
+
+| Class               | When Applied                  |
+|---------------------|-------------------------------|
+| `.stack-single`     | Only one notification visible |
+| `.stack-first`      | First in stack (top)          |
+| `.stack-middle`     | Middle notification           |
+| `.stack-last`       | Last in stack (bottom)        |
+
+The default theme uses these to create a unified stack appearance:
+- **stack-first**: Rounded top corners, flat bottom
+- **stack-middle**: All corners flat, thin separator line
+- **stack-last**: Flat top, rounded bottom corners
+
+### Compositor Integration
+
+Some compositors apply their own corner rounding to layer-shell surfaces, which can interfere with stack styling.
+
+**Hyprland:**
+Hyprland applies `decoration:rounding` globally to layer surfaces. There is no per-surface layer rule to disable this. Options:
+- Set `decoration { rounding = 0 }` globally (affects all windows)
+- Use `display.gap` in histuid config to space notifications so rounding looks intentional
+
+**Sway:**
+Respects the layer-shell surface styling. No additional configuration needed.
+
+**Other Compositors:**
+Consult your compositor's documentation for controlling rounding on layer-shell surfaces with namespace `histui-notification`.
+
+## GTK4/Libadwaita CSS Variables
+
+The default theme uses libadwaita CSS variables for system integration:
+
+| Variable              | Purpose                    |
+|-----------------------|----------------------------|
+| `@window_bg_color`    | Background color           |
+| `@window_fg_color`    | Foreground/text color      |
+| `@borders`            | Border color               |
+| `@accent_bg_color`    | Accent background          |
+| `@accent_fg_color`    | Accent foreground          |
+| `@accent_color`       | Primary accent             |
+| `@error_color`        | Error/critical color       |
+
+Using these variables ensures your theme respects the user's system theme.
+
+## Common CSS Properties
+
+### Colors
+
+```css
+.notification-popup {
+  background-color: #1e1e2e;
+  color: #cdd6f4;
+  border-color: #45475a;
+}
+```
+
+### Borders
+
+```css
+.notification-popup {
+  border: 1px solid #45475a;
+  border-radius: 12px;
+}
+```
+
+### Spacing
+
+```css
+.notification-popup {
+  padding: 12px;
+  margin: 4px;
+}
+
+.notification-content {
+  margin-left: 12px;
+}
+```
+
+### Typography
+
+```css
+.notification-summary {
+  font-weight: bold;
+  font-size: 14px;
+}
+
+.notification-body {
+  font-size: 12px;
+  font-family: sans-serif;
+}
+```
+
+### Shadows
+
+```css
+.notification-popup {
+  box-shadow: 0 4px 6px rgba(0, 0, 0, 0.3);
+}
+```
+
+## CSS Animations
+
+GTK4 supports CSS animations via `@keyframes`. Example pulsing effect:
+
+```css
+@keyframes pulse {
+    0%, 100% { text-shadow: 0 0 4px @error_color; }
+    50% { text-shadow: 0 0 12px @error_color; }
+}
+
+.notification-popup.urgency-critical .notification-summary {
+    animation: pulse 2s ease-in-out infinite;
+}
+```
+
+See [Advanced Theming](/docs/histuid/theming/advanced) for more animation examples.
+
+## Font Variables
+
+Themes can use CSS custom properties for fonts. GTK CSS uses `*` (universal selector) instead of `:root`:
+
+```css
+* {
+    --histui-font-family: "Inter", sans-serif;
+    --histui-font-size: 14px;
+}
+
+.notification-popup {
+    font-family: var(--histui-font-family);
+    font-size: var(--histui-font-size);
+}
+```
+
+These can be overridden via CLI: `histuid --font "Ubuntu" --font-size 16`
+
+## See Also
+
+- [CSS Imports and Inheritance](/docs/histuid/theming/css-inheritance) - How @import resolution and the cascade work
+- [Layout Reference](/docs/histuid/theming/layout-reference) - Widget layout configuration
+- [Advanced Theming](/docs/histuid/theming/advanced) - Audio, fonts, animations, theme packs
+- [GTK4 CSS Properties](https://docs.gtk.org/gtk4/css-properties.html) - Full GTK4 reference
+- [Theme Examples](/docs/histuid/theming/examples) - Complete themes
