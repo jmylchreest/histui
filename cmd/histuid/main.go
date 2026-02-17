@@ -928,4 +928,3 @@ func suppressGraphicsDebug() {
 		}
 	}
 }
-

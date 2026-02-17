@@ -267,12 +267,12 @@ func TestImageData(t *testing.T) {
 
 	// Valid struct format: []interface{}{width, height, rowstride, hasAlpha, bitsPerSample, channels, data}
 	validData := []interface{}{
-		int32(16),              // width
-		int32(16),              // height
-		int32(64),              // rowstride
-		true,                   // has_alpha
-		int32(8),               // bits_per_sample
-		int32(4),               // channels (RGBA)
+		int32(16),                      // width
+		int32(16),                      // height
+		int32(64),                      // rowstride
+		true,                           // has_alpha
+		int32(8),                       // bits_per_sample
+		int32(4),                       // channels (RGBA)
 		[]byte{0x89, 0x50, 0x4E, 0x47}, // data
 	}
 	n.Hints = map[string]dbus.Variant{

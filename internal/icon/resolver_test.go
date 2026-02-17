@@ -18,7 +18,7 @@ func TestResolverDefaultAliases(t *testing.T) {
 		expected string
 	}{
 		{"whatsapp-desktop", "whatsapp"},
-		{"WhatsApp-Desktop", "whatsapp"}, // case insensitive
+		{"WhatsApp-Desktop", "whatsapp"},     // case insensitive
 		{"  whatsapp-desktop  ", "whatsapp"}, // trims spaces
 		{"discord-canary", "discord"},
 		{"firefox-esr", "firefox"},

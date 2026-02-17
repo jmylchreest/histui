@@ -145,4 +145,3 @@ func TestGetEmbeddedTemplate(t *testing.T) {
 		})
 	}
 }
-
