@@ -173,6 +173,7 @@ export default function AnimationDemo(): JSX.Element {
   const [selectedTarget, setSelectedTarget] = useState('summary');
   const [selectedUrgency, setSelectedUrgency] = useState('critical');
   const [customCSS, setCustomCSS] = useState('');
+  const [userEdited, setUserEdited] = useState(false);
   const styleRef = useRef<HTMLStyleElement | null>(null);
 
   // Get animation details
@@ -183,6 +184,17 @@ export default function AnimationDemo(): JSX.Element {
     }
     return { name, duration: '2s', type: 'text' };
   };
+
+  // Auto-load the @keyframes template so animations work immediately.
+  // Without this, the animation property references a @keyframes name from
+  // effects-generated.css, which may not be parsed yet due to CSS loading order.
+  // Injecting the @keyframes inline in the dynamic <style> tag ensures it works.
+  useEffect(() => {
+    if (!userEdited) {
+      const anim = getAnimationDetails(selectedAnimation);
+      setCustomCSS(getCustomizationTemplate(selectedAnimation, anim.type));
+    }
+  }, [selectedAnimation, userEdited]);
 
   // Generate and inject dynamic CSS for the animation
   useEffect(() => {
@@ -251,7 +263,10 @@ export default function AnimationDemo(): JSX.Element {
             <select
               className={styles.selectControl}
               value={selectedAnimation}
-              onChange={(e) => setSelectedAnimation(e.target.value)}
+              onChange={(e) => {
+                setSelectedAnimation(e.target.value);
+                setUserEdited(false);
+              }}
             >
               {Object.entries(ANIMATIONS).map(([category, anims]) => (
                 <optgroup key={category} label={category}>
@@ -387,16 +402,22 @@ export default function AnimationDemo(): JSX.Element {
               <span>Customize the animation and preview changes live.</span>
               <button
                 className={styles.loadTemplateBtn}
-                onClick={() => setCustomCSS(getCustomizationTemplate(selectedAnimation, currentAnim.type))}
+                onClick={() => {
+                  setUserEdited(false);
+                  setCustomCSS(getCustomizationTemplate(selectedAnimation, currentAnim.type));
+                }}
                 type="button"
               >
-                Load Template
+                Reset Template
               </button>
             </div>
             <textarea
               className={styles.cssEditor}
               value={customCSS}
-              onChange={(e) => setCustomCSS(e.target.value)}
+              onChange={(e) => {
+                setUserEdited(true);
+                setCustomCSS(e.target.value);
+              }}
               placeholder={getCustomizationTemplate(selectedAnimation, currentAnim.type)}
               spellCheck={false}
             />
