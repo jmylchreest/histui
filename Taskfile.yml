@@ -468,3 +468,126 @@ tasks:
       - rm -rf .cache
       - rm -f kb-patterns.toml kb-ai-apps.json kb-ai-categories.json gtk-icons.json kb-category-suggestions.toml
       - echo "Cleaned generated files and cache"
+
+  # =============================================================================
+  # Version Bump & Release Tasks
+  # =============================================================================
+  # Mirrors the version logic from .github/workflows/build-release.yml:
+  #   - Release tags are vX.Y.Z (clean semver only, no prerelease)
+  #   - Latest release tag is found by: git tag --list 'v*' | grep -E '^v[0-9]+\.[0-9]+\.[0-9]+$' | sort -V | tail -1
+  #   - Pushing a vX.Y.Z tag triggers the full release pipeline (build, GitHub release, AUR, docs)
+
+  bump:
+    desc: Show next patch version (alias for bump:patch)
+    cmds:
+      - task: bump:patch
+
+  bump:patch:
+    desc: Show next patch version (X.Y.Z)
+    cmds:
+      - task: _bump
+        vars:
+          BUMP_TYPE: patch
+
+  bump:minor:
+    desc: Show next minor version (X.Y.0)
+    cmds:
+      - task: _bump
+        vars:
+          BUMP_TYPE: minor
+
+  bump:major:
+    desc: Show next major version (X.0.0)
+    cmds:
+      - task: _bump
+        vars:
+          BUMP_TYPE: major
+
+  _bump:
+    internal: true
+    cmds:
+      - |
+        # Find latest release tag (only vX.Y.Z, no prerelease suffixes)
+        # This mirrors the GHA workflow logic in build-release.yml
+        LAST_TAG=$(git tag --list 'v*' 2>/dev/null | grep -E '^v[0-9]+\.[0-9]+\.[0-9]+$' | sort -V | tail -1)
+        LAST_TAG=${LAST_TAG:-v0.0.0}
+        CURRENT_VERSION="${LAST_TAG#v}"
+        IFS='.' read -r MAJOR MINOR PATCH <<< "$CURRENT_VERSION"
+        MAJOR=${MAJOR:-0}; MINOR=${MINOR:-0}; PATCH=${PATCH:-0}
+
+        case "{{.BUMP_TYPE}}" in
+          major) NEW_VERSION="$((MAJOR + 1)).0.0" ;;
+          minor) NEW_VERSION="${MAJOR}.$((MINOR + 1)).0" ;;
+          patch|*) NEW_VERSION="${MAJOR}.${MINOR}.$((PATCH + 1))" ;;
+        esac
+
+        echo "Current: ${CURRENT_VERSION} -> Next: ${NEW_VERSION}"
+        echo "To release: task release VERSION=${NEW_VERSION}"
+
+  release:
+    desc: Create and push a release tag (VERSION required)
+    summary: |
+      Creates an annotated git tag and pushes it to trigger the release pipeline.
+      The tag push triggers .github/workflows/build-release.yml which handles:
+        - Cross-compiling binaries (linux/amd64, linux/arm64)
+        - Creating a GitHub Release with artifacts and changelog
+        - Publishing to AUR (histui and histui-bin packages)
+        - Versioning and deploying documentation
+
+      Usage:
+        task release VERSION=0.0.9
+        task bump:patch                    # shows: task release VERSION=0.0.9
+        task bump:minor                    # shows: task release VERSION=0.1.0
+
+      The VERSION must be in X.Y.Z format (no 'v' prefix).
+    requires:
+      vars: [VERSION]
+    cmds:
+      - |
+        VERSION="{{.VERSION}}"
+        TAG="v${VERSION}"
+
+        # Validate version format
+        if ! echo "$VERSION" | grep -qE '^[0-9]+\.[0-9]+\.[0-9]+$'; then
+          echo "Error: VERSION must be in format X.Y.Z (e.g., 1.2.3)"
+          exit 1
+        fi
+
+        # Check if tag already exists
+        if git rev-parse "$TAG" >/dev/null 2>&1; then
+          echo "Error: Tag $TAG already exists"
+          exit 1
+        fi
+
+        # Check for uncommitted changes
+        if ! git diff --quiet 2>/dev/null || ! git diff --cached --quiet 2>/dev/null; then
+          echo "Error: Working tree has uncommitted changes. Commit or stash them first."
+          exit 1
+        fi
+
+        # Get previous release tag for changelog (only vX.Y.Z, no prerelease)
+        PREV_TAG=$(git tag --list 'v*' 2>/dev/null | grep -E '^v[0-9]+\.[0-9]+\.[0-9]+$' | sort -V | tail -1)
+
+        # Create annotated tag with changelog
+        CHANGELOG=$(
+          echo "Release ${VERSION}"
+          echo ""
+          if [ -n "$PREV_TAG" ]; then
+            echo "Changes since ${PREV_TAG}:"
+            git log "${PREV_TAG}..HEAD" --pretty=format:"- %s" --no-merges
+          else
+            echo "Initial release"
+          fi
+        )
+
+        git tag -a "${TAG}" -m "${CHANGELOG}"
+
+        # Push the tag (the branch should already be pushed)
+        BRANCH=$(git rev-parse --abbrev-ref HEAD)
+        git push origin "${BRANCH}" "${TAG}"
+        echo ""
+        echo "Released ${TAG} - GitHub Actions will handle the rest:"
+        echo "  - Build binaries (linux/amd64, linux/arm64)"
+        echo "  - Create GitHub Release"
+        echo "  - Publish to AUR"
+        echo "  - Version and deploy documentation"
