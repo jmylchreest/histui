@@ -6,7 +6,7 @@ pkgdesc="Notification history browser and daemon for Linux desktops (prebuilt bi
 arch=('x86_64' 'aarch64')
 url="https://github.com/jmylchreest/histui"
 license=('MIT')
-depends=('gtk4' 'libadwaita')
+depends=('gtk4' 'libadwaita' 'gtk4-layer-shell' 'alsa-lib')
 provides=('histui' 'histuid')
 conflicts=('histui')
 

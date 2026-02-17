@@ -34,6 +34,9 @@ Thumbs.db
 # Claude Code local settings
 .claude/*.local.*
 
+# Aide local state
+.aide/
+
 # Environment and secrets
 .env
 .env.*
