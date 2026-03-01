@@ -1,9 +1,9 @@
 module github.com/jmylchreest/histui
 
-go 1.25.5
+go 1.26
 
 require (
-	github.com/blacktop/go-termimg v0.1.24
+	github.com/blacktop/go-termimg v0.1.26
 	github.com/charmbracelet/bubbles v1.0.0
 	github.com/charmbracelet/bubbletea v1.3.10
 	github.com/charmbracelet/lipgloss v1.1.0
@@ -25,7 +25,7 @@ require (
 	github.com/srwiley/rasterx v0.0.0-20220730225603-2ab79fcdd4ef
 	github.com/stretchr/testify v1.11.1
 	golang.org/x/image v0.36.0
-	modernc.org/sqlite v1.46.0
+	modernc.org/sqlite v1.46.1
 )
 
 require (
