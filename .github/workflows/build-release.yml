@@ -43,7 +43,8 @@ jobs:
       version: ${{ steps.version.outputs.version }}
       version_tag: ${{ steps.version.outputs.version_tag }}
       is_release: ${{ steps.version.outputs.is_release }}
-      should_skip: ${{ steps.version.outputs.should_skip }}
+      is_tagged: ${{ steps.version.outputs.is_tagged }}
+      should_skip: ${{ steps.skip.outputs.should_skip }}
     steps:
       - name: Checkout code
         uses: actions/checkout@v6
@@ -51,68 +52,20 @@ jobs:
           fetch-depth: 0
           lfs: true
 
-      - name: Determine version
+      - name: Extract version
         id: version
+        uses: jmylchreest/gha-extract-git-version@v1
+
+      - name: Check if build should be skipped
+        id: skip
         run: |
-          SHOULD_SKIP=false
-
-          # Check if this is a release (tag push)
-          if [[ "${{ github.ref }}" == refs/tags/v* ]]; then
-            IS_RELEASE=true
-            # Strip 'v' prefix from tag: v1.2.3 → 1.2.3
-            VERSION="${GITHUB_REF_NAME#v}"
-            VERSION_TAG="${GITHUB_REF_NAME}"
+          # Skip main branch builds when the commit already has a release tag
+          # (the tag-triggered workflow will handle it)
+          if [[ "${{ github.ref }}" == refs/heads/main && "${{ steps.version.outputs.is_tagged }}" == "true" ]]; then
+            echo "should_skip=true" >> $GITHUB_OUTPUT
           else
-            IS_RELEASE=false
-
-            # For main branch builds, check if this commit already has a release tag
-            # If so, skip this build as the tag-triggered workflow will handle it
-            if [[ "${{ github.ref }}" == refs/heads/main ]]; then
-              EXISTING_TAG=$(git tag --points-at HEAD | grep -E '^v[0-9]+\.[0-9]+\.[0-9]+$' | head -1 || true)
-              if [[ -n "$EXISTING_TAG" ]]; then
-                echo "Commit already has release tag: ${EXISTING_TAG}"
-                echo "Skipping main branch build - tag workflow will handle this"
-                SHOULD_SKIP=true
-              fi
-            fi
-
-            # Snapshot version format: {major}.{minor}.{next_patch}-dev.{commits}+{hash}
-            if git describe --tags --always --long 2>/dev/null | grep -q '^v'; then
-              DESCRIBE=$(git describe --tags --always --long 2>/dev/null)
-              # Parse: vMAJOR.MINOR.PATCH-COMMITS-gHASH
-              if [[ $DESCRIBE =~ ^v([0-9]+)\.([0-9]+)\.([0-9]+)-([0-9]+)-g([a-f0-9]+)$ ]]; then
-                MAJOR=${BASH_REMATCH[1]}
-                MINOR=${BASH_REMATCH[2]}
-                PATCH=${BASH_REMATCH[3]}
-                COMMITS=${BASH_REMATCH[4]}
-                HASH=${BASH_REMATCH[5]}
-                # Increment patch for dev version
-                NEXT_PATCH=$((PATCH + 1))
-                VERSION="${MAJOR}.${MINOR}.${NEXT_PATCH}-dev.${COMMITS}+${HASH}"
-                VERSION_TAG="v${MAJOR}.${MINOR}.${NEXT_PATCH}-dev.${COMMITS}"
-              else
-                # Fallback if pattern doesn't match
-                SHORT_SHA=$(git rev-parse --short=7 HEAD)
-                VERSION="0.0.1-dev.0+${SHORT_SHA}"
-                VERSION_TAG="v0.0.1-dev.0-${SHORT_SHA}"
-              fi
-            else
-              # No tags: initial dev version based on commit count
-              COMMITS=$(git rev-list --count HEAD)
-              SHORT_SHA=$(git rev-parse --short=7 HEAD)
-              VERSION="0.0.1-dev.${COMMITS}+${SHORT_SHA}"
-              VERSION_TAG="v0.0.1-dev.${COMMITS}"
-            fi
+            echo "should_skip=false" >> $GITHUB_OUTPUT
           fi
-
-          echo "should_skip=${SHOULD_SKIP}" >> $GITHUB_OUTPUT
-          echo "is_release=${IS_RELEASE}" >> $GITHUB_OUTPUT
-          echo "version=${VERSION}" >> $GITHUB_OUTPUT
-          echo "version_tag=${VERSION_TAG}" >> $GITHUB_OUTPUT
-          echo "Should skip: ${SHOULD_SKIP}"
-          echo "Is release: ${IS_RELEASE}"
-          echo "Version: ${VERSION}"
-          echo "Version tag: ${VERSION_TAG}"
 
   build:
     name: Build (${{ matrix.goos }}/${{ matrix.goarch }})
@@ -209,7 +162,7 @@ jobs:
             README.md
 
       - name: Upload artifact
-        uses: actions/upload-artifact@v6
+        uses: actions/upload-artifact@v7
         with:
           name: histui_${{ needs.prepare.outputs.version }}_${{ matrix.goos }}_${{ matrix.goarch }}
           path: dist/*
@@ -230,7 +183,7 @@ jobs:
           lfs: true
 
       - name: Download all artifacts
-        uses: actions/download-artifact@v7
+        uses: actions/download-artifact@v8
         with:
           path: artifacts
           merge-multiple: false
@@ -302,7 +255,7 @@ jobs:
           GH_TOKEN: ${{ secrets.GITHUB_TOKEN }}
 
       - name: Save checksums for publishing jobs
-        uses: actions/upload-artifact@v6
+        uses: actions/upload-artifact@v7
         with:
           name: histui_${{ needs.prepare.outputs.version }}_checksums
           path: release/checksums.txt
@@ -343,7 +296,7 @@ jobs:
           lfs: true
 
       - name: Download checksums
-        uses: actions/download-artifact@v7
+        uses: actions/download-artifact@v8
         with:
           name: histui_${{ needs.prepare.outputs.version }}_checksums
           path: checksums
