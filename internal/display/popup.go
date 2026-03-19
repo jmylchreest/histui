@@ -797,10 +797,10 @@ const (
 // Handles both image-path (file path) and image-data (raw pixel data) hints.
 // Images are scaled to fit the popup width and cropped if too tall.
 //
-// Image-data display is controlled by display.image_data_preview_size config:
-//   - "never" or -1: Never show image-data in body
-//   - "always" or 0: Always show image-data in body
-//   - "100KB" etc: Only show if raw data size >= threshold (filters small profile pics)
+// Image display is controlled by display.image_data_preview_size config:
+//   - "never" or -1: Never show images in body
+//   - "always" or 0: Always show images in body
+//   - "100KB" etc: Only show if image size >= threshold (filters small profile pics/favicons)
 func (p *Popup) buildImage() gtk.Widgetter {
 	var pixbuf *gdkpixbuf.Pixbuf
 
@@ -830,12 +830,39 @@ func (p *Popup) buildImage() gtk.Widgetter {
 		}
 	}
 
-	// Fall back to image-path (file path) - always shown since explicit paths are intentional
+	// Fall back to image-path (file path) - subject to the same size threshold as image-data.
+	// Apps like Vivaldi send website favicons via image-path that may not be desirable.
 	if pixbuf == nil {
 		imagePath := p.notification.ImagePath()
 		if imagePath == "" {
 			return nil
 		}
+
+		threshold := p.config.Display.ImageDataPreviewSize
+		if threshold.IsNever() {
+			p.logger.Debug("image-path suppressed by threshold (never)",
+				"path", imagePath,
+			)
+			return nil
+		}
+
+		// Check file size against threshold (unless "always")
+		if !threshold.IsAlways() {
+			info, err := os.Stat(imagePath)
+			if err != nil {
+				p.logger.Debug("image-path file not accessible", "path", imagePath, "error", err)
+				return nil
+			}
+			if !threshold.ShouldShow(info.Size()) {
+				p.logger.Debug("image-path below size threshold, skipping",
+					"path", imagePath,
+					"file_size", info.Size(),
+					"threshold", threshold.Bytes(),
+				)
+				return nil
+			}
+		}
+
 		pixbuf = p.createPixbufFromFile(imagePath)
 	}
 

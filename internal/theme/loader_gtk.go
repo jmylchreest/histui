@@ -144,130 +144,82 @@ func (l *Loader) LoadTheme(name string) error {
 
 	// Second, check embedded themes
 	if css, found := GetEmbeddedTheme(name); found {
-		// Process @import statements in embedded themes
-		processedCSS := ProcessImports(css, "", nil)
-		l.theme = &Theme{
-			Name:      name,
-			Path:      "",
-			CSS:       processedCSS,
-			IsDefault: name == DefaultThemeName,
-		}
-
-		// Get cache directory for extracting embedded assets
-		cacheDir, err := l.getSoundsCacheDir(name)
-		if err == nil {
-			// Load embedded manifest if present
-			if manifestData, found := GetEmbeddedManifest(name); found {
-				manifest, err := ParseManifest([]byte(manifestData), ".toml")
-				if err == nil {
-					l.theme.Manifest = manifest
-
-					// Extract embedded sounds to cache directory
-					pathMap, err := ExtractEmbeddedSounds(name, cacheDir)
-					if err == nil && len(pathMap) > 0 {
-						l.theme.Dir = cacheDir
-						// Update manifest paths to point to extracted sounds
-						l.updateManifestSoundPaths(pathMap)
-						l.logger.Debug("extracted embedded sounds", "theme", name, "count", len(pathMap))
-					}
-				} else {
-					l.logger.Warn("failed to parse embedded manifest", "theme", name, "error", err)
-				}
-			}
-
-		}
-
-		// Extract embedded icons to theme cache directory (not sounds cache)
-		themeCacheDir, err := l.getThemeCacheDir(name)
-		if err == nil {
-			iconsDir, err := ExtractEmbeddedIcons(name, themeCacheDir)
-			if err == nil && iconsDir != "" {
-				l.theme.IconsDir = iconsDir
-				l.logger.Debug("extracted embedded icons", "theme", name, "icons_dir", iconsDir)
-			}
-		}
-
-		// Load theme-specific aliases, symbols, and GTK icons if present
-		// (These are overrides only - global aliases come from embed/aliases_default.toml)
-		if aliasesData, found := GetEmbeddedAliases(name); found {
-			aliasesFile := parseEmbeddedAliasesFile(aliasesData)
-			if aliasesFile != nil {
-				l.theme.Aliases = aliasesFile.Aliases
-				l.theme.Symbols = aliasesFile.Symbols
-				l.theme.GtkIcons = aliasesFile.GtkIcons
-				// Only log if there are actual overrides (0 is expected for default themes)
-				if len(aliasesFile.Aliases) > 0 || len(aliasesFile.Symbols) > 0 || len(aliasesFile.GtkIcons) > 0 {
-					l.logger.Debug("loaded theme icon overrides", "theme", name,
-						"aliases_count", len(aliasesFile.Aliases),
-						"symbols_count", len(aliasesFile.Symbols),
-						"gtk_icons_count", len(aliasesFile.GtkIcons))
-				}
-			}
-		}
-
-		l.provider.LoadFromString(processedCSS)
-		l.currentName = name
-		l.logger.Info("loaded bundled theme", "name", name,
-			"has_manifest", l.theme.Manifest != nil,
-			"has_aliases", len(l.theme.Aliases) > 0,
-			"has_icons", l.theme.IconsDir != "")
-		return nil
+		return l.loadEmbeddedTheme(name, css)
 	}
 
 	// Fallback to default theme
 	l.logger.Warn("theme not found, using default", "theme", name)
 	css, _ := GetEmbeddedTheme(DefaultThemeName)
+	return l.loadEmbeddedTheme(DefaultThemeName, css)
+}
+
+// loadEmbeddedTheme loads an embedded/bundled theme by name from its CSS content.
+// Handles CSS import processing, manifest/sounds extraction, icon extraction,
+// and alias loading. Used by both the primary embedded path and the default fallback.
+func (l *Loader) loadEmbeddedTheme(name string, css string) error {
 	processedCSS := ProcessImports(css, "", nil)
 	l.theme = &Theme{
-		Name:      DefaultThemeName,
+		Name:      name,
 		Path:      "",
 		CSS:       processedCSS,
-		IsDefault: true,
+		IsDefault: name == DefaultThemeName,
 	}
 
-	// Get cache directory for extracting embedded assets
-	cacheDir, err := l.getSoundsCacheDir(DefaultThemeName)
+	// Extract embedded sounds via manifest
+	cacheDir, err := l.getSoundsCacheDir(name)
 	if err == nil {
-		// Load embedded manifest for default theme
-		if manifestData, found := GetEmbeddedManifest(DefaultThemeName); found {
+		if manifestData, found := GetEmbeddedManifest(name); found {
 			manifest, err := ParseManifest([]byte(manifestData), ".toml")
 			if err == nil {
 				l.theme.Manifest = manifest
 
-				// Extract embedded sounds to cache directory
-				pathMap, err := ExtractEmbeddedSounds(DefaultThemeName, cacheDir)
+				pathMap, err := ExtractEmbeddedSounds(name, cacheDir)
 				if err == nil && len(pathMap) > 0 {
 					l.theme.Dir = cacheDir
 					l.updateManifestSoundPaths(pathMap)
+					l.logger.Debug("extracted embedded sounds", "theme", name, "count", len(pathMap))
 				}
+			} else {
+				l.logger.Warn("failed to parse embedded manifest", "theme", name, "error", err)
 			}
 		}
-
 	}
 
-	// Extract embedded icons to theme cache directory (not sounds cache)
-	themeCacheDir, err := l.getThemeCacheDir(DefaultThemeName)
+	// Extract embedded icons
+	themeCacheDir, err := l.getThemeCacheDir(name)
 	if err == nil {
-		iconsDir, err := ExtractEmbeddedIcons(DefaultThemeName, themeCacheDir)
+		iconsDir, err := ExtractEmbeddedIcons(name, themeCacheDir)
 		if err == nil && iconsDir != "" {
 			l.theme.IconsDir = iconsDir
-			l.logger.Debug("extracted embedded icons", "theme", DefaultThemeName, "icons_dir", iconsDir)
+			l.logger.Debug("extracted embedded icons", "theme", name, "icons_dir", iconsDir)
 		}
 	}
 
-	// Load embedded aliases, symbols, and GTK icons for default theme
-	if aliasesData, found := GetEmbeddedAliases(DefaultThemeName); found {
+	// Load theme-specific aliases, symbols, and GTK icons
+	if aliasesData, found := GetEmbeddedAliases(name); found {
 		aliasesFile := parseEmbeddedAliasesFile(aliasesData)
 		if aliasesFile != nil {
 			l.theme.Aliases = aliasesFile.Aliases
 			l.theme.Symbols = aliasesFile.Symbols
 			l.theme.GtkIcons = aliasesFile.GtkIcons
+			if len(aliasesFile.Aliases) > 0 || len(aliasesFile.Symbols) > 0 || len(aliasesFile.GtkIcons) > 0 {
+				l.logger.Debug("loaded theme icon overrides", "theme", name,
+					"aliases_count", len(aliasesFile.Aliases),
+					"symbols_count", len(aliasesFile.Symbols),
+					"gtk_icons_count", len(aliasesFile.GtkIcons))
+			}
 		}
 	}
 
 	l.provider.LoadFromString(processedCSS)
-	l.currentName = DefaultThemeName
-	l.logger.Info("loaded default theme", "has_manifest", l.theme.Manifest != nil,
+	l.currentName = name
+
+	source := "bundled"
+	if l.theme.IsDefault {
+		source = "default"
+	}
+	l.logger.Info("loaded "+source+" theme", "name", name,
+		"has_manifest", l.theme.Manifest != nil,
 		"has_aliases", len(l.theme.Aliases) > 0,
 		"has_icons", l.theme.IconsDir != "")
 	return nil

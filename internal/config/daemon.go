@@ -86,7 +86,7 @@ type DisplayConfig struct {
 	MaxVisible           int      `toml:"max_visible" mapstructure:"max_visible"`                         // Maximum simultaneous popups
 	Monitor              int      `toml:"monitor" mapstructure:"monitor"`                                 // 0 = all, 1+ = specific monitor
 	NewOnTop             bool     `toml:"new_on_top" mapstructure:"new_on_top"`                           // If true, new notifications appear at top of stack
-	ImageDataPreviewSize ByteSize `toml:"image_data_preview_size" mapstructure:"image_data_preview_size"` // Control image-data display: -1/never, 0/always, or min size like "100 KiB"
+	ImageDataPreviewSize ByteSize `toml:"image_data_preview_size" mapstructure:"image_data_preview_size"` // Control body image display (image-data and image-path): -1/never, 0/always, or min size like "100 KiB"
 	Layer                string   `toml:"layer" mapstructure:"layer"`                                     // Wayland layer: background, bottom, top, overlay
 }
 
