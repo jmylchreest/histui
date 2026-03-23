@@ -219,8 +219,10 @@ tasks:
     desc: Upgrade npm dependencies to latest (ignores semver, may break compatibility)
     dir: docs
     cmds:
+      - npm update
       - npx npm-check-updates -u
       - npm install
+      - npm audit fix || true
       - 'echo "Note: Breaking changes may require code updates"'
 
   clean:
