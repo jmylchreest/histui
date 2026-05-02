@@ -5,11 +5,31 @@ import (
 	"image"
 	"image/color"
 	"image/png"
+	"sync"
 
 	"github.com/godbus/dbus/v5"
 
 	"github.com/jmylchreest/histui/internal/model"
 )
+
+// pngEncoder reuses the deflate compressor across notification icon encodes.
+// Without this, image/png.Encode allocates a fresh flate.Writer per call,
+// which dominates non-audio allocations under steady notification traffic.
+var pngEncoder = png.Encoder{
+	CompressionLevel: png.DefaultCompression,
+	BufferPool:       &pngBufferPool{},
+}
+
+type pngBufferPool struct{ pool sync.Pool }
+
+func (b *pngBufferPool) Get() *png.EncoderBuffer {
+	if v := b.pool.Get(); v != nil {
+		return v.(*png.EncoderBuffer)
+	}
+	return nil
+}
+
+func (b *pngBufferPool) Put(p *png.EncoderBuffer) { b.pool.Put(p) }
 
 // CloseReason represents the reason for closing a notification.
 // These values are defined by the freedesktop.org notification specification.
@@ -278,9 +298,9 @@ func (img *ImageDataStruct) ToPNG() []byte {
 		}
 	}
 
-	// Encode to PNG
+	// Encode to PNG via the pooled encoder so the deflate compressor is reused.
 	var buf bytes.Buffer
-	if err := png.Encode(&buf, goImg); err != nil {
+	if err := pngEncoder.Encode(&buf, goImg); err != nil {
 		return nil
 	}
 
