@@ -171,8 +171,12 @@ func (p *Player) stopCurrentLocked() {
 		p.stopChan = nil
 		p.playing = false
 		p.currentUrgency = UrgencyNone
-		// Clear the speaker to stop immediately
+		// Clear the speaker to stop immediately, then suspend so we go idle.
+		// ensureInitialized() will Resume() on the next play.
 		speaker.Clear()
+		if err := speaker.Suspend(); err != nil {
+			p.logger.Debug("speaker suspend returned error", "error", err)
+		}
 	}
 }
 
@@ -205,11 +209,6 @@ func (p *Player) loadSound(path string) (*beep.Buffer, error) {
 	}
 	defer func() { _ = streamer.Close() }()
 
-	// Initialize speaker if needed
-	if err := p.ensureInitialized(format.SampleRate); err != nil {
-		return nil, err
-	}
-
 	// Create a buffer and read the entire sound
 	buffer := beep.NewBuffer(format)
 	buffer.Append(streamer)
@@ -217,12 +216,20 @@ func (p *Player) loadSound(path string) (*beep.Buffer, error) {
 	return buffer, nil
 }
 
-// ensureInitialized initializes the speaker if not already done.
+// ensureInitialized initializes the speaker on first call, or resumes it from
+// an idle suspend on subsequent calls. The pairing Suspend in the playback
+// callback keeps the oto/beep mixer goroutine from continuously draining
+// samples (and allocating ~700KB/s of mixed silence) when nothing is playing.
 func (p *Player) ensureInitialized(sampleRate beep.SampleRate) error {
 	p.mu.Lock()
 	defer p.mu.Unlock()
 
 	if p.initialized {
+		// Resume returns an error only if the audio context is unrecoverable;
+		// speaker.Play below will surface anything fatal.
+		if err := speaker.Resume(); err != nil {
+			p.logger.Debug("speaker resume returned error", "error", err)
+		}
 		return nil
 	}
 
@@ -245,6 +252,10 @@ func (p *Player) ensureInitialized(sampleRate beep.SampleRate) error {
 func (p *Player) playBufferWithUrgency(buffer *beep.Buffer, urgency UrgencyLevel, soundVolume float64) error {
 	if buffer == nil {
 		return nil
+	}
+
+	if err := p.ensureInitialized(buffer.Format().SampleRate); err != nil {
+		return err
 	}
 
 	p.mu.Lock()
@@ -293,12 +304,20 @@ func (p *Player) playBufferWithUrgency(buffer *beep.Buffer, urgency UrgencyLevel
 	// Wrap in a callback to mark playback complete
 	callback := beep.Callback(func() {
 		p.mu.Lock()
-		defer p.mu.Unlock()
 		// Only clear if this is still our stopChan (not replaced by another playback)
-		if p.stopChan == stopChan {
+		isOurs := p.stopChan == stopChan
+		if isOurs {
 			p.playing = false
 			p.currentUrgency = UrgencyNone
 			p.stopChan = nil
+		}
+		idle := isOurs && !p.playing
+		p.mu.Unlock()
+
+		if idle {
+			if err := speaker.Suspend(); err != nil {
+				p.logger.Debug("speaker suspend returned error", "error", err)
+			}
 		}
 	})
 
