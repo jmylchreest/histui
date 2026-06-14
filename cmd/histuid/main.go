@@ -509,17 +509,22 @@ func runDaemonMode(logger *slog.Logger) {
 					updateNotifier.Trigger()
 				}
 
-				// Capture and store image data if enabled
+				// Capture and store image data if enabled. PNG encoding allocates a
+				// full RGBA buffer (up to 4096x4096) and runs deflate, so do it off
+				// the D-Bus dispatch goroutine to avoid delaying the Notify reply to
+				// the sending application.
 				if cfg.History.StoreImages {
-					// Check for image-data hint
 					if imgData := notification.ImageData(); imgData != nil {
-						// Convert to PNG and store
-						pngData := imgData.ToPNG()
-						if len(pngData) > 0 {
-							if err := database.SaveImage(n.HistuiID, db.ImageRefImage, pngData); err != nil {
+						histuiID := n.HistuiID
+						go func() {
+							pngData := imgData.ToPNG()
+							if len(pngData) == 0 {
+								return
+							}
+							if err := database.SaveImage(histuiID, db.ImageRefImage, pngData); err != nil {
 								logger.Warn("failed to save notification image", "error", err)
 							}
-						}
+						}()
 					}
 				}
 			}
