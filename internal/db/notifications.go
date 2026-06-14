@@ -3,7 +3,6 @@ package db
 import (
 	"database/sql"
 	"encoding/json"
-	"fmt"
 	"time"
 
 	"github.com/jmylchreest/histui/internal/model"
@@ -257,7 +256,6 @@ type FilterOptions struct {
 	Seen      *bool  // Filter by seen state (nil=any)
 	Limit     int    // Maximum results (0=unlimited)
 	Offset    int    // Offset for pagination
-	OrderBy   string // Field to sort by (default: timestamp)
 	OrderDesc bool   // Sort descending (default: true)
 }
 
@@ -306,16 +304,14 @@ func (d *DB) Filter(opts FilterOptions) ([]model.Notification, error) {
 		}
 	}
 
-	// Order
-	orderBy := "timestamp"
-	if opts.OrderBy != "" {
-		orderBy = opts.OrderBy
+	// Order — the sort column is fixed (timestamp); only the direction is
+	// caller-controlled. Keeping this off the query-string interpolation path
+	// avoids any risk of SQL injection via a sort field.
+	if opts.OrderDesc {
+		query += " ORDER BY timestamp DESC"
+	} else {
+		query += " ORDER BY timestamp ASC"
 	}
-	order := "DESC"
-	if !opts.OrderDesc {
-		order = "ASC"
-	}
-	query += fmt.Sprintf(" ORDER BY %s %s", orderBy, order)
 
 	// Limit and offset
 	if opts.Limit > 0 {
