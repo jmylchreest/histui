@@ -49,26 +49,26 @@ func TestGetEmbeddedTheme_NotFound(t *testing.T) {
 }
 
 func TestBundledThemes_HaveRequiredClasses(t *testing.T) {
-	requiredClasses := []string{
-		".notification-popup",
-		".notification-summary",
-		".notification-body",
-		".notification-appname",
-		".notification-close",
-		".urgency-low",
-		".urgency-normal",
-		".urgency-critical",
-	}
-
 	for _, themeName := range BundledThemes {
 		t.Run(themeName, func(t *testing.T) {
 			css, found := GetEmbeddedTheme(themeName)
 			require.True(t, found)
 
-			for _, class := range requiredClasses {
+			for _, class := range RequiredCSSClasses {
 				assert.True(t, strings.Contains(css, class),
 					"theme %s should contain %s", themeName, class)
 			}
+		})
+	}
+}
+
+func TestBundledThemes_PassValidateCSS(t *testing.T) {
+	for _, themeName := range BundledThemes {
+		t.Run(themeName, func(t *testing.T) {
+			css, found := GetEmbeddedTheme(themeName)
+			require.True(t, found)
+			assert.Empty(t, ValidateCSS(css),
+				"theme %s should pass ValidateCSS", themeName)
 		})
 	}
 }

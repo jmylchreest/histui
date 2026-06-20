@@ -3,6 +3,7 @@ package theme
 
 import (
 	"embed"
+	"fmt"
 	"io/fs"
 	"os"
 	"strings"
@@ -18,7 +19,45 @@ var EmbeddedThemes embed.FS = histuiembed.Themes
 const DefaultThemeName = "default"
 
 // BundledThemes lists all embedded theme names.
-var BundledThemes = []string{"default", "minimal", "compact", "detailed", "catppuccin"}
+var BundledThemes = []string{"default", "minimal", "compact", "detailed", "catppuccin", "glass"}
+
+// RequiredCSSClasses are the selectors every theme must define so that
+// notification popups render correctly across all urgency levels.
+var RequiredCSSClasses = []string{
+	".notification-popup",
+	".notification-summary",
+	".notification-body",
+	".notification-appname",
+	".notification-close",
+	".urgency-low",
+	".urgency-normal",
+	".urgency-critical",
+}
+
+// ValidateCSS checks theme CSS for the required selectors and basic structural
+// validity. It returns a slice of human-readable problems; an empty slice means
+// the CSS passed all checks.
+func ValidateCSS(css string) []string {
+	var problems []string
+
+	for _, class := range RequiredCSSClasses {
+		if !strings.Contains(css, class) {
+			problems = append(problems, fmt.Sprintf("missing required selector %q", class))
+		}
+	}
+
+	if open, closed := strings.Count(css, "{"), strings.Count(css, "}"); open != closed {
+		problems = append(problems, fmt.Sprintf("unbalanced braces: %d '{' vs %d '}'", open, closed))
+	}
+	if strings.Contains(css, "{{") {
+		problems = append(problems, "contains '{{' (likely a template or syntax error)")
+	}
+	if strings.Contains(css, "}}") {
+		problems = append(problems, "contains '}}' (likely a template or syntax error)")
+	}
+
+	return problems
+}
 
 // GetEmbeddedTheme retrieves a bundled theme by name.
 // Returns the CSS content and whether it was found.
