@@ -168,7 +168,7 @@ function getCustomizationTemplate(animName: string, animType: string): string {
 }`;
 }
 
-export default function AnimationDemo(): JSX.Element {
+export default function AnimationDemo(): React.JSX.Element {
   const [selectedAnimation, setSelectedAnimation] = useState('pulse-glow');
   const [selectedTarget, setSelectedTarget] = useState('summary');
   const [selectedUrgency, setSelectedUrgency] = useState('critical');
