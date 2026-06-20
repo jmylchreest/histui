@@ -56,17 +56,17 @@ func (f *PlainFormatter) formatNotification(w io.Writer, index int, n *model.Not
 	var sb strings.Builder
 
 	if f.opts.ShowIndex {
-		sb.WriteString(fmt.Sprintf("[%d] ", index))
+		fmt.Fprintf(&sb, "[%d] ", index)
 	}
 
 	if f.opts.ShowApp && n.AppName != "" {
-		sb.WriteString(fmt.Sprintf("<%s> ", n.AppName))
+		fmt.Fprintf(&sb, "<%s> ", n.AppName)
 	}
 
 	sb.WriteString(n.Summary)
 
 	if f.opts.ShowTime {
-		sb.WriteString(fmt.Sprintf(" (%s)", relativeTime(n.Timestamp)))
+		fmt.Fprintf(&sb, " (%s)", relativeTime(n.Timestamp))
 	}
 
 	sb.WriteString("\n")

@@ -144,19 +144,21 @@ func (l *Loader) LoadTheme(name string) error {
 
 	// Second, check embedded themes
 	if css, found := GetEmbeddedTheme(name); found {
-		return l.loadEmbeddedTheme(name, css)
+		l.loadEmbeddedTheme(name, css)
+		return nil
 	}
 
 	// Fallback to default theme
 	l.logger.Warn("theme not found, using default", "theme", name)
 	css, _ := GetEmbeddedTheme(DefaultThemeName)
-	return l.loadEmbeddedTheme(DefaultThemeName, css)
+	l.loadEmbeddedTheme(DefaultThemeName, css)
+	return nil
 }
 
 // loadEmbeddedTheme loads an embedded/bundled theme by name from its CSS content.
 // Handles CSS import processing, manifest/sounds extraction, icon extraction,
 // and alias loading. Used by both the primary embedded path and the default fallback.
-func (l *Loader) loadEmbeddedTheme(name string, css string) error {
+func (l *Loader) loadEmbeddedTheme(name string, css string) {
 	processedCSS := ProcessImports(css, "", nil)
 	l.theme = &Theme{
 		Name:      name,
@@ -222,7 +224,6 @@ func (l *Loader) loadEmbeddedTheme(name string, css string) error {
 		"has_manifest", l.theme.Manifest != nil,
 		"has_aliases", len(l.theme.Aliases) > 0,
 		"has_icons", l.theme.IconsDir != "")
-	return nil
 }
 
 // GetTheme returns the currently loaded theme.
