@@ -2,11 +2,17 @@
 package display
 
 import (
+	"fmt"
 	"log/slog"
+	"strings"
 	"sync"
+	"unsafe"
 
 	"github.com/diamondburned/gotk4-adwaita/pkg/adw"
 	layershell "github.com/diamondburned/gotk4-layer-shell/pkg/gtk4layershell"
+	coreglib "github.com/diamondburned/gotk4/pkg/core/glib"
+	"github.com/diamondburned/gotk4/pkg/gdk/v4"
+	"github.com/diamondburned/gotk4/pkg/gio/v2"
 	"github.com/diamondburned/gotk4/pkg/glib/v2"
 	"github.com/diamondburned/gotk4/pkg/gtk/v4"
 
@@ -29,6 +35,12 @@ type NotificationStack struct {
 
 	// Track if window is currently visible
 	visible bool
+
+	// Monitor hotplug watch: re-resolves the configured output when the set of
+	// connected monitors changes. Both are set together and only touched on the
+	// GTK main thread.
+	monitorsModel         *gio.ListModel
+	monitorsChangedHandle coreglib.SignalHandle
 }
 
 // NotificationWidget wraps a notification's GTK widget with its metadata.
@@ -75,6 +87,10 @@ func (s *NotificationStack) createWindow() {
 
 	// Set namespace for compositor rules
 	layershell.SetNamespace(s.window, "histui-notification")
+
+	// Pin the surface to the configured output (0 = let compositor decide)
+	s.applyMonitor()
+	s.watchMonitorOutputs()
 
 	// Create the vertical container for notifications
 	// Gap is 0 for unified stack appearance - separators are CSS borders
@@ -133,6 +149,169 @@ func (s *NotificationStack) updatePosition() {
 		layershell.SetAnchor(s.window, layershell.LayerShellEdgeBottom, true)
 		layershell.SetMargin(s.window, layershell.LayerShellEdgeBottom, offsetY)
 	}
+}
+
+// applyMonitor pins the layer-shell surface to the configured output.
+//
+// config.Display.Monitor selects an output by 1-based index or connector name
+// ("DP-1"); its zero value means "let the compositor decide" (the layer-shell
+// default). This runs on startup and on every config reload, so switching
+// monitor at runtime — including back to auto — takes effect live.
+func (s *NotificationStack) applyMonitor() {
+	if s.window == nil {
+		return
+	}
+
+	s.logDetectedOutputs()
+
+	sel := s.config.Display.Monitor
+	monitor := s.resolveMonitor(sel)
+	if monitor == nil {
+		// Auto (0) or no resolvable output: hand layer-shell a NULL monitor so
+		// the compositor chooses. This also actively un-pins the surface on a
+		// live reload from a specific monitor back to 0.
+		layershell.SetMonitor(s.window, nullMonitor())
+		s.logger.Debug("using output for notifications", "monitor", "auto", "source", "config")
+		return
+	}
+
+	layershell.SetMonitor(s.window, monitor)
+	s.logger.Debug("using output for notifications",
+		"monitor", sel.String(),
+		"connector", monitor.Connector(),
+		"description", monitor.Description(),
+		"source", "config")
+}
+
+// watchMonitorOutputs re-applies the output selection whenever the set of
+// connected monitors changes (hotplug/unplug). This keeps an index- or
+// name-based pin correct across monitors coming and going — e.g. when the
+// named output reconnects — without a config reload or restart. The
+// items-changed signal fires on the GTK main loop, so the handler can touch
+// GTK/layer-shell state directly.
+func (s *NotificationStack) watchMonitorOutputs() {
+	display := gdk.DisplayGetDefault()
+	if display == nil {
+		return
+	}
+	monitors := display.Monitors()
+	if monitors == nil {
+		return
+	}
+
+	s.monitorsModel = monitors
+	s.monitorsChangedHandle = monitors.ConnectItemsChanged(func(position, removed, added uint) {
+		s.logger.Debug("monitor layout changed, re-applying output selection",
+			"removed", removed, "added", added)
+		s.applyMonitor()
+	})
+}
+
+// nullMonitor returns a *gdk.Monitor whose native pointer is NULL.
+//
+// layershell.SetMonitor panics on a typed-nil *gdk.Monitor: the gotk4 binding
+// dereferences the value to read its native pointer. A wrapper that is itself
+// non-nil but embeds a nil object pointer instead resolves to a native pointer
+// of 0 — a genuine NULL GdkMonitor*, which gtk_layer_set_monitor treats as
+// "let the compositor choose". The layout mirrors gotk4's own object wrappers
+// (an embedded *coreglib.Object); unsafe but stable for the pinned gotk4
+// version, and the only way to un-pin an output at runtime.
+func nullMonitor() *gdk.Monitor {
+	var m struct {
+		_ [0]func()
+		*coreglib.Object
+	}
+	return (*gdk.Monitor)(unsafe.Pointer(&m))
+}
+
+// logDetectedOutputs logs every connected output at debug so users can map the
+// 1-indexed `monitor` config value to a physical monitor — emitted on every
+// applyMonitor, including monitor=0, so the indices are visible without having
+// to pin one first.
+func (s *NotificationStack) logDetectedOutputs() {
+	display := gdk.DisplayGetDefault()
+	if display == nil {
+		return
+	}
+	monitors := display.Monitors()
+	if monitors == nil {
+		return
+	}
+
+	n := monitors.NItems()
+	s.logger.Debug("detected outputs", "count", n)
+	for i := uint(0); i < n; i++ {
+		m := castMonitor(monitors.Item(i))
+		if m == nil {
+			continue
+		}
+		g := m.Geometry()
+		s.logger.Debug("detected output",
+			"index", i+1,
+			"connector", m.Connector(),
+			"description", m.Description(),
+			"geometry", fmt.Sprintf("%dx%d+%d+%d", g.Width(), g.Height(), g.X(), g.Y()))
+	}
+}
+
+// resolveMonitor maps a MonitorSelector to a *gdk.Monitor. Returns nil for auto
+// or when no display/monitors are available, letting the compositor choose.
+//
+// By connector name: matches m.Connector() (or m.Description()) case-insensitively;
+// an unknown name falls back to auto, since there is no sensible index to guess.
+// By index (1-based): an out-of-range index falls back to the first output.
+func (s *NotificationStack) resolveMonitor(sel config.MonitorSelector) *gdk.Monitor {
+	if sel.IsAuto() {
+		return nil
+	}
+
+	display := gdk.DisplayGetDefault()
+	if display == nil {
+		s.logger.Warn("no display available, deferring output selection to compositor")
+		return nil
+	}
+
+	monitors := display.Monitors()
+	if monitors == nil {
+		s.logger.Warn("no monitors list available, deferring output selection to compositor")
+		return nil
+	}
+
+	n := monitors.NItems()
+
+	if sel.Name != "" {
+		for i := uint(0); i < n; i++ {
+			m := castMonitor(monitors.Item(i))
+			if m == nil {
+				continue
+			}
+			if strings.EqualFold(m.Connector(), sel.Name) || strings.EqualFold(m.Description(), sel.Name) {
+				return m
+			}
+		}
+		s.logger.Warn("configured monitor name not found, deferring output selection to compositor",
+			"name", sel.Name, "available", n)
+		return nil
+	}
+
+	index := uint(sel.Index - 1)
+	if index >= n {
+		s.logger.Warn("configured monitor not available, falling back to first output",
+			"configured", sel.Index, "available", n)
+		index = 0
+	}
+
+	return castMonitor(monitors.Item(index))
+}
+
+// castMonitor converts a list-model item to a *gdk.Monitor via gotk4's
+// concrete-type marshaling.
+func castMonitor(obj *coreglib.Object) *gdk.Monitor {
+	if obj == nil {
+		return nil
+	}
+	m, _ := obj.Cast().(*gdk.Monitor)
+	return m
 }
 
 // Add adds a notification widget to the stack.
@@ -374,14 +553,20 @@ func (s *NotificationStack) UpdateConfig(cfg *config.DaemonConfig) {
 	s.config = cfg
 	s.mu.Unlock()
 
-	// Update window position
+	// Re-apply output selection and position (monitor layout may have changed)
 	glib.IdleAdd(func() {
+		s.applyMonitor()
 		s.updatePosition()
 	})
 }
 
 // Destroy cleans up the stack window.
 func (s *NotificationStack) Destroy() {
+	if s.monitorsModel != nil && s.monitorsChangedHandle != 0 {
+		s.monitorsModel.HandlerDisconnect(s.monitorsChangedHandle)
+		s.monitorsChangedHandle = 0
+		s.monitorsModel = nil
+	}
 	s.Clear()
 	if s.window != nil {
 		s.window.Destroy()

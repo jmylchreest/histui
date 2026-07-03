@@ -54,7 +54,7 @@ Controls notification popup position and behavior.
 | `offset_x` | int | 10 | Pixels from horizontal screen edge |
 | `offset_y` | int | 10 | Pixels from vertical screen edge |
 | `max_visible` | int | 5 | Maximum simultaneous popups (1-20) |
-| `monitor` | int | 0 | Display monitor (0 = all, 1+ = specific monitor) |
+| `monitor` | int or string | 0 | Output monitor: `0` = compositor default (usually the focused output); `1`+ = monitor by 1-based index; or a connector name like `"DP-1"` |
 | `new_on_top` | bool | false | New notifications appear at top of stack |
 | `image_data_preview_size` | bytesize | "100 KiB" | Minimum size for showing image-data in body |
 | `layer` | string | "top" | Wayland layer-shell layer |

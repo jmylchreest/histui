@@ -59,7 +59,7 @@ func main() {
 	pflag.Int("offset-x", 0, "Override horizontal offset from screen edge")
 	pflag.Int("offset-y", 0, "Override vertical offset from screen edge")
 	pflag.Int("max-visible", 0, "Override maximum visible notifications")
-	pflag.Int("display-monitor", 0, "Override monitor number (0=all, 1+=specific)")
+	pflag.String("display-monitor", "0", "Override monitor (0=compositor default, 1+=index, or connector name like DP-1)")
 	pflag.Bool("new-on-top", false, "Override new notifications appearing at top of stack")
 	pflag.String("theme", "", "Override theme name")
 	pflag.String("font", "", "Override font family (e.g., 'Sans', 'Monospace', 'Ubuntu')")

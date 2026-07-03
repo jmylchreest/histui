@@ -37,8 +37,9 @@ func ParseLogLevel(level string) slog.Level {
 // Type aliases for shared types from internal/types package.
 // See internal/types/types.go for documentation.
 type (
-	Duration = types.Duration
-	ByteSize = types.ByteSize
+	Duration        = types.Duration
+	ByteSize        = types.ByteSize
+	MonitorSelector = types.MonitorSelector
 )
 
 // Byte size constants (re-exported from types package)
@@ -80,14 +81,14 @@ type HistoryConfig struct {
 // Note: Sizing (width, height) is controlled by layout templates.
 // Note: Opacity/translucency is controlled by CSS themes.
 type DisplayConfig struct {
-	Position             string   `toml:"position" mapstructure:"position"`                               // "top-right", "top-left", etc.
-	OffsetX              int      `toml:"offset_x" mapstructure:"offset_x"`                               // Pixels from screen edge
-	OffsetY              int      `toml:"offset_y" mapstructure:"offset_y"`                               // Pixels from screen edge
-	MaxVisible           int      `toml:"max_visible" mapstructure:"max_visible"`                         // Maximum simultaneous popups
-	Monitor              int      `toml:"monitor" mapstructure:"monitor"`                                 // 0 = all, 1+ = specific monitor
-	NewOnTop             bool     `toml:"new_on_top" mapstructure:"new_on_top"`                           // If true, new notifications appear at top of stack
-	ImageDataPreviewSize ByteSize `toml:"image_data_preview_size" mapstructure:"image_data_preview_size"` // Control body image display (image-data and image-path): -1/never, 0/always, or min size like "100 KiB"
-	Layer                string   `toml:"layer" mapstructure:"layer"`                                     // Wayland layer: background, bottom, top, overlay
+	Position             string          `toml:"position" mapstructure:"position"`                               // "top-right", "top-left", etc.
+	OffsetX              int             `toml:"offset_x" mapstructure:"offset_x"`                               // Pixels from screen edge
+	OffsetY              int             `toml:"offset_y" mapstructure:"offset_y"`                               // Pixels from screen edge
+	MaxVisible           int             `toml:"max_visible" mapstructure:"max_visible"`                         // Maximum simultaneous popups
+	Monitor              MonitorSelector `toml:"monitor" mapstructure:"monitor"`                                 // 0 = compositor default (usually focused output), 1+ = index, or connector name like "DP-1"
+	NewOnTop             bool            `toml:"new_on_top" mapstructure:"new_on_top"`                           // If true, new notifications appear at top of stack
+	ImageDataPreviewSize ByteSize        `toml:"image_data_preview_size" mapstructure:"image_data_preview_size"` // Control body image display (image-data and image-path): -1/never, 0/always, or min size like "100 KiB"
+	Layer                string          `toml:"layer" mapstructure:"layer"`                                     // Wayland layer: background, bottom, top, overlay
 }
 
 // TimeoutConfig contains timeout settings per urgency level.
@@ -342,6 +343,43 @@ func stringToByteSizeHookFunc() mapstructure.DecodeHookFunc {
 	}
 }
 
+// stringToMonitorSelectorHookFunc returns a mapstructure decode hook for
+// MonitorSelector. It accepts an integer index (0 = auto, 1+ = specific) or a
+// string that is either a numeric index or a connector name like "DP-1".
+func stringToMonitorSelectorHookFunc() mapstructure.DecodeHookFunc {
+	return func(f reflect.Type, t reflect.Type, data interface{}) (interface{}, error) {
+		if t != reflect.TypeOf(MonitorSelector{}) {
+			return data, nil
+		}
+
+		switch v := data.(type) {
+		case string:
+			var m MonitorSelector
+			if err := m.UnmarshalText([]byte(v)); err != nil {
+				return nil, err
+			}
+			return m, nil
+		case int:
+			if v < 0 {
+				return nil, fmt.Errorf("invalid monitor %d: index must be 0 (auto) or positive", v)
+			}
+			return MonitorSelector{Index: v}, nil
+		case int64:
+			if v < 0 {
+				return nil, fmt.Errorf("invalid monitor %d: index must be 0 (auto) or positive", v)
+			}
+			return MonitorSelector{Index: int(v)}, nil
+		case float64:
+			if v < 0 {
+				return nil, fmt.Errorf("invalid monitor %v: index must be 0 (auto) or positive", v)
+			}
+			return MonitorSelector{Index: int(v)}, nil
+		default:
+			return data, nil
+		}
+	}
+}
+
 // DefaultDaemonConfig returns a new DaemonConfig with default values.
 func DefaultDaemonConfig() *DaemonConfig {
 	return &DaemonConfig{
@@ -350,7 +388,7 @@ func DefaultDaemonConfig() *DaemonConfig {
 			OffsetX:              10,
 			OffsetY:              10,
 			MaxVisible:           5,
-			Monitor:              0,
+			Monitor:              MonitorSelector{},
 			ImageDataPreviewSize: 100 * KiB, // filters profile pics, shows album art
 			Layer:                string(LayerTop),
 		},
@@ -484,6 +522,7 @@ func LoadDaemonConfigWithViper(v *viper.Viper) (*DaemonConfig, error) {
 		dc.DecodeHook = mapstructure.ComposeDecodeHookFunc(
 			stringToDurationHookFunc(),
 			stringToByteSizeHookFunc(),
+			stringToMonitorSelectorHookFunc(),
 			mapstructure.StringToTimeDurationHookFunc(),
 		)
 		dc.TagName = "mapstructure"

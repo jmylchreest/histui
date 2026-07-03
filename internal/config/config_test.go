@@ -332,3 +332,43 @@ critical = "0"
 	assert.Equal(t, 15000, cfg.GetTimeoutForUrgency(1, -1)) // 15s override
 	assert.Equal(t, 0, cfg.GetTimeoutForUrgency(2, -1))     // 0 (never) from config
 }
+
+func TestDaemonConfig_LoadMonitorSelector(t *testing.T) {
+	cases := []struct {
+		name     string
+		value    string // literal TOML value for `monitor = `
+		wantIdx  int
+		wantName string
+	}{
+		{"default_auto", "", 0, ""},
+		{"index_int", "monitor = 2", 2, ""},
+		{"index_string", `monitor = "3"`, 3, ""},
+		{"connector_name", `monitor = "DP-1"`, 0, "DP-1"},
+	}
+	for _, c := range cases {
+		t.Run(c.name, func(t *testing.T) {
+			dir := t.TempDir()
+			histuiDir := filepath.Join(dir, "histui")
+			require.NoError(t, os.MkdirAll(histuiDir, 0755))
+			content := "[display]\n" + c.value + "\n"
+			require.NoError(t, os.WriteFile(filepath.Join(histuiDir, "histuid.toml"), []byte(content), 0644))
+			t.Setenv("XDG_CONFIG_HOME", dir)
+
+			cfg, err := LoadDaemonConfig()
+			require.NoError(t, err)
+			assert.Equal(t, c.wantIdx, cfg.Display.Monitor.Index)
+			assert.Equal(t, c.wantName, cfg.Display.Monitor.Name)
+		})
+	}
+}
+
+func TestDaemonConfig_LoadMonitorNegativeIndexErrors(t *testing.T) {
+	dir := t.TempDir()
+	histuiDir := filepath.Join(dir, "histui")
+	require.NoError(t, os.MkdirAll(histuiDir, 0755))
+	require.NoError(t, os.WriteFile(filepath.Join(histuiDir, "histuid.toml"), []byte("[display]\nmonitor = -1\n"), 0644))
+	t.Setenv("XDG_CONFIG_HOME", dir)
+
+	_, err := LoadDaemonConfig()
+	require.Error(t, err)
+}

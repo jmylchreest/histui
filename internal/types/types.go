@@ -5,6 +5,7 @@ package types
 
 import (
 	"fmt"
+	"strconv"
 	"strings"
 	"time"
 
@@ -150,4 +151,62 @@ func (b ByteSize) ShouldShow(dataSize int64) bool {
 		return true // always
 	}
 	return dataSize >= int64(b) // size threshold
+}
+
+// MonitorSelector chooses which output notifications are shown on. It accepts
+// either a 1-based index or a connector name such as "DP-1" in the same config
+// value. The zero value means "auto" (let the compositor choose, usually the
+// focused output).
+//
+// Config examples:
+//   - monitor = 0        -> auto
+//   - monitor = 1        -> first output by index (1-based)
+//   - monitor = "DP-1"   -> output whose connector (or description) matches
+type MonitorSelector struct {
+	Index int    // 1-based; 0 = auto. Ignored when Name is set.
+	Name  string // connector/description name; empty = select by Index.
+}
+
+// IsAuto reports whether no specific output was requested.
+func (m MonitorSelector) IsAuto() bool {
+	return m.Name == "" && m.Index <= 0
+}
+
+// UnmarshalText implements encoding.TextUnmarshaler. A value that parses as an
+// integer is treated as a 1-based index (0 = auto); anything else is treated as
+// a connector name.
+func (m *MonitorSelector) UnmarshalText(text []byte) error {
+	s := strings.TrimSpace(string(text))
+	*m = MonitorSelector{}
+	if s == "" {
+		return nil
+	}
+	if n, err := strconv.Atoi(s); err == nil {
+		if n < 0 {
+			return fmt.Errorf("invalid monitor %q: index must be 0 (auto) or positive", s)
+		}
+		m.Index = n
+		return nil
+	}
+	m.Name = s
+	return nil
+}
+
+// MarshalText implements encoding.TextMarshaler.
+func (m MonitorSelector) MarshalText() ([]byte, error) {
+	if m.Name != "" {
+		return []byte(m.Name), nil
+	}
+	return []byte(strconv.Itoa(m.Index)), nil
+}
+
+// String returns a human-readable form for logging.
+func (m MonitorSelector) String() string {
+	if m.Name != "" {
+		return m.Name
+	}
+	if m.Index <= 0 {
+		return "auto"
+	}
+	return strconv.Itoa(m.Index)
 }

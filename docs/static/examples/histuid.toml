@@ -20,7 +20,11 @@
 # Maximum popups visible at once
 # max_visible = 5
 
-# Monitor: 0 = all, 1+ = specific monitor
+# Monitor: which output to show notifications on.
+#   0        = compositor default (usually the focused output)
+#   1, 2, .. = monitor by 1-based index
+#   "DP-1"   = monitor by connector name (more stable than index)
+# Connector names are logged at debug on startup ("detected output ... connector=...").
 # monitor = 0
 
 # New notifications appear at top of stack
