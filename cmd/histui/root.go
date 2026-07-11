@@ -48,6 +48,13 @@ Running histui without a subcommand launches the interactive TUI.`,
 		// Setup logging
 		setupLogger()
 
+		// `completion` generates a static shell script; it must not touch
+		// config or the database so it works in clean build chroots without
+		// a writable $HOME.
+		if isCompletionCmd(cmd) {
+			return nil
+		}
+
 		// Load configuration
 		var err error
 		cfg, err = config.LoadConfig(globalOpts.configPath)
@@ -123,4 +130,15 @@ func getDB() *db.DB {
 // getConfig returns the global config instance.
 func getConfig() *config.Config {
 	return cfg
+}
+
+// isCompletionCmd reports whether cmd (or an ancestor) is the cobra
+// `completion` command tree used to generate shell completion scripts.
+func isCompletionCmd(cmd *cobra.Command) bool {
+	for c := cmd; c != nil; c = c.Parent() {
+		if c.Name() == "completion" {
+			return true
+		}
+	}
+	return false
 }

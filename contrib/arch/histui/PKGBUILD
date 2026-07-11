@@ -30,6 +30,13 @@ build() {
     CGO_ENABLED=1 go build \
         -ldflags "-s -w -X main.version=${pkgver}" \
         -o histuid ./cmd/histuid
+
+    # Shell completions - generated from the freshly built native binary
+    # so they always match the code being packaged.
+    mkdir -p completions
+    ./histui completion bash > completions/histui.bash
+    ./histui completion zsh  > completions/_histui
+    ./histui completion fish > completions/histui.fish
 }
 
 package() {
@@ -44,14 +51,8 @@ package() {
     # Install example config
     install -Dm644 docs/static/examples/histuid.toml "${pkgdir}/usr/share/doc/${pkgname}/histuid.toml.example"
 
-    # Install shell completions if available
-    if [[ -f contrib/completions/histui.bash ]]; then
-        install -Dm644 contrib/completions/histui.bash "${pkgdir}/usr/share/bash-completion/completions/histui"
-    fi
-    if [[ -f contrib/completions/histui.zsh ]]; then
-        install -Dm644 contrib/completions/histui.zsh "${pkgdir}/usr/share/zsh/site-functions/_histui"
-    fi
-    if [[ -f contrib/completions/histui.fish ]]; then
-        install -Dm644 contrib/completions/histui.fish "${pkgdir}/usr/share/fish/vendor_completions.d/histui.fish"
-    fi
+    # Shell completions
+    install -Dm644 completions/histui.bash "${pkgdir}/usr/share/bash-completion/completions/histui"
+    install -Dm644 completions/_histui "${pkgdir}/usr/share/zsh/site-functions/_histui"
+    install -Dm644 completions/histui.fish "${pkgdir}/usr/share/fish/vendor_completions.d/histui.fish"
 }
