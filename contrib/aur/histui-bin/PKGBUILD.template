@@ -13,7 +13,7 @@ conflicts=('histui')
 
 _github_url="https://github.com/jmylchreest/histui"
 
-# Common sources (systemd units, license, example config)
+# Common sources (systemd units, license, example config, shell completions)
 # Local filenames are versioned so cached copies from previous releases
 # are never reused when the upstream file changes between versions.
 source=(
@@ -21,6 +21,9 @@ source=(
     "histuid-monitor-${pkgver}.service::${_github_url}/releases/download/v${pkgver}/histuid-monitor.service"
     "LICENSE-${pkgver}::https://raw.githubusercontent.com/jmylchreest/histui/v${pkgver}/LICENSE"
     "histuid-${pkgver}.toml.example::https://raw.githubusercontent.com/jmylchreest/histui/v${pkgver}/docs/static/examples/histuid.toml"
+    "histui-${pkgver}.bash::${_github_url}/releases/download/v${pkgver}/histui.bash"
+    "_histui-${pkgver}::${_github_url}/releases/download/v${pkgver}/_histui"
+    "histui-${pkgver}.fish::${_github_url}/releases/download/v${pkgver}/histui.fish"
 )
 
 # Architecture-specific binary sources
@@ -33,7 +36,15 @@ source_aarch64=(
     "histuid-${pkgver}-aarch64::${_github_url}/releases/download/v${pkgver}/histuid-linux-arm64"
 )
 
-sha256sums=('{{SHA256_SERVICE}}' '{{SHA256_MONITOR_SERVICE}}' '{{SHA256_LICENSE}}' '{{SHA256_EXAMPLE_CONFIG}}')
+sha256sums=(
+    '{{SHA256_SERVICE}}'
+    '{{SHA256_MONITOR_SERVICE}}'
+    '{{SHA256_LICENSE}}'
+    '{{SHA256_EXAMPLE_CONFIG}}'
+    '{{SHA256_COMPLETION_BASH}}'
+    '{{SHA256_COMPLETION_ZSH}}'
+    '{{SHA256_COMPLETION_FISH}}'
+)
 sha256sums_x86_64=('{{SHA256_HISTUI_AMD64}}' '{{SHA256_HISTUID_AMD64}}')
 sha256sums_aarch64=('{{SHA256_HISTUI_ARM64}}' '{{SHA256_HISTUID_ARM64}}')
 
@@ -44,4 +55,9 @@ package() {
     install -Dm644 "histuid-monitor-${pkgver}.service" "${pkgdir}/usr/lib/systemd/user/histuid-monitor.service"
     install -Dm644 "LICENSE-${pkgver}" "${pkgdir}/usr/share/licenses/${pkgname}/LICENSE"
     install -Dm644 "histuid-${pkgver}.toml.example" "${pkgdir}/usr/share/doc/${pkgname%-bin}/histuid.toml.example"
+
+    # Shell completions
+    install -Dm644 "histui-${pkgver}.bash" "${pkgdir}/usr/share/bash-completion/completions/histui"
+    install -Dm644 "_histui-${pkgver}" "${pkgdir}/usr/share/zsh/site-functions/_histui"
+    install -Dm644 "histui-${pkgver}.fish" "${pkgdir}/usr/share/fish/vendor_completions.d/histui.fish"
 }

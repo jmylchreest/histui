@@ -144,6 +144,17 @@ jobs:
         run: |
           go build -ldflags "-s -w -X main.version=${{ needs.prepare.outputs.version }} -X main.commit=${{ github.sha }} -X main.buildTime=$(date -u +%Y-%m-%dT%H:%M:%SZ)" -o histuid ./cmd/histuid
 
+      - name: Generate shell completions
+        run: |
+          mkdir -p completions
+          # Completion scripts are architecture-independent text; generate
+          # them once per build so they can ride along in the tarball, and
+          # the amd64 job additionally publishes them as standalone assets
+          # (see below) for the -bin package to consume.
+          ./histui completion bash > completions/histui.bash
+          ./histui completion zsh  > completions/_histui
+          ./histui completion fish > completions/histui.fish
+
       - name: Create distribution
         run: |
           mkdir -p dist
@@ -152,12 +163,23 @@ jobs:
           cp histui dist/histui-${{ matrix.goos }}-${{ matrix.goarch }}
           cp histuid dist/histuid-${{ matrix.goos }}-${{ matrix.goarch }}
 
+          # Standalone completion files (only from the amd64 job — content is
+          # identical across arches so we don't need duplicates in release/).
+          if [[ "${{ matrix.goarch }}" == "amd64" ]]; then
+            cp completions/histui.bash dist/histui.bash
+            cp completions/_histui    dist/_histui
+            cp completions/histui.fish dist/histui.fish
+          fi
+
           # Archive with all files
           tar -czvf dist/histui_${{ needs.prepare.outputs.version }}_${{ matrix.goos }}_${{ matrix.goarch }}.tar.gz \
             histui \
             histuid \
             contrib/histuid.service \
             contrib/histuid-monitor.service \
+            completions/histui.bash \
+            completions/_histui \
+            completions/histui.fish \
             LICENSE \
             README.md
 
@@ -193,7 +215,14 @@ jobs:
           mkdir -p release
 
           # Move all build artifacts to release folder
-          find artifacts -type f \( -name "*.tar.gz" -o -name "histui-*" -o -name "histuid-*" \) -exec mv {} release/ \;
+          find artifacts -type f \( \
+              -name "*.tar.gz" \
+              -o -name "histui-*" \
+              -o -name "histuid-*" \
+              -o -name "histui.bash" \
+              -o -name "_histui" \
+              -o -name "histui.fish" \
+            \) -exec mv {} release/ \;
 
           # Copy systemd units to release folder
           cp contrib/histuid.service release/
@@ -317,6 +346,11 @@ jobs:
           SHA256_SERVICE=$(grep "histuid.service$" "$CHECKSUM_FILE" | awk '{print $1}')
           SHA256_MONITOR_SERVICE=$(grep "histuid-monitor.service$" "$CHECKSUM_FILE" | awk '{print $1}')
 
+          # Shell completion scripts (arch-independent)
+          SHA256_COMPLETION_BASH=$(grep " histui.bash$" "$CHECKSUM_FILE" | awk '{print $1}')
+          SHA256_COMPLETION_ZSH=$(grep " _histui$"     "$CHECKSUM_FILE" | awk '{print $1}')
+          SHA256_COMPLETION_FISH=$(grep " histui.fish$" "$CHECKSUM_FILE" | awk '{print $1}')
+
           # Get LICENSE checksum from GitHub raw
           SHA256_LICENSE=$(curl -sL "https://raw.githubusercontent.com/jmylchreest/histui/v${VERSION}/LICENSE" | sha256sum | awk '{print $1}')
 
@@ -335,6 +369,9 @@ jobs:
           echo "SHA256_LICENSE=${SHA256_LICENSE}" >> $GITHUB_OUTPUT
           echo "SHA256_SOURCE=${SHA256_SOURCE}" >> $GITHUB_OUTPUT
           echo "SHA256_EXAMPLE_CONFIG=${SHA256_EXAMPLE_CONFIG}" >> $GITHUB_OUTPUT
+          echo "SHA256_COMPLETION_BASH=${SHA256_COMPLETION_BASH}" >> $GITHUB_OUTPUT
+          echo "SHA256_COMPLETION_ZSH=${SHA256_COMPLETION_ZSH}" >> $GITHUB_OUTPUT
+          echo "SHA256_COMPLETION_FISH=${SHA256_COMPLETION_FISH}" >> $GITHUB_OUTPUT
 
           echo "=== Extracted checksums ==="
           cat "$CHECKSUM_FILE"
@@ -355,6 +392,9 @@ jobs:
               -e "s/{{SHA256_MONITOR_SERVICE}}/${{ steps.checksums.outputs.SHA256_MONITOR_SERVICE }}/g" \
               -e "s/{{SHA256_LICENSE}}/${{ steps.checksums.outputs.SHA256_LICENSE }}/g" \
               -e "s/{{SHA256_EXAMPLE_CONFIG}}/${{ steps.checksums.outputs.SHA256_EXAMPLE_CONFIG }}/g" \
+              -e "s/{{SHA256_COMPLETION_BASH}}/${{ steps.checksums.outputs.SHA256_COMPLETION_BASH }}/g" \
+              -e "s/{{SHA256_COMPLETION_ZSH}}/${{ steps.checksums.outputs.SHA256_COMPLETION_ZSH }}/g" \
+              -e "s/{{SHA256_COMPLETION_FISH}}/${{ steps.checksums.outputs.SHA256_COMPLETION_FISH }}/g" \
               contrib/aur/histui-bin/PKGBUILD.template > aur/histui-bin/PKGBUILD
 
           echo "=== Generated histui-bin PKGBUILD ==="
