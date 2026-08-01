@@ -401,7 +401,7 @@ jobs:
           cat aur/histui-bin/PKGBUILD
 
       - name: Publish histui-bin to AUR
-        uses: KSXGitHub/github-actions-deploy-aur@v4.1.3
+        uses: KSXGitHub/github-actions-deploy-aur@v4.2.0
         with:
           pkgname: histui-bin
           pkgbuild: aur/histui-bin/PKGBUILD
@@ -426,7 +426,7 @@ jobs:
           cat aur/histui/PKGBUILD
 
       - name: Publish histui to AUR
-        uses: KSXGitHub/github-actions-deploy-aur@v4.1.3
+        uses: KSXGitHub/github-actions-deploy-aur@v4.2.0
         with:
           pkgname: histui
           pkgbuild: aur/histui/PKGBUILD
