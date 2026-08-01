@@ -451,7 +451,7 @@ jobs:
           ref: main  # Checkout main branch, not the tag (avoids detached HEAD)
 
       - name: Setup Node.js
-        uses: actions/setup-node@v6
+        uses: actions/setup-node@v7
         with:
           node-version: 20
           cache: npm
