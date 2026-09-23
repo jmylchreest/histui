@@ -1,6 +1,6 @@
 module github.com/jmylchreest/histui
 
-go 1.26
+go 1.26.0
 
 require (
 	github.com/blacktop/go-termimg v0.1.26
@@ -24,8 +24,8 @@ require (
 	github.com/srwiley/oksvg v0.0.0-20221011165216-be6e8873101c
 	github.com/srwiley/rasterx v0.0.0-20220730225603-2ab79fcdd4ef
 	github.com/stretchr/testify v1.12.1
-	golang.org/x/image v0.45.0
-	modernc.org/sqlite v1.57.0
+	golang.org/x/image v0.46.0
+	modernc.org/sqlite v1.59.0
 )
 
 require (
@@ -69,11 +69,11 @@ require (
 	go.yaml.in/yaml/v3 v3.0.5 // indirect
 	golang.org/x/exp v0.0.0-20260312153236-7ab1446f8b90 // indirect
 	golang.org/x/net v0.56.0 // indirect
-	golang.org/x/sync v0.22.0 // indirect
-	golang.org/x/sys v0.47.0 // indirect
+	golang.org/x/sync v0.23.0 // indirect
+	golang.org/x/sys v0.48.0 // indirect
 	golang.org/x/term v0.44.0 // indirect
-	golang.org/x/text v0.41.0 // indirect
-	modernc.org/libc v1.74.4 // indirect
+	golang.org/x/text v0.42.0 // indirect
+	modernc.org/libc v1.75.7 // indirect
 	modernc.org/mathutil v1.7.1 // indirect
-	modernc.org/memory v1.11.0 // indirect
+	modernc.org/memory v1.12.1 // indirect
 )
