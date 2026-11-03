@@ -89,6 +89,8 @@ jobs:
       - name: Install visual test dependencies
         run: dnf install -y git golang python3 kitty ImageMagick xorg-x11-server-Xvfb xorg-x11-xauth dejavu-sans-mono-fonts mesa-dri-drivers
       - uses: actions/checkout@v7
+      - name: Configure Git safe directory
+        run: git config --global --add safe.directory "$GITHUB_WORKSPACE"
       - name: Check ANSI baselines and save actual frames
         env:
           CGO_ENABLED: "0"
