@@ -103,7 +103,7 @@ standard/legacy colour forms. The separate theme experiment contains this fix.
 
 ## Executed integration validation (2026-11-03)
 
-All 21 cases passed with the current integration daemon on Debian 13 (GTK 4.18.6,
+Before rebasing onto newer main dependencies, all 21 cases passed with the integration daemon on Debian 13 (GTK 4.18.6,
 libadwaita 1.7.6, Sway 1.10.1). The complete matrix passed again with exact static
 baseline comparison. The initial older dist binary was used only to develop the
 harness; the final evidence records the new executable's hash.
@@ -127,3 +127,17 @@ A persistent device matters: one-shot tools destroy their virtual pointer before
 the screenshot and GTK loses hover. Automatic cursor hiding also ends hover.
 The helper exists only during interaction; static captures retain their original
 cursor-free pixel baselines. Hover captures may show the cursor.
+
+## Updated main dependency runtime (2026-11-03)
+
+The optimized build after rebasing onto main completed with gotk4 v0.4.1.
+That executable cannot start in the Debian 13 fixture runtime: the loader reports
+undefined symbol `g_ecn_code_point_get_type`. The older Debian screenshot evidence
+does not validate this updated binary. A GTK4 installation alone is insufficient;
+the GLib/GTK versions must satisfy the bindings and build environment.
+
+`Containerfile.fedora` supplies the current Fedora runtime used by CI. Use it
+in the build command instead of `Containerfile` for the updated native bindings.
+Keep the Debian image/baselines for compatible builds; do not compare pixels
+across these two runtimes. Broad distribution compatibility remains a separate
+release requirement and must not be inferred from passing Fedora tests.
