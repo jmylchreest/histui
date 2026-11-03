@@ -11,9 +11,7 @@ import (
 	"time"
 
 	"github.com/gopxl/beep/v2"
-	"github.com/gopxl/beep/v2/effects"
 	"github.com/gopxl/beep/v2/mp3"
-	"github.com/gopxl/beep/v2/speaker"
 	"github.com/gopxl/beep/v2/vorbis"
 	"github.com/gopxl/beep/v2/wav"
 )
@@ -36,20 +34,23 @@ type Player struct {
 	// Volume control (0.0 to 1.0)
 	volume float64
 
-	// Whether speaker has been initialized
+	// Whether this Player has opened an output stream
 	initialized bool
 
-	// Sample rate for the speaker
-	sampleRate beep.SampleRate
+	output         audioOutput
+	closed         bool
+	request        uint64
+	loading        bool
+	pendingUrgency UrgencyLevel
+	current        *playbackSession
 
 	// Sound cache
 	cache      map[string]*cachedSound
 	cacheMutex sync.RWMutex
 
 	// Playback control
-	currentUrgency UrgencyLevel  // Urgency of currently playing sound
-	stopChan       chan struct{} // Channel to signal stop
-	playing        bool          // Whether a sound is currently playing
+	currentUrgency UrgencyLevel // Urgency of currently playing sound
+	playing        bool         // Whether a sound is currently playing
 }
 
 // cachedSound holds a decoded sound ready for playback.
@@ -67,7 +68,7 @@ func NewPlayer(logger *slog.Logger) *Player {
 	return &Player{
 		logger:         logger,
 		volume:         1.0,
-		sampleRate:     beep.SampleRate(44100),
+		output:         &processAudioOutput,
 		cache:          make(map[string]*cachedSound),
 		currentUrgency: UrgencyNone,
 	}
@@ -106,20 +107,21 @@ func (p *Player) PlayWithUrgency(path string, urgency UrgencyLevel, volume ...fl
 		}
 	}
 
-	// Check if we should play based on priority
+	// Reserve admission before decoding, so concurrent non-critical requests
+	// cannot both start and Stop/Close can invalidate a pending decode.
 	p.mu.Lock()
-	if p.playing {
-		// Critical can always interrupt
-		if urgency == UrgencyCritical {
-			p.logger.Debug("critical sound interrupting current playback")
-			p.stopCurrentLocked()
-		} else {
-			// Non-critical won't interrupt any playing sound
-			p.mu.Unlock()
-			p.logger.Debug("sound skipped, another sound is playing", "urgency", urgency)
-			return nil
-		}
+	if p.closed {
+		p.mu.Unlock()
+		return fmt.Errorf("audio player is closed")
 	}
+	if (p.playing || p.loading) && urgency != UrgencyCritical {
+		p.mu.Unlock()
+		return nil
+	}
+	p.request++
+	request := p.request
+	p.loading = true
+	p.pendingUrgency = urgency
 	p.mu.Unlock()
 
 	// Expand path
@@ -136,25 +138,31 @@ func (p *Player) PlayWithUrgency(path string, urgency UrgencyLevel, volume ...fl
 	p.cacheMutex.RUnlock()
 
 	if ok {
-		return p.playBufferWithUrgency(cached.buffer, urgency, soundVolume)
+		return p.startBuffer(cached.buffer, request, soundVolume)
 	}
 
 	// Load the sound
 	buffer, err := p.loadSound(path)
 	if err != nil {
+		p.mu.Lock()
+		if p.request == request {
+			p.loading = false
+		}
+		p.mu.Unlock()
 		p.logger.Warn("failed to load sound", "path", path, "error", err)
 		return err
 	}
 
 	// Cache it
-	p.cacheMutex.Lock()
-	p.cache[path] = &cachedSound{
-		buffer: buffer,
-		path:   path,
+	p.mu.Lock()
+	if !p.closed {
+		p.cacheMutex.Lock()
+		p.cache[path] = &cachedSound{buffer: buffer, path: path}
+		p.cacheMutex.Unlock()
 	}
-	p.cacheMutex.Unlock()
+	p.mu.Unlock()
 
-	return p.playBufferWithUrgency(buffer, urgency, soundVolume)
+	return p.startBuffer(buffer, request, soundVolume)
 }
 
 // Stop stops the currently playing sound.
@@ -166,18 +174,20 @@ func (p *Player) Stop() {
 
 // stopCurrentLocked stops the current playback. Must be called with mutex held.
 func (p *Player) stopCurrentLocked() {
-	if p.playing && p.stopChan != nil {
-		close(p.stopChan)
-		p.stopChan = nil
-		p.playing = false
-		p.currentUrgency = UrgencyNone
-		// Clear the speaker to stop immediately, then suspend so we go idle.
-		// ensureInitialized() will Resume() on the next play.
-		speaker.Clear()
-		if err := speaker.Suspend(); err != nil {
-			p.logger.Debug("speaker suspend returned error", "error", err)
-		}
+	p.request++
+	p.loading = false
+	p.releaseCurrentLocked()
+}
+
+// releaseCurrentLocked ends a stream without cancelling a pending replacement.
+func (p *Player) releaseCurrentLocked() {
+	if p.current != nil {
+		close(p.current.cancel)
+		p.current.playback.Stop()
+		p.current = nil
 	}
+	p.playing = false
+	p.currentUrgency = UrgencyNone
 }
 
 // loadSound loads and decodes a sound file into a buffer.
@@ -216,115 +226,79 @@ func (p *Player) loadSound(path string) (*beep.Buffer, error) {
 	return buffer, nil
 }
 
-// ensureInitialized initializes the speaker on first call, or resumes it from
-// an idle suspend on subsequent calls. The pairing Suspend in the playback
-// callback keeps the oto/beep mixer goroutine from continuously draining
-// samples (and allocating ~700KB/s of mixed silence) when nothing is playing.
-func (p *Player) ensureInitialized(sampleRate beep.SampleRate) error {
+// playbackSession is owned by the Player mutex. Completion observes identity,
+// so a late completion cannot stop a newer critical notification.
+type playbackSession struct {
+	playback audioPlayback
+	cancel   chan struct{}
+}
+
+func (p *Player) startBuffer(buffer *beep.Buffer, request uint64, soundVolume float64) error {
 	p.mu.Lock()
 	defer p.mu.Unlock()
-
-	if p.initialized {
-		// Resume returns an error only if the audio context is unrecoverable;
-		// speaker.Play below will surface anything fatal.
-		if err := speaker.Resume(); err != nil {
-			p.logger.Debug("speaker resume returned error", "error", err)
-		}
+	if p.closed || p.request != request {
 		return nil
 	}
-
-	// Use a reasonable buffer size for low latency
-	bufferSize := sampleRate.N(time.Millisecond * 100)
-
-	if err := speaker.Init(sampleRate, bufferSize); err != nil {
-		return fmt.Errorf("failed to initialize speaker: %w", err)
+	volume := p.volume
+	if soundVolume > 0 {
+		volume *= soundVolume
 	}
-
-	p.sampleRate = sampleRate
+	if volume > 1 {
+		volume = 1
+	}
+	// Decode successfully before interrupting the current notification. A bad
+	// critical sound must not silence valid playback.
+	p.loading = false
+	p.releaseCurrentLocked()
+	playback, err := p.output.Start(buffer, volume)
+	if err != nil {
+		p.playing = false
+		p.currentUrgency = UrgencyNone
+		return err
+	}
 	p.initialized = true
-	p.logger.Debug("speaker initialized", "sample_rate", sampleRate)
+	p.playing = true
+	p.currentUrgency = p.pendingUrgency
+	session := &playbackSession{playback: playback, cancel: make(chan struct{})}
+	p.current = session
+	go p.waitForPlayback(session)
 	return nil
 }
 
-// playBufferWithUrgency plays a buffered sound with the specified urgency and volume.
-// The soundVolume is relative to the global volume (they are multiplied together).
-// If soundVolume is <= 0, uses the player's global volume alone.
-func (p *Player) playBufferWithUrgency(buffer *beep.Buffer, urgency UrgencyLevel, soundVolume float64) error {
-	if buffer == nil {
-		return nil
-	}
-
-	if err := p.ensureInitialized(buffer.Format().SampleRate); err != nil {
-		return err
-	}
-
-	p.mu.Lock()
-	globalVolume := p.volume
-
-	// Calculate effective volume: sound volume is relative to global
-	// If soundVolume is 0 or less, use global volume alone
-	// Otherwise, multiply them together
-	var volume float64
-	if soundVolume <= 0 {
-		volume = globalVolume
-	} else {
-		volume = globalVolume * soundVolume
-	}
-	if volume > 1.0 {
-		volume = 1.0
-	}
-
-	sampleRate := p.sampleRate
-
-	// Set up playback tracking
-	p.playing = true
-	p.currentUrgency = urgency
-	stopChan := make(chan struct{})
-	p.stopChan = stopChan
-	p.mu.Unlock()
-
-	// Create a streamer from the buffer
-	var streamer beep.Streamer = buffer.Streamer(0, buffer.Len())
-
-	// Resample if necessary
-	if buffer.Format().SampleRate != sampleRate {
-		streamer = beep.Resample(4, buffer.Format().SampleRate, sampleRate, streamer)
-	}
-
-	// Apply volume
-	if volume < 1.0 {
-		streamer = &effects.Volume{
-			Streamer: streamer,
-			Base:     2,
-			Volume:   volumeToDecibels(volume),
-			Silent:   volume == 0,
-		}
-	}
-
-	// Wrap in a callback to mark playback complete
-	callback := beep.Callback(func() {
-		p.mu.Lock()
-		// Only clear if this is still our stopChan (not replaced by another playback)
-		isOurs := p.stopChan == stopChan
-		if isOurs {
-			p.playing = false
-			p.currentUrgency = UrgencyNone
-			p.stopChan = nil
-		}
-		idle := isOurs && !p.playing
-		p.mu.Unlock()
-
-		if idle {
-			if err := speaker.Suspend(); err != nil {
-				p.logger.Debug("speaker suspend returned error", "error", err)
+func (p *Player) waitForPlayback(session *playbackSession) {
+	ticker := time.NewTicker(10 * time.Millisecond)
+	defer ticker.Stop()
+	for {
+		select {
+		case <-session.cancel:
+			return
+		case <-ticker.C:
+			if session.playback.IsPlaying() {
+				continue
 			}
+			// IsPlaying stops at the mixer boundary. Give the configured 50 ms
+			// device buffer time to drain before suspending the process context.
+			// This grace period also retains non-critical admission protection;
+			// Stop and critical preemption can cancel it immediately. Backends
+			// expose no exact device-drained signal, so this is best effort.
+			drain := time.NewTimer(100 * time.Millisecond)
+			select {
+			case <-session.cancel:
+				drain.Stop()
+				return
+			case <-drain.C:
+			}
+			p.mu.Lock()
+			if p.current == session {
+				if err := session.playback.Err(); err != nil {
+					p.logger.Warn("audio playback failed", "error", err)
+				}
+				p.releaseCurrentLocked()
+			}
+			p.mu.Unlock()
+			return
 		}
-	})
-
-	// Play the sound with completion callback
-	speaker.Play(beep.Seq(streamer, callback))
-
-	return nil
+	}
 }
 
 // Preload loads a sound file into the cache for faster playback.
@@ -357,12 +331,13 @@ func (p *Player) Preload(path string) error {
 	}
 
 	// Cache it
-	p.cacheMutex.Lock()
-	p.cache[path] = &cachedSound{
-		buffer: buffer,
-		path:   path,
+	p.mu.Lock()
+	if !p.closed {
+		p.cacheMutex.Lock()
+		p.cache[path] = &cachedSound{buffer: buffer, path: path}
+		p.cacheMutex.Unlock()
 	}
-	p.cacheMutex.Unlock()
+	p.mu.Unlock()
 
 	p.logger.Debug("preloaded sound", "path", path)
 	return nil
@@ -386,15 +361,11 @@ func (p *Player) InvalidateCache(path string) {
 // Close stops all playback and releases resources.
 func (p *Player) Close() {
 	p.mu.Lock()
-	defer p.mu.Unlock()
-
-	if p.initialized {
-		speaker.Close()
-		p.initialized = false
-	}
-
+	p.closed = true
+	p.stopCurrentLocked()
+	p.initialized = false
+	p.mu.Unlock()
 	p.ClearCache()
-	p.logger.Debug("audio player closed")
 }
 
 // volumeToDecibels converts a linear volume (0-1) to decibels.

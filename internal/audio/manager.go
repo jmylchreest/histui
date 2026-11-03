@@ -120,9 +120,10 @@ func (m *Manager) enable(ctx context.Context) error {
 	return nil
 }
 
-// disable tears down the player and watcher, releasing decoded sound buffers
-// and any pipewire/oto context held by the player. Safe to call when already
-// disabled.
+// disable tears down the player and watcher and releases decoded sound buffers.
+// The process-owned output context is suspended after its last stream stops;
+// retaining that context permits a later enable without reopening Oto.
+// Safe to call when already disabled.
 func (m *Manager) disable() {
 	m.mu.Lock()
 	player, watcher := m.player, m.watcher
