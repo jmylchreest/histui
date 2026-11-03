@@ -2,6 +2,7 @@
 package tui
 
 import (
+	"context"
 	"path/filepath"
 	"sync"
 	"time"
@@ -9,7 +10,6 @@ import (
 	tea "github.com/charmbracelet/bubbletea"
 	"github.com/fsnotify/fsnotify"
 
-	"github.com/jmylchreest/histui/internal/db"
 	"github.com/jmylchreest/histui/internal/dbus"
 )
 
@@ -43,59 +43,70 @@ var (
 	dbusWatcherSetup sync.Once
 )
 
-// startFileWatcher starts watching the .lastupdated file.
-// Returns a tea.Cmd that should be run in Init().
-// When a change is detected, it returns fileWatcherMsg.
-func startFileWatcher() tea.Cmd {
-	return func() tea.Msg {
-		path, err := db.LastUpdatedPath()
-		if err != nil {
-			return nil
-		}
+// fileWatcher owns one fsnotify watch for the entire TUI lifetime. Its buffered
+// invalidation channel coalesces events while Update is busy, without ever
+// closing/reopening the filesystem watch between refreshes.
+type fileWatcher struct {
+	changes chan struct{}
+	cancel  context.CancelFunc
+	done    chan struct{}
+}
 
-		// Create watcher
-		watcher, err := fsnotify.NewWatcher()
-		if err != nil {
-			return nil
-		}
-		// Note: watcher is intentionally not closed here - it runs until a change is detected
-		// After returning fileWatcherMsg, the Update handler restarts the watcher
-
-		// Watch the parent directory (file may not exist yet)
-		dir := filepath.Dir(path)
-		if err := watcher.Add(dir); err != nil {
-			_ = watcher.Close()
-			return nil
-		}
-
-		// Debounce rapid file changes
-		var lastEvent time.Time
-		const debounceInterval = 100 * time.Millisecond
-
+func newFileWatcher(path string) (*fileWatcher, error) {
+	watcher, err := fsnotify.NewWatcher()
+	if err != nil {
+		return nil, err
+	}
+	if err := watcher.Add(filepath.Dir(path)); err != nil {
+		_ = watcher.Close()
+		return nil, err
+	}
+	ctx, cancel := context.WithCancel(context.Background())
+	w := &fileWatcher{changes: make(chan struct{}, 1), cancel: cancel, done: make(chan struct{})}
+	go func() {
+		defer close(w.done)
+		defer close(w.changes)
+		defer watcher.Close()
 		for {
 			select {
+			case <-ctx.Done():
+				return
 			case event, ok := <-watcher.Events:
 				if !ok {
-					_ = watcher.Close()
-					return nil
+					return
 				}
-				// Check if this event is for our file
-				if event.Name == path && (event.Op&fsnotify.Write != 0 || event.Op&fsnotify.Create != 0) {
-					now := time.Now()
-					if now.Sub(lastEvent) >= debounceInterval {
-						_ = watcher.Close()
-						return fileWatcherMsg{}
-					}
+				if event.Name == path && event.Op&(fsnotify.Write|fsnotify.Create|fsnotify.Rename|fsnotify.Remove) != 0 {
+					w.invalidate()
 				}
 			case _, ok := <-watcher.Errors:
 				if !ok {
-					_ = watcher.Close()
-					return nil
+					return
 				}
-				// Ignore errors, continue watching
+				// An overflow may mean a notification was missed. Reconcile from the DB.
+				w.invalidate()
 			}
 		}
+	}()
+	return w, nil
+}
+
+func (w *fileWatcher) invalidate() {
+	select {
+	case w.changes <- struct{}{}:
+	default:
 	}
+}
+
+func (w *fileWatcher) wait() tea.Msg {
+	if _, ok := <-w.changes; !ok {
+		return nil
+	}
+	return fileWatcherMsg{}
+}
+
+func (w *fileWatcher) close() {
+	w.cancel()
+	<-w.done
 }
 
 // signalHandler implements dbus.SignalHandler for TUI updates.

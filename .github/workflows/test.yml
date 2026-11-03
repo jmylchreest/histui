@@ -58,7 +58,7 @@ jobs:
 
       - name: Run tests (pure Go packages with race detector)
         run: |
-          go test -race -v -timeout 60s \
+          go test -tags headless -race -v -timeout 60s \
             ./internal/model/... \
             ./internal/core/... \
             ./internal/config/... \
@@ -66,6 +66,7 @@ jobs:
             ./internal/icon/... \
             ./internal/tui/... \
             ./internal/db/... \
+            ./internal/imagecapture/... \
             ./internal/adapter/...
 
       - name: Run tests (CGO packages with race detector)
@@ -76,3 +77,37 @@ jobs:
 
       - name: Build
         run: CGO_ENABLED=1 go build ./...
+
+  visual:
+    name: TUI visual fixtures
+    runs-on: ubuntu-latest
+    permissions:
+      contents: read
+    container:
+      image: fedora:rawhide
+    steps:
+      - name: Install visual test dependencies
+        run: dnf install -y git golang python3 kitty ImageMagick xorg-x11-server-Xvfb xorg-x11-xauth dejavu-sans-mono-fonts mesa-dri-drivers
+      - uses: actions/checkout@v7
+      - name: Check ANSI baselines and save actual frames
+        env:
+          CGO_ENABLED: "0"
+          HISTUI_VISUAL_ARTIFACTS: /tmp/histui-visual
+        run: go test ./internal/tui -run '^TestVisualFrames$' -count=1
+      - name: Exercise the live TUI in an isolated PTY
+        env:
+          CGO_ENABLED: "0"
+        run: |
+          go build -o /tmp/histui-pty-bin ./cmd/histui
+          python3 scripts/test-tui-pty.py /tmp/histui-pty-bin /tmp/histui-visual/pty
+      - name: Capture synthetic frames in an isolated terminal
+        if: always()
+        run: xvfb-run -a -s '-screen 0 1280x800x24' python3 scripts/capture-tui.py /tmp/histui-visual
+      - name: Retain screenshots and actual ANSI output
+        if: always()
+        uses: actions/upload-artifact@cf430e030ddbb5b0abf93d22962f4752f3646cd9
+        with:
+          name: tui-visual-evidence
+          path: /tmp/histui-visual
+          retention-days: 14
+          if-no-files-found: error

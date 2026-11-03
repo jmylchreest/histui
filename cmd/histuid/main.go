@@ -28,6 +28,7 @@ import (
 	"github.com/jmylchreest/histui/internal/dbus"
 	"github.com/jmylchreest/histui/internal/display"
 	"github.com/jmylchreest/histui/internal/icon"
+	"github.com/jmylchreest/histui/internal/imagecapture"
 	"github.com/jmylchreest/histui/internal/model"
 	"github.com/jmylchreest/histui/internal/theme"
 )
@@ -517,11 +518,10 @@ func runDaemonMode(logger *slog.Logger) {
 					if imgData := notification.ImageData(); imgData != nil {
 						histuiID := n.HistuiID
 						go func() {
-							pngData := imgData.ToPNG()
-							if len(pngData) == 0 {
-								return
-							}
-							if err := database.SaveImage(histuiID, db.ImageRefImage, pngData); err != nil {
+							err := imagecapture.Save(imgData.ToPNG, func(data []byte) error {
+								return database.SaveImage(histuiID, db.ImageRefImage, data)
+							}, updateNotifier.Trigger)
+							if err != nil {
 								logger.Warn("failed to save notification image", "error", err)
 							}
 						}()

@@ -96,6 +96,8 @@ type Model struct {
 
 	// Stack tag counts (stack_tag -> count of notifications with that tag)
 	stackTagCounts map[string]int
+	refresh        refreshState
+	fileWatch      *fileWatcher
 
 	// Key bindings
 	keys KeyMap
@@ -297,6 +299,7 @@ func New(cfg *config.Config, database *db.DB, daemonClient *dbus.DaemonClient, i
 		themeName:     themeName,
 		mode:          ModeList,
 		list:          l,
+		viewport:      viewport.New(80, 20),
 		searchInput:   searchInput,
 		help:          h,
 		keys:          keys,
@@ -317,7 +320,7 @@ func New(cfg *config.Config, database *db.DB, daemonClient *dbus.DaemonClient, i
 func (m Model) Init() tea.Cmd {
 	return tea.Batch(
 		m.loadNotifications,
-		startFileWatcher(),
+		m.waitForFileChange(),
 		startDBusWatcher(),
 		fetchActiveIDs(),
 		fetchDaemonStatus(),
@@ -348,54 +351,25 @@ func (m Model) Update(msg tea.Msg) (tea.Model, tea.Cmd) {
 
 		// Update component sizes
 		m.list.SetSize(msg.Width, msg.Height-2)
-		m.viewport = viewport.New(msg.Width, msg.Height-4)
+		m.viewport.Width = msg.Width
+		m.viewport.Height = max(0, msg.Height-4)
 		m.viewport.YPosition = 2
+		if m.mode == ModeDetail && m.selected != nil {
+			m.viewport.SetContent(m.renderDetail(*m.selected, m.calculateDetailTextWidth()))
+		}
 
 		return m, nil
 
-	case loadNotificationsMsg:
-		m.notifications = m.fetchNotifications()
-		m.list.SetItems(m.buildListItems())
-		return m, nil
+	case loadNotificationsMsg, refreshMsg:
+		cmd := m.requestRefresh()
+		return m, cmd
 
-	case refreshMsg:
-		m.notifications = m.fetchNotifications()
-		m.list.SetItems(m.buildListItems())
-		return m, nil
+	case notificationsLoadedMsg:
+		return m.finishRefresh(msg)
 
 	case fileWatcherMsg:
-		// Preserve the currently selected item's ID
-		var selectedID string
-		if sel, ok := m.list.SelectedItem().(notificationItem); ok {
-			selectedID = sel.notification.HistuiID
-		}
-
-		// Refresh notifications
-		m.notifications = m.fetchNotifications()
-		m.list.SetItems(m.buildListItems())
-
-		// Restore selection by ID
-		if selectedID != "" {
-			for i, item := range m.list.Items() {
-				if ni, ok := item.(notificationItem); ok {
-					if ni.notification.HistuiID == selectedID {
-						m.list.Select(i)
-						break
-					}
-				}
-			}
-		}
-
-		// Update selected detail if preview is active
-		if m.previewActive {
-			if sel, ok := m.list.SelectedItem().(notificationItem); ok {
-				n := sel.notification
-				m.selected = &n
-			}
-		}
-
-		// Restart the watcher for the next change
-		return m, startFileWatcher()
+		cmd := m.requestRefresh()
+		return m, tea.Batch(cmd, m.waitForFileChange())
 
 	case dbusSignalMsg:
 		switch msg.signalType {
@@ -405,21 +379,20 @@ func (m Model) Update(msg tea.Msg) (tea.Model, tea.Cmd) {
 				m.activeIDs = make(map[string]bool)
 			}
 			m.activeIDs[msg.histuiID] = true
-			m.list.SetItems(m.buildListItems())
+			m.rebuildListItems()
 		case "dismissed":
 			// Remove from active IDs
 			if m.activeIDs != nil {
 				delete(m.activeIDs, msg.histuiID)
 			}
-			m.list.SetItems(m.buildListItems())
+			m.rebuildListItems()
 		case "dnd_changed":
 			// Could update a DnD indicator in status bar
 			// For now, just refresh the list to update styling if needed
-			m.list.SetItems(m.buildListItems())
+			m.rebuildListItems()
 		case "config_changed":
-			// Refresh the list
-			m.notifications = m.fetchNotifications()
-			m.list.SetItems(m.buildListItems())
+			cmd := m.requestRefresh()
+			return m, tea.Batch(cmd, startDBusWatcher())
 		}
 		// Restart the D-Bus watcher
 		return m, startDBusWatcher()
@@ -434,7 +407,7 @@ func (m Model) Update(msg tea.Msg) (tea.Model, tea.Cmd) {
 		for _, id := range msg.ids {
 			m.activeIDs[id] = true
 		}
-		m.list.SetItems(m.buildListItems())
+		m.rebuildListItems()
 		return m, nil
 
 	case daemonStatusMsg:
@@ -482,11 +455,10 @@ func (m Model) Update(msg tea.Msg) (tea.Model, tea.Cmd) {
 			}
 		}
 		// Refresh to show the R indicator
-		m.notifications = m.fetchNotifications()
-		m.list.SetItems(m.buildListItems())
-		return m, func() tea.Msg {
+		cmd := m.requestRefresh()
+		return m, tea.Batch(cmd, func() tea.Msg {
 			return statusMsg{text: "Notification replayed", isErr: false}
-		}
+		})
 	}
 
 	// Update child components
@@ -596,28 +568,28 @@ func (m Model) handleListKey(msg tea.KeyMsg) (tea.Model, tea.Cmd) {
 	// Quick filters (1-4)
 	case key.Matches(msg, m.keys.FilterAll):
 		m.filterMode = FilterAll
-		m.list.SetItems(m.buildListItems())
+		m.rebuildListItems()
 		return m, func() tea.Msg {
 			return statusMsg{text: "Filter: All notifications", isErr: false}
 		}
 
 	case key.Matches(msg, m.keys.FilterActive):
 		m.filterMode = FilterActive
-		m.list.SetItems(m.buildListItems())
+		m.rebuildListItems()
 		return m, func() tea.Msg {
 			return statusMsg{text: "Filter: Active only", isErr: false}
 		}
 
 	case key.Matches(msg, m.keys.FilterUndismissed):
 		m.filterMode = FilterUndismissed
-		m.list.SetItems(m.buildListItems())
+		m.rebuildListItems()
 		return m, func() tea.Msg {
 			return statusMsg{text: "Filter: Undismissed", isErr: false}
 		}
 
 	case key.Matches(msg, m.keys.FilterDismissed):
 		m.filterMode = FilterDismissed
-		m.list.SetItems(m.buildListItems())
+		m.rebuildListItems()
 		return m, func() tea.Msg {
 			return statusMsg{text: "Filter: Dismissed only", isErr: false}
 		}
@@ -685,25 +657,23 @@ func (m Model) handleListKey(msg tea.KeyMsg) (tea.Model, tea.Cmd) {
 					// Undismiss
 					n.Undismiss()
 					_ = m.db.UpdateNotification(&n)
-					m.notifications = m.fetchNotifications()
-					m.list.SetItems(m.buildListItems())
-					return m, func() tea.Msg {
+					cmd := m.requestRefresh()
+					return m, tea.Batch(cmd, func() tea.Msg {
 						return statusMsg{text: "Notification restored", isErr: false}
-					}
+					})
 				}
 				// Dismiss in database
 				_ = m.db.DismissNotification(item.notification.HistuiID)
-				m.notifications = m.fetchNotifications()
-				m.list.SetItems(m.buildListItems())
+				cmd := m.requestRefresh()
 
 				// Also close the popup if it's active
 				if item.isActive && m.daemon != nil {
 					_, _ = m.daemon.CloseNotification(item.notification.HistuiID)
 				}
 
-				return m, func() tea.Msg {
+				return m, tea.Batch(cmd, func() tea.Msg {
 					return statusMsg{text: "Notification dismissed", isErr: false}
-				}
+				})
 			}
 		}
 		return m, nil
@@ -717,12 +687,11 @@ func (m Model) handleListKey(msg tea.KeyMsg) (tea.Model, tea.Cmd) {
 				}
 
 				_ = m.db.DeleteNotification(item.notification.HistuiID)
-				m.notifications = m.fetchNotifications()
-				m.list.SetItems(m.buildListItems())
+				cmd := m.requestRefresh()
 
-				return m, func() tea.Msg {
+				return m, tea.Batch(cmd, func() tea.Msg {
 					return statusMsg{text: "Notification deleted permanently", isErr: false}
-				}
+				})
 			}
 		}
 		return m, func() tea.Msg {
@@ -737,7 +706,7 @@ func (m Model) handleListKey(msg tea.KeyMsg) (tea.Model, tea.Cmd) {
 		// Reset search when entering search mode
 		m.searchInput.SetValue("")
 		m.searchQuery = ""
-		m.list.SetItems(m.buildListItems())
+		m.rebuildListItems()
 		m.mode = ModeSearch
 		m.searchInput.Focus()
 		return m, textinput.Blink
@@ -874,7 +843,7 @@ func (m Model) handleDetailKey(msg tea.KeyMsg) (tea.Model, tea.Cmd) {
 		m.selected = nil
 		m.searchInput.SetValue("")
 		m.searchQuery = ""
-		m.list.SetItems(m.buildListItems())
+		m.rebuildListItems()
 		m.mode = ModeSearch
 		m.searchInput.Focus()
 		return m, textinput.Blink
@@ -966,7 +935,7 @@ func (m Model) handleFilterKey(msg tea.KeyMsg) (tea.Model, tea.Cmd) {
 	case key.Matches(msg, m.keys.FilterAll):
 		m.filterMode = FilterAll
 		m.mode = ModeList
-		m.list.SetItems(m.buildListItems())
+		m.rebuildListItems()
 		return m, func() tea.Msg {
 			return statusMsg{text: "Filter: All notifications", isErr: false}
 		}
@@ -974,7 +943,7 @@ func (m Model) handleFilterKey(msg tea.KeyMsg) (tea.Model, tea.Cmd) {
 	case key.Matches(msg, m.keys.FilterActive):
 		m.filterMode = FilterActive
 		m.mode = ModeList
-		m.list.SetItems(m.buildListItems())
+		m.rebuildListItems()
 		return m, func() tea.Msg {
 			return statusMsg{text: "Filter: Active only", isErr: false}
 		}
@@ -982,7 +951,7 @@ func (m Model) handleFilterKey(msg tea.KeyMsg) (tea.Model, tea.Cmd) {
 	case key.Matches(msg, m.keys.FilterUndismissed):
 		m.filterMode = FilterUndismissed
 		m.mode = ModeList
-		m.list.SetItems(m.buildListItems())
+		m.rebuildListItems()
 		return m, func() tea.Msg {
 			return statusMsg{text: "Filter: Undismissed", isErr: false}
 		}
@@ -990,7 +959,7 @@ func (m Model) handleFilterKey(msg tea.KeyMsg) (tea.Model, tea.Cmd) {
 	case key.Matches(msg, m.keys.FilterDismissed):
 		m.filterMode = FilterDismissed
 		m.mode = ModeList
-		m.list.SetItems(m.buildListItems())
+		m.rebuildListItems()
 		return m, func() tea.Msg {
 			return statusMsg{text: "Filter: Dismissed only", isErr: false}
 		}
@@ -1001,28 +970,28 @@ func (m Model) handleFilterKey(msg tea.KeyMsg) (tea.Model, tea.Cmd) {
 		case "a":
 			m.filterMode = FilterAll
 			m.mode = ModeList
-			m.list.SetItems(m.buildListItems())
+			m.rebuildListItems()
 			return m, func() tea.Msg {
 				return statusMsg{text: "Filter: All notifications", isErr: false}
 			}
 		case "v": // "visible" / active
 			m.filterMode = FilterActive
 			m.mode = ModeList
-			m.list.SetItems(m.buildListItems())
+			m.rebuildListItems()
 			return m, func() tea.Msg {
 				return statusMsg{text: "Filter: Active only", isErr: false}
 			}
 		case "u":
 			m.filterMode = FilterUndismissed
 			m.mode = ModeList
-			m.list.SetItems(m.buildListItems())
+			m.rebuildListItems()
 			return m, func() tea.Msg {
 				return statusMsg{text: "Filter: Undismissed", isErr: false}
 			}
 		case "d":
 			m.filterMode = FilterDismissed
 			m.mode = ModeList
-			m.list.SetItems(m.buildListItems())
+			m.rebuildListItems()
 			return m, func() tea.Msg {
 				return statusMsg{text: "Filter: Dismissed only", isErr: false}
 			}
@@ -1041,7 +1010,7 @@ func (m Model) handleSearchKey(msg tea.KeyMsg) (tea.Model, tea.Cmd) {
 		m.searchInput.Blur()
 		m.searchInput.SetValue("")
 		m.searchQuery = ""
-		m.list.SetItems(m.buildListItems())
+		m.rebuildListItems()
 		return m, nil
 
 	case tea.KeyEnter:
@@ -1073,21 +1042,10 @@ func (m Model) handleSearchKey(msg tea.KeyMsg) (tea.Model, tea.Cmd) {
 
 	// Live filtering: update search query and rebuild list on each keystroke
 	m.searchQuery = m.searchInput.Value()
-	m.list.SetItems(m.buildListItems())
+	m.rebuildListItems()
+	m.list.Select(0)
 
 	return m, cmd
-}
-
-// fetchNotifications gets notifications from the database.
-func (m Model) fetchNotifications() []model.Notification {
-	if m.db != nil {
-		notifications, err := m.db.All()
-		if err != nil {
-			return nil
-		}
-		return notifications
-	}
-	return nil
 }
 
 // buildListItems creates list items from current notifications.
@@ -1148,13 +1106,6 @@ func (m *Model) buildListItems() []list.Item {
 				}
 			}
 			notifications = filtered
-		}
-	}
-
-	// Refresh stack tag counts if we have a database
-	if m.db != nil {
-		if counts, err := m.db.GetStackTagCounts(); err == nil {
-			m.stackTagCounts = counts
 		}
 	}
 
@@ -2608,6 +2559,14 @@ func Run(opts RunOptions) error {
 	iconResolver, _ := icon.NewResolverWithAliases()
 
 	m := New(opts.Config, database, daemonClient, iconResolver)
+	if path, err := db.LastUpdatedPath(); err == nil {
+		if watch, err := newFileWatcher(path); err == nil {
+			m.fileWatch = watch
+			defer watch.close()
+		} else {
+			fmt.Fprintf(os.Stderr, "Warning: failed to watch notification changes: %v\n", err)
+		}
+	}
 	p := tea.NewProgram(m, tea.WithAltScreen())
 
 	_, err := p.Run()
