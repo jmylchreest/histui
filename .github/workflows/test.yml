@@ -74,5 +74,21 @@ jobs:
             ./internal/theme/... \
             ./internal/layout/...
 
+      - name: Test audio without CGO
+        run: CGO_ENABLED=0 go test -v -timeout 60s ./internal/audio
+
+      - name: Test audio lifecycle with race detector and isolated ALSA null sink
+        run: |
+          printf 'pcm.!default { type null }\n' > "$RUNNER_TEMP/histui-null-alsa.conf"
+          CGO_ENABLED=1 HISTUI_AUDIO_TEST=1 \
+            PULSE_SERVER="unix:$RUNNER_TEMP/nonexistent-histui-pulse" \
+            ALSA_CONFIG_PATH="$RUNNER_TEMP/histui-null-alsa.conf" \
+            go test -race -count=3 -v -timeout 60s ./internal/audio
+
+      - name: Compile audio tests for ARM64 without CGO
+        run: |
+          CGO_ENABLED=0 GOOS=linux GOARCH=arm64 \
+            go test -c -o "$RUNNER_TEMP/histui-audio-arm64.test" ./internal/audio
+
       - name: Build
         run: CGO_ENABLED=1 go build ./...
