@@ -7,12 +7,12 @@ import argparse
 import hashlib
 import json
 import os
-from pathlib import Path
-import shutil
 import select
+import shutil
 import subprocess
 import tempfile
 import time
+from pathlib import Path
 
 import dbus
 from dbus.mainloop.glib import DBusGMainLoop
@@ -239,7 +239,7 @@ def main(args):
                             )
                             try:
                                 wait_until(
-                                    lambda: (
+                                    lambda daemon=daemon: (
                                         bus.name_has_owner(
                                             "org.freedesktop.Notifications"
                                         )
@@ -266,37 +266,36 @@ def main(args):
                                 interaction = False
                                 timeout_verified = False
                                 reload_verified = False
-                                for urgency in [urgency]:
-                                    hints = {
-                                        "urgency": dbus.Byte(urgency),
-                                        "value": dbus.Int32(65),
-                                        "image-path": dbus.String(str(fixture)),
-                                    }
-                                    ids.append(
-                                        remote.Notify(
-                                            "Visual fixture",
-                                            dbus.UInt32(0),
-                                            str(fixture),
+                                hints = {
+                                    "urgency": dbus.Byte(urgency),
+                                    "value": dbus.Int32(65),
+                                    "image-path": dbus.String(str(fixture)),
+                                }
+                                ids.append(
+                                    remote.Notify(
+                                        "Visual fixture",
+                                        dbus.UInt32(0),
+                                        str(fixture),
+                                        [
+                                            "Low priority",
+                                            "Build finished",
+                                            "Critical alert",
+                                        ][urgency],
+                                        "Synthetic <b>formatted</b> body. A second sentence tests wrapping.",
+                                        dbus.Array(
                                             [
-                                                "Low priority",
-                                                "Build finished",
-                                                "Critical alert",
-                                            ][urgency],
-                                            "Synthetic <b>formatted</b> body. A second sentence tests wrapping.",
-                                            dbus.Array(
-                                                [
-                                                    "default",
-                                                    "Open",
-                                                    "dismiss",
-                                                    "Dismiss",
-                                                ],
-                                                signature="s",
-                                            ),
-                                            dbus.Dictionary(hints, signature="sv"),
-                                            dbus.Int32(0),
-                                            timeout=3,
-                                        )
+                                                "default",
+                                                "Open",
+                                                "dismiss",
+                                                "Dismiss",
+                                            ],
+                                            signature="s",
+                                        ),
+                                        dbus.Dictionary(hints, signature="sv"),
+                                        dbus.Int32(0),
+                                        timeout=3,
                                     )
+                                )
                                 frames = []
                                 # Use actual elapsed times as evidence; compositor wall-clock frames
                                 # cannot be treated as deterministic keyframe phase goldens.
@@ -392,11 +391,13 @@ def main(args):
                                         pointer.stdin.flush()
                                         pointer_reply(pointer)
                                         wait_until(
-                                            lambda: (int(ids[0]), "dismiss") in actions,
+                                            lambda ids=tuple(ids): (
+                                                (int(ids[0]), "dismiss") in actions
+                                            ),
                                             f"Action button did not emit ActionInvoked: {case}",
                                         )
                                         wait_until(
-                                            lambda: any(
+                                            lambda ids=tuple(ids): any(
                                                 i == int(ids[0]) for i, _ in closed
                                             ),
                                             f"Action did not close notification: {case}",
@@ -474,7 +475,9 @@ def main(args):
                                     stop(pointer)
                                     pointer = None
                                     wait_until(
-                                        lambda: (timed_id, 1) in closed,
+                                        lambda timed_id=timed_id: (
+                                            (timed_id, 1) in closed
+                                        ),
                                         "Timed popup did not expire after pointer left",
                                         timeout=4,
                                     )
@@ -512,11 +515,11 @@ def main(args):
                                         "Reload fixture did not appear",
                                     )
 
-                                    def magenta_pixels(shot):
+                                    def magenta_pixels(shot, bounds=reload_bounds):
                                         return sum(
                                             count
                                             for count, colour in shot.crop(
-                                                reload_bounds
+                                                bounds
                                             ).getcolors(1280 * 720)
                                             if colour == (255, 0, 255)
                                         )
@@ -530,7 +533,7 @@ def main(args):
                                             "\n.notification-popup.notification-popup { background-image: none; background-color: #ff00ff; }\n"
                                         )
                                     wait_until(
-                                        lambda: (
+                                        lambda case=case, magenta_pixels=magenta_pixels: (
                                             magenta_pixels(
                                                 capture(
                                                     out / (case + "-reload-after.png")
