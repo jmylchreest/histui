@@ -1,0 +1,62 @@
+Documentation dependency security review (2026-11-03)
+
+The lockfile refresh fixes all 33 non-withdrawn GitHub Dependabot alerts open
+at review time. Their patched versions fit existing dependency ranges. The
+remaining open braces advisory GHSA-vfj7-8cjw-p6xm was withdrawn by GitHub
+as not practically exploitable; do not replace the glob toolchain for it.
+The npm registry additionally reported newer issues, fixed here where possible.
+
+Tinypool override
+Docusaurus 3.10.2 (current latest) requires tinypool ^1.0.2. The scoped override
+selects ^2.2.0 to fix GHSA-5gmw-xhrv-c9v3 and GHSA-85c8-ppgw-ccpr.
+The ESM default export, constructor options, run and destroy methods used by
+Docusaurus remain compatible. Version 2 requires Node 20 or >=22; use a
+supported LTS Node release (validation used 22.23.4). Docusaurus has no parent
+release incorporating this upgrade yet. Remove the override once it does.
+
+Our normal configuration leaves future.faster.ssgWorkerThreads=false (default),
+so it never instantiates this pool. Docusaurus also calls pool.run(task) without
+an options object, avoiding the filename-options vector of GHSA-85c8-ppgw-ccpr.
+The separate worker-options vector needs prior prototype pollution; upgrading
+removes it instead of depending on that prerequisite remaining impossible.
+Validation also forced ssgWorkerThreads=true with two worker threads and
+future.v4.removeLegacyPostBuildHeadAttribute=true in a temporary config to
+exercise the actual Docusaurus integration. Production config is unchanged.
+
+Residual audit roots (no high/critical findings remain)
+1. GHSA-gcqx-w48m-w2h4: deepmerge 4.3.1, low. No patched release exists.
+   Only @svgr/plugin-svgo requires it. That installed package declares it but
+   its distributed entry point does not import or call it. No application
+   reachability was found. Await an upstream SVGR dependency cleanup or a
+   patched deepmerge release; avoid introducing an alternative merge library
+   or downgrading outside the parent-supported range solely to silence audit.
+2. GHSA-g3hv-75wg-m249: minimatch 3.1.5, moderate. The advisory lists <11.0.1
+   but describes firstPhasePreProcess with optimizationLevel >=2, which does
+   not exist in the installed v3 code. serve-handler 6.1.7 pins v3 and calls
+   the callable CommonJS export. v11 exports a module object and cannot be
+   substituted directly. Await corrected advisory scope or upstream serve-
+   handler migration. This path belongs to local docusaurus serve; deployed
+   GitHub Pages serves generated static files without this Node server.
+
+Final npm audit: 21 affected packages including propagated parent findings
+(3 low, 18 moderate), arising from these TWO advisory roots, not 21 independent
+vulnerabilities. No findings were suppressed or dismissed. Keep audit enabled
+and revisit upstream fixes; a clean scan is not a security guarantee.
+
+Validation
+- npm ci --ignore-scripts from the refreshed lockfile before tinypool override;
+  npm install --ignore-scripts after adding the scoped override.
+- npm run build passed; post-override forced threaded build passed.
+- npm run typecheck passed after the final update.
+- Compared all currently open GitHub advisory ranges against final installed
+  lockfile versions: only the withdrawn braces advisory still matched.
+- git diff --check passed.
+
+Sources
+https://github.com/advisories/GHSA-vfj7-8cjw-p6xm
+https://github.com/advisories/GHSA-5gmw-xhrv-c9v3
+https://github.com/advisories/GHSA-85c8-ppgw-ccpr
+https://github.com/advisories/GHSA-gcqx-w48m-w2h4
+https://github.com/advisories/GHSA-g3hv-75wg-m249
+https://github.com/facebook/docusaurus/blob/v3.10.2/packages/docusaurus/src/ssg/ssgExecutor.ts
+https://github.com/tinylibs/tinypool/releases
