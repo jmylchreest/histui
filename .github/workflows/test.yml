@@ -83,6 +83,8 @@ jobs:
       - name: Capture actual GTK popups in a private Wayland session
         run: |
           CGO_ENABLED=1 go build -o /tmp/histuid-visual ./cmd/histuid
+          # Fedora grants Sway CAP_SYS_NICE, unavailable in this container.
+          setcap -r /usr/bin/sway
           useradd --create-home gtkvisual
           mkdir -p /tmp/histui-gtk-visual
           chown gtkvisual:gtkvisual /tmp/histui-gtk-visual
