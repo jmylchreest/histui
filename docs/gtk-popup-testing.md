@@ -141,3 +141,9 @@ in the build command instead of `Containerfile` for the updated native bindings.
 Keep the Debian image/baselines for compatible builds; do not compare pixels
 across these two runtimes. Broad distribution compatibility remains a separate
 release requirement and must not be inferred from passing Fedora tests.
+
+The optimized current-PR executable subsequently passed all 21 cases on Fedora
+(GTK 4.24.1, libadwaita 1.10.0), including hover/actions, timeout pause/resume
+and CSS hot reload. Daemon SHA256:
+`4917de8a48600ad04dfea311a400115dbb8dc41bdb7ac3abcb8b07e7d66a0c25`.
+This confirms the current build on that runtime, not Debian compatibility.
