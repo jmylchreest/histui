@@ -94,19 +94,19 @@ sudo mv histuid-linux-amd64 /usr/local/bin/histuid
 
 ### Requirements
 
-- **Go 1.26+**, Git and `flock` (util-linux)
+- **Go 1.26+** and Git
 - **GTK4, libadwaita, gtk4-layer-shell, fontconfig and ALSA runtime libraries** for histuid
 - No C compiler, GTK development headers or pkg-config are needed to build the binaries.
   Race tests and screenshot test helpers still use a C compiler.
 
 **Arch Linux:**
 ```bash
-sudo pacman -S go git util-linux gtk4 libadwaita gtk4-layer-shell fontconfig alsa-lib
+sudo pacman -S go git gtk4 libadwaita gtk4-layer-shell fontconfig alsa-lib
 ```
 
 **Debian/Ubuntu:**
 ```bash
-sudo apt install golang git util-linux libgtk-4-1 libadwaita-1-0 libgtk4-layer-shell0 fontconfig libasound2t64
+sudo apt install golang git libgtk-4-1 libadwaita-1-0 libgtk4-layer-shell0 fontconfig libasound2t64
 ```
 
 ### Build
@@ -126,10 +126,11 @@ sh scripts/puregotk/go.sh build -ldflags "-s -w" -o histuid ./cmd/histuid
 sudo mv histui histuid /usr/local/bin/
 ```
 
-The daemon wrapper copies the checksum-pinned Codeberg GTK module into `.cache/`,
-applies the two carried upstream fixes, and builds with a temporary module file.
-It never edits the shared Go module cache. Use this wrapper until those fixes are
-available in a pinned upstream release. GTK is loaded dynamically at runtime;
+The daemon wrapper disables CGO by default and enables early layer-shell loading.
+`go.mod` pins a public Codeberg fork commit carrying two upstream fixes, tracked
+in [#100](https://github.com/jmylchreest/histui/issues/100) and
+[#101](https://github.com/jmylchreest/histui/issues/101). Go verifies its checksums;
+no local patching is needed. GTK is loaded dynamically at runtime;
 CGO-free does not mean the daemon has no native library dependencies.
 
 Linux amd64 runtime and ARM64 cross-builds are tested. Debian 13 (GTK 4.18) and

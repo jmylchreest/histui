@@ -79,3 +79,6 @@ require (
 
 // Oto and GTK must share one native-call runtime on Linux.
 replace github.com/ebitengine/purego => ./internal/compat/purego
+
+// Temporary upstream fixes: histui #100 and #101; remove when both land upstream.
+replace codeberg.org/puregotk/puregotk => codeberg.org/jmylchreest/puregotk v0.0.0-20261104121415-639651e8758c

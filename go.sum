@@ -1,7 +1,7 @@
+codeberg.org/jmylchreest/puregotk v0.0.0-20261104121415-639651e8758c h1:XMxYVaPOObGClCcsIb7t5oIl1xn9m1HE8XeldR+ub6k=
+codeberg.org/jmylchreest/puregotk v0.0.0-20261104121415-639651e8758c/go.mod h1:SOzlGinx8V9Axu1reSh4uafhrtItio44+9r2b+1fUnQ=
 codeberg.org/puregotk/purego v0.0.0-20260224095105-2513c838cb80 h1:y5ZxMLLOjl4xc2tBl02olxZQ06xbbKiR+2ipBfDrVcs=
 codeberg.org/puregotk/purego v0.0.0-20260224095105-2513c838cb80/go.mod h1:hVVM4ddvYRlc3IcK3CXJPlMwd/vaLj7gdDBZ6oPgT8w=
-codeberg.org/puregotk/puregotk v0.0.0-20261003054014-d92056b0aa41 h1:IC30NjXeeBj+VLQ9fYa/G4yr63KPA9yuhOXoFmCMYpI=
-codeberg.org/puregotk/puregotk v0.0.0-20261003054014-d92056b0aa41/go.mod h1:SOzlGinx8V9Axu1reSh4uafhrtItio44+9r2b+1fUnQ=
 github.com/atotto/clipboard v0.1.4 h1:EH0zSVneZPSuFR11BlR9YppQTVDbh5+16AmcJi4g1z4=
 github.com/atotto/clipboard v0.1.4/go.mod h1:ZY9tmq7sm5xIbd9bOK4onWV4S6X0u6GY7Vn0Yu86PYI=
 github.com/aymanbagabas/go-osc52/v2 v2.0.1 h1:HwpRHbFMcZLEVr42D4p7XBqjyuxQH5SMiErDT4WkJ2k=

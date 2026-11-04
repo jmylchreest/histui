@@ -23,13 +23,19 @@ fontconfig and audio native libraries remain runtime dependencies. Linux amd64
 and arm64 are the supported build targets; other OS targets are not supported.
 
 Reproducible dependency carry
-- Root module pins Codeberg puregotk d92056b0aa41 and purego 2513c838cb80.
-- scripts/puregotk/go.sh copies the Go-checksum-verified module into a private
-  .cache directory and applies the checked-in patches. A temporary modfile (or
-  workspace for external analysis tools) avoids absolute paths in root go.mod.
+- Root module requires upstream puregotk d92056b0aa41 and replaces it with
+  codeberg.org/jmylchreest/puregotk v0.0.0-20261104121415-639651e8758c.
+  This public Codeberg fork commit combines the two fixes; all 15 changed files
+  match the previously tested patched tree byte-for-byte. Go verifies checksums.
+  Codeberg purego remains pinned at 2513c838cb80.
 - The two fixes are still open upstream as of 2026-11-04:
   https://codeberg.org/puregotk/puregotk/pulls/62 (early layer-shell loading)
   https://codeberg.org/puregotk/puregotk/pulls/63 (callback lifetimes).
+  Histui tracks their upstream adoption and fork removal in:
+  https://github.com/jmylchreest/histui/issues/100
+  https://github.com/jmylchreest/histui/issues/101
+- scripts/puregotk/go.sh only sets CGO defaults and the required build tag.
+  No module copies, local patches or temporary modfiles/workspaces are needed.
 - The build requires the lifetime-fix symbol, so an accidental unpatched build
   fails rather than silently leaking callback slots. The wrapper sets the
   puregotk_layershell tag needed for native initialization ordering.
@@ -38,7 +44,8 @@ Reproducible dependency carry
   Codeberg runtime. It is not an audio rewrite. Review its README when updating
   either upstream: Ebitengine version updates do not update the executed fork.
 - No generated GTK sources are vendored or hand-maintained. After both upstream
-  fixes merge, pin that revision and remove the patch wrapper/carry.
+  fixes merge, qualify and pin that revision and remove the fork replacement.
+  Retain the early-loading build tag if upstream still requires it.
 
 Ownership and threading
 - Popup constructors own native references, released in reverse order after stack
@@ -104,3 +111,11 @@ This is recorded as a pre-existing runtime warning, not hidden or claimed fixed.
 
 Final lint and go vet passed. The installed stripped daemon is 25,846,023 bytes;
 no like-for-like cold-build or runtime-performance benchmark is claimed here.
+
+Public fork pin verification (2026-11-04)
+The checksum-pinned 639651e8758c build passed the full CGO-free suite with real
+GTK tests, display/theme race tests, and module verification. Its isolated Fedora
+smoke run passed all four default-theme cases, static baseline comparisons,
+animation/interaction checks and 24-notification churn. Evidence is in
+/tmp/histui-fork-pin-smoke/result.json. The desktop daemon remains the previously
+accepted 56fc20f build; this dependency provenance change does not redeploy it.
