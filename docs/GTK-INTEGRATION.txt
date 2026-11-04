@@ -27,8 +27,10 @@ Compile the initial binding layer:
     -tags puregotk,puregotk_layershell ./internal/gtkruntime/layershell
 
 Production adaptation sequence
-1. Theme loader: keep import resolution, partial-theme inheritance, manifests,
-   embedded extraction, font overrides and hot reload; change only GTK access.
+1. Theme loader (implemented): shared production resolution/import/manifest and
+   embedded extraction logic, with small gotk4/Codeberg adapters. Explicit native
+   provider/display ownership, queued reload cancellation and idempotent Close.
+   Daemon shutdown now calls Close; the running deployment is unchanged.
 2. Display manager/stack: main-thread dispatch, monitor selection/hotplug,
    geometry/anchors/layers, replacement/stacking and source/callback ownership.
 3. Production popup/widget builder: every XML element/attribute, icons/images,
@@ -58,3 +60,30 @@ Initial verification (2026-11-04)
   patched checkout and temporary modfile.
 - Existing audio, config, database, TUI and imagecapture tests passed with CGO=0.
 - git diff --check passed. No production renderer replacement or deployment yet.
+
+Theme-loader verification commands
+  # Run on a private display, never on the user's desktop.
+  HISTUI_TEST_GTK=1 GDK_BACKEND=x11 G_DEBUG=fatal-criticals CGO_ENABLED=0 \
+    xvfb-run -a go test -modfile /tmp/histui-puregotk-mod/histui.mod \
+    -tags puregotk,puregotk_layershell ./internal/theme -count=1
+  # The same lifecycle suite is available for the gotk4 reference:
+  HISTUI_TEST_GTK=1 GDK_BACKEND=x11 G_DEBUG=fatal-criticals CGO_ENABLED=1 \
+    xvfb-run -a go test ./internal/theme -count=1
+  # Race instrumentation itself requires CGO=1, still with the puregotk backend.
+  HISTUI_TEST_GTK=1 GDK_BACKEND=x11 G_DEBUG=fatal-criticals CGO_ENABLED=1 \
+    xvfb-run -a go test -race -modfile /tmp/histui-puregotk-mod/histui.mod \
+    -tags puregotk,puregotk_layershell ./internal/theme -count=1
+
+Loader tests exercise all six bundled themes, user CSS imports and inherited
+manifest defaults, font-provider cleanup, display reattachment, real fsnotify
+reloads, stale/closed reload cancellation, and 2,100 source creation/removal cycles.
+The unchanged popup builder still chooses its embedded/default XML layout; these
+loader tests do not claim custom XML rendering or screenshot parity. Full daemon
+builds, popup comparisons and ARM64 runtime qualification remain subsequent work.
+
+Theme-loader results (2026-11-04)
+- CGO_ENABLED=0 real-GTK suite passed on Linux amd64 under Xvfb.
+- The same puregotk suite passed with the Go race detector enabled.
+- Linux ARM64 CGO-free theme test binary cross-compiles; not executed on ARM64.
+- The same real-GTK lifecycle suite passed with the gotk4 reference backend.
+- GTK criticals are fatal in these runs. No full-daemon screenshot claim yet.

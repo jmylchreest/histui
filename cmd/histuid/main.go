@@ -339,7 +339,7 @@ func runDaemonMode(logger *slog.Logger) {
 					audioManager.Stop()
 				}
 				if themeLoader != nil {
-					themeLoader.StopHotReload()
+					themeLoader.Close()
 				}
 				if configWatcher != nil {
 					configWatcher.Stop()
@@ -765,7 +765,7 @@ func runDaemonMode(logger *slog.Logger) {
 			audioManager.Stop()
 		}
 		if themeLoader != nil {
-			themeLoader.StopHotReload()
+			themeLoader.Close()
 		}
 		if configWatcher != nil {
 			configWatcher.Stop()
