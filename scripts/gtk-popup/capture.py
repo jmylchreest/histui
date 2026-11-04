@@ -583,6 +583,7 @@ def main(args):
                                                 )))
                                             wait_until(lambda: len(control.GetActiveNotifications(timeout=3)) == 12,
                                                        "Churn notifications did not all become active/queued")
+                                            previous_active = set(control.GetActiveNotifications(timeout=3))
                                             replacement = int(remote.Notify(
                                                 "Churn fixture", dbus.UInt32(wave_ids[0]), "",
                                                 f"Replaced wave {wave}", "Replacement",
@@ -591,6 +592,14 @@ def main(args):
                                                 dbus.Int32(0), timeout=3,
                                             ))
                                             check(replacement == wave_ids[0], "Replacement changed D-Bus ID")
+                                            # Notify acknowledges before the GTK idle applies the
+                                            # replacement, which has a new history ID. Wait for that
+                                            # transition before closing an ID from the active list.
+                                            wait_until(
+                                                lambda: len(ids := set(control.GetActiveNotifications(timeout=3))) == 12
+                                                and ids != previous_active,
+                                                "Replacement did not update active history IDs",
+                                            )
                                             active = control.GetActiveNotifications(timeout=3)
                                             check(control.CloseNotification(active[0], timeout=3), "IPC close failed")
                                             control.CloseAllNotifications(timeout=3)
