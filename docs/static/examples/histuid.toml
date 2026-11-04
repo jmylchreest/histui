@@ -70,10 +70,12 @@
 
 [audio]
 # enabled = true
-# volume = 80
+# New linear amplitude scale; 26 approximates the old default 80 loudness.
+volume_scale = "linear"
+# volume = 26
 
 [audio.sounds]
-# Sound files per urgency (supports OGG, WAV, MP3, FLAC)
+# Sound files per urgency (supports OGG Vorbis, WAV, MP3)
 # low = ""
 # normal = ""
 # critical = ""

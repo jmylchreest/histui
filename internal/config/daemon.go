@@ -115,9 +115,10 @@ type BehaviorConfig struct {
 
 // AudioConfig contains audio settings.
 type AudioConfig struct {
-	Enabled bool        `toml:"enabled" mapstructure:"enabled"`
-	Volume  int         `toml:"volume" mapstructure:"volume"` // 0-100
-	Sounds  SoundConfig `toml:"sounds" mapstructure:"sounds"`
+	Enabled     bool        `toml:"enabled" mapstructure:"enabled"`
+	Volume      int         `toml:"volume" mapstructure:"volume"`             // 0-100
+	VolumeScale string      `toml:"volume_scale" mapstructure:"volume_scale"` // linear or legacy
+	Sounds      SoundConfig `toml:"sounds" mapstructure:"sounds"`
 }
 
 // SoundConfig contains per-urgency sound file paths.
@@ -239,7 +240,8 @@ func setDefaults(v *viper.Viper) {
 
 	// Audio defaults
 	v.SetDefault("audio.enabled", true)
-	v.SetDefault("audio.volume", 80)
+	v.SetDefault("audio.volume", 26)
+	v.SetDefault("audio.volume_scale", "")
 	v.SetDefault("audio.sounds.low", "")
 	v.SetDefault("audio.sounds.normal", "")
 	v.SetDefault("audio.sounds.critical", "")
@@ -405,9 +407,10 @@ func DefaultDaemonConfig() *DaemonConfig {
 			HistoryLength:   100,
 		},
 		Audio: AudioConfig{
-			Enabled: true,
-			Volume:  80,
-			Sounds:  SoundConfig{},
+			Enabled:     true,
+			Volume:      26,
+			VolumeScale: "linear",
+			Sounds:      SoundConfig{},
 		},
 		Theme: ThemeConfig{
 			Name:        "default",
@@ -516,6 +519,21 @@ func LoadDaemonConfigWithViper(v *viper.Viper) (*DaemonConfig, error) {
 		}
 	}
 
+	// Existing files/environment settings without a scale marker retain their
+	// combined global/per-sound curve. Never rewrite users' configuration files.
+	scale := v.GetString("audio.volume_scale")
+	if scale == "" {
+		scale = "linear"
+		if v.ConfigFileUsed() != "" || os.Getenv("HISTUID_AUDIO_VOLUME") != "" {
+			scale = "legacy"
+		}
+	}
+	if scale == "legacy" {
+		v.SetDefault("audio.volume", 80)
+	} else {
+		v.SetDefault("audio.volume", 26)
+	}
+
 	// Unmarshal with custom decode hooks for Duration and ByteSize
 	var cfg DaemonConfig
 	decoderConfig := func(dc *mapstructure.DecoderConfig) {
@@ -531,6 +549,8 @@ func LoadDaemonConfigWithViper(v *viper.Viper) (*DaemonConfig, error) {
 	if err := v.Unmarshal(&cfg, decoderConfig); err != nil {
 		return nil, fmt.Errorf("failed to unmarshal config: %w", err)
 	}
+
+	cfg.Audio.VolumeScale = scale
 
 	// Validate the configuration
 	if err := cfg.Validate(); err != nil {
@@ -581,6 +601,10 @@ func (c *DaemonConfig) Validate() error {
 	// Validate max_visible
 	if c.Display.MaxVisible < 1 {
 		return fmt.Errorf("max_visible must be at least 1, got %d", c.Display.MaxVisible)
+	}
+
+	if c.Audio.VolumeScale != "" && c.Audio.VolumeScale != "linear" && c.Audio.VolumeScale != "legacy" {
+		return fmt.Errorf("audio.volume_scale must be linear or legacy, got %q", c.Audio.VolumeScale)
 	}
 
 	// Validate volume

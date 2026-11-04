@@ -80,3 +80,20 @@ The same gain curve exists in the previous backend and is deliberately preserved
 by this backend migration; the corrected listening test bypassed it. Configured
 volume-scale correctness remains a separate issue requiring regression coverage
 and a decision about changing existing users' perceived volume.
+
+## Volume correction and upgrade policy
+
+Linear playback uses log2(gain) with Beep Base=2. Amplitude tests check the actual
+signed-16-bit samples at 0%, 1%, 20%, 50% and 100%, including negative samples.
+New configs use `volume_scale = "linear"`, default 26 (slightly below the old
+80 setting's approximately 26.1% amplitude). Existing files without a marker and
+unmarked environment volume overrides use `legacy`, default 80, preserving the
+old combined global/per-sound gain. Zero now mutes on both scales and on reload.
+Config files are never rewritten. Changing to linear is explicit; reduce the
+numeric setting at the same time. Configuration tests cover fresh/existing
+files, explicit scales, environment overrides, mute and repeated reloads.
+
+After the correction, the original sequence was repeated at player volume 0.2
+with 25%-peak source tones, plus volume 0.1/0.3 steps. The user confirmed all
+three codecs, the volume steps, interruption and stop/restart sounded correct.
+This separately validates the fixed scale on the current live output.

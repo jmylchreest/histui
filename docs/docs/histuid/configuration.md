@@ -298,12 +298,24 @@ Extensions:
 
 ### [audio]
 
+New configurations use linear amplitude: 20 means 20% of the source amplitude.
+The default 26 is slightly quieter than the previous default 80's actual gain.
+Existing config files without `volume_scale` keep the old curve and default 80,
+including its combined global/per-sound scaling, so upgrades do not boost them.
+No config files are rewritten. To opt in, set `volume_scale = "linear"` and choose
+an appropriately reduced volume together; changing only the scale can get louder.
+Zero now mutes on either scale, including after reload. The `--volume` flag uses
+the selected config scale. `HISTUID_AUDIO_VOLUME_SCALE` selects the scale for env
+configuration; an existing `HISTUID_AUDIO_VOLUME` alone retains legacy behavior.
+
+
 Controls notification sounds.
 
 | Key | Type | Default | Description |
 |-----|------|---------|-------------|
 | `enabled` | bool | true | Enable notification sounds |
-| `volume` | int | 80 | Global volume (0-100) |
+| `volume` | int | 26 | Global amplitude percentage (0-100) for the linear scale; 0 mutes |
+| `volume_scale` | string | `linear` for fresh configs | `linear` or `legacy`; existing unmarked configs retain `legacy` and its default volume of 80 |
 
 **Audio Behavior:**
 
@@ -370,7 +382,8 @@ right = "close-all"
 
 [audio]
 enabled = true
-volume = 80
+volume_scale = "linear"
+volume = 26
 
 [history]
 max_notifications = 500   # 0 = unlimited

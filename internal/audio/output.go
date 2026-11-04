@@ -62,10 +62,7 @@ func (o *otoOutput) Start(buffer *beep.Buffer, volume float64) (audioPlayback, e
 	if buffer.Format().SampleRate != o.sampleRate {
 		stream = beep.Resample(4, buffer.Format().SampleRate, o.sampleRate, stream)
 	}
-	// Keep the existing Beep gain curve, including its zero-volume behavior.
-	if volume < 1 {
-		stream = &effects.Volume{Streamer: stream, Base: 2, Volume: volumeToDecibels(volume), Silent: volume == 0}
-	}
+	stream = scaleVolume(stream, volume)
 	player := o.context.NewPlayer(&pcmReader{stream: stream})
 	player.SetBufferSize(o.sampleRate.N(50*time.Millisecond) * 4)
 	if o.active == 0 {
@@ -131,4 +128,15 @@ func (r *pcmReader) Read(dst []byte) (int, error) {
 		return n * 4, io.EOF
 	}
 	return n * 4, nil
+}
+
+// scaleVolume applies a linear amplitude ratio. Base 2 needs log2(gain), not dB.
+func scaleVolume(stream beep.Streamer, volume float64) beep.Streamer {
+	if volume <= 0 {
+		return &effects.Volume{Streamer: stream, Silent: true}
+	}
+	if volume >= 1 {
+		return stream
+	}
+	return &effects.Volume{Streamer: stream, Base: 2, Volume: math.Log2(volume)}
 }

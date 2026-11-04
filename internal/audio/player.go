@@ -4,6 +4,7 @@ package audio
 import (
 	"fmt"
 	"log/slog"
+	"math"
 	"os"
 	"path/filepath"
 	"strings"
@@ -14,6 +15,7 @@ import (
 	"github.com/gopxl/beep/v2/mp3"
 	"github.com/gopxl/beep/v2/vorbis"
 	"github.com/gopxl/beep/v2/wav"
+	"github.com/jmylchreest/histui/internal/config"
 )
 
 // UrgencyLevel represents notification urgency for audio priority.
@@ -32,7 +34,8 @@ type Player struct {
 	logger *slog.Logger
 
 	// Volume control (0.0 to 1.0)
-	volume float64
+	volume       float64
+	legacyVolume bool
 
 	// Whether this Player has opened an output stream
 	initialized bool
@@ -86,7 +89,16 @@ func (p *Player) SetVolume(volume float64) {
 		volume = 1
 	}
 	p.volume = volume
+	p.legacyVolume = false
 	p.logger.Debug("volume set", "volume", volume)
+}
+
+// setConfigVolume applies the upgrade compatibility policy atomically with gain.
+func (p *Player) setConfigVolume(cfg config.AudioConfig) {
+	p.mu.Lock()
+	defer p.mu.Unlock()
+	p.volume = max(0, min(1, float64(cfg.Volume)/100))
+	p.legacyVolume = cfg.VolumeScale == "" || cfg.VolumeScale == "legacy"
 }
 
 // PlayWithUrgency plays a sound file with the specified urgency level and volume.
@@ -246,6 +258,9 @@ func (p *Player) startBuffer(buffer *beep.Buffer, request uint64, soundVolume fl
 	if volume > 1 {
 		volume = 1
 	}
+	if p.legacyVolume && volume > 0 && volume < 1 {
+		volume = math.Pow(2, volumeToDecibels(volume))
+	}
 	// Decode successfully before interrupting the current notification. A bad
 	// critical sound must not silence valid playback.
 	p.loading = false
@@ -368,7 +383,8 @@ func (p *Player) Close() {
 	p.ClearCache()
 }
 
-// volumeToDecibels converts a linear volume (0-1) to decibels.
+// volumeToDecibels retains the previous approximation for legacy configuration.
+// New linear playback must not use this as a base-2 gain exponent.
 func volumeToDecibels(volume float64) float64 {
 	if volume <= 0 {
 		return -100 // Effectively silent
