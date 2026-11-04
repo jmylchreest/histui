@@ -92,8 +92,8 @@ func (m *Manager) enable(ctx context.Context) error {
 	player := NewPlayer(m.logger)
 	watcher := NewWatcher(player, m.logger)
 
-	if m.config != nil && m.config.Audio.Volume > 0 {
-		player.SetVolume(float64(m.config.Audio.Volume) / 100.0)
+	if m.config != nil {
+		player.setConfigVolume(m.config.Audio)
 	}
 
 	sounds := make([]soundEntry, 0, len(m.sounds))
@@ -120,9 +120,10 @@ func (m *Manager) enable(ctx context.Context) error {
 	return nil
 }
 
-// disable tears down the player and watcher, releasing decoded sound buffers
-// and any pipewire/oto context held by the player. Safe to call when already
-// disabled.
+// disable tears down the player and watcher and releases decoded sound buffers.
+// The process-owned output context is suspended after its last stream stops;
+// retaining that context permits a later enable without reopening Oto.
+// Safe to call when already disabled.
 func (m *Manager) disable() {
 	m.mu.Lock()
 	player, watcher := m.player, m.watcher
@@ -259,8 +260,8 @@ func (m *Manager) Reload() {
 		return
 	}
 
-	if cfg != nil && cfg.Audio.Volume > 0 {
-		player.SetVolume(float64(cfg.Audio.Volume) / 100.0)
+	if cfg != nil {
+		player.setConfigVolume(cfg.Audio)
 	}
 	player.ClearCache()
 
