@@ -138,6 +138,16 @@ jobs:
       - uses: actions/checkout@v7
       - name: Configure Git safe directory
         run: git config --global --add safe.directory "$GITHUB_WORKSPACE"
+      - name: Keep CLI independent of GTK bindings
+        env:
+          CGO_ENABLED: "0"
+        run: |
+          go list -deps ./cmd/histui > /tmp/histui-cli-deps
+          if grep -q '^codeberg.org/puregotk/puregotk/' /tmp/histui-cli-deps; then
+            echo 'CLI unexpectedly imports GTK bindings'
+            exit 1
+          fi
+
       - name: Check ANSI baselines and save actual frames
         env:
           CGO_ENABLED: "0"

@@ -134,7 +134,7 @@ jobs:
           GOOS: ${{ matrix.goos }}
           GOARCH: ${{ matrix.goarch }}
         run: |
-          sh scripts/puregotk/go.sh build -ldflags "-s -w -X main.version=${{ needs.prepare.outputs.version }} -X main.commit=${{ github.sha }} -X main.buildTime=$(date -u +%Y-%m-%dT%H:%M:%SZ)" -o histui ./cmd/histui
+          go build -ldflags "-s -w -X main.version=${{ needs.prepare.outputs.version }} -X main.commit=${{ github.sha }} -X main.buildTime=$(date -u +%Y-%m-%dT%H:%M:%SZ)" -o histui ./cmd/histui
 
       - name: Build histuid (CGO-free GTK daemon)
         env:
