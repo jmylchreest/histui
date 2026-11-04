@@ -1,0 +1,121 @@
+CGO-free GTK integration into histuid
+====================================
+
+Branch: feature/histuid-puregotk
+Base: b1bdfe6 (main, with PRs #94 through #98 merged).
+
+The production daemon now uses Codeberg puregotk throughout. Existing D-Bus,
+SQLite, audio, notification queue and production theme/layout code remain in
+place. No gotk4 dependency or import C remains in the root module.
+
+Build and test
+  sh scripts/puregotk/go.sh build -o histuid ./cmd/histuid
+  CGO_ENABLED=0 go build -o histui ./cmd/histui
+  sh scripts/puregotk/go.sh test ./...
+  CGO_ENABLED=1 HISTUI_TEST_GTK=1 GDK_BACKEND=x11 G_DEBUG=fatal-criticals \
+    xvfb-run -a sh scripts/puregotk/go.sh test -race ./...
+  GOOS=linux GOARCH=arm64 sh scripts/puregotk/go.sh build -o histuid-arm64 ./cmd/histuid
+  sh scripts/puregotk/go.sh --tool govulncheck ./...
+
+The wrapper defaults to CGO_ENABLED=0. Race instrumentation still requires CGO=1;
+that does not select a different GTK implementation. GTK/libadwaita/layer-shell,
+fontconfig and audio native libraries remain runtime dependencies. Linux amd64
+and arm64 are the supported build targets; other OS targets are not supported.
+
+Reproducible dependency carry
+- Root module requires upstream puregotk d92056b0aa41 and replaces it with
+  codeberg.org/jmylchreest/puregotk v0.0.0-20261104121415-639651e8758c.
+  This public Codeberg fork commit combines the two fixes; all 15 changed files
+  match the previously tested patched tree byte-for-byte. Go verifies checksums.
+  Codeberg purego remains pinned at 2513c838cb80.
+- The two fixes are still open upstream as of 2026-11-04:
+  https://codeberg.org/puregotk/puregotk/pulls/62 (early layer-shell loading)
+  https://codeberg.org/puregotk/puregotk/pulls/63 (callback lifetimes).
+  Histui tracks their upstream adoption and fork removal in:
+  https://github.com/jmylchreest/histui/issues/100
+  https://github.com/jmylchreest/histui/issues/101
+- scripts/puregotk/go.sh only sets CGO defaults and the required build tag.
+  No module copies, local patches or temporary modfiles/workspaces are needed.
+- The build requires the lifetime-fix symbol, so an accidental unpatched build
+  fails rather than silently leaking callback slots. The wrapper sets the
+  puregotk_layershell tag needed for native initialization ordering.
+- Oto and GTK originally linked different purego forks, causing duplicate native
+  symbols. internal/compat/purego forwards Oto's four Linux loader APIs to the
+  Codeberg runtime. It is not an audio rewrite. Review its README when updating
+  either upstream: Ebitengine version updates do not update the executed fork.
+- No generated GTK sources are vendored or hand-maintained. After both upstream
+  fixes merge, qualify and pin that revision and remove the fork replacement.
+  Retain the early-loading build tag if upstream still requires it.
+
+Ownership and threading
+- Popup constructors own native references, released in reverse order after stack
+  detachment. Sources are cancelled before native destruction. Managed GClosure
+  cleanup returns signal callback slots when their objects are finalized.
+- Stack destruction cancels pending work, destroys its window and releases even
+  those popups whose deferred removal has not yet run.
+- Worker timeout processing and synchronous IPC dismissal are marshalled to the
+  GTK main context. Queue promotion no longer constructs widgets on a worker.
+- Theme CSS providers and display references have explicit ownership. Watcher
+  cancellation joins without holding the loader lock; stale reloads are ignored.
+- Fontconfig registration is dynamically loaded and uses a per-process temporary
+  font directory, avoiding cleanup collisions between test/production daemons.
+
+Executed verification (2026-11-04)
+- Entire repository tests passed with CGO disabled and with Go race detection.
+- Real GTK tests: six bundled themes, user imports, inherited manifests, font
+  cleanup, file watcher reload, source cancellation and closed-loader behavior.
+- 2,100 production popup create/destroy cycles finalized all 25,200 tracked native
+  objects, including callbacks and cancellation of flash timers.
+- All 21 private Sway/D-Bus screenshot/interaction cases passed on Fedora and
+  Debian 13. All 18 static Fedora frames exactly match the gotk4 integration
+  daemon 4e4fd7f under the same runtime/fonts. Theme/config semantics are retained.
+- Additional 300-notification D-Bus churn covers queueing, replacements, IPC
+  close/close-all, timeout queue promotion and shutdown with pending widgets.
+  The default-theme cases and churn also passed in a race-instrumented daemon.
+- WAV/MP3/Vorbis playback, stop/restart and audio config reload passed three times
+  through the shared FFI runtime with an isolated ALSA null sink.
+- Source vulnerability scan (Go 1.26.10) and binary scan (actual Go 1.27.3 build)
+  found no known vulnerabilities. Forked/native code still needs normal review.
+- The complete daemon cross-builds for Linux ARM64, and the Arch-style PIE build
+  succeeds without CGO. ARM64 execution has not been tested.
+
+Acceptance evidence lives in /tmp/histui-puregotk-final (Fedora, exact baseline),
+/tmp/histui-reference-fedora (gotk4), /tmp/histui-puregotk-debian and
+/tmp/histui-puregotk-race-results. Each result.json records runtime and binary hash.
+These temporary artifacts are not part of the source tree.
+
+Remaining release qualification
+Upstream acceptance is external. Remote CI, ARM64 execution, fractional scaling,
+monitor hotplug, broad compositor/runtime coverage and long-duration desktop soak
+remain unverified. Passing these integration tests is not a claim of universal
+Linux compatibility or a guarantee against all native memory bugs.
+
+Previous work
+Theme/popup tests #94, SQLite/security #95, TUI #96, audio #97 and docs/security
+#98 are merged. Storage remains pure-Go modernc SQLite; no engine replacement.
+
+Local desktop acceptance (2026-11-04)
+The installed daemon reports integration-puregotk-56fc20f, CGO_ENABLED=0, and
+remained active with zero restarts. Four live urgency/formatting/image cases
+mapped on Niri DP-2 and were readable through the matching CLI from SQLite.
+The user confirmed the popups and sounds were correct. Low urgency is intentionally
+silent in the active default theme (audio.low.path is empty). Personal config
+hashes before and after deployment match. The versioned deployment directory
+contains deployment.json and rollback.sh restoring the previous integration.
+
+One native GDK frame-timing warning appeared during live dismissal on GTK 4.24.1.
+The identical gdk_frame_timings_throttling_hint/GDK_FRAME_PREPARING warning was
+present in the prior gotk4 daemon logs at 01:13 and 01:46, before this deployment.
+Four further silent timeout/dismissal cycles produced no additional log warnings.
+This is recorded as a pre-existing runtime warning, not hidden or claimed fixed.
+
+Final lint and go vet passed. The installed stripped daemon is 25,846,023 bytes;
+no like-for-like cold-build or runtime-performance benchmark is claimed here.
+
+Public fork pin verification (2026-11-04)
+The checksum-pinned 639651e8758c build passed the full CGO-free suite with real
+GTK tests, display/theme race tests, and module verification. Its isolated Fedora
+smoke run passed all four default-theme cases, static baseline comparisons,
+animation/interaction checks and 24-notification churn. Evidence is in
+/tmp/histui-fork-pin-smoke/result.json. The desktop daemon remains the previously
+accepted 56fc20f build; this dependency provenance change does not redeploy it.

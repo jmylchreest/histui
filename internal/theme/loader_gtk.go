@@ -1,4 +1,4 @@
-//go:build cgo && !headless
+//go:build puregotk_layershell && !headless
 
 package theme
 
@@ -10,9 +10,6 @@ import (
 	"path/filepath"
 	"sync"
 
-	"github.com/diamondburned/gotk4/pkg/gdk/v4"
-	"github.com/diamondburned/gotk4/pkg/glib/v2"
-	"github.com/diamondburned/gotk4/pkg/gtk/v4"
 	"github.com/pelletier/go-toml/v2"
 )
 
@@ -45,21 +42,25 @@ func parseEmbeddedAliasesFile(data string) *embeddedAliasesFile {
 }
 
 // Loader handles loading and applying CSS themes with hot-reload support.
+// Construct it and call native-resource methods on the GTK main thread.
 type Loader struct {
 	mu           sync.RWMutex
 	logger       *slog.Logger
-	provider     *gtk.CSSProvider
-	fontProvider *gtk.CSSProvider // Separate provider for font overrides (higher priority)
+	provider     *cssProvider
+	fontProvider *cssProvider // Separate provider for font overrides (higher priority)
 	themesDir    string
 	currentName  string
 	theme        *Theme
 	watcher      *Watcher
-	display      *gdk.Display
+	display      *themeDisplay
 	fontFamily   string
 	fontSize     int
 
 	// Callback for hot-reload events (called when CSS files change)
-	onHotReload func(themeName string, changedFile string)
+	onHotReload     func(themeName string, changedFile string)
+	closed          bool
+	watchGeneration uint64
+	pendingReloads  map[uint32]struct{}
 }
 
 // NewLoader creates a new theme loader.
@@ -76,7 +77,7 @@ func NewLoader(logger *slog.Logger) *Loader {
 
 	return &Loader{
 		logger:    logger,
-		provider:  gtk.NewCSSProvider(),
+		provider:  newCSSProvider(),
 		themesDir: themesDir,
 	}
 }
@@ -96,6 +97,10 @@ func NewLoader(logger *slog.Logger) *Loader {
 func (l *Loader) LoadTheme(name string) error {
 	l.mu.Lock()
 	defer l.mu.Unlock()
+
+	if l.closed {
+		return fmt.Errorf("theme loader is closed")
+	}
 
 	// Enable import debugging
 	SetImportLogger(l.logger)
@@ -235,24 +240,28 @@ func (l *Loader) GetTheme() *Theme {
 
 // Apply applies the loaded theme to a display.
 // This should be called after the GTK application is initialized.
-func (l *Loader) Apply(display *gdk.Display) {
+func (l *Loader) Apply(display *themeDisplay) {
 	l.mu.Lock()
 	defer l.mu.Unlock()
 
+	if l.closed {
+		return
+	}
 	if display == nil {
-		display = gdk.DisplayGetDefault()
+		display = defaultThemeDisplay()
+	} else {
+		retainThemeDisplay(display)
 	}
 	if display == nil {
 		l.logger.Warn("no display available, cannot apply theme")
 		return
 	}
-
+	l.detachDisplay()
 	l.display = display
-	gtk.StyleContextAddProviderForDisplay(
-		display,
-		l.provider,
-		gtk.STYLE_PROVIDER_PRIORITY_APPLICATION,
-	)
+	addThemeProvider(display, l.provider, themePriority)
+	if l.fontProvider != nil {
+		addThemeProvider(display, l.fontProvider, themePriority+1)
+	}
 	l.logger.Debug("applied theme to display", "name", l.currentName)
 }
 
@@ -260,20 +269,21 @@ func (l *Loader) Apply(display *gdk.Display) {
 // Changes are automatically applied to the display.
 // Also watches for user theme overrides of bundled themes.
 func (l *Loader) StartHotReload(ctx context.Context) {
+	l.StopHotReload()
 	l.mu.Lock()
 	defer l.mu.Unlock()
 
-	// Stop existing watcher if any
-	if l.watcher != nil {
-		l.watcher.Stop()
+	if l.closed || l.theme == nil {
+		return
 	}
+	generation := l.watchGeneration
 
 	l.watcher = NewWatcher(l.theme, l.logger)
 
 	// Handle theme file changes
 	// Must use glib.IdleAdd to marshal GTK operations to the main thread
 	l.watcher.SetChangeCallback(func(css string, changedFile string) {
-		glib.IdleAdd(func() {
+		l.queueReload(generation, func() {
 			l.mu.Lock()
 			l.provider.LoadFromString(css)
 			callback := l.onHotReload
@@ -289,7 +299,7 @@ func (l *Loader) StartHotReload(ctx context.Context) {
 	// Handle user override detection for bundled themes
 	// Must use glib.IdleAdd to marshal GTK operations to the main thread
 	l.watcher.SetOverrideCallback(func(name string, path string) {
-		glib.IdleAdd(func() {
+		l.queueReload(generation, func() {
 			// A user created a theme file that overrides the current bundled theme
 			// Reload to pick up the user version
 			l.logger.Info("switching to user override of bundled theme", "name", name, "path", path)
@@ -308,13 +318,80 @@ func (l *Loader) StartHotReload(ctx context.Context) {
 }
 
 // StopHotReload stops watching the theme for changes.
+// StopHotReload must run on the GTK thread, like Apply and Close.
 func (l *Loader) StopHotReload() {
 	l.mu.Lock()
-	defer l.mu.Unlock()
+	l.watchGeneration++
+	watcher := l.watcher
+	l.watcher = nil
+	pending := l.pendingReloads
+	l.pendingReloads = nil
+	l.mu.Unlock()
 
-	if l.watcher != nil {
-		l.watcher.Stop()
-		l.watcher = nil
+	// A watcher callback can be waiting to acquire l.mu to queue a reload.
+	// Never join that goroutine while holding the loader lock.
+	if watcher != nil {
+		watcher.Stop()
+	}
+	for id := range pending {
+		removeThemeIdle(id)
+	}
+}
+
+// queueReload can be called by the watcher goroutine. Holding the lock while
+// registering also ensures the GTK callback cannot read id before assignment.
+func (l *Loader) queueReload(generation uint64, fn func()) {
+	l.mu.Lock()
+	defer l.mu.Unlock()
+	if l.closed || generation != l.watchGeneration {
+		return
+	}
+	var id uint32
+	id = addThemeIdle(func() {
+		l.mu.Lock()
+		delete(l.pendingReloads, id)
+		valid := !l.closed && generation == l.watchGeneration
+		l.mu.Unlock()
+		if valid {
+			fn()
+		}
+	})
+	if l.pendingReloads == nil {
+		l.pendingReloads = make(map[uint32]struct{})
+	}
+	l.pendingReloads[id] = struct{}{}
+}
+
+// detachDisplay requires l.mu and the GTK thread.
+func (l *Loader) detachDisplay() {
+	if l.display == nil {
+		return
+	}
+	removeThemeProvider(l.display, l.provider)
+	if l.fontProvider != nil {
+		removeThemeProvider(l.display, l.fontProvider)
+	}
+	releaseThemeDisplay(l.display)
+	l.display = nil
+}
+
+// Close stops reloads and releases the loader's native resources. It is
+// idempotent and must be called on the GTK thread before GTK shuts down.
+func (l *Loader) Close() {
+	l.mu.Lock()
+	l.closed = true
+	l.mu.Unlock()
+	l.StopHotReload()
+	l.mu.Lock()
+	defer l.mu.Unlock()
+	l.detachDisplay()
+	if l.fontProvider != nil {
+		releaseCSSProvider(l.fontProvider)
+		l.fontProvider = nil
+	}
+	if l.provider != nil {
+		releaseCSSProvider(l.provider)
+		l.provider = nil
 	}
 }
 
@@ -346,6 +423,10 @@ func (l *Loader) ApplyFontOverrides(fontFamily string, fontSize int) {
 	l.mu.Lock()
 	defer l.mu.Unlock()
 
+	if l.closed {
+		return
+	}
+
 	l.fontFamily = fontFamily
 	l.fontSize = fontSize
 
@@ -353,8 +434,11 @@ func (l *Loader) ApplyFontOverrides(fontFamily string, fontSize int) {
 	css := l.generateFontCSS(fontFamily, fontSize)
 	if css == "" {
 		// No overrides - remove font provider if it exists
-		if l.fontProvider != nil && l.display != nil {
-			gtk.StyleContextRemoveProviderForDisplay(l.display, l.fontProvider)
+		if l.fontProvider != nil {
+			if l.display != nil {
+				removeThemeProvider(l.display, l.fontProvider)
+			}
+			releaseCSSProvider(l.fontProvider)
 			l.fontProvider = nil
 		}
 		return
@@ -362,16 +446,16 @@ func (l *Loader) ApplyFontOverrides(fontFamily string, fontSize int) {
 
 	// Create or update font provider
 	if l.fontProvider == nil {
-		l.fontProvider = gtk.NewCSSProvider()
+		l.fontProvider = newCSSProvider()
 	}
 	l.fontProvider.LoadFromString(css)
 
 	// Apply with higher priority than theme
 	if l.display != nil {
-		gtk.StyleContextAddProviderForDisplay(
+		addThemeProvider(
 			l.display,
 			l.fontProvider,
-			gtk.STYLE_PROVIDER_PRIORITY_APPLICATION+1, // Higher than theme
+			themePriority+1, // Higher than theme
 		)
 	}
 
@@ -454,7 +538,7 @@ func (l *Loader) applyDefaults(theme *Theme) {
 			l.logger.Debug("loaded theme layout", "theme", theme.Name)
 		}
 	}
-	// Layout fallback happens in Theme.GetLayout()
+	// The popup builder selects an embedded layout or falls back to its default.
 
 	// Get the default manifest for merging
 	defaultManifest := GetEmbeddedDefaultManifest()

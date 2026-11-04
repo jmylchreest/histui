@@ -8,7 +8,7 @@ url='https://github.com/jmylchreest/histui'
 arch=('x86_64' 'aarch64')
 license=('MIT')
 depends=('gtk4' 'libadwaita' 'gtk4-layer-shell' 'alsa-lib')
-makedepends=('go' 'git' 'gobject-introspection')
+makedepends=('go' 'git' 'util-linux')
 provides=('histui' 'histuid')
 conflicts=('histui-bin')
 
@@ -19,9 +19,6 @@ build() {
     cd "${pkgname}-${pkgver}"
 
     export GOFLAGS="-buildmode=pie -trimpath -mod=readonly -modcacherw"
-    export CGO_CFLAGS="${CFLAGS}"
-    export CGO_CXXFLAGS="${CXXFLAGS}"
-    export CGO_LDFLAGS="${LDFLAGS}"
 
     # Build metadata
     local _commit="{{COMMIT}}"
@@ -33,8 +30,8 @@ build() {
         -ldflags "${_ldflags}" \
         -o histui ./cmd/histui
 
-    # histuid daemon - requires CGO for GTK4 bindings
-    CGO_ENABLED=1 go build \
+    # histuid daemon - CGO-free; GTK4/libadwaita are runtime dependencies
+    CGO_ENABLED=0 sh scripts/puregotk/go.sh build \
         -ldflags "${_ldflags}" \
         -o histuid ./cmd/histuid
 

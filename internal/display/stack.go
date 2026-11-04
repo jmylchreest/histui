@@ -6,17 +6,15 @@ import (
 	"log/slog"
 	"strings"
 	"sync"
-	"unsafe"
 
-	"github.com/diamondburned/gotk4-adwaita/pkg/adw"
-	layershell "github.com/diamondburned/gotk4-layer-shell/pkg/gtk4layershell"
-	coreglib "github.com/diamondburned/gotk4/pkg/core/glib"
-	"github.com/diamondburned/gotk4/pkg/gdk/v4"
-	"github.com/diamondburned/gotk4/pkg/gio/v2"
-	"github.com/diamondburned/gotk4/pkg/glib/v2"
-	"github.com/diamondburned/gotk4/pkg/gtk/v4"
+	"codeberg.org/puregotk/puregotk/v4/gdk"
+	"codeberg.org/puregotk/puregotk/v4/gio"
+	"codeberg.org/puregotk/puregotk/v4/gobject"
+	"codeberg.org/puregotk/puregotk/v4/gtk"
 
 	"github.com/jmylchreest/histui/internal/config"
+	"github.com/jmylchreest/histui/internal/gtkruntime"
+	layershell "github.com/jmylchreest/histui/internal/gtkruntime/layershell"
 )
 
 // NotificationStack manages a single layer-shell window containing all notification widgets.
@@ -34,13 +32,15 @@ type NotificationStack struct {
 	widgets []*NotificationWidget
 
 	// Track if window is currently visible
-	visible bool
+	visible     bool
+	sources     gtkruntime.Sources
+	ownedPopups map[*Popup]struct{}
 
 	// Monitor hotplug watch: re-resolves the configured output when the set of
 	// connected monitors changes. Both are set together and only touched on the
 	// GTK main thread.
-	monitorsModel         *gio.ListModel
-	monitorsChangedHandle coreglib.SignalHandle
+	monitorsModel         gio.ListModel
+	monitorsChangedHandle uint32
 }
 
 // NotificationWidget wraps a notification's GTK widget with its metadata.
@@ -61,10 +61,11 @@ func NewNotificationStack(app *gtk.Application, cfg *config.DaemonConfig, logger
 	}
 
 	s := &NotificationStack{
-		app:     app,
-		config:  cfg,
-		logger:  logger,
-		widgets: make([]*NotificationWidget, 0),
+		app:         app,
+		config:      cfg,
+		logger:      logger,
+		widgets:     make([]*NotificationWidget, 0),
+		ownedPopups: make(map[*Popup]struct{}),
 	}
 
 	s.createWindow()
@@ -83,10 +84,10 @@ func (s *NotificationStack) createWindow() {
 	layershell.InitForWindow(s.window)
 	layershell.SetLayer(s.window, s.configuredLayer())
 	layershell.SetExclusiveZone(s.window, 0) // Don't reserve space
-	layershell.SetKeyboardMode(s.window, layershell.LayerShellKeyboardModeNone)
+	layershell.SetKeyboardMode(s.window, layershell.KeyboardModeNoneValue)
 
 	// Set namespace for compositor rules
-	layershell.SetNamespace(s.window, "histui-notification")
+	layershell.SetNamespace(s.window, ptr("histui-notification"))
 
 	// Pin the surface to the configured output (0 = let compositor decide)
 	s.applyMonitor()
@@ -94,9 +95,9 @@ func (s *NotificationStack) createWindow() {
 
 	// Create the vertical container for notifications
 	// Gap is 0 for unified stack appearance - separators are CSS borders
-	s.container = gtk.NewBox(gtk.OrientationVertical, 0)
-	s.container.AddCSSClass("notification-stack")
-	s.window.SetChild(s.container)
+	s.container = gtk.NewBox(gtk.OrientationVerticalValue, 0)
+	s.container.AddCssClass("notification-stack")
+	s.window.SetChild(&s.container.Widget)
 
 	// Set initial position
 	s.updatePosition()
@@ -111,43 +112,43 @@ func (s *NotificationStack) updatePosition() {
 	offsetY := s.config.Display.OffsetY
 
 	// Reset all anchors first
-	layershell.SetAnchor(s.window, layershell.LayerShellEdgeTop, false)
-	layershell.SetAnchor(s.window, layershell.LayerShellEdgeBottom, false)
-	layershell.SetAnchor(s.window, layershell.LayerShellEdgeLeft, false)
-	layershell.SetAnchor(s.window, layershell.LayerShellEdgeRight, false)
+	layershell.SetAnchor(s.window, layershell.EdgeTopValue, false)
+	layershell.SetAnchor(s.window, layershell.EdgeBottomValue, false)
+	layershell.SetAnchor(s.window, layershell.EdgeLeftValue, false)
+	layershell.SetAnchor(s.window, layershell.EdgeRightValue, false)
 
 	switch pos {
 	case config.PositionTopRight:
-		layershell.SetAnchor(s.window, layershell.LayerShellEdgeTop, true)
-		layershell.SetAnchor(s.window, layershell.LayerShellEdgeRight, true)
-		layershell.SetMargin(s.window, layershell.LayerShellEdgeTop, offsetY)
-		layershell.SetMargin(s.window, layershell.LayerShellEdgeRight, offsetX)
+		layershell.SetAnchor(s.window, layershell.EdgeTopValue, true)
+		layershell.SetAnchor(s.window, layershell.EdgeRightValue, true)
+		layershell.SetMargin(s.window, layershell.EdgeTopValue, int32(offsetY))
+		layershell.SetMargin(s.window, layershell.EdgeRightValue, int32(offsetX))
 
 	case config.PositionTopLeft:
-		layershell.SetAnchor(s.window, layershell.LayerShellEdgeTop, true)
-		layershell.SetAnchor(s.window, layershell.LayerShellEdgeLeft, true)
-		layershell.SetMargin(s.window, layershell.LayerShellEdgeTop, offsetY)
-		layershell.SetMargin(s.window, layershell.LayerShellEdgeLeft, offsetX)
+		layershell.SetAnchor(s.window, layershell.EdgeTopValue, true)
+		layershell.SetAnchor(s.window, layershell.EdgeLeftValue, true)
+		layershell.SetMargin(s.window, layershell.EdgeTopValue, int32(offsetY))
+		layershell.SetMargin(s.window, layershell.EdgeLeftValue, int32(offsetX))
 
 	case config.PositionTopCenter:
-		layershell.SetAnchor(s.window, layershell.LayerShellEdgeTop, true)
-		layershell.SetMargin(s.window, layershell.LayerShellEdgeTop, offsetY)
+		layershell.SetAnchor(s.window, layershell.EdgeTopValue, true)
+		layershell.SetMargin(s.window, layershell.EdgeTopValue, int32(offsetY))
 
 	case config.PositionBottomRight:
-		layershell.SetAnchor(s.window, layershell.LayerShellEdgeBottom, true)
-		layershell.SetAnchor(s.window, layershell.LayerShellEdgeRight, true)
-		layershell.SetMargin(s.window, layershell.LayerShellEdgeBottom, offsetY)
-		layershell.SetMargin(s.window, layershell.LayerShellEdgeRight, offsetX)
+		layershell.SetAnchor(s.window, layershell.EdgeBottomValue, true)
+		layershell.SetAnchor(s.window, layershell.EdgeRightValue, true)
+		layershell.SetMargin(s.window, layershell.EdgeBottomValue, int32(offsetY))
+		layershell.SetMargin(s.window, layershell.EdgeRightValue, int32(offsetX))
 
 	case config.PositionBottomLeft:
-		layershell.SetAnchor(s.window, layershell.LayerShellEdgeBottom, true)
-		layershell.SetAnchor(s.window, layershell.LayerShellEdgeLeft, true)
-		layershell.SetMargin(s.window, layershell.LayerShellEdgeBottom, offsetY)
-		layershell.SetMargin(s.window, layershell.LayerShellEdgeLeft, offsetX)
+		layershell.SetAnchor(s.window, layershell.EdgeBottomValue, true)
+		layershell.SetAnchor(s.window, layershell.EdgeLeftValue, true)
+		layershell.SetMargin(s.window, layershell.EdgeBottomValue, int32(offsetY))
+		layershell.SetMargin(s.window, layershell.EdgeLeftValue, int32(offsetX))
 
 	case config.PositionBottomCenter:
-		layershell.SetAnchor(s.window, layershell.LayerShellEdgeBottom, true)
-		layershell.SetMargin(s.window, layershell.LayerShellEdgeBottom, offsetY)
+		layershell.SetAnchor(s.window, layershell.EdgeBottomValue, true)
+		layershell.SetMargin(s.window, layershell.EdgeBottomValue, int32(offsetY))
 	}
 }
 
@@ -175,11 +176,12 @@ func (s *NotificationStack) applyMonitor() {
 		return
 	}
 
+	defer monitor.Unref()
 	layershell.SetMonitor(s.window, monitor)
 	s.logger.Debug("using output for notifications",
 		"monitor", sel.String(),
-		"connector", monitor.Connector(),
-		"description", monitor.Description(),
+		"connector", monitor.GetConnector(),
+		"description", monitor.GetDescription(),
 		"source", "config")
 }
 
@@ -194,35 +196,21 @@ func (s *NotificationStack) watchMonitorOutputs() {
 	if display == nil {
 		return
 	}
-	monitors := display.Monitors()
+	defer display.Unref()
+	monitors := display.GetMonitors()
 	if monitors == nil {
 		return
 	}
 
 	s.monitorsModel = monitors
-	s.monitorsChangedHandle = monitors.ConnectItemsChanged(func(position, removed, added uint) {
-		s.logger.Debug("monitor layout changed, re-applying output selection",
-			"removed", removed, "added", added)
+	object := gobject.ObjectNewFromInternalPtr(monitors.GoPointer())
+	s.monitorsChangedHandle = object.ConnectSignal("items-changed", ptr(func() {
+		s.logger.Debug("monitor layout changed, re-applying output selection")
 		s.applyMonitor()
-	})
+	}))
 }
 
-// nullMonitor returns a *gdk.Monitor whose native pointer is NULL.
-//
-// layershell.SetMonitor panics on a typed-nil *gdk.Monitor: the gotk4 binding
-// dereferences the value to read its native pointer. A wrapper that is itself
-// non-nil but embeds a nil object pointer instead resolves to a native pointer
-// of 0 — a genuine NULL GdkMonitor*, which gtk_layer_set_monitor treats as
-// "let the compositor choose". The layout mirrors gotk4's own object wrappers
-// (an embedded *coreglib.Object); unsafe but stable for the pinned gotk4
-// version, and the only way to un-pin an output at runtime.
-func nullMonitor() *gdk.Monitor {
-	var m struct {
-		_ [0]func()
-		*coreglib.Object
-	}
-	return (*gdk.Monitor)(unsafe.Pointer(&m))
-}
+func nullMonitor() *gdk.Monitor { return nil }
 
 // logDetectedOutputs logs every connected output at debug so users can map the
 // 1-indexed `monitor` config value to a physical monitor — emitted on every
@@ -233,31 +221,35 @@ func (s *NotificationStack) logDetectedOutputs() {
 	if display == nil {
 		return
 	}
-	monitors := display.Monitors()
+	defer display.Unref()
+	monitors := display.GetMonitors()
 	if monitors == nil {
 		return
 	}
 
-	n := monitors.NItems()
+	defer gobject.ObjectNewFromInternalPtr(monitors.GoPointer()).Unref()
+	n := monitors.GetNItems()
 	s.logger.Debug("detected outputs", "count", n)
-	for i := uint(0); i < n; i++ {
-		m := castMonitor(monitors.Item(i))
+	for i := uint32(0); i < n; i++ {
+		m := castMonitor(monitors.GetItem(i))
 		if m == nil {
 			continue
 		}
-		g := m.Geometry()
+		var g gdk.Rectangle
+		m.GetGeometry(&g)
 		s.logger.Debug("detected output",
 			"index", i+1,
-			"connector", m.Connector(),
-			"description", m.Description(),
-			"geometry", fmt.Sprintf("%dx%d+%d+%d", g.Width(), g.Height(), g.X(), g.Y()))
+			"connector", m.GetConnector(),
+			"description", m.GetDescription(),
+			"geometry", fmt.Sprintf("%dx%d+%d+%d", g.Width, g.Height, g.X, g.Y))
+		m.Unref()
 	}
 }
 
 // resolveMonitor maps a MonitorSelector to a *gdk.Monitor. Returns nil for auto
 // or when no display/monitors are available, letting the compositor choose.
 //
-// By connector name: matches m.Connector() (or m.Description()) case-insensitively;
+// By connector name: matches m.GetConnector() (or m.GetDescription()) case-insensitively;
 // an unknown name falls back to auto, since there is no sensible index to guess.
 // By index (1-based): an out-of-range index falls back to the first output.
 func (s *NotificationStack) resolveMonitor(sel config.MonitorSelector) *gdk.Monitor {
@@ -271,47 +263,48 @@ func (s *NotificationStack) resolveMonitor(sel config.MonitorSelector) *gdk.Moni
 		return nil
 	}
 
-	monitors := display.Monitors()
+	defer display.Unref()
+	monitors := display.GetMonitors()
 	if monitors == nil {
 		s.logger.Warn("no monitors list available, deferring output selection to compositor")
 		return nil
 	}
 
-	n := monitors.NItems()
+	defer gobject.ObjectNewFromInternalPtr(monitors.GoPointer()).Unref()
+	n := monitors.GetNItems()
 
 	if sel.Name != "" {
-		for i := uint(0); i < n; i++ {
-			m := castMonitor(monitors.Item(i))
+		for i := uint32(0); i < n; i++ {
+			m := castMonitor(monitors.GetItem(i))
 			if m == nil {
 				continue
 			}
-			if strings.EqualFold(m.Connector(), sel.Name) || strings.EqualFold(m.Description(), sel.Name) {
+			if strings.EqualFold(m.GetConnector(), sel.Name) || strings.EqualFold(m.GetDescription(), sel.Name) {
 				return m
 			}
+			m.Unref()
 		}
 		s.logger.Warn("configured monitor name not found, deferring output selection to compositor",
 			"name", sel.Name, "available", n)
 		return nil
 	}
 
-	index := uint(sel.Index - 1)
+	index := uint32(sel.Index - 1)
 	if index >= n {
 		s.logger.Warn("configured monitor not available, falling back to first output",
 			"configured", sel.Index, "available", n)
 		index = 0
 	}
 
-	return castMonitor(monitors.Item(index))
+	return castMonitor(monitors.GetItem(index))
 }
 
-// castMonitor converts a list-model item to a *gdk.Monitor via gotk4's
-// concrete-type marshaling.
-func castMonitor(obj *coreglib.Object) *gdk.Monitor {
-	if obj == nil {
+// castMonitor consumes the owned list-model item reference.
+func castMonitor(ptr uintptr) *gdk.Monitor {
+	if ptr == 0 {
 		return nil
 	}
-	m, _ := obj.Cast().(*gdk.Monitor)
-	return m
+	return gdk.MonitorNewFromInternalPtr(ptr)
 }
 
 // Add adds a notification widget to the stack.
@@ -320,6 +313,7 @@ func castMonitor(obj *coreglib.Object) *gdk.Monitor {
 //   - true: new notifications at top of stack
 func (s *NotificationStack) Add(widget *NotificationWidget) {
 	s.mu.Lock()
+	s.ownedPopups[widget.Popup] = struct{}{}
 
 	newOnTop := s.config.Display.NewOnTop
 	if newOnTop {
@@ -342,12 +336,12 @@ func (s *NotificationStack) Add(widget *NotificationWidget) {
 
 	// Perform GTK operations on main thread to avoid layout race conditions
 	container := widget.Container
-	glib.IdleAdd(func() {
+	s.sources.Idle(func() {
 		// Add widget to container
 		if newOnTop {
-			s.container.Prepend(container)
+			s.container.Prepend(&container.Widget)
 		} else {
-			s.container.Append(container)
+			s.container.Append(&container.Widget)
 		}
 
 		// Apply stack position CSS classes
@@ -392,8 +386,10 @@ func (s *NotificationStack) Remove(dbusID uint32) *NotificationWidget {
 	// Remove widget from container in idle callback to avoid GTK layout race
 	if removed != nil {
 		container := removed.Container
-		glib.IdleAdd(func() {
-			s.container.Remove(container)
+		s.sources.Idle(func() {
+			s.container.Remove(&container.Widget)
+			removed.Popup.dispose()
+			delete(s.ownedPopups, removed.Popup)
 		})
 
 		s.logger.Debug("removed notification from stack",
@@ -404,7 +400,7 @@ func (s *NotificationStack) Remove(dbusID uint32) *NotificationWidget {
 
 	// Hide window if empty (defer to idle to avoid race)
 	if len(s.widgets) == 0 && s.visible {
-		glib.IdleAdd(func() {
+		s.sources.Idle(func() {
 			s.window.SetVisible(false)
 		})
 		s.visible = false
@@ -437,14 +433,16 @@ func (s *NotificationStack) RemoveByHistuiID(histuiID string) *NotificationWidge
 	// Remove widget from container in idle callback to avoid GTK layout race
 	if removed != nil {
 		container := removed.Container
-		glib.IdleAdd(func() {
-			s.container.Remove(container)
+		s.sources.Idle(func() {
+			s.container.Remove(&container.Widget)
+			removed.Popup.dispose()
+			delete(s.ownedPopups, removed.Popup)
 		})
 	}
 
 	// Hide window if empty (defer to idle to avoid race)
 	if len(s.widgets) == 0 && s.visible {
-		glib.IdleAdd(func() {
+		s.sources.Idle(func() {
 			s.window.SetVisible(false)
 		})
 		s.visible = false
@@ -467,15 +465,17 @@ func (s *NotificationStack) Clear() []*NotificationWidget {
 	for i, w := range removed {
 		containers[i] = w.Container
 	}
-	glib.IdleAdd(func() {
-		for _, container := range containers {
-			s.container.Remove(container)
+	s.sources.Idle(func() {
+		for i, container := range containers {
+			s.container.Remove(&container.Widget)
+			removed[i].Popup.dispose()
+			delete(s.ownedPopups, removed[i].Popup)
 		}
 	})
 
 	// Hide window (defer to idle to avoid race)
 	if s.visible {
-		glib.IdleAdd(func() {
+		s.sources.Idle(func() {
 			s.window.SetVisible(false)
 		})
 		s.visible = false
@@ -526,7 +526,7 @@ func (s *NotificationStack) updateStackPositionsLocked() {
 	updates := s.captureStackPositionsLocked()
 
 	// Apply updates on GTK main thread
-	glib.IdleAdd(func() {
+	s.sources.Idle(func() {
 		for _, update := range updates {
 			updateStackPositionClass(update.box, update.position)
 		}
@@ -536,14 +536,14 @@ func (s *NotificationStack) updateStackPositionsLocked() {
 // updateStackPositionClass updates the stack position CSS class on a widget.
 func updateStackPositionClass(box *gtk.Box, position string) {
 	// Remove old stack position classes
-	box.RemoveCSSClass("stack-single")
-	box.RemoveCSSClass("stack-first")
-	box.RemoveCSSClass("stack-middle")
-	box.RemoveCSSClass("stack-last")
+	box.RemoveCssClass("stack-single")
+	box.RemoveCssClass("stack-first")
+	box.RemoveCssClass("stack-middle")
+	box.RemoveCssClass("stack-last")
 
 	// Add new class
 	if position != "" {
-		box.AddCSSClass("stack-" + position)
+		box.AddCssClass("stack-" + position)
 	}
 }
 
@@ -554,7 +554,7 @@ func (s *NotificationStack) UpdateConfig(cfg *config.DaemonConfig) {
 	s.mu.Unlock()
 
 	// Re-apply output selection and position (monitor layout may have changed)
-	glib.IdleAdd(func() {
+	s.sources.Idle(func() {
 		s.applyMonitor()
 		s.updatePosition()
 	})
@@ -563,30 +563,38 @@ func (s *NotificationStack) UpdateConfig(cfg *config.DaemonConfig) {
 // Destroy cleans up the stack window.
 func (s *NotificationStack) Destroy() {
 	if s.monitorsModel != nil && s.monitorsChangedHandle != 0 {
-		s.monitorsModel.HandlerDisconnect(s.monitorsChangedHandle)
+		gobject.ObjectNewFromInternalPtr(s.monitorsModel.GoPointer()).DisconnectSignal(s.monitorsChangedHandle)
 		s.monitorsChangedHandle = 0
+		gobject.ObjectNewFromInternalPtr(s.monitorsModel.GoPointer()).Unref()
 		s.monitorsModel = nil
 	}
-	s.Clear()
+	s.sources.Close()
 	if s.window != nil {
 		s.window.Destroy()
+		s.window.Unref()
 		s.window = nil
+		s.container.Unref()
+		s.container = nil
 	}
+	for popup := range s.ownedPopups {
+		popup.dispose()
+	}
+	s.ownedPopups = nil
+	s.widgets = nil
 }
 
 // configuredLayer returns the layer-shell layer from config.
 func (s *NotificationStack) configuredLayer() layershell.Layer {
 	switch config.Layer(s.config.Display.Layer) {
 	case config.LayerBackground:
-		return layershell.LayerShellLayerBackground
+		return layershell.LayerBackgroundValue
 	case config.LayerBottom:
-		return layershell.LayerShellLayerBottom
+		return layershell.LayerBottomValue
 	case config.LayerOverlay:
-		return layershell.LayerShellLayerOverlay
+		return layershell.LayerOverlayValue
 	default:
-		return layershell.LayerShellLayerTop
+		return layershell.LayerTopValue
 	}
 }
 
 // Ensure adw is used (for libadwaita initialization)
-var _ = adw.MAJOR_VERSION

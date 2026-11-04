@@ -568,8 +568,60 @@ def main(args):
                                         "Reload fixtures did not clear",
                                     )
                                     reload_verified = True
+                                    if args.churn:
+                                        # Exercise real D-Bus writers while GTK creates/removes
+                                        # widgets and queue slots are promoted on the main thread.
+                                        for wave in range(args.churn):
+                                            wave_ids = []
+                                            for item in range(12):
+                                                wave_ids.append(int(remote.Notify(
+                                                    "Churn fixture", dbus.UInt32(0), "",
+                                                    f"Wave {wave} item {item}", "Queue and replacement",
+                                                    dbus.Array(["open", "Open"], signature="s"),
+                                                    dbus.Dictionary({"urgency": dbus.Byte(1)}, signature="sv"),
+                                                    dbus.Int32(0), timeout=3,
+                                                )))
+                                            wait_until(lambda: len(control.GetActiveNotifications(timeout=3)) == 12,
+                                                       "Churn notifications did not all become active/queued")
+                                            replacement = int(remote.Notify(
+                                                "Churn fixture", dbus.UInt32(wave_ids[0]), "",
+                                                f"Replaced wave {wave}", "Replacement",
+                                                dbus.Array([], signature="s"),
+                                                dbus.Dictionary({"urgency": dbus.Byte(1)}, signature="sv"),
+                                                dbus.Int32(0), timeout=3,
+                                            ))
+                                            check(replacement == wave_ids[0], "Replacement changed D-Bus ID")
+                                            active = control.GetActiveNotifications(timeout=3)
+                                            check(control.CloseNotification(active[0], timeout=3), "IPC close failed")
+                                            control.CloseAllNotifications(timeout=3)
+                                            wait_until(lambda: not control.GetActiveNotifications(timeout=3),
+                                                       "IPC close-all left active/queued notifications")
+                                            check(daemon.poll() is None, "Daemon died during churn")
+                                        # Queue promotion from worker timeouts must also stay on GTK.
+                                        timed = []
+                                        for item in range(6):
+                                            timed.append(int(remote.Notify(
+                                                "Timeout churn", dbus.UInt32(0), "", f"Timed item {item}", "",
+                                                dbus.Array([], signature="s"),
+                                                dbus.Dictionary({"urgency": dbus.Byte(1)}, signature="sv"),
+                                                dbus.Int32(150), timeout=3,
+                                            )))
+                                        wait_until(lambda: all(any(i == n and reason == 1 for i, reason in closed) for n in timed),
+                                                   "Queued timeout notifications did not expire", timeout=10)
+                                        time.sleep(0.2)
+                                        check(difference(blank, capture(out / (case + "-churn-dismissed.png"))) is None,
+                                              "Churn left visible popup pixels")
+                                        # Exit with callbacks and widgets still pending, exercising
+                                        # shutdown cancellation instead of only an empty daemon.
+                                        for item in range(10):
+                                            remote.Notify("Shutdown churn", dbus.UInt32(0), "", f"Pending {item}", "",
+                                                          dbus.Array([], signature="s"),
+                                                          dbus.Dictionary({"urgency": dbus.Byte(1)}, signature="sv"),
+                                                          dbus.Int32(0), timeout=3)
+                                        print(f"PASS D-Bus churn: {args.churn * 12} notifications, replacements, IPC and timeout queue", flush=True)
                             finally:
                                 stop(daemon)
+                                check(daemon.returncode == 0, f"Daemon shutdown failed: {case}: {daemon.returncode}")
                         wait_until(
                             lambda: (
                                 not bus.name_has_owner("org.freedesktop.Notifications")
@@ -587,6 +639,9 @@ def main(args):
                                 for s in [
                                     "Theme parser error",
                                     "panic:",
+                                    "CRITICAL",
+                                    "WARNING: DATA RACE",
+                                    "fatal error:",
                                     "failed to load theme",
                                 ]
                             ),
@@ -601,6 +656,7 @@ def main(args):
                                 "hover_and_action_verified": interaction,
                                 "timeout_pause_resume_verified": timeout_verified,
                                 "css_hot_reload_verified": reload_verified,
+                                "churn_waves": args.churn if reload_verified else 0,
                             }
                         )
                         print("PASS", case, flush=True)
@@ -619,4 +675,5 @@ if __name__ == "__main__":
     parser.add_argument("--out", type=Path, required=True)
     parser.add_argument("--baseline", type=Path)
     parser.add_argument("--only", nargs="+")
+    parser.add_argument("--churn", type=int, default=0, help="12-notification queue/replacement waves in default normal case")
     main(parser.parse_args())

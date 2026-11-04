@@ -8,12 +8,13 @@ import (
 	"sync"
 	"time"
 
-	"github.com/diamondburned/gotk4-adwaita/pkg/adw"
-	"github.com/diamondburned/gotk4/pkg/gdk/v4"
-	"github.com/diamondburned/gotk4/pkg/gtk/v4"
+	"codeberg.org/puregotk/puregotk/v4/adw"
+	"codeberg.org/puregotk/puregotk/v4/gdk"
+	"codeberg.org/puregotk/puregotk/v4/gtk"
 
 	"github.com/jmylchreest/histui/internal/config"
 	"github.com/jmylchreest/histui/internal/dbus"
+	"github.com/jmylchreest/histui/internal/gtkruntime"
 	"github.com/jmylchreest/histui/internal/icon"
 	"github.com/jmylchreest/histui/internal/model"
 )
@@ -62,6 +63,7 @@ type DisplayCallback func(histuiID string)
 // Only MaxVisible popups exist as GTK objects at any time.
 // Additional notifications are queued and displayed when space becomes available.
 type Manager struct {
+	sources      gtkruntime.Sources
 	app          *gtk.Application
 	config       *config.DaemonConfig
 	logger       *slog.Logger
@@ -156,16 +158,17 @@ func ApplyColorScheme(scheme string, logger *slog.Logger) {
 	if styleManager == nil {
 		return
 	}
+	defer styleManager.Unref()
 
 	switch config.ColorScheme(scheme) {
 	case config.ColorSchemeLight:
-		styleManager.SetColorScheme(adw.ColorSchemeForceLight)
+		styleManager.SetColorScheme(adw.ColorSchemeForceLightValue)
 		logger.Debug("applied color scheme", "scheme", "light")
 	case config.ColorSchemeDark:
-		styleManager.SetColorScheme(adw.ColorSchemeForceDark)
+		styleManager.SetColorScheme(adw.ColorSchemeForceDarkValue)
 		logger.Debug("applied color scheme", "scheme", "dark")
 	default:
-		styleManager.SetColorScheme(adw.ColorSchemeDefault)
+		styleManager.SetColorScheme(adw.ColorSchemeDefaultValue)
 		logger.Debug("applied color scheme", "scheme", "system")
 	}
 }
@@ -195,6 +198,7 @@ func (m *Manager) Start(ctx context.Context) error {
 func (m *Manager) Stop() {
 	m.stopOnce.Do(func() {
 		close(m.stopCh)
+		m.sources.Close()
 		m.CloseAll(dbus.CloseReasonUndefined)
 
 		// Stop icon aliases watcher
@@ -213,6 +217,10 @@ func (m *Manager) Stop() {
 			m.stack.Destroy()
 		}
 
+		if m.display != nil {
+			m.display.Unref()
+			m.display = nil
+		}
 		m.logger.Info("display manager stopped")
 	})
 }
@@ -599,6 +607,17 @@ func (m *Manager) findLowestPriorityPopupLocked() uint32 {
 // CloseByHistuiID closes a popup by its histui ULID.
 // This is used when notifications are dismissed externally (e.g., via histui CLI).
 func (m *Manager) CloseByHistuiID(histuiID string, reason dbus.CloseReason) bool {
+	var result bool
+	if !gtkruntime.IsMainThread() {
+		done := make(chan struct{})
+		m.sources.Idle(func() { result = m.CloseByHistuiID(histuiID, reason); close(done) })
+		select {
+		case <-done:
+			return result
+		case <-m.stopCh:
+			return false
+		}
+	}
 	m.mu.Lock()
 
 	// Find the popup with this histui ID
@@ -748,6 +767,17 @@ func (m *Manager) Close(dbusID uint32, reason dbus.CloseReason) {
 // CloseAll closes all popups and clears the queue.
 // Returns the number of popups closed.
 func (m *Manager) CloseAll(reason dbus.CloseReason) int {
+	var result int
+	if !gtkruntime.IsMainThread() {
+		done := make(chan struct{})
+		m.sources.Idle(func() { result = m.CloseAll(reason); close(done) })
+		select {
+		case <-done:
+			return result
+		case <-m.stopCh:
+			return 0
+		}
+	}
 	m.mu.Lock()
 	popups := make([]*PopupState, 0, len(m.popups))
 	for _, state := range m.popups {
@@ -897,14 +927,15 @@ func (m *Manager) handleTimeouts() {
 	for {
 		select {
 		case dbusID := <-m.timeoutCh:
-			m.mu.RLock()
-			state, exists := m.popups[dbusID]
-			shouldClose := exists && !state.Paused && !state.ExpiresAt.IsZero() && time.Now().After(state.ExpiresAt)
-			m.mu.RUnlock()
-
-			if shouldClose {
-				m.Close(dbusID, dbus.CloseReasonExpired)
-			}
+			m.sources.Idle(func() {
+				m.mu.RLock()
+				state, exists := m.popups[dbusID]
+				shouldClose := exists && !state.Paused && !state.ExpiresAt.IsZero() && time.Now().After(state.ExpiresAt)
+				m.mu.RUnlock()
+				if shouldClose {
+					m.Close(dbusID, dbus.CloseReasonExpired)
+				}
+			})
 		case <-m.stopCh:
 			return
 		}

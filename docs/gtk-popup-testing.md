@@ -34,10 +34,10 @@ animation in the shared effects library.
 
 ## Run
 
-Build the integration daemon (still uses the existing cgo GTK bindings):
+Build the production daemon (CGO-free Codeberg GTK bindings):
 
 ```sh
-go build -o /tmp/histuid-visual ./cmd/histuid
+sh scripts/puregotk/go.sh build -o /tmp/histuid-visual ./cmd/histuid
 podman build -t histui-popup-tests -f scripts/gtk-popup/Containerfile scripts/gtk-popup
 mkdir -p /tmp/histui-popup-results
 podman run --rm --network=none --userns=keep-id --user "$(id -u):$(id -g)" \
@@ -81,7 +81,7 @@ matching runtime/font/scale environments. `--only default glass` narrows a run.
 The existing CI build job now includes a private popup capture step and uploads
 artifacts for 14 days. It uses the existing Fedora runtime, so it gates within-run
 stability/motion/dismissal and warning checks; it does not compare Fedora pixels
-against Debian PNGs. That new CI step still needs its first GitHub Actions run.
+against Debian PNGs. The original gotk4 CI step passed; the updated puregotk workflow needs a remote CI run.
 
 ## Remaining limits
 
@@ -89,7 +89,8 @@ No compositor blur is present in standard Sway, so glass transparency is exercis
 but Hyprland/SwayFX blur is not. No ARM64 runtime, HiDPI/fractional scale, monitor hotplug, keyboard focus or all
 action types are covered. Timeout and CSS hot-reload checks currently exercise
 the default theme only; config/layout-file reload is not covered. One software rendering backend/output is tested. This is
-not a puregotk port or a guarantee of native memory/callback safety.
+not a guarantee of native memory/callback safety on every runtime. Native lifetime
+and race tests complement the screenshot cases.
 
 ## Finding from real-widget coverage
 
@@ -147,3 +148,17 @@ The optimized current-PR executable subsequently passed all 21 cases on Fedora
 and CSS hot reload. Daemon SHA256:
 `4917de8a48600ad04dfea311a400115dbb8dc41bdb7ac3abcb8b07e7d66a0c25`.
 This confirms the current build on that runtime, not Debian compatibility.
+
+## CGO-free production port (2026-11-04)
+
+All 21 cases passed on both Fedora and Debian 13. On the same Fedora image, all
+18 static frames matched the running gotk4 integration build byte-for-byte at the
+pixel level. The port also passes 25 waves of 12 notifications with queueing,
+replacement, IPC close/close-all, timeout-driven queue promotion and shutdown with
+pending notifications (`--churn 25`). Nonzero daemon shutdown and native criticals
+now fail the harness. The default-theme/churn cases also pass with a race build.
+
+`HISTUI_TEST_GTK=1 GDK_BACKEND=x11 xvfb-run -a sh scripts/puregotk/go.sh test
+./internal/display ./internal/theme` separately exercises 2,100 popup lifetimes,
+checks all 25,200 tracked native objects finalize, and tests cancellation/reload.
+Use `CGO_ENABLED=1 ... test -race` for the race-instrumented variant.
