@@ -270,33 +270,46 @@ func (img *ImageDataStruct) ToPNG() []byte {
 		return nil
 	}
 
-	// Create image
-	goImg := image.NewRGBA(image.Rect(0, 0, width, height))
+	var goImg *image.RGBA
+	if hasAlpha && channels == 4 && rowstride >= width*4 &&
+		int64(height-1)*int64(rowstride)+int64(width)*4 <= int64(len(img.Data)) {
+		// Encode synchronously from the existing pixels. Preserve the historical
+		// RGBA interpretation and compressed-size threshold behavior; neither the
+		// image nor the encoder modifies the caller's pixel slice.
+		goImg = &image.RGBA{Pix: img.Data, Stride: rowstride, Rect: image.Rect(0, 0, width, height)}
+	} else {
+		// RGB and alpha-less layouts still need expansion to RGBA.
+		goImg = image.NewRGBA(image.Rect(0, 0, width, height))
 
-	// Copy pixel data
-	for y := 0; y < height; y++ {
-		rowStart := y * rowstride
-		for x := 0; x < width; x++ {
-			pixelStart := rowStart + x*channels
-			if pixelStart+channels > len(img.Data) {
-				break
-			}
+		// Copy pixel data
+		for y := 0; y < height; y++ {
+			rowStart := y * rowstride
+			for x := 0; x < width; x++ {
+				pixelStart := rowStart + x*channels
+				if pixelStart+channels > len(img.Data) {
+					break
+				}
 
-			var r, g, b, a uint8
-			if channels >= 3 {
-				r = img.Data[pixelStart]
-				g = img.Data[pixelStart+1]
-				b = img.Data[pixelStart+2]
-			}
-			if hasAlpha && channels >= 4 {
-				a = img.Data[pixelStart+3]
-			} else {
-				a = 255
-			}
+				var r, g, b, a uint8
+				if channels >= 3 {
+					r = img.Data[pixelStart]
+					g = img.Data[pixelStart+1]
+					b = img.Data[pixelStart+2]
+				}
+				if hasAlpha && channels >= 4 {
+					a = img.Data[pixelStart+3]
+				} else {
+					a = 255
+				}
 
-			goImg.SetRGBA(x, y, color.RGBA{R: r, G: g, B: b, A: a})
+				goImg.SetRGBA(x, y, color.RGBA{R: r, G: g, B: b, A: a})
+			}
 		}
 	}
+
+	// The standard encoder pool retains its last image. Drop the pixel slice
+	// after synchronous encoding so an idle encoder cannot keep image data alive.
+	defer func() { goImg.Pix = nil }()
 
 	// Encode to PNG via the pooled encoder so the deflate compressor is reused.
 	var buf bytes.Buffer

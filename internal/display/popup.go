@@ -836,9 +836,12 @@ func (p *Popup) buildImage() *gtk.Widget {
 	if imgData := p.notification.ImageData(); imgData != nil {
 		threshold := p.config.Display.ImageDataPreviewSize
 
-		// Convert to PNG to get compressed size for threshold check
-		pngData := imgData.ToPNG()
-		pngSize := int64(len(pngData))
+		// Only numeric thresholds need a compressed size. Always/never must
+		// not encode an entire PNG merely to discard its bytes.
+		pngSize := int64(-1) // Not measured for unconditional thresholds.
+		if !threshold.IsAlways() && !threshold.IsNever() {
+			pngSize = int64(len(imgData.ToPNG()))
+		}
 		rawSize := imgData.RawSize()
 
 		if threshold.ShouldShow(pngSize) {
