@@ -86,3 +86,21 @@ Linux compatibility or a guarantee against all native memory bugs.
 Previous work
 Theme/popup tests #94, SQLite/security #95, TUI #96, audio #97 and docs/security
 #98 are merged. Storage remains pure-Go modernc SQLite; no engine replacement.
+
+Local desktop acceptance (2026-11-04)
+The installed daemon reports integration-puregotk-56fc20f, CGO_ENABLED=0, and
+remained active with zero restarts. Four live urgency/formatting/image cases
+mapped on Niri DP-2 and were readable through the matching CLI from SQLite.
+The user confirmed the popups and sounds were correct. Low urgency is intentionally
+silent in the active default theme (audio.low.path is empty). Personal config
+hashes before and after deployment match. The versioned deployment directory
+contains deployment.json and rollback.sh restoring the previous integration.
+
+One native GDK frame-timing warning appeared during live dismissal on GTK 4.24.1.
+The identical gdk_frame_timings_throttling_hint/GDK_FRAME_PREPARING warning was
+present in the prior gotk4 daemon logs at 01:13 and 01:46, before this deployment.
+Four further silent timeout/dismissal cycles produced no additional log warnings.
+This is recorded as a pre-existing runtime warning, not hidden or claimed fixed.
+
+Final lint and go vet passed. The installed stripped daemon is 25,846,023 bytes;
+no like-for-like cold-build or runtime-performance benchmark is claimed here.
