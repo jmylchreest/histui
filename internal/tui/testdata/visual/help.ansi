@@ -1,0 +1,33 @@
+[1;94mKeyboard Shortcuts[0m[90m (1/2)[0m
+
+[90mNavigation[0m
+[92m  j/k, ↑/↓[0m     Move up/down
+[92m  g/G[0m          Go to top/bottom
+[92m  pgup/pgdn[0m    Page up/down
+[92m  Tab/S-Tab[0m    Cycle stacked items
+
+[90mActions[0m
+[92m  enter[0m        View details
+[92m  p[0m            Preview panel
+[92m  y[0m            Copy (yank) body
+[92m  Y[0m            Copy all as JSON
+[92m  i[0m            Copy image
+[92m  d[0m            Dismiss/undismiss
+[92m  x[0m            Delete permanently
+[92m  R[0m            Replay notification
+
+[90mFilters[0m
+[92m  f[0m            Filter menu
+[92m  1[0m            All notifications
+[92m  2[0m            Active (visible)
+[92m  3[0m            Undismissed
+[92m  4[0m            Dismissed
+[92m  /[0m            Search/filter
+
+[90mGeneral[0m
+[92m  ?[0m            This help
+[92m  r[0m            Refresh
+[92m  esc[0m          Back
+[92m  q[0m            Quit (back in detail)
+
+[90m←/→ or h/l: switch pages  ?/esc: close[0m
