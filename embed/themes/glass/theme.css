@@ -71,7 +71,13 @@ window {
 
 /* Subtle specular highlight shimmer - simulates light moving across glass */
 @keyframes glass-shimmer {
-    0%, 100% {
+    0% {
+        box-shadow:
+            inset 0 1px 0 0 alpha(white, 0.25),
+            inset 0 -1px 0 0 alpha(black, 0.1),
+            0 4px 20px alpha(black, 0.25);
+    }
+    100% {
         box-shadow:
             inset 0 1px 0 0 alpha(white, 0.25),
             inset 0 -1px 0 0 alpha(black, 0.1),
@@ -87,7 +93,12 @@ window {
 
 /* Glossy pulse for interactive elements */
 @keyframes glass-pulse {
-    0%, 100% {
+    0% {
+        box-shadow:
+            inset 0 1px 0 0 alpha(white, 0.2),
+            0 2px 8px alpha(black, 0.2);
+    }
+    100% {
         box-shadow:
             inset 0 1px 0 0 alpha(white, 0.2),
             0 2px 8px alpha(black, 0.2);
@@ -110,16 +121,16 @@ window {
         linear-gradient(
             to bottom,
             alpha(white, var(--glass-frost-opacity)),
-            alpha(white, calc(var(--glass-frost-opacity) - 0.05)) 50%,
-            alpha(white, calc(var(--glass-frost-opacity) - 0.10))
+            rgb(from white r g b / calc(alpha * (var(--glass-frost-opacity) - 0.05))) 50%,
+            rgb(from white r g b / calc(alpha * (var(--glass-frost-opacity) - 0.10)))
         ),
         /* Base tint layer */
         linear-gradient(
             to bottom,
-            alpha(var(--glass-tint), calc(var(--glass-bg-opacity) + 0.10)),
+            rgb(from var(--glass-tint) r g b / calc(alpha * (var(--glass-bg-opacity) + 0.10))),
             alpha(var(--glass-tint), var(--glass-bg-opacity)) 15%,
             alpha(var(--glass-tint), var(--glass-bg-opacity)) 85%,
-            alpha(var(--glass-tint), calc(var(--glass-bg-opacity) - 0.05))
+            rgb(from var(--glass-tint) r g b / calc(alpha * (var(--glass-bg-opacity) - 0.05)))
         );
     background-color: alpha(var(--glass-tint), var(--glass-bg-opacity));
 

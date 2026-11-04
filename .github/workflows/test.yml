@@ -76,3 +76,25 @@ jobs:
 
       - name: Build
         run: CGO_ENABLED=1 go build ./...
+
+      - name: Install popup screenshot runtime
+        run: dnf install -y sway swaybg grim dbus-daemon python3-dbus python3-pillow python3-gobject wayland-devel dejavu-sans-fonts shadow-utils util-linux
+
+      - name: Capture actual GTK popups in a private Wayland session
+        run: |
+          CGO_ENABLED=1 go build -o /tmp/histuid-visual ./cmd/histuid
+          # Fedora grants Sway CAP_SYS_NICE, unavailable in this container.
+          setcap -r /usr/bin/sway
+          useradd --create-home gtkvisual
+          mkdir -p /tmp/histui-gtk-visual
+          chown gtkvisual:gtkvisual /tmp/histui-gtk-visual
+          runuser -u gtkvisual -- sh scripts/gtk-popup/run.sh --daemon /tmp/histuid-visual --themes "$GITHUB_WORKSPACE/embed/themes" --out /tmp/histui-gtk-visual
+
+      - name: Retain GTK popup screenshots and animation sequences
+        if: always()
+        uses: actions/upload-artifact@cf430e030ddbb5b0abf93d22962f4752f3646cd9
+        with:
+          name: gtk-popup-visual-evidence
+          path: /tmp/histui-gtk-visual
+          retention-days: 14
+          if-no-files-found: warn

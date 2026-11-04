@@ -1,0 +1,308 @@
+{
+  "daemon_sha256": "bdf4131a8c291e6f36a40014046abd7535eebdd45995c44d3c38b2bf83cbc03f",
+  "status": "passed",
+  "tests": [
+    {
+      "case": "default-urgency-0-static",
+      "frames": 3,
+      "elapsed_seconds": [
+        0.389,
+        0.778,
+        1.151
+      ],
+      "dismissed_to_blank": true,
+      "hover_and_action_verified": false,
+      "timeout_pause_resume_verified": false,
+      "css_hot_reload_verified": false
+    },
+    {
+      "case": "default-urgency-1-static",
+      "frames": 3,
+      "elapsed_seconds": [
+        0.389,
+        0.777,
+        1.166
+      ],
+      "dismissed_to_blank": true,
+      "hover_and_action_verified": true,
+      "timeout_pause_resume_verified": true,
+      "css_hot_reload_verified": true
+    },
+    {
+      "case": "default-urgency-2-static",
+      "frames": 3,
+      "elapsed_seconds": [
+        0.389,
+        0.778,
+        1.167
+      ],
+      "dismissed_to_blank": true,
+      "hover_and_action_verified": false,
+      "timeout_pause_resume_verified": false,
+      "css_hot_reload_verified": false
+    },
+    {
+      "case": "default-urgency-2-animated",
+      "frames": 12,
+      "elapsed_seconds": [
+        0.239,
+        0.478,
+        0.717,
+        0.956,
+        1.195,
+        1.433,
+        1.672,
+        1.911,
+        2.151,
+        2.39,
+        2.629,
+        2.868
+      ],
+      "dismissed_to_blank": true,
+      "hover_and_action_verified": false,
+      "timeout_pause_resume_verified": false,
+      "css_hot_reload_verified": false
+    },
+    {
+      "case": "minimal-urgency-0-static",
+      "frames": 3,
+      "elapsed_seconds": [
+        0.373,
+        0.745,
+        1.118
+      ],
+      "dismissed_to_blank": true,
+      "hover_and_action_verified": false,
+      "timeout_pause_resume_verified": false,
+      "css_hot_reload_verified": false
+    },
+    {
+      "case": "minimal-urgency-1-static",
+      "frames": 3,
+      "elapsed_seconds": [
+        0.373,
+        0.745,
+        1.117
+      ],
+      "dismissed_to_blank": true,
+      "hover_and_action_verified": false,
+      "timeout_pause_resume_verified": false,
+      "css_hot_reload_verified": false
+    },
+    {
+      "case": "minimal-urgency-2-static",
+      "frames": 3,
+      "elapsed_seconds": [
+        0.372,
+        0.745,
+        1.118
+      ],
+      "dismissed_to_blank": true,
+      "hover_and_action_verified": false,
+      "timeout_pause_resume_verified": false,
+      "css_hot_reload_verified": false
+    },
+    {
+      "case": "compact-urgency-0-static",
+      "frames": 3,
+      "elapsed_seconds": [
+        0.373,
+        0.745,
+        1.118
+      ],
+      "dismissed_to_blank": true,
+      "hover_and_action_verified": false,
+      "timeout_pause_resume_verified": false,
+      "css_hot_reload_verified": false
+    },
+    {
+      "case": "compact-urgency-1-static",
+      "frames": 3,
+      "elapsed_seconds": [
+        0.372,
+        0.745,
+        1.117
+      ],
+      "dismissed_to_blank": true,
+      "hover_and_action_verified": true,
+      "timeout_pause_resume_verified": false,
+      "css_hot_reload_verified": false
+    },
+    {
+      "case": "compact-urgency-2-static",
+      "frames": 3,
+      "elapsed_seconds": [
+        0.373,
+        0.761,
+        1.134
+      ],
+      "dismissed_to_blank": true,
+      "hover_and_action_verified": false,
+      "timeout_pause_resume_verified": false,
+      "css_hot_reload_verified": false
+    },
+    {
+      "case": "detailed-urgency-0-static",
+      "frames": 3,
+      "elapsed_seconds": [
+        0.389,
+        0.762,
+        1.135
+      ],
+      "dismissed_to_blank": true,
+      "hover_and_action_verified": false,
+      "timeout_pause_resume_verified": false,
+      "css_hot_reload_verified": false
+    },
+    {
+      "case": "detailed-urgency-1-static",
+      "frames": 3,
+      "elapsed_seconds": [
+        0.389,
+        0.778,
+        1.166
+      ],
+      "dismissed_to_blank": true,
+      "hover_and_action_verified": true,
+      "timeout_pause_resume_verified": false,
+      "css_hot_reload_verified": false
+    },
+    {
+      "case": "detailed-urgency-2-static",
+      "frames": 3,
+      "elapsed_seconds": [
+        0.389,
+        0.778,
+        1.167
+      ],
+      "dismissed_to_blank": true,
+      "hover_and_action_verified": false,
+      "timeout_pause_resume_verified": false,
+      "css_hot_reload_verified": false
+    },
+    {
+      "case": "catppuccin-urgency-0-static",
+      "frames": 3,
+      "elapsed_seconds": [
+        0.389,
+        0.778,
+        1.151
+      ],
+      "dismissed_to_blank": true,
+      "hover_and_action_verified": false,
+      "timeout_pause_resume_verified": false,
+      "css_hot_reload_verified": false
+    },
+    {
+      "case": "catppuccin-urgency-1-static",
+      "frames": 3,
+      "elapsed_seconds": [
+        0.389,
+        0.778,
+        1.168
+      ],
+      "dismissed_to_blank": true,
+      "hover_and_action_verified": true,
+      "timeout_pause_resume_verified": false,
+      "css_hot_reload_verified": false
+    },
+    {
+      "case": "catppuccin-urgency-2-static",
+      "frames": 3,
+      "elapsed_seconds": [
+        0.389,
+        0.762,
+        1.151
+      ],
+      "dismissed_to_blank": true,
+      "hover_and_action_verified": false,
+      "timeout_pause_resume_verified": false,
+      "css_hot_reload_verified": false
+    },
+    {
+      "case": "glass-urgency-0-static",
+      "frames": 3,
+      "elapsed_seconds": [
+        0.389,
+        0.778,
+        1.167
+      ],
+      "dismissed_to_blank": true,
+      "hover_and_action_verified": false,
+      "timeout_pause_resume_verified": false,
+      "css_hot_reload_verified": false
+    },
+    {
+      "case": "glass-urgency-1-static",
+      "frames": 3,
+      "elapsed_seconds": [
+        0.389,
+        0.779,
+        1.168
+      ],
+      "dismissed_to_blank": true,
+      "hover_and_action_verified": true,
+      "timeout_pause_resume_verified": false,
+      "css_hot_reload_verified": false
+    },
+    {
+      "case": "glass-urgency-2-static",
+      "frames": 3,
+      "elapsed_seconds": [
+        0.389,
+        0.778,
+        1.167
+      ],
+      "dismissed_to_blank": true,
+      "hover_and_action_verified": false,
+      "timeout_pause_resume_verified": false,
+      "css_hot_reload_verified": false
+    },
+    {
+      "case": "glass-urgency-2-animated",
+      "frames": 12,
+      "elapsed_seconds": [
+        0.239,
+        0.51,
+        0.749,
+        0.989,
+        1.228,
+        1.467,
+        1.706,
+        1.945,
+        2.216,
+        2.455,
+        2.694,
+        2.933
+      ],
+      "dismissed_to_blank": true,
+      "hover_and_action_verified": false,
+      "timeout_pause_resume_verified": false,
+      "css_hot_reload_verified": false
+    },
+    {
+      "case": "glass-urgency-1-animated",
+      "frames": 12,
+      "elapsed_seconds": [
+        0.239,
+        0.478,
+        0.718,
+        0.956,
+        1.195,
+        1.434,
+        1.673,
+        1.913,
+        2.151,
+        2.39,
+        2.629,
+        2.868
+      ],
+      "dismissed_to_blank": true,
+      "hover_and_action_verified": false,
+      "timeout_pause_resume_verified": false,
+      "css_hot_reload_verified": false
+    }
+  ],
+  "runtime": "sway version 1.10.1",
+  "libraries": "fonts-dejavu-core\t2.37-8\nlibadwaita-1-0:amd64\t1.7.6-1~deb13u1\nlibgtk-4-1:amd64\t4.18.6+ds-2\nlibgtk4-layer-shell0:amd64\t1.0.4-2"
+}
