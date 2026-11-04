@@ -87,7 +87,7 @@ jobs:
     steps:
       - name: Install build dependencies
         run: |
-          dnf install -y git git-lfs golang gtk4-devel gtk4-layer-shell-devel libadwaita-devel alsa-lib-devel gobject-introspection-devel gcc
+          dnf install -y git git-lfs golang gtk4 gtk4-layer-shell libadwaita alsa-lib gcc util-linux
 
       - name: Checkout code
         uses: actions/checkout@v7
@@ -122,9 +122,9 @@ jobs:
             ./internal/db/... \
             ./internal/adapter/...
 
-      - name: Run tests (CGO packages with race detector)
+      - name: Run GTK-independent theme/layout tests with race detector
         run: |
-          go test -race -v -timeout 60s \
+          CGO_ENABLED=1 sh scripts/puregotk/go.sh test -race -v -timeout 60s \
             ./internal/theme/... \
             ./internal/layout/...
 
@@ -134,15 +134,15 @@ jobs:
           GOOS: ${{ matrix.goos }}
           GOARCH: ${{ matrix.goarch }}
         run: |
-          go build -ldflags "-s -w -X main.version=${{ needs.prepare.outputs.version }} -X main.commit=${{ github.sha }} -X main.buildTime=$(date -u +%Y-%m-%dT%H:%M:%SZ)" -o histui ./cmd/histui
+          sh scripts/puregotk/go.sh build -ldflags "-s -w -X main.version=${{ needs.prepare.outputs.version }} -X main.commit=${{ github.sha }} -X main.buildTime=$(date -u +%Y-%m-%dT%H:%M:%SZ)" -o histui ./cmd/histui
 
-      - name: Build histuid (daemon - requires CGO for GTK4)
+      - name: Build histuid (CGO-free GTK daemon)
         env:
-          CGO_ENABLED: 1
+          CGO_ENABLED: 0
           GOOS: ${{ matrix.goos }}
           GOARCH: ${{ matrix.goarch }}
         run: |
-          go build -ldflags "-s -w -X main.version=${{ needs.prepare.outputs.version }} -X main.commit=${{ github.sha }} -X main.buildTime=$(date -u +%Y-%m-%dT%H:%M:%SZ)" -o histuid ./cmd/histuid
+          sh scripts/puregotk/go.sh build -ldflags "-s -w -X main.version=${{ needs.prepare.outputs.version }} -X main.commit=${{ github.sha }} -X main.buildTime=$(date -u +%Y-%m-%dT%H:%M:%SZ)" -o histuid ./cmd/histuid
 
       - name: Generate shell completions
         run: |

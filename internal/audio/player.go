@@ -15,6 +15,7 @@ import (
 	"github.com/gopxl/beep/v2/mp3"
 	"github.com/gopxl/beep/v2/vorbis"
 	"github.com/gopxl/beep/v2/wav"
+
 	"github.com/jmylchreest/histui/internal/config"
 )
 

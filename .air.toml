@@ -5,8 +5,8 @@ root = "."
 tmp_dir = "tmp"
 
 [build]
-# Build command with ccache and fast compilation flags
-cmd = "CGO_ENABLED=1 CGO_CFLAGS='-O0' CC='ccache gcc' go build -ldflags '-X main.version=dev' -o ./tmp/histuid ./cmd/histuid"
+# CGO-free daemon with pinned GTK fixes
+cmd = "sh scripts/puregotk/go.sh build -ldflags '-X main.version=dev' -o ./tmp/histuid ./cmd/histuid"
 # Binary to run
 bin = "./tmp/histuid"
 # Watch these directories

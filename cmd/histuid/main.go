@@ -14,9 +14,9 @@ import (
 	"syscall"
 	"time"
 
-	"github.com/diamondburned/gotk4-adwaita/pkg/adw"
-	"github.com/diamondburned/gotk4/pkg/glib/v2"
-	"github.com/diamondburned/gotk4/pkg/gtk/v4"
+	"codeberg.org/puregotk/puregotk/v4/adw"
+	"codeberg.org/puregotk/puregotk/v4/gio"
+	"codeberg.org/puregotk/puregotk/v4/gtk"
 	godbus "github.com/godbus/dbus/v5"
 	"github.com/spf13/pflag"
 	"github.com/spf13/viper"
@@ -27,6 +27,7 @@ import (
 	"github.com/jmylchreest/histui/internal/db"
 	"github.com/jmylchreest/histui/internal/dbus"
 	"github.com/jmylchreest/histui/internal/display"
+	"github.com/jmylchreest/histui/internal/gtkruntime"
 	"github.com/jmylchreest/histui/internal/icon"
 	"github.com/jmylchreest/histui/internal/imagecapture"
 	"github.com/jmylchreest/histui/internal/model"
@@ -289,19 +290,21 @@ func runDaemonMode(logger *slog.Logger) {
 
 	// Create the libadwaita application
 	app := adw.NewApplication(appID, 0)
+	defer app.Unref()
 
 	// Set AdwStyleManager color scheme early (in startup phase) to avoid GtkSettings warning
-	app.ConnectStartup(func() {
+	app.ConnectStartup(ptr(func(_ gio.Application) {
 		styleManager := adw.StyleManagerGetDefault()
+		defer styleManager.Unref()
 		switch config.ColorScheme(cfg.Theme.ColorScheme) {
 		case config.ColorSchemeLight:
-			styleManager.SetColorScheme(adw.ColorSchemeForceLight)
+			styleManager.SetColorScheme(adw.ColorSchemeForceLightValue)
 		case config.ColorSchemeDark:
-			styleManager.SetColorScheme(adw.ColorSchemeForceDark)
+			styleManager.SetColorScheme(adw.ColorSchemeForceDarkValue)
 		default:
-			styleManager.SetColorScheme(adw.ColorSchemeDefault)
+			styleManager.SetColorScheme(adw.ColorSchemeDefaultValue)
 		}
-	})
+	}))
 
 	// Shared state between GTK main loop and signal handlers
 	var (
@@ -330,7 +333,7 @@ func runDaemonMode(logger *slog.Logger) {
 		cancel()
 
 		// Stop components in GTK main loop context
-		glib.IdleAdd(func() {
+		gtkruntime.IdleAdd(func() {
 			if running.Load() {
 				if daemonServer != nil {
 					_ = daemonServer.Stop()
@@ -359,7 +362,7 @@ func runDaemonMode(logger *slog.Logger) {
 	}()
 
 	// Handle application activation
-	app.ConnectActivate(func() {
+	app.ConnectActivate(ptr(func(_ gio.Application) {
 		if running.Load() {
 			logger.Warn("application already running")
 			return
@@ -567,7 +570,7 @@ func runDaemonMode(logger *slog.Logger) {
 
 			// Schedule display on GTK main loop (use trackingID for signal emission)
 			histuiIDForDisplay := trackingID
-			glib.IdleAdd(func() {
+			gtkruntime.IdleAdd(func() {
 				if err := displayManager.Show(notification, id, histuiIDForDisplay); err != nil {
 					logger.Error("failed to show notification", "id", id, "error", err)
 				}
@@ -575,7 +578,7 @@ func runDaemonMode(logger *slog.Logger) {
 		})
 
 		dbusServer.SetCloseHandler(func(id uint32) {
-			glib.IdleAdd(func() {
+			gtkruntime.IdleAdd(func() {
 				displayManager.Close(id, dbus.CloseReasonClosed)
 			})
 		})
@@ -684,7 +687,7 @@ func runDaemonMode(logger *slog.Logger) {
 		} else {
 			configWatcher.SetReloadCallback(func(newConfig *config.DaemonConfig) {
 				// Update components with new config
-				glib.IdleAdd(func() {
+				gtkruntime.IdleAdd(func() {
 					// Update display manager config
 					displayManager.UpdateConfig(newConfig)
 
@@ -753,10 +756,12 @@ func runDaemonMode(logger *slog.Logger) {
 		keepAliveWindow.SetDefaultSize(1, 1)
 		keepAliveWindow.SetDecorated(false)
 		keepAliveWindow.SetVisible(false)
-	})
+		// GTK owns toplevel windows until Destroy; release our constructor reference.
+		keepAliveWindow.Unref()
+	}))
 
 	// Handle shutdown
-	app.ConnectShutdown(func() {
+	app.ConnectShutdown(ptr(func(_ gio.Application) {
 		logger.Info("application shutting down")
 		if daemonServer != nil {
 			_ = daemonServer.Stop()
@@ -785,11 +790,11 @@ func runDaemonMode(logger *slog.Logger) {
 		// Clean up temporary files
 		daemon.CleanupTemp(logger)
 		running.Store(false)
-	})
+	}))
 
 	// Run the application
 	// Pass only program name to GTK - we've already parsed our flags with pflag
-	status := app.Run([]string{os.Args[0]})
+	status := app.Run(1, []string{os.Args[0]})
 
 	// Ensure context is cancelled
 	cancel()
@@ -797,7 +802,7 @@ func runDaemonMode(logger *slog.Logger) {
 
 	if status != 0 {
 		logger.Error("application exited with error", "status", status)
-		os.Exit(status)
+		os.Exit(int(status))
 	}
 
 	logger.Info("histuid stopped")
@@ -933,3 +938,5 @@ func suppressGraphicsDebug() {
 		}
 	}
 }
+
+func ptr[T any](value T) *T { return &value }

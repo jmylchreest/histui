@@ -61,24 +61,20 @@ tasks:
       - go build -ldflags "{{.LDFLAGS}}" -o dist/histui ./cmd/histui
 
   dist:histuid:
-    desc: Build histuid daemon to dist/ (requires GTK4)
+    desc: Build histuid daemon to dist/ (GTK4 runtime required)
     env:
-      CGO_ENABLED: '1'
-      CC: 'ccache gcc'
-      CGO_CFLAGS: '-O2'
+      CGO_ENABLED: '0'
     cmds:
       - mkdir -p dist/
-      - go build -ldflags "{{.LDFLAGS}}" -o dist/histuid ./cmd/histuid
+      - sh scripts/puregotk/go.sh build -ldflags "{{.LDFLAGS}}" -o dist/histuid ./cmd/histuid
 
   dist:histuid:fast:
-    desc: Build histuid daemon with fast compilation (no optimization)
+    desc: Build histuid daemon (CGO-free)
     env:
-      CGO_ENABLED: '1'
-      CC: 'ccache gcc'
-      CGO_CFLAGS: '-O0'
+      CGO_ENABLED: '0'
     cmds:
       - mkdir -p dist/
-      - go build -ldflags "{{.LDFLAGS}}" -o dist/histuid ./cmd/histuid
+      - sh scripts/puregotk/go.sh build -ldflags "{{.LDFLAGS}}" -o dist/histuid ./cmd/histuid
 
   dist:docs:
     desc: Build docs to dist/docs/
@@ -92,7 +88,7 @@ tasks:
     desc: Install histui and histuid to GOPATH/bin
     cmds:
       - CGO_ENABLED=0 go install -ldflags "{{.LDFLAGS}}" ./cmd/histui
-      - CGO_ENABLED=1 go install -ldflags "{{.LDFLAGS}}" ./cmd/histuid
+      - sh scripts/puregotk/go.sh install -ldflags "{{.LDFLAGS}}" ./cmd/histuid
 
   install:histui:
     desc: Install histui CLI only to GOPATH/bin
@@ -100,13 +96,11 @@ tasks:
       - CGO_ENABLED=0 go install -ldflags "{{.LDFLAGS}}" ./cmd/histui
 
   install:histuid:
-    desc: Install histuid daemon only to GOPATH/bin (requires GTK4)
+    desc: Install histuid daemon only to GOPATH/bin (GTK4 runtime required)
     env:
-      CGO_ENABLED: '1'
-      CC: 'ccache gcc'
-      CGO_CFLAGS: '-O2'
+      CGO_ENABLED: '0'
     cmds:
-      - go install -ldflags "{{.LDFLAGS}}" ./cmd/histuid
+      - sh scripts/puregotk/go.sh install -ldflags "{{.LDFLAGS}}" ./cmd/histuid
 
   # Development
   run:
@@ -136,19 +130,13 @@ tasks:
   # Code quality
   test:
     desc: Run all tests
-    env:
-      CC: 'ccache gcc'
-      CGO_CFLAGS: '-O0'
     cmds:
-      - go test -v -timeout 60s ./...
+      - sh scripts/puregotk/go.sh test -v -timeout 60s ./...
 
   test:race:
-    desc: Run all tests with race detector (uses ccache for faster CGO builds)
-    env:
-      CC: 'ccache gcc'
-      CGO_CFLAGS: '-O0'
+    desc: Run all tests with race detector
     cmds:
-      - go test -race -v -timeout 60s ./...
+      - CGO_ENABLED=1 sh scripts/puregotk/go.sh test -race -v -timeout 60s ./...
 
   test:race:pure:
     desc: Run tests with race detector (pure Go packages only, no CGO)
@@ -158,19 +146,19 @@ tasks:
   test-coverage:
     desc: Run tests with coverage
     cmds:
-      - go test -coverprofile=coverage.out ./...
+      - sh scripts/puregotk/go.sh test -coverprofile=coverage.out ./...
       - go tool cover -html=coverage.out -o coverage.html
       - echo "Coverage report generated at coverage.html"
 
   lint:
     desc: Run golangci-lint
     cmds:
-      - golangci-lint run
+      - sh scripts/puregotk/go.sh --tool golangci-lint run
 
   lint-fix:
     desc: Run golangci-lint with auto-fix
     cmds:
-      - golangci-lint run --fix
+      - sh scripts/puregotk/go.sh --tool golangci-lint run --fix
 
   fmt:
     desc: Format code

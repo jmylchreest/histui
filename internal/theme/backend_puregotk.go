@@ -1,4 +1,4 @@
-//go:build puregotk && !headless
+//go:build !headless
 
 package theme
 

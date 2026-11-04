@@ -1,20 +1,15 @@
 // Package icon provides icon name resolution and font loading.
 package icon
 
-/*
-#cgo pkg-config: fontconfig
-#include <fontconfig/fontconfig.h>
-#include <stdlib.h>
-*/
-import "C"
-
 import (
+	"fmt"
 	"io/fs"
 	"os"
 	"path/filepath"
 	"strings"
 	"sync"
-	"unsafe"
+
+	"github.com/ebitengine/purego"
 )
 
 var (
@@ -27,7 +22,7 @@ var (
 // and registering them with fontconfig. This should be called once at startup
 // before any GTK operations.
 //
-// Fonts are written to $XDG_RUNTIME_DIR/histui/fonts/ or /tmp/histui/fonts/.
+// Fonts are written to a private temporary directory in $XDG_RUNTIME_DIR or /tmp.
 // Returns the fonts directory path and any error encountered.
 func InitFonts() (string, error) {
 	fontInitOnce.Do(func() {
@@ -44,14 +39,14 @@ func initFontsOnce() (string, error) {
 	}
 
 	// Create histui fonts directory
-	fontsDir := filepath.Join(runtimeDir, "histui", "fonts")
-	if err := os.MkdirAll(fontsDir, 0700); err != nil {
+	fontsDir, err := os.MkdirTemp(runtimeDir, "histui-fonts-")
+	if err != nil {
 		return "", err
 	}
 
 	// Walk embedded fonts and write each to the temp directory
 	fontCount := 0
-	err := fs.WalkDir(EmbeddedFonts, "fonts", func(path string, d fs.DirEntry, err error) error {
+	err = fs.WalkDir(EmbeddedFonts, "fonts", func(path string, d fs.DirEntry, err error) error {
 		if err != nil {
 			return err
 		}
@@ -88,10 +83,19 @@ func initFontsOnce() (string, error) {
 		return fontsDir, nil // No fonts to register
 	}
 
-	// Register the fonts directory with fontconfig
-	cDir := C.CString(fontsDir)
-	defer C.free(unsafe.Pointer(cDir))
-	C.FcConfigAppFontAddDir(nil, (*C.FcChar8)(unsafe.Pointer(cDir)))
+	// Load lazily so CLI/TUI operations do not require fontconfig. GTK shares
+	// this process-owned library handle; keep it loaded for the process lifetime.
+	handle, err := purego.Dlopen("libfontconfig.so.1", purego.RTLD_NOW|purego.RTLD_LOCAL)
+	if err != nil {
+		_ = os.RemoveAll(fontsDir)
+		return "", fmt.Errorf("load fontconfig: %w", err)
+	}
+	var addDir func(uintptr, string) int32
+	purego.RegisterLibFunc(&addDir, handle, "FcConfigAppFontAddDir")
+	if addDir(0, fontsDir) == 0 {
+		_ = os.RemoveAll(fontsDir)
+		return "", fmt.Errorf("register embedded fonts")
+	}
 
 	return fontsDir, nil
 }

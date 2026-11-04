@@ -31,7 +31,7 @@ jobs:
     steps:
       - name: Install build dependencies
         run: |
-          dnf install -y git git-lfs golang gtk4-devel gtk4-layer-shell-devel libadwaita-devel alsa-lib-devel gobject-introspection-devel gcc
+          dnf install -y git git-lfs golang gtk4 gtk4-layer-shell libadwaita alsa-lib gcc util-linux
 
       - name: Checkout code
         uses: actions/checkout@v7
@@ -69,9 +69,9 @@ jobs:
             ./internal/imagecapture/... \
             ./internal/adapter/...
 
-      - name: Run tests (CGO packages with race detector)
+      - name: Run GTK-independent theme/layout tests with race detector
         run: |
-          go test -race -v -timeout 60s \
+          CGO_ENABLED=1 sh scripts/puregotk/go.sh test -race -v -timeout 60s \
             ./internal/theme/... \
             ./internal/layout/...
 
@@ -91,21 +91,30 @@ jobs:
           CGO_ENABLED=0 GOOS=linux GOARCH=arm64 \
             go test -c -o "$RUNNER_TEMP/histui-audio-arm64.test" ./internal/audio
 
+      - name: Cross-build CGO-free daemon for ARM64
+        run: GOOS=linux GOARCH=arm64 sh scripts/puregotk/go.sh build -o /tmp/histuid-arm64 ./cmd/histuid
+
       - name: Build
-        run: CGO_ENABLED=1 go build ./...
+        run: CGO_ENABLED=0 sh scripts/puregotk/go.sh build ./...
 
       - name: Install popup screenshot runtime
         run: dnf install -y sway swaybg grim dbus-daemon python3-dbus python3-pillow python3-gobject wayland-devel dejavu-sans-fonts shadow-utils util-linux
 
+      - name: Verify native popup and callback lifetimes
+        run: |
+          dnf install -y xorg-x11-server-Xvfb
+          HISTUI_TEST_GTK=1 GDK_BACKEND=x11 G_DEBUG=fatal-criticals CGO_ENABLED=1 \
+            xvfb-run -a sh scripts/puregotk/go.sh test -race -count=1 ./internal/display ./internal/theme
+
       - name: Capture actual GTK popups in a private Wayland session
         run: |
-          CGO_ENABLED=1 go build -o /tmp/histuid-visual ./cmd/histuid
+          CGO_ENABLED=0 sh scripts/puregotk/go.sh build -o /tmp/histuid-visual ./cmd/histuid
           # Fedora grants Sway CAP_SYS_NICE, unavailable in this container.
           setcap -r /usr/bin/sway
           useradd --create-home gtkvisual
           mkdir -p /tmp/histui-gtk-visual
           chown gtkvisual:gtkvisual /tmp/histui-gtk-visual
-          runuser -u gtkvisual -- sh scripts/gtk-popup/run.sh --daemon /tmp/histuid-visual --themes "$GITHUB_WORKSPACE/embed/themes" --out /tmp/histui-gtk-visual
+          runuser -u gtkvisual -- sh scripts/gtk-popup/run.sh --daemon /tmp/histuid-visual --themes "$GITHUB_WORKSPACE/embed/themes" --out /tmp/histui-gtk-visual --churn 25
 
       - name: Retain GTK popup screenshots and animation sequences
         if: always()

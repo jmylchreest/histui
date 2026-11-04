@@ -94,18 +94,19 @@ sudo mv histuid-linux-amd64 /usr/local/bin/histuid
 
 ### Requirements
 
-- **Go 1.21+** (required for stdlib `slog`)
-- **GTK4 development libraries** (for histuid)
-- **pkg-config**
+- **Go 1.26+**, Git and `flock` (util-linux)
+- **GTK4, libadwaita, gtk4-layer-shell, fontconfig and ALSA runtime libraries** for histuid
+- No C compiler, GTK development headers or pkg-config are needed to build the binaries.
+  Race tests and screenshot test helpers still use a C compiler.
 
 **Arch Linux:**
 ```bash
-sudo pacman -S go gtk4 glib2 pkg-config
+sudo pacman -S go git util-linux gtk4 libadwaita gtk4-layer-shell fontconfig alsa-lib
 ```
 
 **Debian/Ubuntu:**
 ```bash
-sudo apt install golang libgtk-4-dev libglib2.0-dev pkg-config
+sudo apt install golang git util-linux libgtk-4-1 libadwaita-1-0 libgtk4-layer-shell0 fontconfig libasound2t64
 ```
 
 ### Build
@@ -118,12 +119,21 @@ cd histui
 # Build histui CLI (no CGO needed)
 CGO_ENABLED=0 go build -ldflags "-s -w" -o histui ./cmd/histui
 
-# Build histuid daemon (requires GTK4)
-CGO_ENABLED=1 go build -ldflags "-s -w" -o histuid ./cmd/histuid
+# Build histuid daemon (CGO disabled by default)
+sh scripts/puregotk/go.sh build -ldflags "-s -w" -o histuid ./cmd/histuid
 
 # Install
 sudo mv histui histuid /usr/local/bin/
 ```
+
+The daemon wrapper copies the checksum-pinned Codeberg GTK module into `.cache/`,
+applies the two carried upstream fixes, and builds with a temporary module file.
+It never edits the shared Go module cache. Use this wrapper until those fixes are
+available in a pinned upstream release. GTK is loaded dynamically at runtime;
+CGO-free does not mean the daemon has no native library dependencies.
+
+Linux amd64 runtime and ARM64 cross-builds are tested. Debian 13 (GTK 4.18) and
+current Fedora are covered by the private-compositor integration tests.
 
 ### Using Taskfile
 

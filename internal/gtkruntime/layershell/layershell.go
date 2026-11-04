@@ -1,4 +1,4 @@
-//go:build linux && puregotk
+//go:build linux
 
 // Package layershell is a deliberately narrow binding to the existing native
 // gtk4-layer-shell library used by the Codeberg GTK backend.

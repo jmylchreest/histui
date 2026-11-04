@@ -66,7 +66,7 @@ func newFileWatcher(path string) (*fileWatcher, error) {
 	go func() {
 		defer close(w.done)
 		defer close(w.changes)
-		defer watcher.Close()
+		defer func() { _ = watcher.Close() }()
 		for {
 			select {
 			case <-ctx.Done():

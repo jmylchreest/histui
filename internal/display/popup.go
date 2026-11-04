@@ -8,14 +8,15 @@ import (
 	"strings"
 	"time"
 
-	"github.com/diamondburned/gotk4-adwaita/pkg/adw"
-	"github.com/diamondburned/gotk4/pkg/gdk/v4"
-	"github.com/diamondburned/gotk4/pkg/gdkpixbuf/v2"
-	"github.com/diamondburned/gotk4/pkg/glib/v2"
-	"github.com/diamondburned/gotk4/pkg/gtk/v4"
+	"codeberg.org/puregotk/puregotk/v4/adw"
+	"codeberg.org/puregotk/puregotk/v4/gdk"
+	"codeberg.org/puregotk/puregotk/v4/gdkpixbuf"
+	"codeberg.org/puregotk/puregotk/v4/glib"
+	"codeberg.org/puregotk/puregotk/v4/gtk"
 
 	"github.com/jmylchreest/histui/internal/config"
 	"github.com/jmylchreest/histui/internal/dbus"
+	"github.com/jmylchreest/histui/internal/gtkruntime"
 	"github.com/jmylchreest/histui/internal/icon"
 	"github.com/jmylchreest/histui/internal/layout"
 	"github.com/jmylchreest/histui/internal/model"
@@ -50,6 +51,9 @@ type Popup struct {
 	onCloseAll func()
 
 	// State
+	owned            []nativeObject
+	sources          gtkruntime.Sources
+	disposed         bool
 	closed           bool
 	stackCount       int    // Number of stacked identical notifications
 	stackCountFormat string // "number" (default) or "dots"
@@ -81,7 +85,7 @@ func NewPopupWidget(notification *dbus.DBusNotification, cfg *config.DaemonConfi
 	p.connectWidgetSignals()
 
 	// Set size constraints on the box itself
-	p.box.SetSizeRequest(p.minWidth, -1)
+	p.box.SetSizeRequest(int32(p.minWidth), -1)
 
 	return p, nil
 }
@@ -126,35 +130,35 @@ func newPopupBase(notification *dbus.DBusNotification, cfg *config.DaemonConfig,
 // applyThemeClasses adds CSS classes for advanced theming.
 func (p *Popup) applyThemeClasses() {
 	// Color scheme class (light/dark)
-	p.box.AddCSSClass(p.getColorSchemeClass())
+	p.box.AddCssClass(p.getColorSchemeClass())
 
 	// Urgency class
-	p.box.AddCSSClass(urgencyToClass(p.notification.Urgency()))
+	p.box.AddCssClass(urgencyToClass(p.notification.Urgency()))
 
 	// Per-app class (sanitized app name)
 	if p.notification.AppName != "" {
 		appClass := "app-" + sanitizeClassName(p.notification.AppName)
-		p.box.AddCSSClass(appClass)
+		p.box.AddCssClass(appClass)
 	}
 
 	// Category class
 	if cat := p.notification.Category(); cat != "" {
 		catClass := "category-" + sanitizeClassName(cat)
-		p.box.AddCSSClass(catClass)
+		p.box.AddCssClass(catClass)
 	}
 
 	// State classes
 	if p.notification.Body != "" {
-		p.box.AddCSSClass("has-body")
+		p.box.AddCssClass("has-body")
 	}
 	if p.notification.AppIcon != "" {
-		p.box.AddCSSClass("has-icon")
+		p.box.AddCssClass("has-icon")
 	}
 
 	// Action-related classes
 	actions := p.notification.ParsedActions()
 	if len(actions) > 0 {
-		p.box.AddCSSClass("has-actions")
+		p.box.AddCssClass("has-actions")
 	}
 
 	// Check for default action (key="default") - indicates notification is clickable
@@ -166,8 +170,8 @@ func (p *Popup) applyThemeClasses() {
 		}
 	}
 	if hasDefaultAction {
-		p.box.AddCSSClass("has-default-action")
-		p.box.AddCSSClass("is-clickable") // Semantic alias
+		p.box.AddCssClass("has-default-action")
+		p.box.AddCssClass("is-clickable") // Semantic alias
 	}
 
 	// Check for visible actions (non-empty labels, non-default key)
@@ -179,30 +183,30 @@ func (p *Popup) applyThemeClasses() {
 		}
 	}
 	if hasVisibleActions {
-		p.box.AddCSSClass("has-visible-actions")
+		p.box.AddCssClass("has-visible-actions")
 	}
 	if p.notification.Resident() {
-		p.box.AddCSSClass("is-resident")
+		p.box.AddCssClass("is-resident")
 	}
 	if p.notification.Transient() {
-		p.box.AddCSSClass("is-transient")
+		p.box.AddCssClass("is-transient")
 	}
 
 	// Progress class
 	if progress := p.notification.Progress(); progress >= 0 {
-		p.box.AddCSSClass("has-progress")
+		p.box.AddCssClass("has-progress")
 		// Add progress range classes for styling
 		switch {
 		case progress == 100:
-			p.box.AddCSSClass("progress-complete")
+			p.box.AddCssClass("progress-complete")
 		case progress >= 75:
-			p.box.AddCSSClass("progress-high")
+			p.box.AddCssClass("progress-high")
 		case progress >= 50:
-			p.box.AddCSSClass("progress-medium")
+			p.box.AddCssClass("progress-medium")
 		case progress >= 25:
-			p.box.AddCSSClass("progress-low")
+			p.box.AddCssClass("progress-low")
 		default:
-			p.box.AddCSSClass("progress-minimal")
+			p.box.AddCssClass("progress-minimal")
 		}
 	}
 }
@@ -247,8 +251,8 @@ func sanitizeClassName(name string) string {
 func (p *Popup) buildUI() {
 	// Main container
 	// Margins are set via CSS for flexibility with stack positions
-	p.box = gtk.NewBox(gtk.OrientationVertical, 6)
-	p.box.AddCSSClass("notification-popup")
+	p.box = own(p, gtk.NewBox(gtk.OrientationVerticalValue, 6))
+	p.box.AddCssClass("notification-popup")
 
 	// Build from layout template
 	for _, elem := range p.layout.Elements {
@@ -259,7 +263,7 @@ func (p *Popup) buildUI() {
 }
 
 // buildElement builds a GTK widget from a layout element.
-func (p *Popup) buildElement(elem layout.LayoutElement) gtk.Widgetter {
+func (p *Popup) buildElement(elem layout.LayoutElement) *gtk.Widget {
 	switch elem.Type {
 	case layout.ElementTypeHeader:
 		return p.buildHeader(elem)
@@ -293,9 +297,9 @@ func (p *Popup) buildElement(elem layout.LayoutElement) gtk.Widgetter {
 // buildHeader creates the header row with child elements.
 // Supports overlay="top-right" etc. for elements that should float over others.
 // Supports underlay="top-right" etc. for elements that should float behind others.
-func (p *Popup) buildHeader(elem layout.LayoutElement) gtk.Widgetter {
-	headerBox := gtk.NewBox(gtk.OrientationHorizontal, 8)
-	headerBox.AddCSSClass("notification-header")
+func (p *Popup) buildHeader(elem layout.LayoutElement) *gtk.Widget {
+	headerBox := own(p, gtk.NewBox(gtk.OrientationHorizontalValue, 8))
+	headerBox.AddCssClass("notification-header")
 
 	// Categorize children by positioning type
 	var underlayChildren []layout.LayoutElement
@@ -321,13 +325,13 @@ func (p *Popup) buildHeader(elem layout.LayoutElement) gtk.Widgetter {
 
 	// If no floating children, return the simple header box
 	if len(underlayChildren) == 0 && len(overlayChildren) == 0 {
-		return headerBox
+		return &headerBox.Widget
 	}
 
 	// Wrap in GtkOverlay for floating elements
-	overlay := gtk.NewOverlay()
-	overlay.SetChild(headerBox)
-	overlay.AddCSSClass("notification-header-overlay")
+	overlay := own(p, gtk.NewOverlay())
+	overlay.SetChild(&headerBox.Widget)
+	overlay.AddCssClass("notification-header-overlay")
 
 	// Add underlay children first (they render below overlays)
 	for _, child := range underlayChildren {
@@ -347,43 +351,43 @@ func (p *Popup) buildHeader(elem layout.LayoutElement) gtk.Widgetter {
 		}
 	}
 
-	return overlay
+	return &overlay.Widget
 }
 
 // applyOverlayAlignment sets halign/valign based on position string.
-func applyOverlayAlignment(widget gtk.Widgetter, position string) {
+func applyOverlayAlignment(widget *gtk.Widget, position string) {
 	// Get the base widget to set alignment
-	baseWidget := gtk.BaseWidget(widget)
+	baseWidget := widget
 
 	var hAlign, vAlign gtk.Align
 	switch position {
 	case "top-right":
-		hAlign, vAlign = gtk.AlignEnd, gtk.AlignStart
+		hAlign, vAlign = gtk.AlignEndValue, gtk.AlignStartValue
 	case "top-left":
-		hAlign, vAlign = gtk.AlignStart, gtk.AlignStart
+		hAlign, vAlign = gtk.AlignStartValue, gtk.AlignStartValue
 	case "bottom-right":
-		hAlign, vAlign = gtk.AlignEnd, gtk.AlignEnd
+		hAlign, vAlign = gtk.AlignEndValue, gtk.AlignEndValue
 	case "bottom-left":
-		hAlign, vAlign = gtk.AlignStart, gtk.AlignEnd
+		hAlign, vAlign = gtk.AlignStartValue, gtk.AlignEndValue
 	default:
 		// Default to top-right
-		hAlign, vAlign = gtk.AlignEnd, gtk.AlignStart
+		hAlign, vAlign = gtk.AlignEndValue, gtk.AlignStartValue
 	}
 
-	baseWidget.SetHAlign(hAlign)
-	baseWidget.SetVAlign(vAlign)
+	baseWidget.SetHalign(hAlign)
+	baseWidget.SetValign(vAlign)
 }
 
 // buildBox creates a container box with child elements.
-func (p *Popup) buildBox(elem layout.LayoutElement) gtk.Widgetter {
-	orientation := gtk.OrientationVertical
+func (p *Popup) buildBox(elem layout.LayoutElement) *gtk.Widget {
+	orientation := gtk.OrientationVerticalValue
 	if elem.Attributes["orientation"] == "horizontal" {
-		orientation = gtk.OrientationHorizontal
+		orientation = gtk.OrientationHorizontalValue
 	}
 
-	box := gtk.NewBox(orientation, 4)
-	if orientation == gtk.OrientationVertical {
-		box.SetHExpand(true)
+	box := own(p, gtk.NewBox(orientation, 4))
+	if orientation == gtk.OrientationVerticalValue {
+		box.SetHexpand(true)
 	}
 
 	for _, child := range elem.Children {
@@ -392,7 +396,7 @@ func (p *Popup) buildBox(elem layout.LayoutElement) gtk.Widgetter {
 		}
 	}
 
-	return box
+	return &box.Widget
 }
 
 // DefaultIconSize is the default icon size in pixels.
@@ -402,7 +406,7 @@ const DefaultIconSize = 48
 // Handles both icon names (e.g., "dialog-information") and file paths (e.g., "/usr/lib/kitty/logo/kitty.png").
 // The icon size can be configured via the layout element's "size" attribute (e.g., <icon size="32"/>).
 // Falls back to symbol font glyphs when icon theme lookup fails.
-func (p *Popup) buildIcon(elem layout.LayoutElement) gtk.Widgetter {
+func (p *Popup) buildIcon(elem layout.LayoutElement) *gtk.Widget {
 	// Parse icon size from layout attributes (default: 48)
 	iconSize := DefaultIconSize
 	if sizeStr, ok := elem.Attributes["size"]; ok {
@@ -421,11 +425,11 @@ func (p *Popup) buildIcon(elem layout.LayoutElement) gtk.Widgetter {
 	}
 
 	// Helper to create a symbol font label as fallback
-	createSymbolLabel := func(symbol string) gtk.Widgetter {
-		label := gtk.NewLabel(symbol)
-		label.AddCSSClass("notification-icon")
-		label.AddCSSClass("notification-icon-symbol")
-		return label
+	createSymbolLabel := func(symbol string) *gtk.Widget {
+		label := own(p, gtk.NewLabel(symbol))
+		label.AddCssClass("notification-icon")
+		label.AddCssClass("notification-icon-symbol")
+		return &label.Widget
 	}
 
 	// Helper to get symbol font glyph for app/category
@@ -453,12 +457,17 @@ func (p *Popup) buildIcon(elem layout.LayoutElement) gtk.Widgetter {
 		return icon.FallbackNerdSymbolForUrgency(p.notification.Urgency())
 	}
 
-	p.iconImage = gtk.NewImage()
-	p.iconImage.AddCSSClass("notification-icon")
-	p.iconImage.SetPixelSize(iconSize)
+	p.iconImage = own(p, gtk.NewImage())
+	p.iconImage.AddCssClass("notification-icon")
+	p.iconImage.SetPixelSize(int32(iconSize))
 
 	// Add theme icons directory to GTK icon search path for symbolic icon coloring
-	iconTheme := gtk.IconThemeGetForDisplay(p.iconImage.Display())
+	iconDisplay := p.iconImage.GetDisplay()
+	defer iconDisplay.Unref()
+	iconTheme := gtk.IconThemeGetForDisplay(iconDisplay)
+	if iconTheme != nil {
+		defer iconTheme.Unref()
+	}
 	if iconTheme != nil && p.themeIconsDir != "" {
 		// Add our theme icons dir to GTK's search path so symbolic icons get colored
 		iconTheme.AddSearchPath(p.themeIconsDir)
@@ -483,13 +492,19 @@ func (p *Popup) buildIcon(elem layout.LayoutElement) gtk.Widgetter {
 
 		// Fallback: try loading directly from file (for non-symbolic icons)
 		if themeIconPath := p.findThemeIcon(name, iconSize); themeIconPath != "" {
-			pixbuf, err := gdkpixbuf.NewPixbufFromFileAtSize(themeIconPath, iconSize, iconSize)
+			pixbuf, err := gdkpixbuf.NewPixbufFromFileAtSize(themeIconPath, int32(iconSize), int32(iconSize))
+			if pixbuf != nil {
+				own(p, pixbuf)
+			}
 			if err == nil {
 				p.logger.Debug("loaded icon from file",
 					"icon_name", name,
 					"path", themeIconPath,
 				)
 				texture := gdk.NewTextureForPixbuf(pixbuf)
+				if texture != nil {
+					own(p, texture)
+				}
 				if texture != nil {
 					p.iconImage.SetFromPaintable(texture)
 				}
@@ -514,7 +529,7 @@ func (p *Popup) buildIcon(elem layout.LayoutElement) gtk.Widgetter {
 					"icon_name", urgencyIconName,
 				)
 				if tryLoadIcon(urgencyIconName) {
-					return p.iconImage
+					return &p.iconImage.Widget
 				}
 			}
 		}
@@ -529,7 +544,10 @@ func (p *Popup) buildIcon(elem layout.LayoutElement) gtk.Widgetter {
 	// Check if it's a file path (absolute path or file:// URI)
 	if strings.HasPrefix(iconName, "/") {
 		// Absolute file path - load from file
-		pixbuf, err := gdkpixbuf.NewPixbufFromFileAtSize(iconName, iconSize, iconSize)
+		pixbuf, err := gdkpixbuf.NewPixbufFromFileAtSize(iconName, int32(iconSize), int32(iconSize))
+		if pixbuf != nil {
+			own(p, pixbuf)
+		}
 		if err != nil {
 			p.logger.Debug("failed to load icon from file, using symbol font glyph",
 				"path", iconName,
@@ -537,18 +555,24 @@ func (p *Popup) buildIcon(elem layout.LayoutElement) gtk.Widgetter {
 			)
 			return createSymbolLabel(getSymbol())
 		}
-		p.logger.Debug("loaded icon from file", "path", iconName, "width", pixbuf.Width(), "height", pixbuf.Height())
+		p.logger.Debug("loaded icon from file", "path", iconName, "width", pixbuf.GetWidth(), "height", pixbuf.GetHeight())
 		texture := gdk.NewTextureForPixbuf(pixbuf)
+		if texture != nil {
+			own(p, texture)
+		}
 		if texture != nil {
 			p.iconImage.SetFromPaintable(texture)
 		}
-		return p.iconImage
+		return &p.iconImage.Widget
 	}
 
 	if strings.HasPrefix(iconName, "file://") {
 		// File URI - strip prefix and load from file
 		path := strings.TrimPrefix(iconName, "file://")
-		pixbuf, err := gdkpixbuf.NewPixbufFromFileAtSize(path, iconSize, iconSize)
+		pixbuf, err := gdkpixbuf.NewPixbufFromFileAtSize(path, int32(iconSize), int32(iconSize))
+		if pixbuf != nil {
+			own(p, pixbuf)
+		}
 		if err != nil {
 			p.logger.Debug("failed to load icon from file URI, using symbol font glyph",
 				"uri", iconName,
@@ -556,12 +580,15 @@ func (p *Popup) buildIcon(elem layout.LayoutElement) gtk.Widgetter {
 			)
 			return createSymbolLabel(getSymbol())
 		}
-		p.logger.Debug("loaded icon from file URI", "path", path, "width", pixbuf.Width(), "height", pixbuf.Height())
+		p.logger.Debug("loaded icon from file URI", "path", path, "width", pixbuf.GetWidth(), "height", pixbuf.GetHeight())
 		texture := gdk.NewTextureForPixbuf(pixbuf)
+		if texture != nil {
+			own(p, texture)
+		}
 		if texture != nil {
 			p.iconImage.SetFromPaintable(texture)
 		}
-		return p.iconImage
+		return &p.iconImage.Widget
 	}
 
 	// Icon name - resolve aliases and check theme
@@ -575,7 +602,7 @@ func (p *Popup) buildIcon(elem layout.LayoutElement) gtk.Widgetter {
 
 	// Try theme icons folder and GTK icon theme
 	if tryLoadIcon(resolvedIcon) {
-		return p.iconImage
+		return &p.iconImage.Widget
 	}
 
 	// Icon not found anywhere - try urgency fallback icon from theme aliases
@@ -587,7 +614,7 @@ func (p *Popup) buildIcon(elem layout.LayoutElement) gtk.Widgetter {
 				"urgency_icon", urgencyIconName,
 			)
 			if tryLoadIcon(urgencyIconName) {
-				return p.iconImage
+				return &p.iconImage.Widget
 			}
 		}
 	}
@@ -642,59 +669,59 @@ func (p *Popup) findThemeIcon(iconName string, size int) string {
 }
 
 // buildSummary creates the summary label.
-func (p *Popup) buildSummary() gtk.Widgetter {
-	p.summaryLbl = gtk.NewLabel(p.notification.Summary)
-	p.summaryLbl.AddCSSClass("notification-summary")
-	p.summaryLbl.SetXAlign(0)
+func (p *Popup) buildSummary() *gtk.Widget {
+	p.summaryLbl = own(p, gtk.NewLabel(p.notification.Summary))
+	p.summaryLbl.AddCssClass("notification-summary")
+	p.summaryLbl.SetXalign(0)
 	p.summaryLbl.SetEllipsize(3) // PANGO_ELLIPSIZE_END
 	p.summaryLbl.SetMaxWidthChars(40)
-	p.summaryLbl.SetHExpand(true)
-	return p.summaryLbl
+	p.summaryLbl.SetHexpand(true)
+	return &p.summaryLbl.Widget
 }
 
 // buildAppName creates the app name label.
-func (p *Popup) buildAppName() gtk.Widgetter {
-	p.appNameLbl = gtk.NewLabel(p.notification.AppName)
-	p.appNameLbl.AddCSSClass("notification-appname")
-	p.appNameLbl.SetXAlign(0)
-	return p.appNameLbl
+func (p *Popup) buildAppName() *gtk.Widget {
+	p.appNameLbl = own(p, gtk.NewLabel(p.notification.AppName))
+	p.appNameLbl.AddCssClass("notification-appname")
+	p.appNameLbl.SetXalign(0)
+	return &p.appNameLbl.Widget
 }
 
 // buildTimestamp creates the timestamp label.
-func (p *Popup) buildTimestamp() gtk.Widgetter {
-	p.timestampLbl = gtk.NewLabel(formatRelativeTime(p.timestamp))
-	p.timestampLbl.AddCSSClass("notification-timestamp")
-	p.timestampLbl.SetXAlign(1)
-	return p.timestampLbl
+func (p *Popup) buildTimestamp() *gtk.Widget {
+	p.timestampLbl = own(p, gtk.NewLabel(formatRelativeTime(p.timestamp)))
+	p.timestampLbl.AddCssClass("notification-timestamp")
+	p.timestampLbl.SetXalign(1)
+	return &p.timestampLbl.Widget
 }
 
 // buildStackCount creates the stack count label.
-func (p *Popup) buildStackCount(elem layout.LayoutElement) gtk.Widgetter {
-	p.stackCountLbl = gtk.NewLabel("")
-	p.stackCountLbl.AddCSSClass("notification-stack-count")
+func (p *Popup) buildStackCount(elem layout.LayoutElement) *gtk.Widget {
+	p.stackCountLbl = own(p, gtk.NewLabel(""))
+	p.stackCountLbl.AddCssClass("notification-stack-count")
 	p.stackCountLbl.SetVisible(false)
 	// Align to top of header, don't expand to fill height
-	p.stackCountLbl.SetVAlign(gtk.AlignStart)
+	p.stackCountLbl.SetValign(gtk.AlignStartValue)
 	// Right-align text within label for overlay positioning
-	p.stackCountLbl.SetXAlign(1)
+	p.stackCountLbl.SetXalign(1)
 
 	// Check for format attribute (e.g., format="dots")
 	if format, ok := elem.Attributes["format"]; ok {
 		p.stackCountFormat = format
 	}
 
-	return p.stackCountLbl
+	return &p.stackCountLbl.Widget
 }
 
 // buildBody creates the body text label.
-func (p *Popup) buildBody() gtk.Widgetter {
+func (p *Popup) buildBody() *gtk.Widget {
 	if p.notification.Body == "" {
 		return nil
 	}
 
-	p.bodyLbl = gtk.NewLabel("")
-	p.bodyLbl.AddCSSClass("notification-body")
-	p.bodyLbl.SetXAlign(0)
+	p.bodyLbl = own(p, gtk.NewLabel(""))
+	p.bodyLbl.AddCssClass("notification-body")
+	p.bodyLbl.SetXalign(0)
 	p.bodyLbl.SetWrap(true)
 	p.bodyLbl.SetWrapMode(2) // PANGO_WRAP_WORD_CHAR
 	p.bodyLbl.SetMaxWidthChars(50)
@@ -706,14 +733,14 @@ func (p *Popup) buildBody() gtk.Widgetter {
 		p.bodyLbl.SetText(p.notification.Body)
 	}
 
-	return p.bodyLbl
+	return &p.bodyLbl.Widget
 }
 
 // buildActions creates the action buttons container.
 // Only shows actions with non-empty labels that are not the "default" action.
 // The "default" action is triggered by clicking the notification body (via do-action mouse binding),
 // not by a visible button. Actions with empty labels are also filtered out.
-func (p *Popup) buildActions() gtk.Widgetter {
+func (p *Popup) buildActions() *gtk.Widget {
 	actions := p.notification.ParsedActions()
 	if len(actions) == 0 {
 		return nil
@@ -738,15 +765,15 @@ func (p *Popup) buildActions() gtk.Widgetter {
 		return nil
 	}
 
-	p.actionBox = gtk.NewBox(gtk.OrientationHorizontal, 6)
-	p.actionBox.AddCSSClass("notification-actions")
+	p.actionBox = own(p, gtk.NewBox(gtk.OrientationHorizontalValue, 6))
+	p.actionBox.AddCssClass("notification-actions")
 	p.actionBox.SetVisible(false) // Hidden by default, shown on hover
 
 	for _, action := range visibleActions {
 		actionKey := action.Key // Capture for closure
-		btn := gtk.NewButtonWithLabel(action.Label)
-		btn.AddCSSClass("notification-action")
-		btn.ConnectClicked(func() {
+		btn := own(p, gtk.NewButtonWithLabel(action.Label))
+		btn.AddCssClass("notification-action")
+		btn.ConnectClicked(ptr(func(_ gtk.Button) {
 			if p.onAction != nil {
 				p.onAction(actionKey)
 			}
@@ -757,34 +784,34 @@ func (p *Popup) buildActions() gtk.Widgetter {
 					p.onClose(dbus.CloseReasonDismissed)
 				}
 			}
-		})
-		p.actionBox.Append(btn)
+		}))
+		p.actionBox.Append(&btn.Widget)
 	}
 
-	return p.actionBox
+	return &p.actionBox.Widget
 }
 
 // buildDefaultActionIndicator is deprecated - the default action indicator is now
 // handled via CSS using the .has-default-action class on the popup container.
 // The right-hand-indicator effect from effects.css provides the visual feedback.
 // This function returns nil; the layout element is kept for backwards compatibility.
-func (p *Popup) buildDefaultActionIndicator(_ layout.LayoutElement) gtk.Widgetter {
+func (p *Popup) buildDefaultActionIndicator(_ layout.LayoutElement) *gtk.Widget {
 	// Indicator is now CSS-only via .has-default-action class
 	// See: effects.css (right-hand-indicator) and theme.css
 	return nil
 }
 
 // buildProgress creates the progress bar.
-func (p *Popup) buildProgress() gtk.Widgetter {
+func (p *Popup) buildProgress() *gtk.Widget {
 	progress := p.notification.Progress()
 	if progress < 0 {
 		return nil
 	}
 
-	p.progressBar = gtk.NewProgressBar()
-	p.progressBar.AddCSSClass("notification-progress")
+	p.progressBar = own(p, gtk.NewProgressBar())
+	p.progressBar.AddCssClass("notification-progress")
 	p.progressBar.SetFraction(float64(progress) / 100.0)
-	return p.progressBar
+	return &p.progressBar.Widget
 }
 
 // Image display constants
@@ -801,7 +828,7 @@ const (
 //   - "never" or -1: Never show images in body
 //   - "always" or 0: Always show images in body
 //   - "100KB" etc: Only show if image size >= threshold (filters small profile pics/favicons)
-func (p *Popup) buildImage() gtk.Widgetter {
+func (p *Popup) buildImage() *gtk.Widget {
 	var pixbuf *gdkpixbuf.Pixbuf
 
 	// Try image-data if size threshold is met
@@ -880,17 +907,21 @@ func (p *Popup) createPixbufFromData(imgData *dbus.ImageDataStruct) *gdkpixbuf.P
 	}
 
 	// Use NewBytes to copy the data, ensuring it remains valid
-	bytes := glib.NewBytes(imgData.Data)
+	bytes := glib.NewBytes(imgData.Data, uint(len(imgData.Data)))
+	defer bytes.Unref()
 	pixbuf := gdkpixbuf.NewPixbufFromBytes(
 		bytes,
-		gdkpixbuf.ColorspaceRGB,
+		gdkpixbuf.GdkColorspaceRgbValue,
 		imgData.HasAlpha,
-		int(imgData.BitsPerSample),
-		int(imgData.Width),
-		int(imgData.Height),
-		int(imgData.Rowstride),
+		imgData.BitsPerSample,
+		imgData.Width,
+		imgData.Height,
+		imgData.Rowstride,
 	)
 
+	if pixbuf != nil {
+		own(p, pixbuf)
+	}
 	if pixbuf == nil {
 		p.logger.Warn("failed to create pixbuf from image data",
 			"width", imgData.Width,
@@ -904,6 +935,9 @@ func (p *Popup) createPixbufFromData(imgData *dbus.ImageDataStruct) *gdkpixbuf.P
 // createPixbufFromFile creates a pixbuf from a file path.
 func (p *Popup) createPixbufFromFile(path string) *gdkpixbuf.Pixbuf {
 	pixbuf, err := gdkpixbuf.NewPixbufFromFile(path)
+	if pixbuf != nil {
+		own(p, pixbuf)
+	}
 	if err != nil {
 		p.logger.Warn("failed to load image from file",
 			"path", path,
@@ -918,7 +952,7 @@ func (p *Popup) createPixbufFromFile(path string) *gdkpixbuf.Pixbuf {
 // - Scales image to fit popup width
 // - Crops from bottom if too tall, showing top portion
 // - Adds fade gradient at bottom edge (~10px) blending into background
-func (p *Popup) buildImageContainer(pixbuf *gdkpixbuf.Pixbuf) gtk.Widgetter {
+func (p *Popup) buildImageContainer(pixbuf *gdkpixbuf.Pixbuf) *gtk.Widget {
 	if pixbuf == nil {
 		return nil
 	}
@@ -930,8 +964,8 @@ func (p *Popup) buildImageContainer(pixbuf *gdkpixbuf.Pixbuf) gtk.Widgetter {
 	}
 
 	// Get original dimensions
-	origWidth := pixbuf.Width()
-	origHeight := pixbuf.Height()
+	origWidth := int(pixbuf.GetWidth())
+	origHeight := int(pixbuf.GetHeight())
 
 	// Only scale DOWN if wider than available width - never scale up
 	var scaledPixbuf *gdkpixbuf.Pixbuf
@@ -942,10 +976,11 @@ func (p *Popup) buildImageContainer(pixbuf *gdkpixbuf.Pixbuf) gtk.Widgetter {
 		scale := float64(availableWidth) / float64(origWidth)
 		newWidth = availableWidth
 		newHeight = int(float64(origHeight) * scale)
-		scaledPixbuf = pixbuf.ScaleSimple(newWidth, newHeight, gdkpixbuf.InterpBilinear)
+		scaledPixbuf = pixbuf.ScaleSimple(int32(newWidth), int32(newHeight), gdkpixbuf.GdkInterpBilinearValue)
 		if scaledPixbuf == nil {
 			return nil
 		}
+		own(p, scaledPixbuf)
 	} else {
 		// Keep original size
 		newWidth = origWidth
@@ -965,83 +1000,95 @@ func (p *Popup) buildImageContainer(pixbuf *gdkpixbuf.Pixbuf) gtk.Widgetter {
 	if !isCropped {
 		// No cropping needed - use gtk.Picture for proper paintable sizing
 		texture := gdk.NewTextureForPixbuf(scaledPixbuf)
+		if texture != nil {
+			own(p, texture)
+		}
 		if texture == nil {
 			p.logger.Warn("failed to create texture from pixbuf")
 			return nil
 		}
-		picture := gtk.NewPictureForPaintable(texture)
-		picture.AddCSSClass("notification-image")
+		picture := own(p, gtk.NewPictureForPaintable(texture))
+		picture.AddCssClass("notification-image")
 		// Preserve aspect ratio, only scale down never up
-		picture.SetContentFit(gtk.ContentFitScaleDown)
+		picture.SetContentFit(gtk.ContentFitScaleDownValue)
 		picture.SetCanShrink(false)
 		// Set explicit size to prevent container from adding extra space
-		picture.SetSizeRequest(newWidth, newHeight)
+		picture.SetSizeRequest(int32(newWidth), int32(newHeight))
 		// Prevent expansion when container resizes
-		picture.SetHExpand(false)
-		picture.SetVExpand(false)
-		picture.SetHAlign(gtk.AlignCenter)
-		picture.SetVAlign(gtk.AlignStart)
-		return picture
+		picture.SetHexpand(false)
+		picture.SetVexpand(false)
+		picture.SetHalign(gtk.AlignCenterValue)
+		picture.SetValign(gtk.AlignStartValue)
+		return &picture.Widget
 	}
 
 	// Crop from bottom (keep top portion of the image)
-	croppedPixbuf := scaledPixbuf.NewSubpixbuf(0, 0, newWidth, imageMaxHeight)
+	croppedPixbuf := scaledPixbuf.NewSubpixbuf(0, 0, int32(newWidth), imageMaxHeight)
+	if croppedPixbuf != nil {
+		own(p, croppedPixbuf)
+	}
 	if croppedPixbuf == nil {
 		// Fallback to uncropped - use gtk.Picture with explicit sizing
 		texture := gdk.NewTextureForPixbuf(scaledPixbuf)
+		if texture != nil {
+			own(p, texture)
+		}
 		if texture == nil {
 			return nil
 		}
-		picture := gtk.NewPictureForPaintable(texture)
-		picture.AddCSSClass("notification-image")
-		picture.SetContentFit(gtk.ContentFitScaleDown)
+		picture := own(p, gtk.NewPictureForPaintable(texture))
+		picture.AddCssClass("notification-image")
+		picture.SetContentFit(gtk.ContentFitScaleDownValue)
 		picture.SetCanShrink(false)
-		picture.SetSizeRequest(newWidth, newHeight)
-		picture.SetHExpand(false)
-		picture.SetVExpand(false)
-		picture.SetHAlign(gtk.AlignCenter)
-		picture.SetVAlign(gtk.AlignStart)
-		return picture
+		picture.SetSizeRequest(int32(newWidth), int32(newHeight))
+		picture.SetHexpand(false)
+		picture.SetVexpand(false)
+		picture.SetHalign(gtk.AlignCenterValue)
+		picture.SetValign(gtk.AlignStartValue)
+		return &picture.Widget
 	}
 
 	// Create the cropped image widget using texture and gtk.Picture
 	texture := gdk.NewTextureForPixbuf(croppedPixbuf)
+	if texture != nil {
+		own(p, texture)
+	}
 	if texture == nil {
 		p.logger.Warn("failed to create texture from cropped pixbuf")
 		return nil
 	}
-	picture := gtk.NewPictureForPaintable(texture)
-	picture.AddCSSClass("notification-image")
-	picture.SetContentFit(gtk.ContentFitScaleDown)
+	picture := own(p, gtk.NewPictureForPaintable(texture))
+	picture.AddCssClass("notification-image")
+	picture.SetContentFit(gtk.ContentFitScaleDownValue)
 	picture.SetCanShrink(false)
-	picture.SetSizeRequest(newWidth, imageMaxHeight)
+	picture.SetSizeRequest(int32(newWidth), imageMaxHeight)
 	// Prevent expansion when container resizes
-	picture.SetHExpand(false)
-	picture.SetVExpand(false)
-	picture.SetHAlign(gtk.AlignCenter)
-	picture.SetVAlign(gtk.AlignStart)
+	picture.SetHexpand(false)
+	picture.SetVexpand(false)
+	picture.SetHalign(gtk.AlignCenterValue)
+	picture.SetValign(gtk.AlignStartValue)
 
 	// Create an overlay for the fade gradient
-	overlay := gtk.NewOverlay()
-	overlay.AddCSSClass("notification-image-container")
-	overlay.AddCSSClass("cropped")
-	overlay.SetChild(picture)
+	overlay := own(p, gtk.NewOverlay())
+	overlay.AddCssClass("notification-image-container")
+	overlay.AddCssClass("cropped")
+	overlay.SetChild(&picture.Widget)
 	// Constrain overlay to match picture size - prevents extra space below
-	overlay.SetSizeRequest(newWidth, imageMaxHeight)
-	overlay.SetHExpand(false)
-	overlay.SetVExpand(false)
-	overlay.SetHAlign(gtk.AlignCenter)
-	overlay.SetVAlign(gtk.AlignStart)
+	overlay.SetSizeRequest(int32(newWidth), imageMaxHeight)
+	overlay.SetHexpand(false)
+	overlay.SetVexpand(false)
+	overlay.SetHalign(gtk.AlignCenterValue)
+	overlay.SetValign(gtk.AlignStartValue)
 
 	// Add gradient overlay for fade effect at the bottom
-	gradientOverlay := gtk.NewBox(gtk.OrientationVertical, 0)
-	gradientOverlay.AddCSSClass("notification-image-fade")
-	gradientOverlay.SetVAlign(gtk.AlignEnd)
-	gradientOverlay.SetHExpand(true)       // Fill width
+	gradientOverlay := own(p, gtk.NewBox(gtk.OrientationVerticalValue, 0))
+	gradientOverlay.AddCssClass("notification-image-fade")
+	gradientOverlay.SetValign(gtk.AlignEndValue)
+	gradientOverlay.SetHexpand(true)       // Fill width
 	gradientOverlay.SetSizeRequest(-1, 24) // Gradient height - visible fade indicator
-	overlay.AddOverlay(gradientOverlay)
+	overlay.AddOverlay(&gradientOverlay.Widget)
 
-	return overlay
+	return &overlay.Widget
 }
 
 // formatRelativeTime formats a timestamp as a relative time string.
@@ -1063,32 +1110,32 @@ func formatRelativeTime(t time.Time) string {
 func (p *Popup) connectWidgetSignals() {
 	// Mouse enter/leave for hover effects
 	motionCtrl := gtk.NewEventControllerMotion()
-	motionCtrl.ConnectEnter(func(x, y float64) {
+	motionCtrl.ConnectEnter(ptr(func(_ gtk.EventControllerMotion, x, y float64) {
 		if p.actionBox != nil {
 			p.actionBox.SetVisible(true)
 		}
 		if p.onHover != nil {
 			p.onHover(true)
 		}
-	})
-	motionCtrl.ConnectLeave(func() {
+	}))
+	motionCtrl.ConnectLeave(ptr(func(_ gtk.EventControllerMotion) {
 		if p.actionBox != nil {
 			p.actionBox.SetVisible(false)
 		}
 		if p.onHover != nil {
 			p.onHover(false)
 		}
-	})
-	p.box.AddController(motionCtrl)
+	}))
+	p.box.AddController(&motionCtrl.EventController)
 
 	// Click handler for configurable mouse actions
 	clickCtrl := gtk.NewGestureClick()
 	clickCtrl.SetButton(0) // All buttons
-	clickCtrl.ConnectReleased(func(nPress int, x, y float64) {
-		button := clickCtrl.CurrentButton()
-		p.handleClick(button)
-	})
-	p.box.AddController(clickCtrl)
+	clickCtrl.ConnectReleased(ptr(func(_ gtk.GestureClick, nPress int32, x, y float64) {
+		button := clickCtrl.GetCurrentButton()
+		p.handleClick(uint(button))
+	}))
+	p.box.AddController(&clickCtrl.EventController)
 }
 
 // handleClick processes mouse button clicks.
@@ -1201,15 +1248,15 @@ func (p *Popup) SetStackPosition(position string) {
 	p.stackPosition = position
 
 	// Defer GTK operations to main thread
-	glib.IdleAdd(func() {
+	p.sources.Idle(func() {
 		// Remove old stack position class
 		if oldPosition != "" {
-			p.box.RemoveCSSClass("stack-" + oldPosition)
+			p.box.RemoveCssClass("stack-" + oldPosition)
 		}
 
 		// Add new stack position class
 		if position != "" {
-			p.box.AddCSSClass("stack-" + position)
+			p.box.AddCssClass("stack-" + position)
 		}
 	})
 
@@ -1230,7 +1277,7 @@ func (p *Popup) GetStackPosition() string {
 // This ensures all popups in a stack share the same width.
 func (p *Popup) SetWidth(width int) {
 	if width > 0 && width <= p.maxWidth {
-		p.box.SetSizeRequest(width, -1)
+		p.box.SetSizeRequest(int32(width), -1)
 	}
 }
 
@@ -1246,7 +1293,7 @@ func (p *Popup) SetStackCount(count int) {
 	}
 
 	// Defer GTK operations to main thread
-	glib.IdleAdd(func() {
+	p.sources.Idle(func() {
 		if count > 1 {
 			// Format the count based on stackCountFormat
 			var text string
@@ -1262,11 +1309,10 @@ func (p *Popup) SetStackCount(count int) {
 
 			// Trigger flash animation when count increases
 			if count > oldCount {
-				p.stackCountLbl.AddCSSClass("stack-count-flash")
+				p.stackCountLbl.AddCssClass("stack-count-flash")
 				// Remove animation class after it completes (600ms)
-				glib.TimeoutAdd(650, func() bool {
-					p.stackCountLbl.RemoveCSSClass("stack-count-flash")
-					return false // Don't repeat
+				p.sources.After(650, func() {
+					p.stackCountLbl.RemoveCssClass("stack-count-flash")
 				})
 			}
 		} else {
@@ -1291,7 +1337,7 @@ func (p *Popup) IncrementStackCount() {
 func (p *Popup) UpdateContent(notification *dbus.DBusNotification) {
 	p.notification = notification
 
-	glib.IdleAdd(func() {
+	p.sources.Idle(func() {
 		// Update summary
 		if p.summaryLbl != nil {
 			p.summaryLbl.SetText(notification.Summary)
@@ -1315,9 +1361,9 @@ func (p *Popup) UpdateContent(notification *dbus.DBusNotification) {
 
 				// Add/remove progress-complete class
 				if progress >= 100 {
-					p.box.AddCSSClass("progress-complete")
+					p.box.AddCssClass("progress-complete")
 				} else {
-					p.box.RemoveCSSClass("progress-complete")
+					p.box.RemoveCssClass("progress-complete")
 				}
 			}
 		}
@@ -1381,7 +1427,8 @@ func (p *Popup) getColorSchemeClass() string {
 // detectSystemColorScheme checks libadwaita for system dark mode preference.
 func detectSystemColorScheme() string {
 	styleManager := adw.StyleManagerGetDefault()
-	if styleManager.Dark() {
+	defer styleManager.Unref()
+	if styleManager.GetDark() {
 		return "dark"
 	}
 	return "light"
@@ -1396,4 +1443,3 @@ func sanitizeMarkup(markup string) string {
 }
 
 // Ensure adw is used (for libadwaita initialization)
-var _ = adw.MAJOR_VERSION
