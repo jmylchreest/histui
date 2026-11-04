@@ -68,7 +68,20 @@ cd histui
 makepkg -si
 ```
 
-Both packages install:
+### Development Package
+
+`histui-git` builds the latest `main` branch, including unreleased changes:
+
+```bash
+yay -S histui-git
+```
+
+It provides both `histui` and `histuid` and conflicts with `histui`/`histui-bin`.
+Both binaries build with CGO disabled; GTK and audio runtime libraries are still
+required. Rebuild the package to pick up newer commits (for example, use your
+AUR helper's development-package update option).
+
+All three packages install:
 - `/usr/bin/histui` - CLI tool
 - `/usr/bin/histuid` - Notification daemon
 - `/usr/lib/systemd/user/histuid.service` - Standalone systemd service

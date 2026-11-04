@@ -1,0 +1,32 @@
+name: Publish histui-git to AUR
+
+on:
+  push:
+    branches: [main]
+    paths:
+      - 'contrib/aur/histui-git/**'
+      - '.github/workflows/aur-git.yml'
+  workflow_dispatch:
+
+permissions:
+  contents: read
+
+concurrency:
+  group: aur-histui-git
+  cancel-in-progress: false
+
+jobs:
+  publish:
+    if: github.ref == 'refs/heads/main'
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v7
+      - name: Publish development package recipe
+        uses: KSXGitHub/github-actions-deploy-aur@v4.2.0
+        with:
+          pkgname: histui-git
+          pkgbuild: contrib/aur/histui-git/PKGBUILD
+          commit_username: github-actions[bot]
+          commit_email: github-actions[bot]@users.noreply.github.com
+          ssh_private_key: ${{ secrets.AUR_KEY }}
+          commit_message: Update histui-git packaging
