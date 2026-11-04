@@ -1,0 +1,23 @@
+diff --git a/internal/core/layershell_linux.go b/internal/core/layershell_linux.go
+new file mode 100644
+index 0000000..1211def
+--- /dev/null
++++ b/internal/core/layershell_linux.go
+@@ -0,0 +1,17 @@
++//go:build linux && puregotk_layershell
++
++package core
++
++import (
++	"codeberg.org/puregotk/purego"
++	"fmt"
++)
++
++// Layer-shell interposes Wayland calls used by GTK. Loading it from main is too
++// late: generated GDK/GTK packages have already dlopened GTK with RTLD_NOW.
++// Explicit opt-in keeps the native library optional for ordinary GTK programs.
++func init() {
++	if _, err := purego.Dlopen("libgtk4-layer-shell.so.0", purego.RTLD_NOW|purego.RTLD_GLOBAL); err != nil {
++		panic(fmt.Errorf("puregotk_layershell: %w", err))
++	}
++}

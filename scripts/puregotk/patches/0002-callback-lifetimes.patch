@@ -1,0 +1,847 @@
+diff --git a/templates/glib b/templates/glib
+index f2a24a0..74e2554 100644
+--- a/templates/glib
++++ b/templates/glib
+@@ -64,3 +64,39 @@ func (e *Error) Error() string {
+ func (e *Error) MessageGo() string {
+ 	return core.GoString(e.Message)
+ }
++
++// IsManagedCallback reports whether generated signal code owns this callback.
++// It does not claim ownership of arbitrary function addresses passed by callers.
++func IsManagedCallback(ref uintptr) bool {
++ callbacks.RLock();defer callbacks.RUnlock()
++ for _,v:=range callbacks.refs {if v==ref{return true}}
++ return false
++}
++// ReleaseManagedCallback is called after the final native GClosure is finalized.
++// Callers must not manually unref callbacks still attached to native objects.
++func ReleaseManagedCallback(ref uintptr){
++ callbacks.Lock();defer callbacks.Unlock()
++ for k,v:=range callbacks.refs {if v==ref {delete(callbacks.refs,k)}}
++ releaseNativeCallback(ref)
++}
++
++// managedSourceCallbacks preserves native user-data semantics, including
++// SourceRemoveByUserData. Both trampoline slots live exactly as long as GSource.
++// It uses two slots per simultaneously live source; completion/cancellation
++// returns them even if the callback is never dispatched.
++func managedSourceCallbacks(fn *SourceFunc, notify *DestroyNotify) (callback, destroy uintptr) {
++ if fn==nil || *fn==nil {panic("nil source callback")}
++ callback=purego.NewCallback(*fn)
++ var onDestroy DestroyNotify
++ if notify!=nil {onDestroy=*notify}
++ destroy=purego.NewCallback(func(data uintptr){
++  defer func(){releaseNativeCallback(callback);releaseNativeCallback(destroy)}()
++  if onDestroy!=nil {onDestroy(data)}
++ })
++ return
++}
++func sourceOnce(fn *SourceOnceFunc) SourceFunc {
++ if fn==nil || *fn==nil {panic("nil source callback")}
++ f:=*fn
++ return func(data uintptr)bool{f(data);return false}
++}
+diff --git a/templates/glib_other b/templates/glib_other
+index 26bb92b..282bb54 100644
+--- a/templates/glib_other
++++ b/templates/glib_other
+@@ -6,3 +6,7 @@ package glib
+ func unrefCallback(_ interface{}) error {
+ 	panic("glib.UnrefCallback is unsupported on this platform")
+ }
++
++func releaseNativeCallback(ref uintptr){
++// Callback slot reclamation is unsupported on this platform.
++}
+diff --git a/templates/glib_sysv b/templates/glib_sysv
+index 37833d2..38d8c13 100644
+--- a/templates/glib_sysv
++++ b/templates/glib_sysv
+@@ -29,3 +29,7 @@ func unrefCallback(fnPtr interface{}) error {
+ 	}()
+ 	return purego.UnrefCallback(refPtr)
+ }
++
++func releaseNativeCallback(ref uintptr){
++if err:=purego.UnrefCallback(ref);err!=nil{panic(err)}
++}
+diff --git a/templates/glib_windows b/templates/glib_windows
+index bbde9c3..fb4817e 100644
+--- a/templates/glib_windows
++++ b/templates/glib_windows
+@@ -4,3 +4,7 @@ package glib
+ func unrefCallback(_ interface{}) error {
+ 	return nil
+ }
++
++func releaseNativeCallback(ref uintptr){
++// Callback slot reclamation is unsupported on this platform.
++}
+diff --git a/templates/go b/templates/go
+index f6a0059..4b43594 100644
+--- a/templates/go
++++ b/templates/go
+@@ -230,9 +230,35 @@ var x{{.Name}} func({{conv .Args.Pure.Types}}) {{.Ret.Raw}}
+ 
+ {{.Doc}}
+ func {{.Name}}({{conv .Args.API.Full}}) {{.Ret.Return}} {
++{{if and (not $NotGLib) (eq .Name "IdleAdd")}}
++ return IdleAddFull(200, FunctionVar, DataVar, nil)
++{{else if and (not $NotGLib) (eq .Name "IdleAddFull")}}
++ cb, destroy := managedSourceCallbacks(FunctionVar, NotifyVar)
++ return xIdleAddFull(PriorityVar, cb, DataVar, destroy)
++{{else if and (not $NotGLib) (eq .Name "IdleAddOnce")}}
++ fn:=sourceOnce(FunctionVar)
++ return IdleAddFull(200, &fn, DataVar, nil)
++{{else if and (not $NotGLib) (eq .Name "TimeoutAdd")}}
++ return TimeoutAddFull(0, IntervalVar, FunctionVar, DataVar, nil)
++{{else if and (not $NotGLib) (eq .Name "TimeoutAddFull")}}
++ cb, destroy := managedSourceCallbacks(FunctionVar, NotifyVar)
++ return xTimeoutAddFull(PriorityVar, IntervalVar, cb, DataVar, destroy)
++{{else if and (not $NotGLib) (eq .Name "TimeoutAddOnce")}}
++ fn:=sourceOnce(FunctionVar)
++ return TimeoutAddFull(0, IntervalVar, &fn, DataVar, nil)
++{{else if and (not $NotGLib) (eq .Name "TimeoutAddSeconds")}}
++ return TimeoutAddSecondsFull(0, IntervalVar, FunctionVar, DataVar, nil)
++{{else if and (not $NotGLib) (eq .Name "TimeoutAddSecondsFull")}}
++ cb, destroy := managedSourceCallbacks(FunctionVar, NotifyVar)
++ return xTimeoutAddSecondsFull(PriorityVar, IntervalVar, cb, DataVar, destroy)
++{{else if and (not $NotGLib) (eq .Name "TimeoutAddSecondsOnce")}}
++ fn:=sourceOnce(FunctionVar)
++ return TimeoutAddSecondsFull(0, IntervalVar, &fn, DataVar, nil)
++{{else}}
+      {{.Ret.Preamble $NotGLib}}
+      {{if .Ret.Value}}cret := {{end}}x{{.Name}}({{convd .Args.API.Call}})
+      {{.Ret.Fmt $NotGObject}}
++{{end}}
+ }
+ {{end}}
+ 
+diff --git a/templates/gobject b/templates/gobject
+index 741f060..2597ca8 100644
+--- a/templates/gobject
++++ b/templates/gobject
+@@ -2,6 +2,8 @@ package gobject
+ 
+ import (
+ 	"reflect"
++ "sync"
++ "codeberg.org/puregotk/purego"
+ 
+ 	"codeberg.org/puregotk/puregotk/v4/glib"
+ )
+@@ -29,7 +31,11 @@ func IncreaseRef(a uintptr) {
+ }
+ 
+ func SignalConnect(a uintptr, b string, c uintptr) uint32 {
+-	return xSignalConnectData(a, b, c, 0, 0, 0)
++	if !glib.IsManagedCallback(c) { return xSignalConnectData(a,b,c,0,0,0) }
++ signalRefs.Lock(); signalRefs.refs[c]++; signalRefs.Unlock()
++ handler := xSignalConnectData(a,b,c,c,signalDestroy,0)
++ if handler == 0 { releaseSignal(c) }
++ return handler
+ }
+ 
+ func (o Object) Cast(v Ptr) {
+@@ -37,7 +43,15 @@ func (o Object) Cast(v Ptr) {
+ }
+ 
+ func (o Object) ConnectSignal(signal string, cb *func()) uint32 {
+-	return SignalConnect(o.GoPointer(), signal, glib.NewCallback(cb))
++	key := reflect.ValueOf(cb).Pointer()
++ ref, exists := glib.GetCallback(key)
++ if !exists {
++  // Match generated signals: own a fresh thunk, rather than the FFI function-
++  // pointer cache whose entry can outlive an explicitly released thunk.
++  ref = purego.NewCallback(*cb)
++  glib.SaveCallback(key, ref)
++ }
++ return SignalConnect(o.GoPointer(), signal, ref)
+ }
+ 
+ func (o Object) DisconnectSignal(handler uint32) {
+@@ -72,3 +86,16 @@ const (
+ 	TypeReservedBseLastVal        = 48 << 2
+ 	TypeReservedUserFirstVal      = 49 << 2
+ )
++
++// A generated callback may be shared by multiple native closures. Release it
++// only when the last closure is finalized, including implicit object destruction.
++var signalRefs = struct { sync.Mutex; refs map[uintptr]int }{refs:make(map[uintptr]int)}
++var signalDestroy = purego.NewCallback(func(data, closure uintptr){releaseSignal(data)})
++func releaseSignal(ref uintptr){
++ signalRefs.Lock()
++ n:=signalRefs.refs[ref]
++ if n>1 {signalRefs.refs[ref]=n-1;signalRefs.Unlock();return}
++ delete(signalRefs.refs,ref)
++ if n==1 {glib.ReleaseManagedCallback(ref)}
++ signalRefs.Unlock()
++}
+diff --git a/tests/histui_lifecycle/lifecycle_test.go b/tests/histui_lifecycle/lifecycle_test.go
+new file mode 100644
+index 0000000..b9dfcf4
+--- /dev/null
++++ b/tests/histui_lifecycle/lifecycle_test.go
+@@ -0,0 +1,297 @@
++package lifecycle_test
++
++import (
++	"codeberg.org/puregotk/puregotk/v4/glib"
++	"codeberg.org/puregotk/puregotk/v4/gobject"
++	"codeberg.org/puregotk/puregotk/v4/gtk"
++	"fmt"
++	"runtime"
++	"sync"
++	"sync/atomic"
++	"testing"
++	"time"
++)
++
++func initGTK(t *testing.T) {
++	t.Helper()
++	runtime.LockOSThread()
++	t.Cleanup(runtime.UnlockOSThread)
++	if !gtk.InitCheck() {
++		t.Fatal("test requires an isolated display")
++	}
++}
++func TestSignalDisconnectStress(t *testing.T) {
++	initGTK(t)
++	calls := 0
++	for i := 0; i < 4000; i++ {
++		b := gtk.NewButton()
++		cb := func(gobject.Object, uintptr) { calls++ }
++		h := b.ConnectNotify(&cb)
++		before := calls
++		b.SetLabel("changed")
++		if calls <= before {
++			t.Fatal("signal did not fire")
++		}
++		b.DisconnectSignal(h)
++		before = calls
++		b.SetLabel("disconnected")
++		if calls != before {
++			t.Fatal("disconnected signal fired")
++		}
++		b.Unref()
++		if i%500 == 0 {
++			runtime.GC()
++			t.Logf("completed %d signal cycles", i)
++		}
++	}
++	if calls < 4000 {
++		t.Fatalf("got %d calls, want at least 4000", calls)
++	}
++}
++func TestSignalDestroyStress(t *testing.T) {
++	initGTK(t)
++	for i := 0; i < 4000; i++ {
++		b := gtk.NewButton()
++		cb := func(gobject.Object, uintptr) {}
++		b.ConnectNotify(&cb)
++		b.Unref()
++		if i%500 == 0 {
++			runtime.GC()
++			t.Logf("completed %d destruction cycles", i)
++		}
++	}
++}
++func TestIdleCompletionStress(t *testing.T) {
++	initGTK(t)
++	context := glib.MainContextDefault()
++	for i := 0; i < 4000; i++ {
++		done := false
++		cb := glib.SourceFunc(func(uintptr) bool { done = true; return false })
++		glib.IdleAdd(&cb, 0)
++		deadline := time.Now().Add(time.Second)
++		for !done && time.Now().Before(deadline) {
++			context.Iteration(false)
++		}
++		if !done {
++			t.Fatal("idle not dispatched")
++		}
++		if i%500 == 0 {
++			runtime.GC()
++			t.Logf("completed %d idle cycles", i)
++		}
++	}
++}
++func TestSourceCancelStress(t *testing.T) {
++	initGTK(t)
++	for i := 0; i < 4000; i++ {
++		cb := glib.SourceFunc(func(uintptr) bool { t.Error("cancelled source ran"); return false })
++		id := glib.TimeoutAdd(60000, &cb, 0)
++		if !glib.SourceRemove(id) {
++			t.Fatal("source removal failed")
++		}
++		if i%500 == 0 {
++			runtime.GC()
++			t.Logf("completed %d cancellation cycles", i)
++		}
++	}
++}
++
++func TestSharedSignalCallback(t *testing.T) {
++	initGTK(t)
++	a, b := gtk.NewButton(), gtk.NewButton()
++	defer a.Unref()
++	defer b.Unref()
++	calls := 0
++	cb := func(gobject.Object, uintptr) { calls++ }
++	ha := a.ConnectNotify(&cb)
++	hb := b.ConnectNotify(&cb)
++	a.DisconnectSignal(ha)
++	before := calls
++	b.SetLabel("still alive")
++	if calls <= before {
++		t.Fatal("shared callback released too soon")
++	}
++	b.DisconnectSignal(hb)
++	hc := a.ConnectNotify(&cb)
++	before = calls
++	a.SetLabel("reconnected")
++	if calls <= before {
++		t.Fatal("callback cannot reconnect")
++	}
++	a.DisconnectSignal(hc)
++}
++func TestSignalDisconnectDuringCallback(t *testing.T) {
++	initGTK(t)
++	b := gtk.NewButton()
++	defer b.Unref()
++	calls := 0
++	disconnect := func() {}
++	cb := func(gobject.Object, uintptr) { calls++; disconnect() }
++	h := b.ConnectNotify(&cb)
++	disconnect = func() { b.DisconnectSignal(h) }
++	b.SetLabel("self disconnect")
++	b.SetLabel("quiet")
++	if calls != 1 {
++		t.Fatalf("got %d callbacks", calls)
++	}
++}
++func TestSourceUserDataAndDestroy(t *testing.T) {
++	initGTK(t)
++	context := glib.MainContextDefault()
++	calls, destructions := 0, 0
++	fn := glib.SourceFunc(func(data uintptr) bool {
++		if data != 12345 {
++			t.Errorf("data %d", data)
++		}
++		calls++
++		return false
++	})
++	destroy := glib.DestroyNotify(func(data uintptr) {
++		if data != 12345 {
++			t.Errorf("destroy data %d", data)
++		}
++		destructions++
++	})
++	glib.IdleAddFull(200, &fn, 12345, &destroy)
++	deadline := time.Now().Add(time.Second)
++	for destructions == 0 && time.Now().Before(deadline) {
++		context.Iteration(false)
++	}
++	if calls != 1 || destructions != 1 {
++		t.Fatalf("completion: calls=%d destroys=%d", calls, destructions)
++	}
++	glib.TimeoutAddFull(0, 60000, &fn, 12345, &destroy)
++	if !glib.SourceRemoveByUserData(12345) {
++		t.Fatal("native user-data lookup broken")
++	}
++	if calls != 1 || destructions != 2 {
++		t.Fatalf("cancel: calls=%d destroys=%d", calls, destructions)
++	}
++}
++
++func TestCallbackCapturesReleased(t *testing.T) {
++	initGTK(t)
++	var released atomic.Int64
++	context := glib.MainContextDefault()
++	for i := 0; i < 400; i++ {
++		func() {
++			data := new([4096]byte)
++			runtime.SetFinalizer(data, func(*[4096]byte) { released.Add(1) })
++			b := gtk.NewButton()
++			cb := func(gobject.Object, uintptr) { runtime.KeepAlive(data) }
++			b.ConnectNotify(&cb)
++			b.Unref()
++		}()
++		func() {
++			data := new([4096]byte)
++			runtime.SetFinalizer(data, func(*[4096]byte) { released.Add(1) })
++			done := false
++			fn := glib.SourceFunc(func(uintptr) bool { runtime.KeepAlive(data); done = true; return false })
++			glib.IdleAdd(&fn, 0)
++			for !done {
++				context.Iteration(false)
++			}
++		}()
++	}
++	deadline := time.Now().Add(3 * time.Second)
++	for released.Load() < 800 && time.Now().Before(deadline) {
++		runtime.GC()
++		time.Sleep(10 * time.Millisecond)
++	}
++	if got := released.Load(); got != 800 {
++		t.Fatalf("only %d/800 captured payloads released", got)
++	}
++}
++
++func TestConcurrentSourceCancellation(t *testing.T) {
++	initGTK(t)
++	var workers sync.WaitGroup
++	var destroyed atomic.Int64
++	for g := 0; g < 8; g++ {
++		workers.Add(1)
++		go func() {
++			defer workers.Done()
++			for i := 0; i < 600; i++ {
++				fn := glib.SourceFunc(func(uintptr) bool { return false })
++				notify := glib.DestroyNotify(func(uintptr) { destroyed.Add(1) })
++				id := glib.TimeoutAddFull(0, 60000, &fn, 0, &notify)
++				if !glib.SourceRemove(id) {
++					t.Error("concurrent removal failed")
++				}
++			}
++		}()
++	}
++	workers.Wait()
++	if destroyed.Load() != 4800 {
++		t.Fatalf("destroyed %d sources", destroyed.Load())
++	}
++}
++
++func TestGenericSignalReconnect(t *testing.T) {
++	initGTK(t)
++	b := gtk.NewButton()
++	defer b.Unref()
++	calls := 0
++	cb := func() { calls++ }
++	for i := 0; i < 100; i++ {
++		h := b.ConnectSignal("notify", &cb)
++		before := calls
++		b.SetLabel(fmt.Sprint(i))
++		if calls <= before {
++			t.Fatal("reconnected generic callback did not fire")
++		}
++		b.DisconnectSignal(h)
++	}
++}
++
++func TestOnceAndSecondsSources(t *testing.T) {
++	initGTK(t)
++	context := glib.MainContextDefault()
++	calls := 0
++	fn := glib.SourceOnceFunc(func(data uintptr) {
++		if data != 123 {
++			t.Errorf("data %d", data)
++		}
++		calls++
++	})
++	glib.IdleAddOnce(&fn, 123)
++	glib.TimeoutAddOnce(0, &fn, 123)
++	glib.TimeoutAddSecondsOnce(0, &fn, 123)
++	deadline := time.Now().Add(3 * time.Second)
++	for calls < 3 && time.Now().Before(deadline) {
++		context.Iteration(false)
++		time.Sleep(time.Millisecond)
++	}
++	if calls != 3 {
++		t.Fatalf("once calls %d", calls)
++	}
++	normal := glib.SourceFunc(func(uintptr) bool { t.Error("cancelled seconds timer fired"); return false })
++	destroyed := 0
++	destroy := glib.DestroyNotify(func(uintptr) { destroyed++ })
++	a := glib.TimeoutAddSeconds(60, &normal, 0)
++	b := glib.TimeoutAddSecondsFull(0, 60, &normal, 0, &destroy)
++	if !glib.SourceRemove(a) || !glib.SourceRemove(b) || destroyed != 1 {
++		t.Fatal("seconds cancellation failed")
++	}
++}
++func TestSourceSelfRemoval(t *testing.T) {
++	initGTK(t)
++	context := glib.MainContextDefault()
++	calls, destroyed := 0, 0
++	remove := func() {}
++	fn := glib.SourceFunc(func(uintptr) bool { calls++; remove(); return true })
++	destroy := glib.DestroyNotify(func(uintptr) { destroyed++ })
++	id := glib.IdleAddFull(200, &fn, 0, &destroy)
++	remove = func() {
++		if !glib.SourceRemove(id) {
++			t.Error("self removal failed")
++		}
++	}
++	deadline := time.Now().Add(time.Second)
++	for destroyed == 0 && time.Now().Before(deadline) {
++		context.Iteration(false)
++	}
++	if calls != 1 || destroyed != 1 {
++		t.Fatalf("self removal calls=%d destroys=%d", calls, destroyed)
++	}
++}
+diff --git a/v4/glib/gmain.go b/v4/glib/gmain.go
+index 7e18e1f..10aca1f 100644
+--- a/v4/glib/gmain.go
++++ b/v4/glib/gmain.go
+@@ -1686,8 +1686,7 @@ var xIdleAdd func(uintptr, uintptr) uint32
+ // thread is running that main context. You can do these steps manually if you
+ // need greater control or to use a custom main context.
+ func IdleAdd(FunctionVar *SourceFunc, DataVar uintptr) uint32 {
+-	cret := xIdleAdd(NewCallback(FunctionVar), DataVar)
+-	return cret
++	return IdleAddFull(200, FunctionVar, DataVar, nil)
+ }
+ 
+ var xIdleAddFull func(int32, uintptr, uintptr, uintptr) uint32
+@@ -1707,8 +1706,8 @@ var xIdleAddFull func(int32, uintptr, uintptr, uintptr) uint32
+ // thread is running that main context. You can do these steps manually if you
+ // need greater control or to use a custom main context.
+ func IdleAddFull(PriorityVar int32, FunctionVar *SourceFunc, DataVar uintptr, NotifyVar *DestroyNotify) uint32 {
+-	cret := xIdleAddFull(PriorityVar, NewCallback(FunctionVar), DataVar, NewCallbackNullable(NotifyVar))
+-	return cret
++	cb, destroy := managedSourceCallbacks(FunctionVar, NotifyVar)
++	return xIdleAddFull(PriorityVar, cb, DataVar, destroy)
+ }
+ 
+ var xIdleAddOnce func(uintptr, uintptr) uint32
+@@ -1724,8 +1723,8 @@ var xIdleAddOnce func(uintptr, uintptr) uint32
+ //
+ // This function otherwise behaves like [func@GLib.idle_add].
+ func IdleAddOnce(FunctionVar *SourceOnceFunc, DataVar uintptr) uint32 {
+-	cret := xIdleAddOnce(NewCallback(FunctionVar), DataVar)
+-	return cret
++	fn := sourceOnce(FunctionVar)
++	return IdleAddFull(200, &fn, DataVar, nil)
+ }
+ 
+ var xIdleRemoveByData func(uintptr) bool
+@@ -2034,8 +2033,7 @@ var xTimeoutAdd func(uint32, uintptr, uintptr) uint32
+ // The interval given is in terms of monotonic time, not wall clock
+ // time. See [func@GLib.get_monotonic_time].
+ func TimeoutAdd(IntervalVar uint32, FunctionVar *SourceFunc, DataVar uintptr) uint32 {
+-	cret := xTimeoutAdd(IntervalVar, NewCallback(FunctionVar), DataVar)
+-	return cret
++	return TimeoutAddFull(0, IntervalVar, FunctionVar, DataVar, nil)
+ }
+ 
+ var xTimeoutAddFull func(int32, uint32, uintptr, uintptr, uintptr) uint32
+@@ -2069,8 +2067,8 @@ var xTimeoutAddFull func(int32, uint32, uintptr, uintptr, uintptr) uint32
+ // The interval given is in terms of monotonic time, not wall clock time.
+ // See [func@GLib.get_monotonic_time].
+ func TimeoutAddFull(PriorityVar int32, IntervalVar uint32, FunctionVar *SourceFunc, DataVar uintptr, NotifyVar *DestroyNotify) uint32 {
+-	cret := xTimeoutAddFull(PriorityVar, IntervalVar, NewCallback(FunctionVar), DataVar, NewCallbackNullable(NotifyVar))
+-	return cret
++	cb, destroy := managedSourceCallbacks(FunctionVar, NotifyVar)
++	return xTimeoutAddFull(PriorityVar, IntervalVar, cb, DataVar, destroy)
+ }
+ 
+ var xTimeoutAddOnce func(uint32, uintptr, uintptr) uint32
+@@ -2083,8 +2081,8 @@ var xTimeoutAddOnce func(uint32, uintptr, uintptr) uint32
+ //
+ // This function otherwise behaves like [func@GLib.timeout_add].
+ func TimeoutAddOnce(IntervalVar uint32, FunctionVar *SourceOnceFunc, DataVar uintptr) uint32 {
+-	cret := xTimeoutAddOnce(IntervalVar, NewCallback(FunctionVar), DataVar)
+-	return cret
++	fn := sourceOnce(FunctionVar)
++	return TimeoutAddFull(0, IntervalVar, &fn, DataVar, nil)
+ }
+ 
+ var xTimeoutAddSeconds func(uint32, uintptr, uintptr) uint32
+@@ -2113,8 +2111,7 @@ var xTimeoutAddSeconds func(uint32, uintptr, uintptr) uint32
+ // The interval given is in terms of monotonic time, not wall clock
+ // time. See [func@GLib.get_monotonic_time].
+ func TimeoutAddSeconds(IntervalVar uint32, FunctionVar *SourceFunc, DataVar uintptr) uint32 {
+-	cret := xTimeoutAddSeconds(IntervalVar, NewCallback(FunctionVar), DataVar)
+-	return cret
++	return TimeoutAddSecondsFull(0, IntervalVar, FunctionVar, DataVar, nil)
+ }
+ 
+ var xTimeoutAddSecondsFull func(int32, uint32, uintptr, uintptr, uintptr) uint32
+@@ -2160,8 +2157,8 @@ var xTimeoutAddSecondsFull func(int32, uint32, uintptr, uintptr, uintptr) uint32
+ // The interval given is in terms of monotonic time, not wall clock
+ // time. See [func@GLib.get_monotonic_time].
+ func TimeoutAddSecondsFull(PriorityVar int32, IntervalVar uint32, FunctionVar *SourceFunc, DataVar uintptr, NotifyVar *DestroyNotify) uint32 {
+-	cret := xTimeoutAddSecondsFull(PriorityVar, IntervalVar, NewCallback(FunctionVar), DataVar, NewCallbackNullable(NotifyVar))
+-	return cret
++	cb, destroy := managedSourceCallbacks(FunctionVar, NotifyVar)
++	return xTimeoutAddSecondsFull(PriorityVar, IntervalVar, cb, DataVar, destroy)
+ }
+ 
+ var xTimeoutAddSecondsOnce func(uint32, uintptr, uintptr) uint32
+@@ -2169,8 +2166,8 @@ var xTimeoutAddSecondsOnce func(uint32, uintptr, uintptr) uint32
+ // This function behaves like [func@GLib.timeout_add_once] but with a range in
+ // seconds.
+ func TimeoutAddSecondsOnce(IntervalVar uint32, FunctionVar *SourceOnceFunc, DataVar uintptr) uint32 {
+-	cret := xTimeoutAddSecondsOnce(IntervalVar, NewCallback(FunctionVar), DataVar)
+-	return cret
++	fn := sourceOnce(FunctionVar)
++	return TimeoutAddSecondsFull(0, IntervalVar, &fn, DataVar, nil)
+ }
+ 
+ var xTimeoutSourceNew func(uint32) *Source
+diff --git a/v4/glib/gmain_nodocs.go b/v4/glib/gmain_nodocs.go
+index 22491c6..f321927 100644
+--- a/v4/glib/gmain_nodocs.go
++++ b/v4/glib/gmain_nodocs.go
+@@ -724,22 +724,21 @@ func GetRealTime() int64 {
+ var xIdleAdd func(uintptr, uintptr) uint32
+ 
+ func IdleAdd(FunctionVar *SourceFunc, DataVar uintptr) uint32 {
+-	cret := xIdleAdd(NewCallback(FunctionVar), DataVar)
+-	return cret
++	return IdleAddFull(200, FunctionVar, DataVar, nil)
+ }
+ 
+ var xIdleAddFull func(int32, uintptr, uintptr, uintptr) uint32
+ 
+ func IdleAddFull(PriorityVar int32, FunctionVar *SourceFunc, DataVar uintptr, NotifyVar *DestroyNotify) uint32 {
+-	cret := xIdleAddFull(PriorityVar, NewCallback(FunctionVar), DataVar, NewCallbackNullable(NotifyVar))
+-	return cret
++	cb, destroy := managedSourceCallbacks(FunctionVar, NotifyVar)
++	return xIdleAddFull(PriorityVar, cb, DataVar, destroy)
+ }
+ 
+ var xIdleAddOnce func(uintptr, uintptr) uint32
+ 
+ func IdleAddOnce(FunctionVar *SourceOnceFunc, DataVar uintptr) uint32 {
+-	cret := xIdleAddOnce(NewCallback(FunctionVar), DataVar)
+-	return cret
++	fn := sourceOnce(FunctionVar)
++	return IdleAddFull(200, &fn, DataVar, nil)
+ }
+ 
+ var xIdleRemoveByData func(uintptr) bool
+@@ -821,43 +820,41 @@ func SourceSetNameById(TagVar uint32, NameVar string) {
+ var xTimeoutAdd func(uint32, uintptr, uintptr) uint32
+ 
+ func TimeoutAdd(IntervalVar uint32, FunctionVar *SourceFunc, DataVar uintptr) uint32 {
+-	cret := xTimeoutAdd(IntervalVar, NewCallback(FunctionVar), DataVar)
+-	return cret
++	return TimeoutAddFull(0, IntervalVar, FunctionVar, DataVar, nil)
+ }
+ 
+ var xTimeoutAddFull func(int32, uint32, uintptr, uintptr, uintptr) uint32
+ 
+ func TimeoutAddFull(PriorityVar int32, IntervalVar uint32, FunctionVar *SourceFunc, DataVar uintptr, NotifyVar *DestroyNotify) uint32 {
+-	cret := xTimeoutAddFull(PriorityVar, IntervalVar, NewCallback(FunctionVar), DataVar, NewCallbackNullable(NotifyVar))
+-	return cret
++	cb, destroy := managedSourceCallbacks(FunctionVar, NotifyVar)
++	return xTimeoutAddFull(PriorityVar, IntervalVar, cb, DataVar, destroy)
+ }
+ 
+ var xTimeoutAddOnce func(uint32, uintptr, uintptr) uint32
+ 
+ func TimeoutAddOnce(IntervalVar uint32, FunctionVar *SourceOnceFunc, DataVar uintptr) uint32 {
+-	cret := xTimeoutAddOnce(IntervalVar, NewCallback(FunctionVar), DataVar)
+-	return cret
++	fn := sourceOnce(FunctionVar)
++	return TimeoutAddFull(0, IntervalVar, &fn, DataVar, nil)
+ }
+ 
+ var xTimeoutAddSeconds func(uint32, uintptr, uintptr) uint32
+ 
+ func TimeoutAddSeconds(IntervalVar uint32, FunctionVar *SourceFunc, DataVar uintptr) uint32 {
+-	cret := xTimeoutAddSeconds(IntervalVar, NewCallback(FunctionVar), DataVar)
+-	return cret
++	return TimeoutAddSecondsFull(0, IntervalVar, FunctionVar, DataVar, nil)
+ }
+ 
+ var xTimeoutAddSecondsFull func(int32, uint32, uintptr, uintptr, uintptr) uint32
+ 
+ func TimeoutAddSecondsFull(PriorityVar int32, IntervalVar uint32, FunctionVar *SourceFunc, DataVar uintptr, NotifyVar *DestroyNotify) uint32 {
+-	cret := xTimeoutAddSecondsFull(PriorityVar, IntervalVar, NewCallback(FunctionVar), DataVar, NewCallbackNullable(NotifyVar))
+-	return cret
++	cb, destroy := managedSourceCallbacks(FunctionVar, NotifyVar)
++	return xTimeoutAddSecondsFull(PriorityVar, IntervalVar, cb, DataVar, destroy)
+ }
+ 
+ var xTimeoutAddSecondsOnce func(uint32, uintptr, uintptr) uint32
+ 
+ func TimeoutAddSecondsOnce(IntervalVar uint32, FunctionVar *SourceOnceFunc, DataVar uintptr) uint32 {
+-	cret := xTimeoutAddSecondsOnce(IntervalVar, NewCallback(FunctionVar), DataVar)
+-	return cret
++	fn := sourceOnce(FunctionVar)
++	return TimeoutAddSecondsFull(0, IntervalVar, &fn, DataVar, nil)
+ }
+ 
+ var xTimeoutSourceNew func(uint32) *Source
+diff --git a/v4/glib/more.go b/v4/glib/more.go
+index f2a24a0..64d3bf9 100644
+--- a/v4/glib/more.go
++++ b/v4/glib/more.go
+@@ -64,3 +64,58 @@ func (e *Error) Error() string {
+ func (e *Error) MessageGo() string {
+ 	return core.GoString(e.Message)
+ }
++
++// IsManagedCallback reports whether generated signal code owns this callback.
++// It does not claim ownership of arbitrary function addresses passed by callers.
++func IsManagedCallback(ref uintptr) bool {
++	callbacks.RLock()
++	defer callbacks.RUnlock()
++	for _, v := range callbacks.refs {
++		if v == ref {
++			return true
++		}
++	}
++	return false
++}
++
++// ReleaseManagedCallback is called after the final native GClosure is finalized.
++// Callers must not manually unref callbacks still attached to native objects.
++func ReleaseManagedCallback(ref uintptr) {
++	callbacks.Lock()
++	defer callbacks.Unlock()
++	for k, v := range callbacks.refs {
++		if v == ref {
++			delete(callbacks.refs, k)
++		}
++	}
++	releaseNativeCallback(ref)
++}
++
++// managedSourceCallbacks preserves native user-data semantics, including
++// SourceRemoveByUserData. Both trampoline slots live exactly as long as GSource.
++// It uses two slots per simultaneously live source; completion/cancellation
++// returns them even if the callback is never dispatched.
++func managedSourceCallbacks(fn *SourceFunc, notify *DestroyNotify) (callback, destroy uintptr) {
++	if fn == nil || *fn == nil {
++		panic("nil source callback")
++	}
++	callback = purego.NewCallback(*fn)
++	var onDestroy DestroyNotify
++	if notify != nil {
++		onDestroy = *notify
++	}
++	destroy = purego.NewCallback(func(data uintptr) {
++		defer func() { releaseNativeCallback(callback); releaseNativeCallback(destroy) }()
++		if onDestroy != nil {
++			onDestroy(data)
++		}
++	})
++	return
++}
++func sourceOnce(fn *SourceOnceFunc) SourceFunc {
++	if fn == nil || *fn == nil {
++		panic("nil source callback")
++	}
++	f := *fn
++	return func(data uintptr) bool { f(data); return false }
++}
+diff --git a/v4/glib/more_other.go b/v4/glib/more_other.go
+index 26bb92b..f59d0e8 100644
+--- a/v4/glib/more_other.go
++++ b/v4/glib/more_other.go
+@@ -6,3 +6,7 @@ package glib
+ func unrefCallback(_ interface{}) error {
+ 	panic("glib.UnrefCallback is unsupported on this platform")
+ }
++
++func releaseNativeCallback(ref uintptr) {
++	// Callback slot reclamation is unsupported on this platform.
++}
+diff --git a/v4/glib/more_sysv.go b/v4/glib/more_sysv.go
+index 37833d2..0230ec4 100644
+--- a/v4/glib/more_sysv.go
++++ b/v4/glib/more_sysv.go
+@@ -29,3 +29,9 @@ func unrefCallback(fnPtr interface{}) error {
+ 	}()
+ 	return purego.UnrefCallback(refPtr)
+ }
++
++func releaseNativeCallback(ref uintptr) {
++	if err := purego.UnrefCallback(ref); err != nil {
++		panic(err)
++	}
++}
+diff --git a/v4/glib/more_windows.go b/v4/glib/more_windows.go
+index bbde9c3..39cf6f7 100644
+--- a/v4/glib/more_windows.go
++++ b/v4/glib/more_windows.go
+@@ -4,3 +4,7 @@ package glib
+ func unrefCallback(_ interface{}) error {
+ 	return nil
+ }
++
++func releaseNativeCallback(ref uintptr) {
++	// Callback slot reclamation is unsupported on this platform.
++}
+diff --git a/v4/gobject/more.go b/v4/gobject/more.go
+index 741f060..e0702d8 100644
+--- a/v4/gobject/more.go
++++ b/v4/gobject/more.go
+@@ -1,7 +1,9 @@
+ package gobject
+ 
+ import (
++	"codeberg.org/puregotk/purego"
+ 	"reflect"
++	"sync"
+ 
+ 	"codeberg.org/puregotk/puregotk/v4/glib"
+ )
+@@ -29,7 +31,17 @@ func IncreaseRef(a uintptr) {
+ }
+ 
+ func SignalConnect(a uintptr, b string, c uintptr) uint32 {
+-	return xSignalConnectData(a, b, c, 0, 0, 0)
++	if !glib.IsManagedCallback(c) {
++		return xSignalConnectData(a, b, c, 0, 0, 0)
++	}
++	signalRefs.Lock()
++	signalRefs.refs[c]++
++	signalRefs.Unlock()
++	handler := xSignalConnectData(a, b, c, c, signalDestroy, 0)
++	if handler == 0 {
++		releaseSignal(c)
++	}
++	return handler
+ }
+ 
+ func (o Object) Cast(v Ptr) {
+@@ -37,7 +49,15 @@ func (o Object) Cast(v Ptr) {
+ }
+ 
+ func (o Object) ConnectSignal(signal string, cb *func()) uint32 {
+-	return SignalConnect(o.GoPointer(), signal, glib.NewCallback(cb))
++	key := reflect.ValueOf(cb).Pointer()
++	ref, exists := glib.GetCallback(key)
++	if !exists {
++		// Match generated signals: own a fresh thunk, rather than the FFI function-
++		// pointer cache whose entry can outlive an explicitly released thunk.
++		ref = purego.NewCallback(*cb)
++		glib.SaveCallback(key, ref)
++	}
++	return SignalConnect(o.GoPointer(), signal, ref)
+ }
+ 
+ func (o Object) DisconnectSignal(handler uint32) {
+@@ -72,3 +92,26 @@ const (
+ 	TypeReservedBseLastVal        = 48 << 2
+ 	TypeReservedUserFirstVal      = 49 << 2
+ )
++
++// A generated callback may be shared by multiple native closures. Release it
++// only when the last closure is finalized, including implicit object destruction.
++var signalRefs = struct {
++	sync.Mutex
++	refs map[uintptr]int
++}{refs: make(map[uintptr]int)}
++var signalDestroy = purego.NewCallback(func(data, closure uintptr) { releaseSignal(data) })
++
++func releaseSignal(ref uintptr) {
++	signalRefs.Lock()
++	n := signalRefs.refs[ref]
++	if n > 1 {
++		signalRefs.refs[ref] = n - 1
++		signalRefs.Unlock()
++		return
++	}
++	delete(signalRefs.refs, ref)
++	if n == 1 {
++		glib.ReleaseManagedCallback(ref)
++	}
++	signalRefs.Unlock()
++}

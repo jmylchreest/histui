@@ -1,0 +1,60 @@
+CGO-free GTK integration into histuid
+====================================
+
+Branch: feature/histuid-puregotk
+Base: b1bdfe6 (main, with PRs #94 through #98 merged).
+
+Direction: bring the qualified Codeberg binding approach into the existing
+histuid. Keep its daemon, D-Bus lifecycle, database, audio, configuration and
+production theme/layout behavior. Do not grow the synthetic fixture into a daemon.
+
+Initial foundation
+- internal/gtkruntime/layershell imports the tested narrow native binding behind
+  the puregotk build tag. No Wayland implementation or new native library.
+- Root module pins Codeberg puregotk and its purego dependency independently of
+  the ebitengine/purego used by audio.
+- scripts/puregotk/patches carries the exact qualification patches submitted as
+  https://codeberg.org/puregotk/puregotk/pulls/62 and /63.
+- scripts/puregotk/prepare.sh validates a disposable upstream checkout at
+  d92056b0aa411de74046dd2748e06e23d65d7a09, applies those patches and emits a
+  temporary modfile. No absolute external replace is committed to root go.mod.
+- This is an initial foundation, not a working CGO-free histuid build. The
+  production daemon still uses gotk4 until the components below are adapted.
+
+Compile the initial binding layer:
+  sh scripts/puregotk/prepare.sh /tmp/puregotk-review /tmp/histui-puregotk-mod
+  CGO_ENABLED=0 go build -modfile /tmp/histui-puregotk-mod/histui.mod \
+    -tags puregotk,puregotk_layershell ./internal/gtkruntime/layershell
+
+Production adaptation sequence
+1. Theme loader: keep import resolution, partial-theme inheritance, manifests,
+   embedded extraction, font overrides and hot reload; change only GTK access.
+2. Display manager/stack: main-thread dispatch, monitor selection/hotplug,
+   geometry/anchors/layers, replacement/stacking and source/callback ownership.
+3. Production popup/widget builder: every XML element/attribute, icons/images,
+   fallbacks, markup, progress, actions, hover timing and animations.
+4. Daemon startup/shutdown: initialize the new backend on the GTK thread and
+   preserve the current D-Bus/audio/storage paths and dismissal reasons.
+5. Remove gotk4 dependencies once the full CGO-disabled daemon and reference
+   behavior pass. Resolve reproducible upstream dependency distribution before
+   making this the default build (accepted upstream patches or a pinned carry).
+
+Acceptance
+- Existing real-daemon private-D-Bus/Sway tests, not just reduced fixture shots.
+- Same inputs and themes against the gotk4 reference and the port; compare
+  screenshots, actions, timeouts, replacements, images, reload and dismissal.
+- Native object/callback/source ownership audits, race checks and churn/soaks.
+- Debian/Fedora runtime; ARM64 execution; compositor/scaling/hotplug coverage.
+- Preserve configuration and CSS/XML theme contracts; keep the deployed daemon
+  unchanged until a complete port is qualified for a reversible local trial.
+
+Other work from the previous list
+Theme/popup tests #94, SQLite/security #95, TUI #96, audio #97 and docs/security
+#98 are merged. Broader platform qualification and upstream review remain;
+there is no outstanding storage-engine replacement.
+
+Initial verification (2026-11-04)
+- CGO_ENABLED=0 compilation of internal/gtkruntime/layershell passed using the
+  patched checkout and temporary modfile.
+- Existing audio, config, database, TUI and imagecapture tests passed with CGO=0.
+- git diff --check passed. No production renderer replacement or deployment yet.

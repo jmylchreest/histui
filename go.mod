@@ -3,6 +3,8 @@ module github.com/jmylchreest/histui
 go 1.26.0
 
 require (
+	codeberg.org/puregotk/purego v0.0.0-20260224095105-2513c838cb80
+	codeberg.org/puregotk/puregotk v0.0.0-20261003054014-d92056b0aa41
 	github.com/blacktop/go-termimg v0.1.26
 	github.com/charmbracelet/bubbles v1.0.0
 	github.com/charmbracelet/bubbletea v1.3.10
