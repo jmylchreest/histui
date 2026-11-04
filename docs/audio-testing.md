@@ -62,3 +62,21 @@ during this grace period; Stop and critical replacement cancel it. Oto exposes
 no precise hardware-drained signal, and stopping cannot retract samples already
 queued by the device. After first playback, the process context remains
 suspended when idle; initially disabled audio does not initialize it.
+
+## Local acceptance (2026-11-04)
+
+CGO-disabled unit tests, three ALSA-null race runs and three silent live-route
+codec runs passed. The user confirmed WAV, Vorbis and MP3 tones, a source-level
+quiet/louder pair, critical interruption and stop/restart sounded clean through
+the current PipeWire/PulseAudio output. Synthetic tones had at most 5% peak
+amplitude, with player volume 1.0. This is one device/session, not broad hardware
+qualification or an old/new backend comparison.
+
+The initial listening attempt at player volume 0.2 was inaudible. The existing
+volume curve uses Beep Base=2 with 20*log10(volume) as its exponent, giving about
+0.000062 amplitude gain at 0.2 rather than linear 0.2. Combined with quiet source
+material, the new signed-16-bit PCM conversion can round the result to silence.
+The same gain curve exists in the previous backend and is deliberately preserved
+by this backend migration; the corrected listening test bypassed it. Configured
+volume-scale correctness remains a separate issue requiring regression coverage
+and a decision about changing existing users' perceived volume.
