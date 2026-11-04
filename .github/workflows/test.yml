@@ -24,8 +24,16 @@ on:
 
 jobs:
   test:
-    name: Run tests
-    runs-on: ubuntu-latest
+    name: Run tests (${{ matrix.arch }})
+    strategy:
+      fail-fast: false
+      matrix:
+        include:
+          - arch: amd64
+            runner: ubuntu-24.04
+          - arch: arm64
+            runner: ubuntu-24.04-arm
+    runs-on: ${{ matrix.runner }}
     container:
       image: fedora:rawhide
     steps:
@@ -87,11 +95,13 @@ jobs:
             go test -race -count=3 -v -timeout 60s ./internal/audio
 
       - name: Compile audio tests for ARM64 without CGO
+        if: matrix.arch == 'amd64'
         run: |
           CGO_ENABLED=0 GOOS=linux GOARCH=arm64 \
             go test -c -o "$RUNNER_TEMP/histui-audio-arm64.test" ./internal/audio
 
       - name: Cross-build CGO-free daemon for ARM64
+        if: matrix.arch == 'amd64'
         run: GOOS=linux GOARCH=arm64 sh scripts/puregotk/go.sh build -o /tmp/histuid-arm64 ./cmd/histuid
 
       - name: Build
@@ -120,14 +130,22 @@ jobs:
         if: always()
         uses: actions/upload-artifact@cf430e030ddbb5b0abf93d22962f4752f3646cd9
         with:
-          name: gtk-popup-visual-evidence
+          name: gtk-popup-visual-evidence-${{ matrix.arch }}
           path: /tmp/histui-gtk-visual
           retention-days: 14
           if-no-files-found: warn
 
   visual:
-    name: TUI visual fixtures
-    runs-on: ubuntu-latest
+    name: TUI visual fixtures (${{ matrix.arch }})
+    strategy:
+      fail-fast: false
+      matrix:
+        include:
+          - arch: amd64
+            runner: ubuntu-24.04
+          - arch: arm64
+            runner: ubuntu-24.04-arm
+    runs-on: ${{ matrix.runner }}
     permissions:
       contents: read
     container:
@@ -166,7 +184,7 @@ jobs:
         if: always()
         uses: actions/upload-artifact@cf430e030ddbb5b0abf93d22962f4752f3646cd9
         with:
-          name: tui-visual-evidence
+          name: tui-visual-evidence-${{ matrix.arch }}
           path: /tmp/histui-visual
           retention-days: 14
           if-no-files-found: error
