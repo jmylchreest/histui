@@ -1,6 +1,20 @@
 name: Check Documentation
+run-name: ${{ inputs.fallback_of && format('fallback:{0}', inputs.fallback_of) || 'Check Documentation' }}
 
 on:
+  push:
+    branches: [main]
+    paths: ['docs/**', 'embed/themes/effects.css', '.github/workflows/docs-check.yml']
+  workflow_dispatch:
+    inputs:
+      backend:
+        type: choice
+        options: [hosted, arc]
+        default: hosted
+      source_sha:
+        type: string
+      fallback_of:
+        type: string
   pull_request:
     paths:
       - 'docs/**'
@@ -11,21 +25,33 @@ permissions:
   contents: read
 
 concurrency:
-  group: docs-check-${{ github.event.pull_request.number }}
+  group: docs-check-${{ github.event.pull_request.number || github.ref }}
   cancel-in-progress: true
 
 jobs:
   check:
+    if: ${{ !inputs.source_sha || inputs.source_sha == github.workflow_sha }}
     name: Typecheck and build documentation
-    runs-on: ubuntu-latest
+    runs-on: ${{ github.event_name != 'pull_request' && inputs.backend == 'arc' && 'histui-linux' || 'ubuntu-latest' }}
     timeout-minutes: 15
     defaults:
       run:
         working-directory: docs
     steps:
+      - name: Install pinned Git LFS on ARC
+        if: runner.environment == 'self-hosted'
+        working-directory: ${{ runner.temp }}
+        run: |
+          set -euo pipefail
+          curl -fsSL https://github.com/git-lfs/git-lfs/releases/download/v3.8.1/git-lfs-linux-amd64-v3.8.1.tar.gz -o git-lfs.tar.gz
+          echo 'e72cf723a4a660438862282e8aecf3885fc8123e88bfcad534cf6b941a354b75  git-lfs.tar.gz' | sha256sum -c -
+          mkdir -p git-lfs-bin
+          tar -xzf git-lfs.tar.gz --strip-components=1 -C git-lfs-bin
+          echo "$RUNNER_TEMP/git-lfs-bin" >> "$GITHUB_PATH"
       - name: Checkout pull request
         uses: actions/checkout@v7
         with:
+          ref: ${{ inputs.source_sha || github.sha }}
           lfs: true
           persist-credentials: false
 
