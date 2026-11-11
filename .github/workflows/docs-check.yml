@@ -38,6 +38,16 @@ jobs:
       run:
         working-directory: docs
     steps:
+      - name: Install pinned Git LFS on ARC
+        if: runner.environment == 'self-hosted'
+        working-directory: ${{ runner.temp }}
+        run: |
+          set -euo pipefail
+          curl -fsSL https://github.com/git-lfs/git-lfs/releases/download/v3.8.1/git-lfs-linux-amd64-v3.8.1.tar.gz -o git-lfs.tar.gz
+          echo 'e72cf723a4a660438862282e8aecf3885fc8123e88bfcad534cf6b941a354b75  git-lfs.tar.gz' | sha256sum -c -
+          mkdir -p git-lfs-bin
+          tar -xzf git-lfs.tar.gz --strip-components=1 -C git-lfs-bin
+          echo "$RUNNER_TEMP/git-lfs-bin" >> "$GITHUB_PATH"
       - name: Checkout pull request
         uses: actions/checkout@v7
         with:
