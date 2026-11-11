@@ -3,7 +3,7 @@ run-name: ${{ inputs.fallback_of && format('fallback:{0}', inputs.fallback_of) |
 
 on:
   push:
-    branches: [main, codex/arc-docs]
+    branches: [main]
     paths: ['docs/**', 'embed/themes/effects.css', '.github/workflows/docs-check.yml']
   workflow_dispatch:
     inputs:
@@ -32,7 +32,7 @@ jobs:
   check:
     if: ${{ !inputs.source_sha || inputs.source_sha == github.workflow_sha }}
     name: Typecheck and build documentation
-    runs-on: ${{ github.event_name != 'pull_request' && (inputs.backend == 'arc' || github.ref == 'refs/heads/codex/arc-docs') && 'histui-linux' || 'ubuntu-latest' }}
+    runs-on: ${{ github.event_name != 'pull_request' && inputs.backend == 'arc' && 'histui-linux' || 'ubuntu-latest' }}
     timeout-minutes: 15
     defaults:
       run:
