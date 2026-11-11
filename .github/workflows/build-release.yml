@@ -9,8 +9,6 @@ name: Build Release
 
 on:
   push:
-    branches:
-      - main
     tags:
       - "v*"
   workflow_dispatch:
@@ -27,10 +25,11 @@ on:
         type: boolean
 
 # Cancel in-progress runs for the same ref
+  schedule:
+    - cron: 47 4 * * *
 concurrency:
-  group: ${{ github.workflow }}-${{ github.ref }}
-  cancel-in-progress: true
-
+  group: release-${{ github.workflow }}-${{ github.event.pull_request.number || github.ref }}
+  cancel-in-progress: ${{ !startsWith(github.ref, 'refs/tags/') }}
 env:
   GO_VERSION: stable
   SNAPSHOT_RETENTION: ${{ inputs.snapshot_retention || '5' }}
@@ -67,10 +66,35 @@ jobs:
             echo "should_skip=false" >> $GITHUB_OUTPUT
           fi
 
+          # Manual runs remain available to intentionally rebuild the same commit.
+          if [ "$GITHUB_EVENT_NAME" = schedule ]; then
+            previous=$(gh api "repos/$GITHUB_REPOSITORY/actions/workflows/build-release.yml/runs" \
+              --method GET -f head_sha="$GITHUB_SHA" -f status=success -f per_page=100 \
+              --jq '[.workflow_runs[] | select(.event == "schedule" or .event == "workflow_dispatch")] | length')
+            if [ "$previous" -gt 0 ]; then
+              echo 'Unchanged since the last successful snapshot; skipping.'
+              echo 'should_skip=true' >> "$GITHUB_OUTPUT"
+            fi
+          fi
+
+        env:
+          GH_TOKEN: ${{ github.token }}
+    permissions:
+      contents: read
+      actions: read
+  test:
+    name: CI gate
+    needs: prepare
+    if: needs.prepare.outputs.should_skip != 'true'
+    uses: ./.github/workflows/test.yml
+    with:
+      use_cache: ${{ github.event_name != 'workflow_dispatch' || inputs.use_cache }}
   build:
     name: Build (${{ matrix.goos }}/${{ matrix.goarch }})
     runs-on: ${{ matrix.os }}
-    needs: prepare
+    needs:
+      - prepare
+      - test
     if: needs.prepare.outputs.should_skip != 'true'
     container:
       image: fedora:rawhide
@@ -98,6 +122,9 @@ jobs:
       - name: Configure Git safe directory
         run: git config --global --add safe.directory "$GITHUB_WORKSPACE"
 
+      - name: Identify Go toolchain
+        id: go-version
+        run: echo "version=$(go env GOVERSION)" >> "$GITHUB_OUTPUT"
       - name: Cache Go build
         if: inputs.use_cache != false
         uses: actions/cache@v6
@@ -105,28 +132,11 @@ jobs:
           path: |
             /root/.cache/go-build
             /root/go/pkg/mod
-          key: ${{ runner.os }}-${{ runner.arch }}-go-${{ hashFiles('go.sum') }}-${{ github.run_number }}
+          key: go-v2-${{ runner.os }}-${{ runner.arch }}-${{ steps.go-version.outputs.version }}-${{ hashFiles('**/go.sum') }}-${{
+            github.sha }}
           restore-keys: |
-            ${{ runner.os }}-${{ runner.arch }}-go-${{ hashFiles('go.sum') }}-
-            ${{ runner.os }}-${{ runner.arch }}-go-
-
-      - name: Run tests (pure Go packages with race detector)
-        run: |
-          go test -race -v -timeout 60s \
-            ./internal/model/... \
-            ./internal/core/... \
-            ./internal/config/... \
-            ./internal/dbus/... \
-            ./internal/icon/... \
-            ./internal/tui/... \
-            ./internal/db/... \
-            ./internal/adapter/...
-
-      - name: Run GTK-independent theme/layout tests with race detector
-        run: |
-          CGO_ENABLED=1 sh scripts/puregotk/go.sh test -race -v -timeout 60s \
-            ./internal/theme/... \
-            ./internal/layout/...
+            go-v2-${{ runner.os }}-${{ runner.arch }}-${{ steps.go-version.outputs.version }}-${{ hashFiles('**/go.sum') }}-
+            go-v2-${{ runner.os }}-${{ runner.arch }}-${{ steps.go-version.outputs.version }}-
 
       - name: Build histui (CLI - pure Go)
         env:

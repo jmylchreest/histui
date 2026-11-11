@@ -4,9 +4,6 @@ on:
   push:
     branches:
       - main
-    tags:
-      - "v*"
-      - "!*SNAPSHOT*"
     paths-ignore:
       - "docs/**"
       - "**.md"
@@ -22,6 +19,11 @@ on:
         default: true
         type: boolean
 
+  workflow_call:
+    inputs:
+      use_cache:
+        type: boolean
+        default: true
 jobs:
   test:
     name: Run tests (${{ matrix.arch }})
@@ -49,6 +51,9 @@ jobs:
       - name: Configure Git safe directory
         run: git config --global --add safe.directory "$GITHUB_WORKSPACE"
 
+      - name: Identify Go toolchain
+        id: go-version
+        run: echo "version=$(go env GOVERSION)" >> "$GITHUB_OUTPUT"
       - name: Cache Go build
         if: inputs.use_cache != false
         uses: actions/cache@v6
@@ -56,10 +61,11 @@ jobs:
           path: |
             /root/.cache/go-build
             /root/go/pkg/mod
-          key: ${{ runner.os }}-${{ runner.arch }}-go-${{ hashFiles('go.sum') }}-${{ github.run_number }}
+          key: go-v2-${{ runner.os }}-${{ runner.arch }}-${{ steps.go-version.outputs.version }}-${{ hashFiles('**/go.sum') }}-${{
+            github.sha }}
           restore-keys: |
-            ${{ runner.os }}-${{ runner.arch }}-go-${{ hashFiles('go.sum') }}-
-            ${{ runner.os }}-${{ runner.arch }}-go-
+            go-v2-${{ runner.os }}-${{ runner.arch }}-${{ steps.go-version.outputs.version }}-${{ hashFiles('**/go.sum') }}-
+            go-v2-${{ runner.os }}-${{ runner.arch }}-${{ steps.go-version.outputs.version }}-
 
       - name: Verify dependencies
         run: go mod verify
@@ -108,7 +114,8 @@ jobs:
         run: CGO_ENABLED=0 sh scripts/puregotk/go.sh build ./...
 
       - name: Install popup screenshot runtime
-        run: dnf install -y sway swaybg grim dbus-daemon python3-dbus python3-pillow python3-gobject wayland-devel dejavu-sans-fonts shadow-utils util-linux
+        run: dnf install -y sway swaybg grim dbus-daemon python3-dbus python3-pillow python3-gobject wayland-devel dejavu-sans-fonts
+          shadow-utils util-linux
 
       - name: Verify native popup and callback lifetimes
         run: |
@@ -156,6 +163,16 @@ jobs:
       - uses: actions/checkout@v7
       - name: Configure Git safe directory
         run: git config --global --add safe.directory "$GITHUB_WORKSPACE"
+      - name: Identify Go toolchain
+        id: go-version
+        run: echo "version=$(go env GOVERSION)" >> "$GITHUB_OUTPUT"
+      - name: Cache visual Go build
+        id: visual-cache
+        uses: actions/cache@55cc8345863c7cc4c66a329aec7e433d2d1c52a9
+        with:
+          path: "/root/.cache/go-build\n/root/go/pkg/mod"
+          key: visual-go-${{ runner.arch }}-${{ steps.go-version.outputs.version }}-${{ hashFiles('go.sum') }}-${{ github.sha }}
+          restore-keys: visual-go-${{ runner.arch }}-${{ steps.go-version.outputs.version }}-${{ hashFiles('go.sum') }}-
       - name: Keep CLI independent of GTK bindings
         env:
           CGO_ENABLED: "0"
@@ -188,3 +205,6 @@ jobs:
           path: /tmp/histui-visual
           retention-days: 14
           if-no-files-found: error
+concurrency:
+  group: checks-${{ github.workflow }}-${{ github.event.pull_request.number || github.ref }}
+  cancel-in-progress: true
