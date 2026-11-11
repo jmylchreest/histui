@@ -1,6 +1,20 @@
 name: Check Documentation
+run-name: ${{ inputs.fallback_of && format('fallback:{0}', inputs.fallback_of) || 'Check Documentation' }}
 
 on:
+  push:
+    branches: [main, codex/arc-docs]
+    paths: ['docs/**', 'embed/themes/effects.css', '.github/workflows/docs-check.yml']
+  workflow_dispatch:
+    inputs:
+      backend:
+        type: choice
+        options: [hosted, arc]
+        default: hosted
+      source_sha:
+        type: string
+      fallback_of:
+        type: string
   pull_request:
     paths:
       - 'docs/**'
@@ -11,13 +25,14 @@ permissions:
   contents: read
 
 concurrency:
-  group: docs-check-${{ github.event.pull_request.number }}
+  group: docs-check-${{ github.event.pull_request.number || github.ref }}
   cancel-in-progress: true
 
 jobs:
   check:
+    if: ${{ !inputs.source_sha || inputs.source_sha == github.workflow_sha }}
     name: Typecheck and build documentation
-    runs-on: ubuntu-latest
+    runs-on: ${{ github.event_name != 'pull_request' && (inputs.backend == 'arc' || github.ref == 'refs/heads/codex/arc-docs') && 'histui-linux' || 'ubuntu-latest' }}
     timeout-minutes: 15
     defaults:
       run:
@@ -26,6 +41,7 @@ jobs:
       - name: Checkout pull request
         uses: actions/checkout@v7
         with:
+          ref: ${{ inputs.source_sha || github.sha }}
           lfs: true
           persist-credentials: false
 
